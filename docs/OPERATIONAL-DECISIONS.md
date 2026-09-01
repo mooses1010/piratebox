@@ -20,6 +20,68 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 17: Complete Local Information / Content Audit
+
+**Decision date:** 2026-09-01. Layered on Stage 16 (`8266484`/`84bb565`).
+Commit note: the cross-link fixes below and the deploy-script data-loss
+fix ended up in one commit (`a4478f1`) rather than two, because the
+cross-link files were already `git add`-ed before the bug was discovered
+mid-stage - both sets of changes are correct and tested, just not as
+cleanly separated in history as usual.
+
+**Audit method:** enumerated every dataset's entry count (confirms Maps
+catalog and Library catalog are the only genuinely empty ones - by
+design, not oversight); crawled every Utility section page's
+`hero-actions` cross-links looking specifically for missing connections
+between related sections.
+
+**Missing cross-links found and fixed:** Radio didn't link to Emergency
+(despite its own `emergency-monitoring-quick-reference` guide topic
+conceptually pointing at it) or Local Information; First Aid and Library
+didn't link to Local Information either. All four fixed - Local
+Information is now reachable from every section whose content it
+naturally complements (repeaters from Radio, hospitals/shelters from
+Emergency/First Aid/Library), not just Emergency/Maps as before.
+
+**Local Information - fields needing operator population** (not
+fabricated, per instruction - deployment location isn't known to this
+session): `region_label`, `last_updated`, `emergency_management`,
+`nws_office`, `hospitals`, `shelters`, `amateur_repeaters`, `radio_notes`,
+`map_references`, `other_resources` are all still blank. Only the two
+universal `emergency_numbers` (911, Poison Control) are populated, as
+established in Stage 6. **Schema enhanced** (not the content) so that
+whenever these fields do get populated, each entry can optionally carry
+`source`/`verified`/`confidence` - documented in a new
+`data/utility/local/README.md` (mirroring Stage 7 Library's own README
+pattern) and rendered on the page (`li_provenance()` helper) when present,
+confirmed via direct unit test to render correctly when populated and
+render nothing when absent.
+
+**Curated content acquisition plan for Maps/Library (documentation only -
+nothing downloaded)**, researched rather than guessed at:
+
+| Candidate | Publisher/license | Approx. size | Assessment |
+|---|---|---|---|
+| Individual FEMA/Ready.gov hazard info sheets (thunderstorm, tornado, flood, earthquake, wildfire, extreme heat, winter storm, power outage, hurricane, etc.) | U.S. government work - public domain, FEMA explicitly permits reproduction | A few hundred KB each; the "full suite" PDF is a few MB | **Best near-term candidate** - small, clearly public domain, and would directly complement the Emergency Reference topics already citing these exact source pages. Still requires the operator's explicit go-ahead per instruction before any download. |
+| FEMA "Are You Ready? An In-Depth Guide to Citizen Preparedness" (P-2064 / IS-22) | U.S. government work - public domain | **~183MB** (204 pages, per Internet Archive's listing) | Public domain, but the size alone crosses into "significant download" - would need its own explicit approval, not bundled into a smaller batch. |
+| Red Cross first-aid/CPR reference guides | Redistribution terms **unclear** - offered through a "My Digital Books" access-controlled platform and a paid store in the material found this session | Not verified | **Do not acquire** without first getting clear confirmation of redistribution rights - unlike FEMA's government works, "free to view" was not confirmed to mean "free to redistribute" here. |
+| ARRL band-plan/reference material | Member/copyrighted content, not public domain | N/A | **Excluded from any acquisition plan** - already correctly treated as citation-only (voluntary-convention source), never as bundled PDF content, throughout Stages 2-10. |
+| Raspberry Pi/Linux/networking official documentation | Likely partially open-licensed (not verified this session) | Not researched | Flagged as a plausible future category - needs its own license/size research pass before any acquisition decision, not assumed. |
+
+No files were downloaded. Per instruction, if/when the operator wants to
+proceed with the FEMA hazard-info-sheet candidates (the only "ready to
+acquire" row above), that's a small, explicit, separately-approved next
+step - not something this audit triggers on its own.
+
+**Testing:** `php -l` clean; deploy previewed with an itemized dry-run;
+live regression sweep of every existing page unaffected (including the
+deploy-script bug's own aftermath, fully resolved - see the separate
+`a4478f1` entry above); `li_provenance()` unit-tested directly for both
+populated and empty cases; mode confirmed still Normal throughout (no
+mode-conditional content touched this stage).
+
+**Backup:** `~/piratebox-backups/audit-stage17-pre-20260901-073340/`.
+
 ## Stage 16: Public PirateBox ID / Found Device / Recovery System
 
 **Decision date:** 2026-09-01. Layered on Stage 14 (`afabb4e`). The
