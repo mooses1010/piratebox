@@ -44,10 +44,25 @@ back to (`git checkout <hash>` or restore the matching backup under
 
 Live box mode should be **Normal** when unattended between test sessions.
 
-**IMPORTANT for the next session (human or Claude):** Stages 24-32 above
-live on local branch `worktree-stage24`, not yet folded onto `main` -
-see Stage 32's entry in OPERATIONAL-DECISIONS.md for the full recovery
-context and a `git merge --ff-only worktree-stage24` one-liner to fix
-this. The live site already reflects all of this work regardless (file
-content was kept in sync with every deploy) - this is a git-history
-housekeeping item, not a functional gap.
+**Resolved 2026-09-01:** `worktree-stage24` has been fast-forward-merged
+onto `main` (`main` now at `334f7f1`, identical commit to
+`worktree-stage24`'s tip). Verified directly: `git status` clean, and a
+full `diff -rq` of the primary checkout's `var/www/html` against the
+live deployed `/var/www/html` shows zero code/content differences -
+only the already-documented deploy-excluded live files (`VERSION`,
+QR codes, `chat.json`/`messages.json`/`recovery-messages.json`,
+`uploads/`) differ, exactly as designed. Nothing was pushed to the
+`origin` GitHub remote (unchanged project practice).
+
+Of the Stage 32 follow-up checklist, item 1 (this fold) is now done.
+Items 2-5 (`setup_claude_automation.sh` re-run, the
+`piratebox-status.service` fix, the backup timer install, and
+`fake-hwclock`) were each attempted this session via `sudo -n` /
+directly and confirmed still blocked - all four genuinely require the
+operator's own interactive password (and, for `fake-hwclock`, an
+explicit package-install go-ahead), exactly as documented; none of this
+session's automation covers them. Items 6 (populate Local Information)
+and 7 (the `purge_uploads.sh` gap) remain as-is - the former needs the
+operator's real-world data, the latter is a deliberately-deferred future
+maintenance item, not touched here per instruction to not start new
+work.
