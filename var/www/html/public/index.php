@@ -82,10 +82,10 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
 
     <?php if ($piratebox_mode === PIRATEBOX_MODE_EMERGENCY): ?>
         <div class="hero">
-            <div class="hero-tagline">Local Emergency Information Network</div>
-            <h1>Local Offline Network</h1>
-            <p>This is designed to run on battery power. Internet access is not required or provided.</p>
-            <p>This network contains locally stored emergency information, radio references, maps, first-aid references, files, and local communication tools.</p>
+            <div class="hero-tagline">Local Offline Network</div>
+            <h1>This Network Does Not Require Internet Access</h1>
+            <p>This is an intentionally local, offline network - it is designed to run on battery power, and does not provide or require Internet access.</p>
+            <p>Useful information is stored directly on this device: emergency guidance, radio references, maps, first-aid references, and reference documents. Local file sharing and messaging with anyone else connected here still work normally.</p>
         </div>
 
         <div class="utility-grid">
@@ -93,6 +93,11 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
                 <span class="utility-card-icon" aria-hidden="true">🚨</span>
                 <span class="utility-card-title">Emergency Info</span>
                 <span class="utility-card-desc">Outage, storm &amp; disaster guidance</span>
+            </a>
+            <a class="utility-card" href="/utility/firstaid/">
+                <span class="utility-card-icon" aria-hidden="true">🩹</span>
+                <span class="utility-card-title">First Aid</span>
+                <span class="utility-card-desc">Basic conservative reference</span>
             </a>
             <a class="utility-card" href="/utility/radio/">
                 <span class="utility-card-icon" aria-hidden="true">📻</span>
@@ -104,10 +109,15 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
                 <span class="utility-card-title">Maps</span>
                 <span class="utility-card-desc">Local &amp; regional maps</span>
             </a>
-            <a class="utility-card" href="/utility/firstaid/">
-                <span class="utility-card-icon" aria-hidden="true">🩹</span>
-                <span class="utility-card-title">First Aid</span>
-                <span class="utility-card-desc">Basic conservative reference</span>
+            <a class="utility-card" href="/utility/search/">
+                <span class="utility-card-icon" aria-hidden="true">🔍</span>
+                <span class="utility-card-title">Search</span>
+                <span class="utility-card-desc">Search everything on this network</span>
+            </a>
+            <a class="utility-card" href="/utility/library/">
+                <span class="utility-card-icon" aria-hidden="true">📚</span>
+                <span class="utility-card-title">Library</span>
+                <span class="utility-card-desc">Manuals &amp; reference documents</span>
             </a>
             <a class="utility-card" href="/chat.php">
                 <span class="utility-card-icon" aria-hidden="true">💬</span>
@@ -118,16 +128,6 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
                 <span class="utility-card-icon" aria-hidden="true">📁</span>
                 <span class="utility-card-title">Files</span>
                 <span class="utility-card-desc">Share &amp; download files</span>
-            </a>
-            <a class="utility-card" href="/utility/search/">
-                <span class="utility-card-icon" aria-hidden="true">🔍</span>
-                <span class="utility-card-title">Search</span>
-                <span class="utility-card-desc">Search everything on this network</span>
-            </a>
-            <a class="utility-card" href="/utility/library/">
-                <span class="utility-card-icon" aria-hidden="true">📚</span>
-                <span class="utility-card-title">Library</span>
-                <span class="utility-card-desc">Manuals &amp; reference documents</span>
             </a>
         </div>
 

@@ -6,6 +6,69 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Offline Utility Library - Stage 9: Utility Landing / Emergency Experience Polish
+
+**Decision date:** 2026-09-01.
+
+**Scope:** revisits Emergency Mode's root landing (`public/index.php`,
+originally built in the Emergency Mode foundation phase before any real
+Utility content existed) now that Stages 2-8 have given it real content to
+prioritize. Normal Mode's landing and nav were deliberately left
+untouched - confirmed unchanged. No networking/security-boundary/
+Emergency-Mode-state-mechanism changes; no packages installed. Layered on
+Stage 8 (`e1f19bd`).
+
+**Card order changed** to match the operator's now-informed priority list:
+Emergency Info, First Aid, Radio, Maps, Search, Library, Messages/Chat,
+Files (previously: Emergency, Radio, Maps, First Aid, Messages/Chat,
+Files, Search, Library - an order chosen back when Search and Library were
+still empty placeholders). First Aid moved up next to Emergency Info;
+Search and Library moved ahead of Chat/Files now that they're real,
+useful, content-rich sections rather than stubs.
+
+**Hero copy tightened** for the "random person finds the SSID during an
+outage" scenario: tagline is now the literal phrase "Local Offline
+Network"; the heading states plainly "This Network Does Not Require
+Internet Access"; the body explicitly says "intentionally local" and
+spells out that local file sharing/messaging still work normally, not
+just that reference content exists. Same calm dark/purple visual language
+as everywhere else on the site - no red/alarm styling, no security-tool
+aesthetic, consistent with the operator's explicit "not a scary hacker
+page" requirement.
+
+**Local Information was deliberately NOT added to this 8-card grid** -
+the operator's own priority list for this stage named exactly 8 items and
+didn't include it; it stays reachable via the Emergency Info page's own
+cross-link (added in Stage 6) and the full `/utility/` landing grid,
+without crowding the primary Emergency Mode card list.
+
+**Mobile-usability review performed at the CSS/design level** (no
+physical device available this session, consistent with the same honest
+disclosure Phase 5 already made about its own onboarding redesign):
+confirmed `.utility-grid`'s `repeat(auto-fit, minmax(180px, 1fr))` reflows
+to 2 columns at typical phone widths, confirmed the global button/input/
+select/a `min-height: 2.25rem` touch-target rule (Phase 5) already covers
+every new interactive element added since (`.radio-chip` is a real
+`<button>`; `<details><summary>` already exceeds the 44px guideline from
+its own padding), and confirmed new text colors (`#aaa` on `#181821`)
+comfortably clear WCAG AA contrast. A real-device pass remains a good
+idea before relying on this for an actual event, same caveat Phase 5
+already carries forward.
+
+**Testing performed:** `php -l` clean; confirmed Normal Mode's landing
+renders byte-identical to before (no `utility-grid` present, `<h1>`
+unchanged) - **zero regression to Normal Mode**; **deploy previewed with
+an itemized dry-run** (confirmed only `public/index.php` would change)
+before applying; live regression sweep of every existing page unaffected;
+live-verified the new 8-card order and hero copy in Emergency Mode exactly
+match spec; banner and `/admin/` gating confirmed still correct;
+`nginx`/`php8.4-fpm`/`hostapd`/`dnsmasq` active throughout, no restarts;
+error logs clean across the full testing window. Live mode restored to
+explicit Normal before finishing - entire cycle via the automation.
+
+**Backup:** `~/piratebox-backups/polish-stage9-pre-20260901-065258/` (full
+`var/www/html` mirror + pre-change git HEAD `51b7e8f`).
+
 ## Offline Utility Library - Stage 8: Global Offline Search
 
 **Decision date:** 2026-09-01.
