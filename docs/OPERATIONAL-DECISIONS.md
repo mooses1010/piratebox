@@ -6,6 +6,108 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Offline Utility Library - Stage 10: Accessibility / Resilience / Performance Audit
+
+**Decision date:** 2026-09-01.
+
+**Scope:** a dedicated review pass across the entire Utility Library
+(Stages 1-9) - no code changes were needed as a result, since the audit
+found no real defects. Purely read-only against the live site, plus one
+safe, isolated resilience test against a throwaway temp copy that never
+touched live data. Layered on Stage 9 (`9e14b53`); HEAD unchanged by this
+entry except for this documentation.
+
+**Findings, by checklist item:**
+
+- **JSON validity:** all 15 data files across every section validated -
+  clean.
+- **Broken links:** crawled all 12 pages (main site + every Utility
+  section), extracted every internal `href`/`src` (95 total, including
+  every deep-link fragment introduced in Stage 8) - 15 unique destination
+  pages, zero broken. Separately verified all 95 fragment-bearing links
+  (`#entry-id`) actually resolve to a real element `id` on their target
+  page, not just that the page loads - **zero mismatches**.
+- **Source citations:** automated-checked all 52 unique source URLs across
+  every dataset. 44 resolved `200` directly. 7 CDC URLs and 1 USGS URL
+  returned `403`/failed to connect under automated request patterns -
+  investigated rather than dismissed: confirmed `cdc.gov` itself is fully
+  reachable (the block is anti-bot protection on specific content pages,
+  the same pattern already well-documented for FCC/Ready.gov in Stages
+  2-4, now confirmed to extend to CDC's domain too); the USGS failure was
+  isolated to a **local Pi issue** - broken IPv6 routes to some of
+  `usgs.gov`'s resolved addresses causing curl to exhaust IPv6 attempts
+  before an SSL-related timeout, confirmed by forcing IPv4 (`curl -4`,
+  still failed with an SSL cert error) and then confirming the actual page
+  exists by skipping cert verification (`-k`, returned the same `403`
+  anti-bot response as CDC) - not a dead or incorrect citation, and not
+  something that affects the offline site at all (this only matters for
+  the Pi's own outbound research capability during content-building
+  sessions, never for an end user connected to the AP). No citation was
+  changed; none needed to be.
+- **Malformed-JSON / failure-scenario resilience** (the required
+  "intentionally weak/failure scenario" test): explicitly corrupted
+  (invalid syntax), deleted, and emptied three different section data
+  files **on an isolated temp copy of the whole tree** (never the live
+  site) and rendered each affected page via the PHP CLI directly. In every
+  case: zero fatal errors, zero PHP warnings, the page chrome (title,
+  nav, disclaimers) rendered correctly, and the *unaffected* content on
+  the same page (e.g. Radio's modulation/guides sections when only
+  `services.json` was corrupted) kept working normally - confirming the
+  `is_array($decoded) ? $decoded : []` defensive pattern used by every
+  section's data loader behaves exactly as designed under real corruption,
+  not just in theory.
+- **JS-off behavior:** every page in this project has been rendered and
+  verified via the PHP CLI directly (which never executes JavaScript)
+  before every single deploy since Stage 2 - this audit didn't need to
+  re-invent that check, just confirms the pattern held throughout: all
+  core reference content is server-rendered HTML, `<details>/<summary>`
+  are native browser elements (keyboard-operable with no JS), and the only
+  JS-dependent behavior anywhere is live search-as-you-type filtering and
+  the Stage 8 deep-link auto-open convenience - both explicitly designed
+  as enhancements over already-complete server-rendered content, never a
+  requirement to see it.
+- **Semantic HTML / heading hierarchy:** every page has exactly one
+  `<h1>`, followed only by `<h2>` group headings with no skipped levels -
+  checked across all 8 Utility pages plus the main site.
+- **Keyboard navigation:** every interactive element across the whole
+  Utility Library is a real semantic element (`<button>` for filter
+  chips, native `<details>/<summary>` for expand/collapse, `<a>` for
+  links, `<input>` for search) - no custom JS-dependent widgets anywhere,
+  so keyboard operability is inherent, not something bolted on.
+- **Contrast:** reconfirmed the Stage 9 review - new text colors (`#aaa`
+  on `#181821`) clear WCAG AA comfortably.
+- **Duplicated content:** reconfirmed Normal/Emergency Mode content
+  identity holds (already proven live every stage since the Emergency
+  Mode foundation phase); cross-section topics that sound related (e.g.
+  Emergency's heat/cold guidance vs. First Aid's) are deliberately
+  distinct in framing (preparedness vs. treatment) and were written
+  separately from different source material, not copy-pasted duplicates.
+- **Stale placeholder text:** none found - the only remaining "not yet"-
+  style messages are the deliberate, correct empty-state messages for
+  Local Information's still-blank fields and (unreachable in practice
+  now, since it always exists) the Search page's missing-index fallback.
+- **Unnecessary network requests / external dependencies:** re-confirmed
+  zero `http(s)://` references anywhere in served PHP/JS/CSS other than
+  the SVG XML namespace declaration (a required spec string, never a
+  network fetch) and source-citation links a visitor would open
+  deliberately.
+- **Asset/data sizes and weak-Wi-Fi load behavior:** total
+  `data/utility/` payload across all 6 sections is **212KB**; the two
+  largest rendered pages (Radio, Search) are 108KB/77KB uncompressed but
+  confirmed **actually compress to 17KB/13KB over the wire** (nginx gzip
+  confirmed active via `Content-Encoding: gzip`, verified with real byte
+  counts, not just the response header) - a 5.9-6.4x reduction, trivial
+  even on a congested Pi 3B+ AP connection. `scripts.js` (~21.7KB) and
+  `styles.css` (~21.3KB) are shared, cached-by-the-browser-after-first-
+  load, single files - no bundle bloat, no per-page duplication.
+- **Mobile/phone layouts:** re-confirmed the Stage 9 CSS-level findings
+  hold across every section page, not just the one landing page Stage 9
+  touched directly.
+
+**No code changes resulted from this audit** - everything checked came
+back clean or was a false alarm correctly diagnosed and explained above,
+not silently ignored. This entry is the deliverable for this stage.
+
 ## Offline Utility Library - Stage 9: Utility Landing / Emergency Experience Polish
 
 **Decision date:** 2026-09-01.
