@@ -37,5 +37,6 @@ back to (`git checkout <hash>` or restore the matching backup under
 | Stage 26: Versioning - VERSION auto-stamp on deploy | `ebc1b5f` | (deploy script only, no var/www/html changes; not yet live - pending `setup_claude_automation.sh` re-run) |
 | Stage 27: Build/Maintenance Pipeline Consolidation | `11dda03` | `~/piratebox-backups/pipeline-stage27-post-20260901-111137/` (post-stage, not pre - see OPERATIONAL-DECISIONS.md) |
 | Stage 28: RTC / Time Readiness (audited, design only) | `a246bae` | (docs only, no site/system changes) |
+| Stage 29: Physical Control UX Design | `d94a9d1` | (docs only, no site/system changes) |
 
 Live box mode should be **Normal** when unattended between test sessions.
