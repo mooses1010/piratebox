@@ -20,6 +20,26 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 23: Voluntary Check-in Board - evaluated, deferred
+
+**Decision date:** 2026-09-01. Layered on Stage 22 (`0b046eb`).
+
+Evaluated and **deferred, not implemented** - full evaluation in
+`docs/CHECKIN-BOARD-DESIGN.md`. In short: a structured "who has checked
+in as safe" directory is a fundamentally different (and higher-stakes)
+artifact than Bulletin Board's free-text posts, because PirateBox's
+zero-account model means anyone can post any status under any name with
+no way to verify it - impersonation and presence/absence disclosure
+aren't edge cases for this specific feature, they're the central risk,
+and neither is solved by making the feature simpler to build. The
+governing instruction's "more capability must not make PirateBox
+substantially more fragile" principle applies directly: a spoofable
+safety directory is a worse kind of fragile than a missing stat. Stage
+22's Bulletin Board already covers the legitimate underlying need
+(voluntary self-reported status, in the poster's own words, with no
+false authority attached). No code, page, or data file was added for
+this stage.
+
 ## Stage 22: Community Bulletin Board
 
 **Decision date:** 2026-09-01. Layered on Stage 21 (`7579ff9`/`fb17267`).
