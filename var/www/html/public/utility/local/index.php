@@ -247,6 +247,7 @@ function li_field_row(string $label, ?string $value): void
             <a href="/utility/emergency/">Emergency</a>
             <a href="/utility/maps/">Maps</a>
             <a href="/utility/search/">Search</a>
+            <a href="/utility/download/">Take This With You</a>
         </div>
     </div>
 

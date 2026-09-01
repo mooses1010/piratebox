@@ -251,6 +251,7 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
             <a href="/utility/emergency/">Emergency</a>
             <a href="/utility/local/">Local Information</a>
             <a href="/utility/search/">Search</a>
+            <a href="/utility/download/">Take This With You</a>
         </div>
     </div>
 

@@ -20,6 +20,90 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 19: "Take This With You" Download / Export System
+
+**Decision date:** 2026-09-01. Layered on Stage 18 (`0190a70`). The
+flagship feature of this expansion batch.
+
+**PHP's `ZipArchive` extension is not installed** (confirmed directly:
+`php -m | grep zip` empty, `class_exists('ZipArchive')` false) - installing
+it would cross the explicit package-install stop condition. Resolved by
+building ZIPs with **Python's standard-library `zipfile` module** (no new
+package - `python3` is already present) inside a new **explicit, offline
+build script** (`tools/build_export_bundles.py`), which is also exactly
+the architecture the instruction itself prefers: source data → explicit
+build process → cached/static bundles, never built per-request.
+
+**Static offline copy - the core deliverable:** the build script reads
+the *same* JSON files every live section page reads (single source of
+truth) and generates genuinely standalone static HTML - relative links
+throughout, `assets/styles.css`/`scripts.js` bundled verbatim (byte-
+identical to live, confirmed), same `radio-entry`/`data-search`/
+`data-group` markup as the live pages so the existing search/filter JS
+works completely unmodified on the offline copy too. **Tested away from
+the live environment**, per instruction: extracted the built ZIP into an
+isolated temp directory and verified independently - correct file
+structure, zero absolute `/utility/`or `/assets/` references anywhere,
+zero leftover `<?php`/`<?=` tags, `<details>`/`</details>` balanced (37/37
+on the Radio page), entry counts matching the live site exactly per
+section, and the empty Library catalog degrading to a clean message
+rather than an error.
+
+**Three tiers, as specified:** individual raw JSON per section (the
+lightest option - literally the same data files, copied verbatim);
+4 logical bundles (Radio; Emergency+First Aid together, since they're
+closely related life-safety reference; Maps+Local Information together;
+Library - "Manuals/Documents"); one Complete Offline Utility Library ZIP.
+Plus a CSV export for Radio's services table specifically - genuinely
+tabular data, not a format added just to claim support (no CSV was added
+for anything else).
+
+**Export privacy, guaranteed by scope, not just checked after the fact:**
+the build script only ever reads from `data/utility/*` and writes to
+`public/utility/exports/` - there is no file-access path in it that could
+reach chat/guestbook/recovery messages/admin credentials/uploads/system
+config, by construction, not by an added filter. Documented explicitly at
+the top of the script itself, not only here.
+
+**Export performance:** pre-built once via the explicit script, never
+per-request - confirmed by design (the download page only reads
+`manifest.json` and serves plain static file links; nothing is generated
+when a visitor loads the page). Total footprint is tiny: complete bundle
+52KB, individual bundles 11-26KB, whole `exports/` directory 580KB on
+disk - trivial for a Pi. Real, computed sizes (not estimates) are read
+from the manifest and shown on the download page.
+
+**Generated output deliberately NOT committed to git** - same convention
+this project already uses for QR codes and the deployed `VERSION` file
+(Phase 5): 100% regenerable from tracked source data via
+`tools/build_export_bundles.py`, so committing the actual ZIPs/HTML would
+mean hand-keeping two copies in sync. Added `public/utility/exports/` to
+`.gitignore`; `piratebox_deploy.sh` still syncs it to live correctly since
+`rsync` operates on the filesystem, independent of git tracking - verified
+directly (deployed file's md5sum matched the locally-built one exactly).
+
+**Also fixed while here:** `data/recovery-messages.json` (Stage 16) had
+never been added to `.gitignore` despite being the same category of live
+runtime data as `chat.json`/`messages.json`, which *are* ignored -
+inconsistent, now corrected (`git rm --cached`, added to `.gitignore`,
+local file left untouched on disk).
+
+**Cross-linked from every section** (Radio/Emergency/First Aid/Maps/Local
+Info/Library/Search hero-actions, plus a new card on the `/utility/`
+landing grid) - found via the same audit habit Stage 17 established,
+applied proactively this time rather than after the fact.
+
+**Testing:** Python script syntax-checked (`ast.parse`) and run
+successfully; `php -l` clean on all 9 touched/new PHP files; isolated
+extraction test (above); deploy previewed with an itemized dry-run; live
+regression sweep unaffected; live-downloaded ZIP's md5sum verified
+identical to the locally-built one; live CSV download confirmed
+well-formed; mode confirmed still Normal (download page is not
+mode-conditional, matching every other Utility section); logs clean;
+services untouched.
+
+**Backup:** `~/piratebox-backups/export-stage19-pre-20260901-075834/`.
+
 ## Stage 18: Global Offline Search Expansion
 
 **Decision date:** 2026-09-01. Layered on Stage 17 (`7924e01`).

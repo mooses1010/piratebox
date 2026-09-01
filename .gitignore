@@ -1,7 +1,15 @@
 var/www/html/data/messages.json
 var/www/html/data/chat.json
+var/www/html/data/recovery-messages.json
+var/www/html/data/recovery-messages.json.lock
 var/www/html/public/uploads/*
 var/www/html/includes/VERSION
+
+# Stage 19: "Take This With You" export bundles - 100% regenerable from
+# data/utility/* via tools/build_export_bundles.py, same "generated,
+# don't hand-sync two copies" convention as QR codes/VERSION below. Run
+# that script after deploying to (re)build these on the live box.
+var/www/html/public/utility/exports/
 
 # Admin page credential (Phase 4) - never generated/stored inside the repo
 # tree by any script here, but ignored defensively in case anyone copies

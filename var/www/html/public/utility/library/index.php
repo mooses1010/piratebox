@@ -121,6 +121,7 @@ function ref_search_blob(array $fields): string
             <a href="/utility/">Utility Library</a>
             <a href="/utility/local/">Local Information</a>
             <a href="/utility/search/">Search</a>
+            <a href="/utility/download/">Take This With You</a>
         </div>
     </div>
 

@@ -59,6 +59,11 @@ session_start();
             <span class="utility-card-title">Search</span>
             <span class="utility-card-desc">One search box across everything in the Utility Library</span>
         </a>
+        <a class="utility-card" href="/utility/download/">
+            <span class="utility-card-icon" aria-hidden="true">⬇️</span>
+            <span class="utility-card-title">Take This With You</span>
+            <span class="utility-card-desc">Download reference material to use after you disconnect</span>
+        </a>
     </div>
 
     <section class="help-section">
