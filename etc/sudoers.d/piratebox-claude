@@ -1,0 +1,19 @@
+# Narrow, auditable NOPASSWD grant for Claude Code's autonomous PirateBox
+# work - see docs/OPERATIONAL-DECISIONS.md ("Claude deployment/mode-switch
+# automation") for the full rationale.
+#
+# Deliberately NOT "moose ALL=(ALL) NOPASSWD: ALL" or any wildcard/directory
+# grant. Each line below names one exact, root-owned, moose-non-writable
+# script with an exact argument (or no argument) - moose can trigger these
+# specific, narrow, non-destructive operations without a password, and
+# nothing else.
+#
+# Install with:
+#   sudo visudo -cf etc/sudoers.d/piratebox-claude   # validate syntax first
+#   sudo install -m 0440 -o root -g root etc/sudoers.d/piratebox-claude /etc/sudoers.d/piratebox-claude
+
+moose ALL=(root) NOPASSWD: /usr/local/bin/piratebox_deploy.sh
+moose ALL=(root) NOPASSWD: /usr/local/bin/piratebox_deploy.sh --dry-run
+moose ALL=(root) NOPASSWD: /usr/local/bin/set_piratebox_mode.sh normal
+moose ALL=(root) NOPASSWD: /usr/local/bin/set_piratebox_mode.sh emergency
+moose ALL=(root) NOPASSWD: /usr/local/bin/set_piratebox_mode.sh status

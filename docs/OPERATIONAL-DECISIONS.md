@@ -6,6 +6,92 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Claude deployment/mode-switch automation
+
+**Decision date:** 2026-09-01.
+
+**Scope:** infrastructure/tooling only - no site content, no networking,
+no PHP security restrictions. Adds a narrow, auditable `sudo` NOPASSWD
+grant so this session's automation can deploy repo changes and switch
+Normal/Emergency Mode without a manual round-trip to the operator's
+terminal for every stage, which had become the dominant bottleneck across
+Stages 1-6.
+
+**What was added:**
+- `piratebox_deploy.sh` (new): replaces every stage's hand-written
+  `rsync`/`cp` deploy block with one script. Syncs this repo's
+  `var/www/html/` onto the live `/var/www/html/` - additive/update only
+  (no `--delete`, ever), with an explicit `--exclude` for every piece of
+  live user-generated content (uploads, chat/guestbook JSON + lock files,
+  the deployed `VERSION` file, the admin password hash, generated QR
+  codes) - belt-and-suspenders on top of the fact none of those are ever
+  tracked in the repo/`.gitignore` in the first place, so a plain sync
+  could not touch them regardless. Accepts no arguments beyond an optional
+  `--dry-run` - nothing about its behavior is influenced by
+  attacker/agent-controlled input.
+- `etc/sudoers.d/piratebox-claude` (new): exactly 5 literal `NOPASSWD`
+  command lines (no wildcards, no `ALL`) naming `piratebox_deploy.sh`
+  (bare and `--dry-run`) and `set_piratebox_mode.sh` (`normal`/
+  `emergency`/`status` - three separate exact lines, not a glob) at their
+  `/usr/local/bin` paths.
+- `setup_claude_automation.sh` (new): one-time, idempotent installer the
+  operator runs with `sudo` - installs both scripts to `/usr/local/bin`
+  (root:root, `0755`) and the sudoers rule (root:root, `0440`, validated
+  with `visudo -cf` before installing, install aborts if validation
+  fails).
+
+**The critical safety property:** both granted scripts are installed
+root-owned, **not writable by `moose`**. The `moose` account (which this
+session runs as) can *trigger* them via the narrow sudo rule but cannot
+*modify* what they do - this is what prevents a NOPASSWD grant from
+becoming a privilege-escalation path (edit the script, then run the
+now-malicious version via the trusted rule). This mirrors the exact
+pattern this project already used for `purge_uploads.sh`/
+`restart_hostapd.sh` (root-owned deployed copy in `/usr/local/bin`, plain
+reference copy in the repo) - not a new convention introduced for this.
+
+**Verification performed after the operator ran the installer:**
+- Confirmed both scripts' deployed content matches the repo exactly, and
+  confirmed their live ownership/permissions (`root:root`, `0755` for the
+  scripts, `0440` for the sudoers file).
+- `visudo -cf` on the installed sudoers file confirmed syntactically valid.
+- Confirmed all 5 NOPASSWD commands work with `sudo -n` (which fails
+  immediately rather than prompting if a password would actually be
+  needed) - deploy dry-run, mode status, and (separately) real mode
+  switches in both directions, and a real (non-dry-run) deploy.
+- Confirmed the deploy script rejects any argument other than `--dry-run`
+  (tested with `--delete`).
+- **Caught and correctly diagnosed a false alarm during testing:**
+  `sudo -n whoami` and `sudo -n cat /etc/shadow` initially succeeded
+  without a password, which looked like a broader passwordless grant than
+  intended. Root-caused to this system's pre-existing
+  `Defaults timestamp_type=global` setting (visible in `sudo -l` output,
+  not something this change touched) combined with the operator having
+  authenticated with a real password moments earlier while running the
+  installer - that leaves a short-lived cached credential shared across
+  all sessions/ttys for the user, system-wide, not per-terminal. Proved
+  this explicitly: `sudo -k` (clear the cached credential, needs no auth
+  itself) immediately made `sudo -n whoami` fail again ("a password is
+  required"), while all 5 approved commands continued to work correctly
+  afterward - confirming they work via the sudoers rule itself, not
+  residual cached credentials, and confirming nothing broader than the 5
+  intended lines was ever actually granted. `sudo -l` further confirmed
+  the pre-existing `(ALL : ALL) ALL` entry (standard Debian `sudo`-group
+  membership, unrelated to and unmodified by this change) still requires
+  a password in the general case - only the 5 named commands bypass it.
+- Live regression sweep of every existing page, all 4 core services
+  (`nginx`/`php8.4-fpm`/`hostapd`/`dnsmasq`), and error logs across the
+  whole testing window - all clean, no restarts, no new errors. Mode
+  confirmed restored to Normal at the end.
+
+**What this changes going forward:** for Stage 7 onward, deployment and
+Normal/Emergency test-mode switching are performed directly by this
+session via the 5 approved commands - no further manual round-trips for
+those two specific operations. Everything outside that exact boundary
+(anything destructive, any networking/security/system-configuration
+change, package installs, physical hardware) still stops for the
+operator, unchanged from every prior stage.
+
 ## Offline Utility Library - Stage 6: Local Information
 
 **Decision date:** 2026-09-01.
