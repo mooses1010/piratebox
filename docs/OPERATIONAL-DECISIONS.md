@@ -20,6 +20,70 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 32: Final Expansion Review / Wrap-Up (Stages 13-32 complete)
+
+**Decision date:** 2026-09-01. Layered on Stage 31 (`6a6c112`). No
+supporting detail existed anywhere for this stage either (same gap as
+Stage 31, but with even less to anchor on - not even a topic word).
+Given Stage 10's own precedent (a comprehensive audit closing out the
+Stages 1-9 expansion) and that an audit-only capstone carries no
+invention risk, this stage closes out the full Stages 13-32 batch the
+same way, rather than guessing at a new feature with zero anchor.
+
+**Full regression sweep - every page in the project, checked directly,
+not assumed:** `/`, `/help.php`, `/whatcanidohere.php`, `/found/`,
+`/chat.php`, `/messages.php`, `/bulletin.php`, `/utility/` and all 8 of
+its sections (radio/emergency/firstaid/maps/local/library/search/
+download/manifest/status), and `/admin/` - **every single one returned
+its correct status** (200 for public pages, 401 for `/admin/` without
+credentials, exactly as designed). Every tracked JSON data file (16
+total) parses as valid JSON. Every PHP file in `var/www/html` (`find`
++ `php -l`, not a hand-picked sample) lints clean. Every shell script at
+the repo root and in `tools/` (`bash -n`) lints clean. All 4 core
+services (`nginx`/`php8.4-fpm`/`hostapd`/`dnsmasq`) active; disk 107GB
+free; mode confirmed Normal; live `chat.json`/`messages.json` md5sums
+unchanged from Stage 24's very first backup at the start of this
+session - confirming **zero live user data was touched across the
+entire 8-stage (24-31), multi-hour session**.
+
+**This session's recovery context, for whoever picks this up next:**
+this entire Stages 24-32 batch was completed by a background session
+recovering from a prior PC lockup/Remote Control failure (see Stage
+24's own recovery note). Per the harness's isolation policy for
+background sessions, all git commits for Stages 24-32 (16 commits: 8
+stage commits + 8 checkpoint-doc commits) were made on a separate local
+branch (`worktree-stage24`), not directly on `main`, because git
+operations were confined to an isolated worktree for the session's
+duration. **The actual file content is fully synced and deployed** -
+every source file in the primary checkout (`/home/moose/piratebox`)
+was kept byte-for-byte identical to the worktree's committed HEAD after
+every single stage (verified directly, not assumed, as the last action
+of this stage - zero differing PHP/shell/JSON/doc files, only
+gitignored regenerable build artifacts and one leftover local test data
+file differ). **What has NOT happened yet:** folding `worktree-stage24`
+onto local `main` with a fast-forward merge - a trivial, conflict-free,
+purely-additive operation (`main` in the primary checkout is currently
+at `5a6c197`, an ancestor of `worktree-stage24`'s tip), left for a
+normal interactive session or the operator to do directly rather than
+performed by this session on its own initiative. Nothing was pushed to
+the `origin` GitHub remote (matching this project's own established
+practice of 49+ prior commits sitting local-only).
+
+**Consolidated outstanding items for the operator** (each already
+documented in its own stage's entry; gathered here as a single
+end-of-batch checklist):
+1. **Fold git history onto `main`**: `git -C /home/moose/piratebox merge --ff-only worktree-stage24` (see above).
+2. **Re-run `sudo ./setup_claude_automation.sh`** to pick up Stage 21/24/26's accumulated `piratebox_deploy.sh`/`set_piratebox_mode.sh` changes (Emergency-runtime transition logging, `bulletin.json`/`mode-transitions.log` deploy excludes, `includes/VERSION` auto-stamping) - see Stage 26's consolidated note.
+3. **Apply the `piratebox-status.service` fix** from Stage 21 (`sudo cp etc/systemd/system/piratebox-status.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl restart piratebox-status.service`) - fixes the "status helper not reporting" state visible on the admin/Stats pages.
+4. **Optional: install `etc/systemd/system/piratebox-backup.{service,timer}`** (Stage 25) for automatic 6-hourly live-data backups - `tools/backup_piratebox_data.sh` already works by hand regardless.
+5. **Decide on Stage 28's RTC/time readiness recommendation** (install `fake-hwclock` - small, free, closes a real gap) whenever convenient - not urgent, but a genuine, previously-undiscovered risk for sustained offline use.
+6. **Populate Local Information's still-blank fields** (region_label, hospitals, shelters, repeaters, etc. - Stage 6/17) whenever the operator has real local data - purely additive, no code change needed.
+7. **Consider Stage 25's flagged `purge_uploads.sh` gap** (doesn't purge `bulletin.json`/`recovery-messages.json`) as a future small maintenance item.
+
+**No code changes made in this stage beyond the audit itself** - matches
+Stage 10/18's precedent of a verification-only capstone. This entry, plus
+the full regression sweep above, is the deliverable.
+
 ## Stage 31: Content Profiles (Deployment-Scenario Reordering)
 
 **Decision date:** 2026-09-01. Layered on Stage 30 (`bf984d7`). Scope
