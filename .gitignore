@@ -7,6 +7,8 @@ var/www/html/data/bulletin.json
 var/www/html/data/bulletin.json.lock
 var/www/html/data/content-profile.json
 var/www/html/data/connection-stats.json
+var/www/html/data/travel-mode.json
+var/www/html/data/travel-mode-quarantine/
 var/www/html/public/uploads/*
 var/www/html/includes/VERSION
 

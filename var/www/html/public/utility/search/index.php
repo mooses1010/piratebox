@@ -17,6 +17,14 @@ session_start();
 //
 // Deliberately does NOT read piratebox_get_mode() - identical in Normal
 // and Emergency Mode by design.
+//
+// Post-Stage-32 (Travel Mode): when active, results from the 'local'
+// section are filtered out here at render time - the persisted index
+// file itself is never touched, so this is a cheap, reversible view,
+// not a rebuild. See includes/travel_mode.php.
+
+require_once __DIR__ . '/../../../includes/travel_mode.php';
+$travelMode = piratebox_get_travel_mode();
 
 $DATA_DIR = __DIR__ . '/../../../data/utility';
 
@@ -29,6 +37,17 @@ function ref_load_json(string $path): array
 }
 
 $index = ref_load_json($DATA_DIR . '/search-index.json');
+if ($travelMode) {
+    // Exclude the whole 'local' section, plus any entry elsewhere
+    // explicitly flagged 'regional' (e.g. the maps catalog, which
+    // shares section="maps" with the generic, universal coordinate/GPS
+    // reference entries and can't be told apart by section alone - see
+    // tools/build_search_index.py).
+    $index = array_values(array_filter(
+        $index,
+        fn($item) => ($item['section'] ?? null) !== 'local' && empty($item['regional'])
+    ));
+}
 
 $sectionLabels = [
     'radio'     => 'Radio Reference',

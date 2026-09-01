@@ -32,6 +32,11 @@
 #     Stats pages' version display reflects what's actually live instead
 #     of going stale after the first install (see
 #     docs/OPERATIONAL-DECISIONS.md).
+#   - Post-Stage-32 (Travel Mode): every real run also re-applies the
+#     Travel Mode direct-access quarantine after syncing, in case this
+#     deploy just wrote fresh, un-quarantined copies of a local-
+#     sensitive static export over ones that were already quarantined
+#     (see includes/travel_mode.php and docs/TRAVEL-MODE-DESIGN.md).
 #
 # Run via: sudo /usr/local/bin/piratebox_deploy.sh [--dry-run]
 
@@ -39,6 +44,7 @@ set -euo pipefail
 
 SRC="/home/moose/piratebox/var/www/html/"
 DST="/var/www/html/"
+TOOLS_DIR="/home/moose/piratebox/tools"
 
 DRYRUN=()
 if [ "$#" -gt 0 ]; then
@@ -63,6 +69,8 @@ rsync -a "${DRYRUN[@]}" --chown=www-data:www-data \
     --exclude 'data/bulletin.json.lock' \
     --exclude 'data/content-profile.json' \
     --exclude 'data/connection-stats.json' \
+    --exclude 'data/travel-mode.json' \
+    --exclude 'data/travel-mode-quarantine/' \
     --exclude 'includes/VERSION' \
     --exclude 'public/assets/qr-url.png' \
     --exclude 'public/assets/qr-wifi.png' \
@@ -84,6 +92,28 @@ if [ "${#DRYRUN[@]}" -eq 0 ]; then
         echo "$COMMIT  (deployed $(date '+%Y-%m-%d %H:%M:%S %Z'))" > "${DST}includes/VERSION"
         chown www-data:www-data "${DST}includes/VERSION"
     fi
+
+    # Post-Stage-32 (Travel Mode): seed data/travel-mode.json to "off" the
+    # very first time this feature is deployed, before anything else ever
+    # reads it. includes/travel_mode.php's own fail-safe default is "on"
+    # (suppressed) for any UNEXPECTED missing/corrupt state - correct for
+    # ongoing operation, but wrong for a first-ever deploy, which would
+    # otherwise make Local Information appear to vanish the moment this
+    # code ships for a box that was showing it normally. Only ever writes
+    # this file if it doesn't already exist - never overwrites an
+    # operator's actual, deliberate Travel Mode choice.
+    if [ ! -f "${DST}data/travel-mode.json" ]; then
+        echo '{"travel_mode": false}' > "${DST}data/travel-mode.json"
+        chown www-data:www-data "${DST}data/travel-mode.json"
+    fi
+
+    # Re-apply the direct-access quarantine against what's now live.
+    # Best-effort, same spirit as the VERSION stamp above - never fails
+    # the deploy itself.
+    if [ -f "$TOOLS_DIR/apply_travel_mode_quarantine.php" ]; then
+        php "$TOOLS_DIR/apply_travel_mode_quarantine.php" "${DST%/}" || true
+    fi
+
     echo "$(date '+%Y-%m-%d %H:%M:%S') - piratebox_deploy.sh: synced $SRC -> $DST"
 else
     echo "$(date '+%Y-%m-%d %H:%M:%S') - piratebox_deploy.sh: DRY RUN (nothing changed)"

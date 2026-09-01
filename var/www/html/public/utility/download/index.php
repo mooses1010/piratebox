@@ -13,6 +13,19 @@ session_start();
 //
 // Deliberately does NOT read piratebox_get_mode() - identical in Normal
 // and Emergency Mode by design, like every other Utility section.
+//
+// Post-Stage-32 (Travel Mode): the two bundles that embed Local
+// Information (complete-utility-library.zip, maps-local-bundle.zip),
+// the raw local/ JSON export, and the local map catalog's own JSON file
+// are hidden from these listings when Travel Mode is active - AND are
+// additionally physically inaccessible by direct URL while active (see
+// includes/travel_mode.php's quarantine mechanism) - hiding the link
+// here is a UX nicety on top of that, not the actual protection.
+// Previously-downloaded copies obviously cannot be revoked by this or
+// anything else - noted explicitly on-page below.
+
+require_once __DIR__ . '/../../../includes/travel_mode.php';
+$travelMode = piratebox_get_travel_mode();
 
 $EXPORTS_DIR = __DIR__ . '/../exports';
 
@@ -68,7 +81,9 @@ $sectionLabels = [
             <section class="help-section">
                 <h2>Complete Offline Utility Library</h2>
                 <p class="muted">Everything - Radio, Emergency, First Aid, Maps, Local Information, and Library, all in one self-contained package.</p>
-                <?php if (isset($bundles['complete-utility-library.zip'])): ?>
+                <?php if ($travelMode): ?>
+                    <p class="empty-state">Unavailable while Travel Mode is active - this bundle includes Local Information.</p>
+                <?php elseif (isset($bundles['complete-utility-library.zip'])): ?>
                     <p><a href="/utility/exports/complete-utility-library.zip">Download complete-utility-library.zip</a> (<?= fmt_kb($bundles['complete-utility-library.zip']['bytes']) ?>)</p>
                 <?php endif; ?>
             </section>
@@ -78,7 +93,9 @@ $sectionLabels = [
                 <p class="muted">A self-contained mini-site for just the topic you need - open its index.html after extracting.</p>
                 <ul class="help-steps">
                     <?php foreach (['radio-bundle.zip' => 'Radio Reference Bundle', 'emergency-reference-bundle.zip' => 'Emergency Reference Bundle (Emergency + First Aid)', 'maps-local-bundle.zip' => 'Maps / Local Reference Bundle', 'manuals-documents-bundle.zip' => 'Manuals / Documents Bundle'] as $file => $label): ?>
-                        <?php if (isset($bundles[$file])): ?>
+                        <?php if ($travelMode && $file === 'maps-local-bundle.zip'): ?>
+                            <li class="muted"><?= htmlspecialchars($label) ?> - unavailable while Travel Mode is active (includes Local Information)</li>
+                        <?php elseif (isset($bundles[$file])): ?>
                             <li><a href="/utility/exports/<?= rawurlencode($file) ?>"><?= htmlspecialchars($label) ?></a> - <?= fmt_kb($bundles[$file]['bytes']) ?></li>
                         <?php endif; ?>
                     <?php endforeach; ?>
@@ -90,15 +107,27 @@ $sectionLabels = [
                 <p class="muted">The raw underlying data for each section, exactly as this PirateBox uses it - useful if you want the data itself rather than a browsable page.</p>
                 <ul class="help-steps">
                     <?php foreach ($sectionLabels as $key => $label): ?>
-                        <?php if (isset($jsonSizes[$key])): ?>
+                        <?php if ($travelMode && $key === 'local'): ?>
+                            <li class="muted"><?= htmlspecialchars($label) ?> - unavailable while Travel Mode is active</li>
+                        <?php elseif (isset($jsonSizes[$key])): ?>
                             <li><?= htmlspecialchars($label) ?> (<?= fmt_kb($jsonSizes[$key]) ?>):
                                 <?php
                                 $dir = $EXPORTS_DIR . '/data/' . $key;
                                 $files = is_dir($dir) ? array_values(array_filter(scandir($dir), fn($f) => str_ends_with($f, '.json'))) : [];
+                                // Travel Mode: the maps section's own JSON directory mixes
+                                // the generic reference/sources files with the region-
+                                // specific catalog.json - exclude just that one file rather
+                                // than hiding the whole maps row.
+                                if ($travelMode && $key === 'maps') {
+                                    $files = array_values(array_filter($files, fn($f) => $f !== 'catalog.json'));
+                                }
                                 foreach ($files as $i => $fn):
                                     if ($i > 0) echo ', ';
                                     ?><a href="/utility/exports/data/<?= rawurlencode($key) ?>/<?= rawurlencode($fn) ?>"><?= htmlspecialchars($fn) ?></a><?php
                                 endforeach;
+                                if ($travelMode && $key === 'maps') {
+                                    echo ' <span class="muted">(local map catalog omitted - Travel Mode)</span>';
+                                }
                                 ?>
                             </li>
                         <?php endif; ?>
@@ -117,6 +146,12 @@ $sectionLabels = [
             <div class="help-note">
                 <p><strong>How to use a downloaded bundle:</strong> extract the .zip file, then open <code>index.html</code> inside it in any web browser - no PirateBox, server, or Internet connection needed. Live-only features (uploading, chat, guestbook) aren't included, since those need an active PirateBox to talk to.</p>
             </div>
+
+            <?php if ($travelMode): ?>
+                <div class="help-note">
+                    <p><strong>Travel Mode is active:</strong> anything downloaded from this device before Travel Mode was turned on may still contain this box's Local Information - turning Travel Mode on now cannot remove information from a copy that already left the device. This only affects what's downloadable going forward, from this point on.</p>
+                </div>
+            <?php endif; ?>
 
             <?php if ($generatedAt): ?>
                 <p class="muted">These bundles were last built <?= htmlspecialchars($generatedAt) ?>. They may not reflect changes made after that if content was updated since.</p>

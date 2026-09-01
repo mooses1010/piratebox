@@ -14,6 +14,16 @@ session_start();
 // Deliberately does NOT read piratebox_get_mode() - identical in Normal and
 // Emergency Mode by design. Reuses the Stage 2/3/4 shared reference-list UI
 // component (see OPERATIONAL-DECISIONS.md).
+//
+// Post-Stage-32 (Travel Mode): the Map Catalog (part 2 above) is
+// region-specific by its own design ("for this box's area") - when
+// Travel Mode is active it's treated as empty here, same as a box that
+// never had any maps added, without touching catalog.json itself. The
+// coordinate/GPS reference section (part 1) is universal and always
+// shows regardless. See includes/travel_mode.php.
+
+require_once __DIR__ . '/../../../includes/travel_mode.php';
+$travelMode = piratebox_get_travel_mode();
 
 $DATA_DIR = __DIR__ . '/../../../data/utility/maps';
 
@@ -26,7 +36,7 @@ function ref_load_json(string $path): array
 }
 
 $reference = ref_load_json($DATA_DIR . '/reference.json');
-$catalog = ref_load_json($DATA_DIR . '/catalog.json');
+$catalog = $travelMode ? [] : ref_load_json($DATA_DIR . '/catalog.json');
 $sources = ref_load_json($DATA_DIR . '/sources.json');
 
 function ref_search_blob(array $fields): string
@@ -123,7 +133,9 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
 
             <section class="radio-group" data-group-section="catalog">
                 <h2 class="radio-group-heading">Map Catalog</h2>
-                <?php if (empty($catalog)): ?>
+                <?php if ($travelMode): ?>
+                    <p class="empty-state">Hidden while Travel Mode is active - this box's regional map catalog isn't shown while away from its usual area.</p>
+                <?php elseif (empty($catalog)): ?>
                     <p class="empty-state">No maps have been added yet. See "Adding a Map" below to add one for this box's area.</p>
                 <?php else: ?>
                     <?php foreach ($catalog as $mapIdx => $m): ?>

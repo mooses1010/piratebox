@@ -12,6 +12,18 @@ session_start();
 //
 // Deliberately does NOT read piratebox_get_mode() - identical in Normal and
 // Emergency Mode by design.
+//
+// Post-Stage-32 (Travel Mode): when active, this page suppresses every
+// region-specific field (region label, emergency management/NWS
+// contacts, hospitals, shelters, amateur repeaters, map references,
+// other resources) without deleting any of it - see
+// includes/travel_mode.php and docs/TRAVEL-MODE-DESIGN.md. The
+// universal emergency_numbers table (911, Poison Control - explicitly
+// documented as not region-specific) is the one thing that keeps
+// showing either way.
+
+require_once __DIR__ . '/../../../includes/travel_mode.php';
+$travelMode = piratebox_get_travel_mode();
 
 $DATA_DIR = __DIR__ . '/../../../data/utility/local';
 
@@ -52,6 +64,39 @@ function li_field_row(string $label, ?string $value): void
     if (empty($value)) return;
     echo '<p><strong>' . htmlspecialchars($label) . ':</strong> ' . htmlspecialchars($value) . '</p>';
 }
+
+/**
+ * The one section of this page that stays visible under Travel Mode -
+ * emergency_numbers (911, Poison Control) is explicitly documented as
+ * universal, not region-specific, so showing it never reveals where
+ * this PirateBox normally lives.
+ */
+function li_render_emergency_numbers(array $info): void
+{
+    ?>
+    <section class="help-section">
+        <h2>Emergency Numbers</h2>
+        <?php if (empty($info['emergency_numbers'])): ?>
+            <?php li_empty('None added yet for this location.'); ?>
+        <?php else: ?>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>What</th><th>Number</th><th>Notes</th></tr></thead>
+                    <tbody>
+                        <?php foreach ($info['emergency_numbers'] as $n): ?>
+                            <tr>
+                                <td><?= htmlspecialchars($n['label'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($n['number'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($n['notes'] ?? '') ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </section>
+    <?php
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -71,61 +116,47 @@ function li_field_row(string $label, ?string $value): void
         <h1>Local Information</h1>
         <p class="utility-breadcrumb"><a href="/utility/">&larr; Utility Library</a></p>
 
-        <p>
-            One editable reference sheet for wherever this PirateBox currently is.
-            <?php if (!empty($info['region_label'])): ?>
-                Currently set for: <strong><?= htmlspecialchars($info['region_label']) ?></strong>.
-            <?php else: ?>
-                <strong>No region has been set yet</strong> - this box hasn't been configured for a specific location.
-            <?php endif; ?>
-        </p>
-        <?php if (!empty($info['last_updated'])): ?>
-            <p class="muted">Last updated: <?= htmlspecialchars($info['last_updated']) ?></p>
-        <?php endif; ?>
-
-        <section class="help-section">
-            <h2>Emergency Management &amp; NWS Office</h2>
-            <?php if (empty($info['emergency_management']['name']) && empty($info['nws_office']['name'])): ?>
-                <?php li_empty('Not yet added for this location.'); ?>
-            <?php else: ?>
-                <?php if (!empty($info['emergency_management']['name'])): ?>
-                    <h3>Local Emergency Management</h3>
-                    <?php li_field_row('Name', $info['emergency_management']['name']); ?>
-                    <?php li_field_row('Phone', $info['emergency_management']['phone'] ?? null); ?>
-                    <?php li_field_row('Website', $info['emergency_management']['website'] ?? null); ?>
-                    <?php li_field_row('Notes', $info['emergency_management']['notes'] ?? null); ?>
+        <?php if ($travelMode): ?>
+            <div class="help-note">
+                <p><strong>Travel Mode is active.</strong> This PirateBox's region-specific local information (region, emergency management/NWS contacts, hospitals, shelters, amateur repeaters, local map references, and other local resources) is hidden while this device is away from its usual area. Nothing has been deleted - it will show again once Travel Mode is turned off. The universal emergency numbers below still apply anywhere.</p>
+            </div>
+            <?php li_render_emergency_numbers($info); ?>
+        <?php else: ?>
+            <p>
+                One editable reference sheet for wherever this PirateBox currently is.
+                <?php if (!empty($info['region_label'])): ?>
+                    Currently set for: <strong><?= htmlspecialchars($info['region_label']) ?></strong>.
+                <?php else: ?>
+                    <strong>No region has been set yet</strong> - this box hasn't been configured for a specific location.
                 <?php endif; ?>
-                <?php if (!empty($info['nws_office']['name'])): ?>
-                    <h3>NOAA / National Weather Service Office</h3>
-                    <?php li_field_row('Name', $info['nws_office']['name']); ?>
-                    <?php li_field_row('Phone', $info['nws_office']['phone'] ?? null); ?>
-                    <?php li_field_row('Website', $info['nws_office']['website'] ?? null); ?>
-                    <?php li_field_row('Notes', $info['nws_office']['notes'] ?? null); ?>
-                <?php endif; ?>
+            </p>
+            <?php if (!empty($info['last_updated'])): ?>
+                <p class="muted">Last updated: <?= htmlspecialchars($info['last_updated']) ?></p>
             <?php endif; ?>
-        </section>
 
-        <section class="help-section">
-            <h2>Emergency Numbers</h2>
-            <?php if (empty($info['emergency_numbers'])): ?>
-                <?php li_empty('None added yet for this location.'); ?>
-            <?php else: ?>
-                <div class="table-wrapper">
-                    <table>
-                        <thead><tr><th>What</th><th>Number</th><th>Notes</th></tr></thead>
-                        <tbody>
-                            <?php foreach ($info['emergency_numbers'] as $n): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($n['label'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($n['number'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($n['notes'] ?? '') ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php endif; ?>
-        </section>
+            <section class="help-section">
+                <h2>Emergency Management &amp; NWS Office</h2>
+                <?php if (empty($info['emergency_management']['name']) && empty($info['nws_office']['name'])): ?>
+                    <?php li_empty('Not yet added for this location.'); ?>
+                <?php else: ?>
+                    <?php if (!empty($info['emergency_management']['name'])): ?>
+                        <h3>Local Emergency Management</h3>
+                        <?php li_field_row('Name', $info['emergency_management']['name']); ?>
+                        <?php li_field_row('Phone', $info['emergency_management']['phone'] ?? null); ?>
+                        <?php li_field_row('Website', $info['emergency_management']['website'] ?? null); ?>
+                        <?php li_field_row('Notes', $info['emergency_management']['notes'] ?? null); ?>
+                    <?php endif; ?>
+                    <?php if (!empty($info['nws_office']['name'])): ?>
+                        <h3>NOAA / National Weather Service Office</h3>
+                        <?php li_field_row('Name', $info['nws_office']['name']); ?>
+                        <?php li_field_row('Phone', $info['nws_office']['phone'] ?? null); ?>
+                        <?php li_field_row('Website', $info['nws_office']['website'] ?? null); ?>
+                        <?php li_field_row('Notes', $info['nws_office']['notes'] ?? null); ?>
+                    <?php endif; ?>
+                <?php endif; ?>
+            </section>
+
+            <?php li_render_emergency_numbers($info); ?>
 
         <section class="help-section">
             <h2>Hospitals</h2>
@@ -237,6 +268,7 @@ function li_field_row(string $label, ?string $value): void
                 </div>
             <?php endif; ?>
         </section>
+        <?php endif; ?>
 
         <div class="help-note">
             <p><strong>Keeping this current:</strong> everything on this page comes from one file, <code>data/utility/local/info.json</code>. Edit that file when this PirateBox moves or local details change - no PHP/HTML editing required.</p>

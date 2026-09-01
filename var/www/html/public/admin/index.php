@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/metrics.php';
 require_once __DIR__ . '/../../includes/content_profile.php';
+require_once __DIR__ . '/../../includes/travel_mode.php';
 
 // PirateBox admin/status page - Phase 4.
 //
@@ -215,6 +216,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? ['ok' => true, 'msg' => 'Content profile set to ' . (PIRATEBOX_CONTENT_PROFILES[$profile] ?? $profile) . '.']
                     : ['ok' => false, 'msg' => 'Invalid profile - nothing was changed.'];
                 break;
+            case 'set_travel_mode':
+                // Post-Stage-32: toggling Travel Mode is fully reversible
+                // (Local Information is suppressed, never deleted, and
+                // restores exactly when turned back off) - same reasoning
+                // as set_content_profile above, deliberately not in
+                // $CONFIRM_REQUIRED_ACTIONS.
+                $enabled = ($_POST['travel_mode'] ?? '') === 'on';
+                $actionResult = piratebox_set_travel_mode($enabled)
+                    ? ['ok' => true, 'msg' => 'Travel Mode turned ' . ($enabled ? 'ON - Local Information is now hidden.' : 'OFF - Local Information is showing again.')]
+                    : ['ok' => false, 'msg' => 'Failed to change Travel Mode - nothing was changed.'];
+                break;
             default:
                 $actionResult = ['ok' => false, 'msg' => 'Unknown action.'];
         }
@@ -269,6 +281,9 @@ $versionRaw = @file_get_contents(__DIR__ . '/../../includes/VERSION');
 $versionLine = $versionRaw !== false ? trim($versionRaw) : null;
 
 $contentProfile = piratebox_get_content_profile();
+
+// Post-Stage-32: Travel Mode current state, for the toggle UI below.
+$travelModeActive = piratebox_get_travel_mode();
 
 // Post-Stage-32: connection statistics - see piratebox_get_connection_stats()
 // for the full privacy design (aggregate integer counts only, never a
@@ -445,6 +460,27 @@ $connStats = piratebox_get_connection_stats();
                 </select>
             </label>
             <button type="submit">Set content profile</button>
+        </form>
+    </div>
+
+    <div class="admin-actions">
+        <h2 class="admin-section-heading">Travel Mode <span class="section-tag">privacy</span></h2>
+        <p class="maintenance-warning">
+            Current state: <strong class="<?= $travelModeActive ? 'status-bad' : 'status-ok' ?>"><?= $travelModeActive ? 'ON - Local Information is hidden' : 'OFF - Local Information is showing normally' ?></strong>.
+            While ON, this box's region-specific Local Information, its
+            regional map catalog, and any local search results or
+            downloadable bundles containing them are suppressed -
+            including direct download links, not just navigation.
+            Nothing is deleted; turning it back off restores everything
+            exactly as it was. Reversible at any time. Previously
+            downloaded copies from before Travel Mode was turned on
+            cannot be affected by this toggle.
+        </p>
+        <form method="post" class="admin-action-form" style="max-width:none;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+            <input type="hidden" name="action" value="set_travel_mode">
+            <label><input type="checkbox" name="travel_mode" value="on"<?= $travelModeActive ? ' checked' : '' ?>> Travel Mode active (hide Local Information)</label>
+            <button type="submit">Set Travel Mode</button>
         </form>
     </div>
 

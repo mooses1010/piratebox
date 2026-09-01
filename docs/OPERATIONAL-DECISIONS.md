@@ -6,6 +6,95 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Post-Stage-32: Travel Mode - Privacy-Preserving Local Information Suppression
+
+**Decision date:** 2026-09-01. A third small, deliberate post-roadmap
+feature, kept in its own commit separate from connection statistics and
+the `http://piratebox/` hostname work. Full design, threat model, and
+future-automation notes in `docs/TRAVEL-MODE-DESIGN.md` - this entry is
+a summary.
+
+**What it does:** an operator toggle that suppresses this PirateBox's
+region-specific content (Local Information, the regional map catalog,
+and local results in search/exports) without deleting any of it, for
+when the device is deliberately relocated away from its usual area.
+
+**Full audit performed first, per instruction:** every consumer of
+`data/utility/local/info.json` was enumerated before any code was
+written - the Local Information page itself, Global Search (which bakes
+real hospital/repeater data into its index once populated), the two
+"Take This With You" bundles that embed a static copy
+(`maps-local-bundle.zip`, `complete-utility-library.zip`), and the Maps
+page's region-specific catalog (distinct from that same page's
+universal coordinate/GPS section). Generic nav links/prose that only
+name "Local Information" without revealing content were deliberately
+left alone (operator-approved).
+
+**Critical requirement enforced, not just UI hiding:** confirmed live,
+before designing anything, that nginx serves static files under
+`public/` directly - hiding a download link does nothing to stop a
+direct/bookmarked/guessed URL from fetching the actual file. Fix reuses
+the project's oldest security boundary (nginx's document root is
+`public/`; `data/` is a sibling, structurally unreachable by any URL,
+the same boundary `chat.json`/`device-id.json` rely on) rather than
+inventing a permission system: a fixed list of local-sensitive static
+exports is moved into `data/travel-mode-quarantine/` while active, and
+restored exactly when turned off. Re-applied automatically after every
+deploy (a deploy can otherwise overwrite a quarantined file with a
+fresh, un-quarantined copy).
+
+**Fail-safe, deliberately inverted from `mode.php`'s own convention:**
+unexpected missing/corrupt state defaults to suppressed (the least
+revealing state), not shown (the least alarming state) - the opposite
+of Normal/Emergency's own fail-safe, on purpose. The one exception:
+first deploy seeds the state file to "off" so shipping this doesn't
+suddenly hide content for an existing at-home deployment.
+
+**A real leak found and fixed during testing:** the Search page's
+original `section !== 'local'` filter missed the regional map catalog,
+which shares `section: "maps"` with universal coordinate/GPS entries.
+Fixed by adding an explicit `regional` flag in
+`tools/build_search_index.py`, checked alongside the section filter.
+Found via the required leakage regression test (see below), not by
+inspection alone.
+
+**Leakage regression test:** an isolated fake webroot (never real user
+data) was seeded with distinctive marker strings in every location the
+audit identified, then Travel Mode was toggled on/off - both via direct
+PHP calls and via real HTTP requests through the actual admin action -
+confirming zero occurrences of any marker anywhere reachable under
+`public/` while active, full restoration when deactivated, and zero
+impact on deliberately-included universal content. One clarifying note
+worth recording: once quarantined, nginx's blanket `try_files` falls
+through to the homepage with `200`, not `404` - confirmed this is
+pre-existing, universal behavior for *any* nonexistent URL on this site,
+unrelated to Travel Mode; the test correctly checks response bodies for
+the actual sensitive content, not status codes.
+
+**Orthogonal to Normal/Emergency Mode and to Stage 31's content
+profile** - never reads `piratebox_get_mode()`, matching the existing
+pattern. **Explicitly distinct from Stage 16's Recovery/Lost Mode** -
+different trigger (deliberate relocation vs. physical loss), no shared
+code.
+
+**Manual toggle now** (admin panel, non-destructive, reversible).
+**Future physical control** ties directly into Stage 29's two buttons
+already reserved for "a genuinely new need." **Future automatic
+detection** is documented as a real, buildable design *if* the ordered
+ALFA adapter successfully takes over the AP role (freeing the built-in
+radio for trusted-signal scanning) - not concluded to require new
+hardware in principle, just not attempted now. The authority principle
+for any such future automation is specified in the design doc now
+(manual always authoritative, no silent override, a stability period
+before auto-restoring, no history/cloud/exposure of configured
+identifiers) so a future implementation has nothing left to guess at.
+
+**Testing:** `php -l`/`bash -n`/`python3 -m ast` clean on all touched
+files. Full page-rendering tests (Local Information, Search, Maps,
+Download, admin toggle) confirmed correct behavior in both states, via
+an isolated copy with realistic fake local data built through the real
+`tools/build_search_index.py`/`build_export_bundles.py` pipeline.
+
 ## Post-Stage-32: Canonical Human-Facing URL - `http://piratebox/`
 
 **Decision date:** 2026-09-01. A second small, deliberate post-roadmap

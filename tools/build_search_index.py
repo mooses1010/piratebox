@@ -29,7 +29,7 @@ def load(*parts):
     return data
 
 
-def entry(title, section, section_label, url, snippet, keywords=None, freq=None):
+def entry(title, section, section_label, url, snippet, keywords=None, freq=None, regional=False):
     e = {
         "title": title,
         "section": section,
@@ -40,6 +40,17 @@ def entry(title, section, section_label, url, snippet, keywords=None, freq=None)
     }
     if freq:
         e["freq"] = freq
+    if regional:
+        # Post-Stage-32 (Travel Mode): marks an entry as region-specific
+        # even though its "section" is a shared, mostly-universal one
+        # (e.g. the maps catalog shares section="maps" with the generic
+        # coordinate/GPS reference entries) - the live Search page filters
+        # on this in addition to section="local" when Travel Mode is
+        # active. Every entry actually IN the "local" section is already
+        # covered by that section check alone; this flag exists only for
+        # entries elsewhere that are still regional. See
+        # includes/travel_mode.php.
+        e["regional"] = True
     return e
 
 
@@ -94,6 +105,7 @@ for i, m in enumerate(load("maps", "catalog.json")):
         m.get("title", "Untitled map"), "maps", "Maps & Location Reference",
         f"/utility/maps/#{m.get('id', f'map-{i}')}",
         m.get("description", ""), m.get("tags"),
+        regional=True,
     ))
 
 # --- Local Information ------------------------------------------------
