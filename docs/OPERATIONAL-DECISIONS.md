@@ -20,6 +20,48 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 29: Physical Control UX Design
+
+**Decision date:** 2026-09-01. Layered on Stage 28. Full detail in
+`docs/PHYSICAL-CONTROL-UX-DESIGN.md`. Extends, does not redo, Stage 11's
+`docs/HARDWARE-INTEGRATION-DESIGN.md` - Stage 11 designed the electrical
+layer and deliberately left button *functions* unassigned until
+hardware is in hand; this stage finishes the two UX pieces Stage 11
+explicitly flagged as needing "their own design pass" without needing
+hardware to reason about, plus a concrete but non-final recommended
+button mapping.
+
+**OLED page state machine:** three pages (Status/Network/Health) cycling
+in a fixed order, all sourced from already-existing, already-tested data
+(`includes/metrics.php`, `piratebox_get_mode()`) - nothing new to build
+for the data itself, same conclusion Stage 11 already reached. Decided
+now: a stale status-helper snapshot replaces a whole page's service-
+health section with one clear "not reporting" line, rather than showing
+individually-blank rows - consistent with this project's established
+"no guessing" display convention.
+
+**Hold-for-safe-shutdown, fully specified:** 1s grace + 3-count OLED
+countdown (4s total hold), early release aborts with zero side effects,
+completing the hold requests `sudo systemctl poweroff` via a **new,
+dedicated sudoers grant for the future OLED daemon** - explicitly NOT an
+addition to `etc/sudoers.d/piratebox-claude`, which is a different
+actor's (this session's) trust boundary and should stay exactly as
+narrow as documented in its own header.
+
+**Recommended button mapping:** only 3 of 5 buttons assigned (cycle,
+wake, hold-to-shutdown) - the other two are deliberately left reserved/
+unassigned rather than inventing jobs to fill available hardware, since
+nothing in the 3-page design needs a "select" action yet.
+
+**Display power:** dim-after-60s-idle/wake-on-any-press proposed as the
+default (favors glanceability over power savings absent Stage 12's
+power-budget numbers, matching this project's general
+forgiving-default pattern) - full sleep left as a future option, not
+decided against permanently.
+
+**Testing:** none against hardware (none exists) - a pure UX/interaction
+design pass reasoned from Stage 11's already-verified electrical design.
+
 ## Stage 28: RTC / Time Readiness - audited, design only
 
 **Decision date:** 2026-09-01. Layered on Stage 27 (`11dda03`). Full
