@@ -20,6 +20,77 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 24: Resilience Audit - Low-Storage Guard for Flat-File Stores
+
+**Decision date:** 2026-09-01. Layered on Stage 23 (`90a93ba`).
+
+**Recovery note:** this stage was interrupted mid-implementation by a PC
+lockup/Remote Control failure. A recovery session verified Stage 23 was
+fully committed and intact, recovered the valid in-progress Stage 24
+work from the uncommitted working tree (the `config.php` constant,
+`includes/storage_guard.php`, and the `messages.php`/`bulletin.php`/
+`chat.php` server-side guards were already complete and correct),
+confirmed no other Claude session was concurrently active, and finished
+the one piece the recovered code's own comments already forecast but
+hadn't been built yet - see below.
+
+Audited every write path besides `upload.php` (which has had a
+free-space guard since Phase 2) and found `chat.php`, `messages.php`,
+and Stage 22's `bulletin.php` had none - a silently-dropped post under
+genuine storage exhaustion, with the poster never told it wasn't saved.
+New shared `includes/storage_guard.php` (`piratebox_low_storage()`)
+mirrors `upload.php`'s `disk_free_space()` pattern, sized by a new,
+deliberately independent constant `PIRATEBOX_MIN_FREE_BYTES_SMALL_WRITE`
+(5MiB, vs. uploads' 1GiB) - a single post is at most a few KB, so
+reusing the upload threshold would refuse guestbook posts while
+gigabytes of reserved upload headroom sit untouched. Fails open (never
+"low" if `disk_free_space()` itself can't be read).
+
+`messages.php`/`bulletin.php`: guard checked before the write; on
+failure, an honest on-page error is shown and the poster's
+name/message/category are preserved in the form.
+
+`chat.php`: same guard, but its form submits via JS `fetch()` and,
+until now, never looked at the response at all - it optimistically
+rendered the sent message in the sender's own browser regardless of
+whether the server actually saved it. Fixed together: `chat.php` now
+returns 507 Insufficient Storage on a guard failure, `scripts.js`
+checks `response.ok` before the optimistic render (showing an inline
+error and preserving the typed message instead), and the non-JS
+fallback gets the same `$postError` treatment as the other two stores.
+
+**Real pre-existing drift found (not introduced by this stage):** the
+deployed `/usr/local/bin/piratebox_deploy.sh` (root-owned, updated only
+by the operator re-running `setup_claude_automation.sh`) is missing
+three `--exclude` lines the repo copy already has -
+`data/mode-transitions.log` (Stage 21) and `data/bulletin.json` +
+`.lock` (Stage 22) - confirming `setup_claude_automation.sh` hasn't
+been re-run since before Stage 21, exactly as flagged at the time.
+**No live impact today**, verified directly: the deploy source
+(`var/www/html/data/`) never contains these gitignored runtime files,
+so `rsync -a` (no `--delete`) has nothing to wrongly sync over them
+regardless of the stale exclude list - confirmed live `chat.json`/
+`messages.json` md5sums were unchanged after this stage's deploy, and
+live `bulletin.json` doesn't currently exist at all. Still outside this
+session's sudo automation boundary to fix (`setup_claude_automation.sh`
+needs an interactive password, not one of the 5 granted commands) -
+flagged again here rather than silently left to drift further.
+
+**Testing:** `php -l` clean on all 5 touched/new PHP files; manual
+brace/paren/bracket balance check on `scripts.js` (balanced: 102/102
+braces, 348/348 parens, 17/17 brackets). Isolated PHP-built-in-server
+tests on throwaway copies: forcing the threshold to `PHP_INT_MAX`
+correctly rejected all three endpoints' posts (chat.php: 507;
+messages/bulletin: honest on-page error), wrote no data file, and
+preserved the submitted text in the re-rendered form; restoring the
+real 5MiB threshold confirmed normal posting is unaffected. Live-
+deployed via the approved sudo automation; live-verified in both Normal
+and Emergency Mode; confirmed `chat.json`/`messages.json` untouched
+(md5sum match against the pre-deploy backup); mode restored to Normal;
+`nginx`/`php8.4-fpm` logs clean across the testing window.
+
+**Backup:** `~/piratebox-backups/resilience-stage24-pre-20260901-104616/`.
+
 ## Stage 23: Voluntary Check-in Board - evaluated, deferred
 
 **Decision date:** 2026-09-01. Layered on Stage 22 (`0b046eb`).
