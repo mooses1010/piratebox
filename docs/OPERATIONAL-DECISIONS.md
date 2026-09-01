@@ -6,6 +6,134 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Offline Utility Library - Stage 1: scaffolding, landing page, nav link
+
+**Decision date:** 2026-09-01 (Utility Phase 1).
+
+**Scope:** additive only. No networking, hostapd/dnsmasq/DHCP/DNS, captive-portal,
+nginx architecture, PHP security restrictions (`open_basedir`/`disable_functions`),
+or existing application logic (`upload.php`, `chat.php`, `messages.php`,
+`admin/index.php`, `index.php`) changed. This phase adds a new, currently
+mostly-empty "Utility" section alongside the existing PirateBox, per the
+project's long-term goal of also being an offline reference/utility node
+(radio reference, emergency/first-aid reference, maps/local info, a document
+library, and offline search) - see the project's own planning notes for the
+full multi-stage scope. Stage 1 is scaffolding only: a landing page, one nav
+link, and six clean "not built yet" placeholder pages - no radio/emergency/
+first-aid/maps/library content or search index yet.
+
+**New files:**
+- `public/utility/index.php` - section landing page. Explains up front, before
+  anything else, that this is a local/offline network that does not require
+  or provide Internet access, then links to six large tap-target cards
+  (Radio, Emergency, First Aid, Maps, Library, Search) plus a row of links
+  back to the existing Files/Chat/Guestbook/Help pages, so a visitor who
+  lands here from either direction never hits a dead end.
+- `public/utility/{radio,emergency,firstaid,maps,library,search}/index.php` -
+  one clean placeholder page per future section (not broken links, not
+  missing pages), each stating plainly that the section isn't built yet and
+  what it will eventually contain, with a link back to `/utility/` and to
+  Search.
+- `data/utility/.gitkeep` - reserves `data/utility/` (parallel to the
+  existing `data/` used for `chat.json`/`messages.json`) as the future home
+  for the Stage 2+ JSON reference datasets (radio bands, emergency/first-aid
+  topics, local info, the generated search index). Empty this phase - no
+  data written yet. Sits inside the existing `open_basedir` allowance
+  (`/var/www/html`), so no PHP security-restriction change was needed to
+  create it.
+
+**Modified files:**
+- `includes/navbar.php` - added one `<li>` for "Utility" (`/utility/`) as the
+  last item, after Help. Every existing item and its order is unchanged.
+  Also changed the logo `<img>` and the Chat/Guestbook/Help links from
+  page-relative (`chat.php`) to root-absolute (`/chat.php`) paths. This was
+  a required, not cosmetic, fix: `navbar.php` is `require`'d by pages at
+  multiple directory depths (site root, and now one level down under
+  `/utility/...`), and a page-relative href resolves against the requesting
+  page's own URL, not the include's location - so `chat.php` written on a
+  page served from `/utility/` would have pointed at the nonexistent
+  `/utility/chat.php`. Root-absolute paths resolve identically to the old
+  ones for every existing root-level page (`/`, `/chat.php`, etc.) and
+  correctly for any future nesting depth. Verified live (see Testing below)
+  that every existing nav link and the logo still load correctly after this
+  change.
+- `includes/footer.php` - same fix, same reason, for the one link it
+  contains (`help.php` &rarr; `/help.php`). Footer is `require`'d by
+  `index.php`/`help.php`/`messages.php`/the new utility pages (not
+  `chat.php`, unchanged Phase 5 decision).
+- `public/assets/styles.css` - appended a new block only (`.utility-grid`,
+  `.utility-card*`, `.utility-breadcrumb`, `.utility-placeholder-note`); no
+  existing rule was edited or removed. Deliberately reuses the existing dark/
+  purple palette and the existing `.hero`/`.help-section`/`.help-note`
+  components' visual language (card background `#292938`, `#8c8dff` accent
+  border/links, uppercase bold labels) rather than introducing a second
+  visual style, per the instruction to keep the existing PirateBox look.
+
+**Why a nav link now, not deferred to a later stage:** the operator
+explicitly asked for the Utility section to be reachable from the normal
+site nav in this stage, not left as an undiscoverable orphan page until
+content exists.
+
+**Deployment mechanics:** `/var/www/html` is owned by `www-data`, and this
+session has no passwordless `sudo`, so all edits were made in this repo's
+`var/www/html` mirror (owned by `moose`) and then deployed to the live path
+by the operator directly, via `rsync -a --chown=www-data:www-data`/`cp` run
+in their own interactive SSH session (the only place `sudo` could actually
+prompt for a password) - not by this assistant. Deployed files were then
+byte-diffed against the repo copy to confirm an exact match before any
+testing began.
+
+**Explicitly not done this phase (deferred to later stages, per the
+operator's own staged plan):** no `poppler-utils`/other new package
+installed; no radio/emergency/first-aid/maps content or datasets added; no
+document library or its `open_basedir` addition; no search index or search
+UI logic - the Search placeholder page is a description of what's coming,
+not a working search yet.
+
+**Backup:** `~/piratebox-backups/utility-phase1-pre-20260901-044929/`
+(full `var/www/html` mirror + recorded pre-change git HEAD
+`74c040e39122c7e3fff20d7f69a4bd478618f684`), created before any edit in this
+phase, following the same convention as the Phase 3/4/5 pre-change backups.
+
+**Testing performed (live, after deployment):**
+- Byte-diffed every deployed file against the repo copy (exact match) and
+  confirmed `www-data:www-data` ownership.
+- `php -l` on every new/modified PHP file (no syntax errors).
+- HTTP status check across `/`, `/chat.php`, `/messages.php`, `/help.php`,
+  `/admin/` (still `401`, unchanged - Basic Auth boundary untouched),
+  `/utility/`, and all six placeholder pages (all `200`).
+- Confirmed the new `/utility/` link and its target render correctly, and
+  that all pre-existing nav links plus `/assets/*` (stylesheet, script,
+  logo) still resolve `200` when requested by a browser sitting on a nested
+  `/utility/...` page.
+- Re-verified all seven captive-portal probe paths
+  (`/generate_204`, `/gen_204`, `/hotspot-detect.html`,
+  `/library/test/success.html`, `/success.html`, `/connecttest.txt`,
+  `/ncsi.txt`) still `302` to `http://10.0.0.1/`, and
+  `/.well-known/captive-portal` still returns the same RFC 8908 JSON body -
+  all unchanged, as expected, since neither nginx config nor dnsmasq was
+  touched.
+- **Live write-path test, not just a page load:** posted a real,
+  clearly-labeled test message (`[Automated Stage 1 verification post - safe
+  to delete via /admin/]`) to both the guestbook and chat via an
+  authenticated CSRF-token POST, and confirmed each was accepted and then
+  appeared back on re-fetch - proving `chat.php`/`messages.php` still work
+  correctly end-to-end through the modified `navbar.php`/`footer.php`
+  includes they both `require`. **These two test posts are still live in
+  `data/chat.json`/`data/messages.json`** - clear them from `/admin/` if you
+  don't want them kept (three independent, confirmation-gated actions exist
+  there for exactly this).
+- Confirmed the upload form on `/` still renders (`enctype`, `name="file"`,
+  max-size attribute) - `upload.php` itself was not touched this phase, so a
+  full upload round-trip was not repeated.
+- Checked `nginx`/`php8.4-fpm` error logs and `journalctl` for both units
+  across the entire testing window: zero new errors correlated with any
+  request made during this phase (pre-existing historical log entries from
+  earlier phases are unrelated and unchanged).
+- Confirmed `nginx`, `php8.4-fpm`, `hostapd`, `dnsmasq` all remained
+  `active` throughout with no restarts, and disk free space (`107G`)
+  unaffected.
+
 ## Wi-Fi adapter notes / planned hardware
 
 **Decision date:** 2026-09-01 (post-Phase 6). Documentation only - no

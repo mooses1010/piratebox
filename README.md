@@ -34,6 +34,7 @@ generated locally at install time, no external QR service involved. See
 - **Live Chat**: Have a conversation with others connected to the PirateBox.
 - **Help page**: `help.php` - connect instructions (including a note for Android/Samsung devices that show "Internet may not be available"), platform guidance, and a short About section. Linked from every page's navigation.
 - **Admin/status page**: see "Admin/Status Page" below.
+- **Offline Utility Library** (`/utility/`, in progress): a growing offline reference/utility section - radio reference, emergency/outage reference, first aid, maps &amp; local info, a document library, and cross-section search - all working without any Internet access, same as the rest of the site. Linked from the main navigation. Currently scaffolding only (Stage 1); see docs/OPERATIONAL-DECISIONS.md for the staged plan and progress.
 - **Auto-Cleanup**: Script included to purge uploads and messages (optional via scheduled cron job - off by default, see "Maintenance" below).
 - **Fully offline-rendered**: no CDNs, no Google Fonts, no external JS/CSS/images/APIs anywhere in the app - everything required to render and use every page ships with the device. See docs/OPERATIONAL-DECISIONS.md for the Phase 5 audit.
 

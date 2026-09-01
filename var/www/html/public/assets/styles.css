@@ -813,3 +813,74 @@ ul#chat li.empty-state {
     margin: 0 auto 1rem auto;
     font-size: 0.85rem;
 }
+
+/* -------------------------------------------------
+   Utility Library (Stage 1): landing page card grid
+   and shared placeholder-page elements. Reuses the
+   existing hero/help-section/help-note components
+   above rather than introducing a new visual style.
+   ------------------------------------------------- */
+.utility-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    max-width: 900px;
+    margin: 0 auto 2rem auto;
+    padding: 0 1rem;
+}
+
+.utility-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.4rem;
+    background: #292938;
+    color: #ddd9e8;
+    border-left: 4px solid #8c8dff;
+    padding: 1.5rem 1rem;
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+    text-decoration: none;
+    min-height: 8rem;
+    justify-content: center;
+}
+
+.utility-card:hover {
+    background: #343455;
+    color: #fff;
+    text-decoration: none;
+}
+
+.utility-card-icon {
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.utility-card-title {
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #8c8dff;
+}
+
+.utility-card:hover .utility-card-title {
+    color: #a0a1ff;
+}
+
+.utility-card-desc {
+    font-size: 0.8rem;
+    color: #aaa;
+}
+
+/* Utility sub-pages: breadcrumb back-link + "not built yet" note */
+.utility-breadcrumb {
+    margin-bottom: 1rem;
+}
+
+.utility-placeholder-note {
+    border-left-color: #606085;
+}
+
+.utility-placeholder-note strong {
+    color: #a0a1ff;
+}

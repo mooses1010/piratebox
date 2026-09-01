@@ -1,0 +1,72 @@
+<?php
+declare(strict_types=1);
+session_start();
+?>
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PirateBox - Offline Utility Library</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+    <script src="/assets/scripts.js"></script>
+</head>
+
+<body>
+    <?php require_once __DIR__ . '/../../includes/navbar.php'; ?>
+
+    <div class="hero">
+        <div class="hero-tagline">Local Offline Network</div>
+        <h1>Offline Utility Library</h1>
+        <p>No Internet connection is used or required - this network never leaves this device. Everything below is stored locally on this PirateBox: radio references, emergency and first-aid information, maps, manuals, and search all work the same with or without a working Internet connection anywhere nearby.</p>
+        <p class="muted">This is an addition to the regular PirateBox file-sharing network, not a replacement for it - Files, Chat, and the Guestbook are all still here too.</p>
+    </div>
+
+    <div class="utility-grid">
+        <a class="utility-card" href="/utility/radio/">
+            <span class="utility-card-icon" aria-hidden="true">📻</span>
+            <span class="utility-card-title">Radio</span>
+            <span class="utility-card-desc">Bands, frequencies, modes &amp; antenna basics for a wideband receiver</span>
+        </a>
+        <a class="utility-card" href="/utility/emergency/">
+            <span class="utility-card-icon" aria-hidden="true">🚨</span>
+            <span class="utility-card-title">Emergency</span>
+            <span class="utility-card-desc">Power outages, storms, floods, heat/cold &amp; other outage guidance</span>
+        </a>
+        <a class="utility-card" href="/utility/firstaid/">
+            <span class="utility-card-icon" aria-hidden="true">🩹</span>
+            <span class="utility-card-title">First Aid</span>
+            <span class="utility-card-desc">Basic conservative first-aid reference - not a substitute for care</span>
+        </a>
+        <a class="utility-card" href="/utility/maps/">
+            <span class="utility-card-icon" aria-hidden="true">🗺️</span>
+            <span class="utility-card-title">Maps</span>
+            <span class="utility-card-desc">Local, regional &amp; reference maps, plus local emergency contacts</span>
+        </a>
+        <a class="utility-card" href="/utility/library/">
+            <span class="utility-card-icon" aria-hidden="true">📚</span>
+            <span class="utility-card-title">Library</span>
+            <span class="utility-card-desc">Manuals and reference documents stored on this device</span>
+        </a>
+        <a class="utility-card" href="/utility/search/">
+            <span class="utility-card-icon" aria-hidden="true">🔍</span>
+            <span class="utility-card-title">Search</span>
+            <span class="utility-card-desc">One search box across everything in the Utility Library</span>
+        </a>
+    </div>
+
+    <section class="help-section">
+        <h2>Also on this PirateBox</h2>
+        <div class="hero-actions">
+            <a href="/">Files</a>
+            <a href="/chat.php">Chat</a>
+            <a href="/messages.php">Guestbook</a>
+            <a href="/help.php">Help / About this network</a>
+        </div>
+    </section>
+
+    <?php require_once __DIR__ . '/../../includes/footer.php'; ?>
+</body>
+
+</html>
