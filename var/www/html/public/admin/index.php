@@ -270,6 +270,11 @@ $versionLine = $versionRaw !== false ? trim($versionRaw) : null;
 
 $contentProfile = piratebox_get_content_profile();
 
+// Post-Stage-32: connection statistics - see piratebox_get_connection_stats()
+// for the full privacy design (aggregate integer counts only, never a
+// MAC/IP/hostname). null when the helper snapshot itself is stale.
+$connStats = piratebox_get_connection_stats();
+
 // Byte/duration formatting now lives in includes/helpers.php (Phase 5) as
 // piratebox_fmt_bytes()/piratebox_fmt_duration() - index.php needs the
 // same byte formatting for the file list, so this is now the one shared
@@ -331,6 +336,11 @@ $contentProfile = piratebox_get_content_profile();
             <span class="stat-label">Wi-Fi clients</span>
             <span class="stat-value"><?= ($helperStatus && !$helperStale) ? (int) $helperStatus['wifi_clients'] : '?' ?></span>
             <?php if ($helperStale): ?><span class="stat-sub status-bad">status helper not reporting</span><?php endif; ?>
+        </div>
+        <div class="stat-card">
+            <span class="stat-label">Connections (24h)</span>
+            <span class="stat-value"><?= $connStats !== null ? $connStats['last_24h'] : '?' ?></span>
+            <span class="stat-sub"><?= $connStats !== null ? 'peak ' . $connStats['peak_24h'] . ' simultaneous' : 'unavailable' ?> - see <a href="/utility/status/">Stats</a> for detail</span>
         </div>
     </div>
 

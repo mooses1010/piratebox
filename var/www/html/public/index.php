@@ -4,8 +4,10 @@ session_start();
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/mode.php';
+require_once __DIR__ . '/../includes/metrics.php';
 
 $piratebox_mode = piratebox_get_mode();
+$connStats = piratebox_get_connection_stats();
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -79,6 +81,13 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
 
 <body>
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
+
+    <?php if ($connStats !== null): ?>
+        <p class="conn-status-line muted" style="text-align:center;" title="Counts Wi-Fi association activity, not people or devices - a device that disconnects and reconnects (e.g. Wi-Fi sleep/wake) is counted again. See the Stats page for detail.">
+            <span class="<?= $connStats['current'] > 0 ? 'status-ok' : '' ?>">&#9679;</span>
+            <?= $connStats['current'] ?> connected &middot; <?= $connStats['last_24h'] ?> connection<?= $connStats['last_24h'] === 1 ? '' : 's' ?> in 24h
+        </p>
+    <?php endif; ?>
 
     <?php if ($piratebox_mode === PIRATEBOX_MODE_EMERGENCY): ?>
         <div class="hero hero-emergency">

@@ -54,6 +54,11 @@ $helper = piratebox_get_helper_status();
 $helperStatus = $helper['status'];
 $helperStale = $helper['stale'];
 
+// --- Connection statistics (post-Stage-32) - see piratebox_get_connection_stats()
+// for the full privacy design. null when the helper snapshot itself is
+// missing/stale, same as every other helper-sourced stat above.
+$connStats = piratebox_get_connection_stats();
+
 // --- Content catalog (reuse Stage 19/20's export manifest - not a third
 // independent count of the same numbers) ---
 $exportManifest = ref_load_json(__DIR__ . '/../exports/manifest.json');
@@ -93,6 +98,8 @@ $rows = [
     ['CPU temperature', $cpuTempC !== null ? round($cpuTempC, 1) . ' C' : 'unknown'],
     ['CPU load (1/5/15 min)', ($load1 !== null && $load5 !== null && $load15 !== null) ? "$load1 / $load5 / $load15" : 'unknown'],
     ['Wi-Fi clients connected', ($helperStatus && !$helperStale) ? (string) (int) $helperStatus['wifi_clients'] : 'unknown (status helper not reporting)'],
+    ['Wi-Fi connection events (last 24h)', $connStats !== null ? (string) $connStats['last_24h'] : 'unknown (status helper not reporting)'],
+    ['Peak simultaneous Wi-Fi clients (last 24h)', $connStats !== null ? (string) $connStats['peak_24h'] : 'unknown (status helper not reporting)'],
     ['Publicly shared files', $uploadCount . ' file' . ($uploadCount === 1 ? '' : 's') . ', ' . piratebox_fmt_bytes($uploadBytes) . ' total'],
 ];
 foreach ($refCounts as $label => $count) {
@@ -185,6 +192,34 @@ if (in_array($format, ['txt', 'json', 'csv'], true)) {
         </div>
         <?php if ($helperStale): ?>
             <p class="muted status-bad">The background status helper isn't reporting right now, so Wi-Fi client count and service state above show as "unknown" rather than a guess. This doesn't affect PirateBox itself - file sharing, chat, the guestbook, and the Utility Library all keep working normally either way.</p>
+        <?php endif; ?>
+
+        <h2 class="admin-section-heading">Wi-Fi Connection Activity <span class="section-tag">aggregate only</span></h2>
+        <div class="help-note">
+            <p><strong>What "connection events" means:</strong> each time a device newly associates with this PirateBox's Wi-Fi, that's one connection event. A device that disconnects and reconnects later - Wi-Fi sleep/wake, walking out of range and back, a phone switching apps - is counted again each time. <strong>This is not a count of distinct people or devices</strong> - one person on one phone that reconnects five times in an hour shows as five connection events, not five visitors. "Peak simultaneous clients" is the highest number of devices ever seen connected at the same moment in the period shown, sampled roughly every 30 seconds.</p>
+            <p>No MAC address, IP address, hostname, device name, or any other per-device identifier is ever stored - only small integer counts, grouped by hour. A device's identity is used for a few seconds at most (to tell "still connected" apart from "newly connected" between two 30-second checks) and is never written anywhere. Counts for the current, still-in-progress hour are kept only in memory and are folded into the SD card's saved history once that hour completes - so an unexpected power loss can lose at most the last (incomplete) hour of counts, never anything older.</p>
+        </div>
+        <?php if ($connStats === null): ?>
+            <p class="muted status-bad">The background status helper isn't reporting right now, so connection statistics aren't available. This doesn't affect PirateBox itself.</p>
+        <?php else: ?>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Hour</th><th>Connection events</th><th>Peak simultaneous clients</th></tr></thead>
+                    <tbody>
+                        <?php if (empty($connStats['hourly'])): ?>
+                            <tr><td colspan="3" class="muted">No data yet - the status helper only just started tracking this, or it's been less than an hour.</td></tr>
+                        <?php else: ?>
+                            <?php foreach (array_reverse($connStats['hourly']) as $bucket): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars(date('Y-m-d H:i', $bucket['hour_start'])) ?></td>
+                                    <td><?= (int) $bucket['count'] ?></td>
+                                    <td><?= (int) $bucket['peak'] ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         <?php endif; ?>
 
         <section class="help-section">

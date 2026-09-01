@@ -185,3 +185,104 @@ if (!function_exists('piratebox_get_emergency_runtime_seconds')) {
         return [$totalSeconds, $transitionCount];
     }
 }
+
+/**
+ * Post-Stage-32 addition: privacy-preserving connection statistics.
+ *
+ * Reads var/www/html/data/connection-stats.json (written by
+ * piratebox_status_helper.sh at most once per hour) and combines it
+ * with the helper snapshot's current in-progress-hour totals to compute
+ * a rolling 24-hour picture of Wi-Fi connection activity. All the
+ * summation/aggregation logic lives here in PHP, not in the privileged
+ * shell helper - the same split Stage 21 already established for
+ * piratebox_get_emergency_runtime_seconds() above (root-owned script
+ * does the minimal privileged read/persist, PHP does the arithmetic).
+ *
+ * Returns null if the helper snapshot is missing/stale, same "honest
+ * absence" convention as every other status field this module exposes -
+ * a caller should simply omit the whole feature rather than show a
+ * broken/zero number. Otherwise returns:
+ *   [
+ *     'current'  => int   current Wi-Fi client count,
+ *     'last_24h' => int   sum of connection events across the last 24h
+ *                          (completed hourly buckets + the current
+ *                          in-progress hour),
+ *     'peak_24h' => int   highest simultaneous-client count observed in
+ *                          any of those same hours,
+ *     'hourly'   => array up to 25 ['hour_start','count','peak'] rows,
+ *                          oldest first - for a detailed breakdown on
+ *                          the admin/Stats page only, never the
+ *                          homepage's subtle indicator.
+ *   ]
+ *
+ * PRIVACY: this only ever reads/returns small integers bucketed by
+ * hour - no MAC address, IP, hostname, or other per-device identifier
+ * exists in connection-stats.json by construction (see
+ * piratebox_status_helper.sh's own header), so there is nothing here
+ * that could leak one even by accident.
+ */
+if (!function_exists('piratebox_get_connection_stats')) {
+    function piratebox_get_connection_stats(): ?array
+    {
+        $helper = piratebox_get_helper_status();
+        $status = $helper['status'];
+        if ($status === null || $helper['stale']) {
+            return null;
+        }
+
+        $conn = is_array($status['connections'] ?? null) ? $status['connections'] : [];
+        $currentHourStart = (int) ($conn['current_hour_start'] ?? 0);
+        $currentHourCount = (int) ($conn['current_hour_count'] ?? 0);
+        $currentHourPeak = (int) ($conn['current_hour_peak'] ?? 0);
+
+        $raw = @file_get_contents(__DIR__ . '/../data/connection-stats.json');
+        $decoded = $raw !== false ? json_decode($raw, true) : null;
+        $hourly = (is_array($decoded) && is_array($decoded['hourly'] ?? null)) ? $decoded['hourly'] : [];
+
+        $cutoff = time() - 24 * 3600;
+        $last24h = 0;
+        $peak24h = 0;
+        $rows = [];
+        foreach ($hourly as $bucket) {
+            if (!is_array($bucket)) continue;
+            $hourStart = (int) ($bucket['hour_start'] ?? 0);
+            $count = (int) ($bucket['count'] ?? 0);
+            $peak = (int) ($bucket['peak'] ?? 0);
+            // The persisted file keeps up to 25 hours of buckets (one
+            // hour of slack past the 24h window this feeds - see
+            // piratebox_status_helper.sh), so filter to the same cutoff
+            // used for the totals below - otherwise the returned
+            // breakdown could show a row that isn't reflected in
+            // last_24h/peak_24h, which would look like an inconsistency
+            // rather than the deliberate pruning slack it actually is.
+            if ($hourStart < $cutoff) continue;
+            $rows[] = ['hour_start' => $hourStart, 'count' => $count, 'peak' => $peak];
+            $last24h += $count;
+            $peak24h = max($peak24h, $peak);
+        }
+
+        // The current in-progress hour is never in connection-stats.json
+        // yet (only written there once the hour completes) - add it
+        // separately so the total reflects activity up to the helper's
+        // last poll, not just fully-completed hours.
+        if ($currentHourStart >= $cutoff) {
+            $last24h += $currentHourCount;
+            $peak24h = max($peak24h, $currentHourPeak);
+            $rows[] = ['hour_start' => $currentHourStart, 'count' => $currentHourCount, 'peak' => $currentHourPeak];
+        }
+
+        // Sort oldest-first defensively, rather than trusting the
+        // persisted file's array order (the shell helper's own flush
+        // step already sorts it, but a reader shouldn't depend on a
+        // writer-side invariant it can't verify - a manually-edited or
+        // future-buggy file should still render in the right order).
+        usort($rows, fn($a, $b) => $a['hour_start'] <=> $b['hour_start']);
+
+        return [
+            'current' => (int) ($status['wifi_clients'] ?? 0),
+            'last_24h' => $last24h,
+            'peak_24h' => $peak24h,
+            'hourly' => $rows,
+        ];
+    }
+}

@@ -20,6 +20,168 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Post-Stage-32: Privacy-Preserving Connection Statistics
+
+**Decision date:** 2026-09-01. A small, deliberate feature requested
+after the Stages 13-32 roadmap was already complete and committed -
+explicitly **not** Stage 33, and not a reason to reopen any completed
+roadmap work. Commissioned alongside this: the operator interactively
+re-ran `setup_claude_automation.sh` (picking up Stage 21/24/26's
+accumulated `piratebox_deploy.sh`/`set_piratebox_mode.sh` changes),
+applied the Stage 21 `piratebox-status.service` fix (confirmed live:
+the "status helper not reporting" state is gone, `status.json` now
+populates correctly), and installed the Stage 25 backup timer
+(confirmed: it already produced one real automated backup). `fake-
+hwclock` remains deliberately not installed (the operator may add a
+hardware RTC instead - see Stage 28/29) and Local Information's fields
+remain deliberately unpopulated - neither touched, per instruction.
+
+**What was built:** a subtle homepage indicator ("● N connected · M
+connections in 24h") plus a detailed breakdown on the public Stats page
+and a compact summary on `/admin/`, showing current Wi-Fi client count
+and connection activity over the last 24 hours.
+
+**Source, exactly as proposed and approved before implementation:**
+extends the *existing* Phase 4 `piratebox_status_helper.sh` (root,
+already scheduled every 30s by `piratebox-status.timer`) - no new
+daemon, timer, sudoers grant, or privilege boundary. It already ran
+`iw dev wlan0 station dump` for the live client count; each poll now
+also diffs the current associated-MAC list against the *previous
+poll's* list (kept only in a tmpfs scratch file, overwritten every
+30s) to count newly-appeared MACs as "connection events."
+
+**Bootstrap safety (operator-requested refinement):** if no previous-
+poll snapshot exists yet (fresh boot, helper restart, or state loss),
+the first successful poll seeds the snapshot and counts **zero**
+events, rather than treating every already-connected station as a
+sudden burst of new connections. Comparison begins for real on the
+next poll. Verified directly: a simulated first-ever poll with 2
+already-associated stations produced `current_hour_count: 0`.
+
+**What's retained vs. not:**
+
+| Data | Where | Lifetime |
+|---|---|---|
+| Raw MAC list from the current poll | tmpfs (`/run/piratebox/prev-stations`) | Overwritten every 30s by the next poll - never logged, never reaches the SD card |
+| Current in-progress hour's running count + peak | tmpfs (`/run/piratebox/hour-scratch`) | Reset every hour on rollover; lost (at most ~1hr) on an unclean shutdown |
+| Hourly **integer** counts + **per-hour peak** (operator-requested refinement - not a single lifetime peak) | SD card, `data/connection-stats.json` | Rolling ~25 hours (24h window + 1h slack), oldest pruned automatically on every flush |
+
+**Never written anywhere:** MAC addresses, IPs, hostnames, device
+names, user agents, or any per-device record. The persisted file only
+ever holds `{hour_start, count, peak}` integer triples.
+
+**"Connections in 24h" - exact definition:** sum of hourly connection-
+event counts for the last 24 hours (completed hourly buckets, summed in
+PHP, plus the live in-progress hour read straight from the helper
+snapshot - never a separate SD read). An "event" = a MAC reappearing
+after being absent from the immediately-preceding 30s poll - so a
+continuously-connected device counts once, but a device that
+disconnects and reconnects (Wi-Fi sleep/wake, walking out of range and
+back) counts again each time. The UI says "connections"/"connection
+events," never "people," "visitors," or "unique users," per instruction
+- with a `title` tooltip on the homepage and a full explanatory
+paragraph on the Stats page spelling out exactly what this does and
+doesn't mean.
+
+**"Peak simultaneous clients," genuinely rolling (operator-requested
+refinement):** each *persisted* hourly bucket carries its own peak
+(the highest simultaneous-client count sampled during that hour), not
+one lifetime/global peak - so `peak_24h` is a true max across whichever
+hours actually fall in the current 24h window, correctly excluding
+hours that have aged out. Computed in PHP (`piratebox_get_connection_
+stats()`), mirroring exactly the split Stage 21 already established for
+`piratebox_get_emergency_runtime_seconds()`: the privileged shell
+helper does the minimal privileged read/persist, PHP does the
+arithmetic - no new logic needed in the root-owned script beyond
+writing the raw building blocks.
+
+**Two disclosed tradeoffs, exactly as flagged before implementation:**
+1. A device that connects and fully disconnects within one 30-second
+   poll window is never observed - the same class of approximation the
+   pre-existing live client count already has.
+2. Flushing to the SD card every 30s would be poor for card longevity;
+   flushing only once per hour (~24 tiny writes/day) means an unclean
+   shutdown can lose at most the current partial hour's count - every
+   *completed* hour is already safe on disk. Chosen deliberately over a
+   more failure-resistant but higher-write-volume design, per
+   instruction to prefer the simpler privacy-preserving choice when the
+   two goals conflict.
+
+**Failure mode:** if `iw`/`wlan0` is unavailable, or `connection-
+stats.json` is missing/corrupt, `piratebox_get_connection_stats()`
+returns `null` (missing/stale helper) or degrades to whatever data *is*
+readable (corrupt persisted file - falls back to current-hour-only
+rather than erroring) - callers omit the feature entirely rather than
+showing a broken or misleading zero. The rest of the status helper
+(service health, uptime, power) is unaffected either way; a bash
+processing error inside the connection-tracking block cannot abort the
+whole script (guarded with `|| true` on every fallible step, matching
+the existing script's own established pattern for `iw`/`grep`).
+
+**Two bugs caught by testing before deployment, both fixed:**
+1. The `hourly` breakdown array returned to callers wasn't filtered to
+   the same 24h cutoff used for the summary totals, so a page could
+   have displayed a stale bucket (from the file's 25-hour pruning
+   slack) that wasn't reflected in the totals above it - looked like an
+   inconsistency rather than the deliberate slack it was. Fixed by
+   filtering the returned rows to the same cutoff.
+2. The returned breakdown didn't defensively sort by hour - it trusted
+   the persisted file's array order (which the shell flush step does
+   sort, but a reader shouldn't depend on a writer-side invariant it
+   can't verify). Fixed with an explicit `usort()` in PHP.
+
+**Testing:** `bash -n`/`php -l` clean on all 6 touched files. Extensive
+isolated shell-level testing against faked `iw`/`ip` binaries (real
+hardware/association state never touched): bootstrap (0 events on first
+poll), steady-state (0 events, same stations), a genuine new connection
+(+1 event), a departure (0 events - departures don't count), a
+reconnect (+1 event again, confirming "reconnects count"), an hour
+rollover (correct flush + reset, verified via the persisted file),
+multiple sequential rollovers (buckets accumulate correctly, sorted),
+25-hour pruning (a very old bucket removed on the next flush),
+corrupted persisted file (recovers by starting fresh, exit 0), and no
+Wi-Fi interface at all (degrades to 0 clients, no crash). Isolated PHP
+unit tests (a `piratebox_get_helper_status()` test double injected via
+the codebase's own `function_exists()` extension point - no real
+system file touched) covered: stale/missing helper (null), fresh
+install with no persisted file yet, a normal 24h rollup (verified exact
+sums), a corrupted persisted file, malformed entries mixed with valid
+ones, and defensive sorting of out-of-order input - all passed after
+the two fixes above. Full-page rendering tests via an isolated PHP
+built-in server (a stubbed helper injected via `auto_prepend_file`,
+never touching `/run/piratebox/status.json`) confirmed: the homepage
+indicator renders correctly with real numbers and singular/plural
+grammar ("1 connection" vs. "27 connections"), the indicator's dot is
+non-green at zero current clients, the indicator is completely omitted
+(not zero, not broken) when the helper is stale, the Stats page's
+detailed table and explanatory text render correctly, the admin page's
+compact card renders correctly and degrades to "?" / "unavailable"
+when stale, the new stats appear correctly in the JSON/CSV/TXT
+downloads, and zero PHP warnings/notices/fatals occurred in any
+scenario. Confirmed the homepage indicator is placed unconditionally,
+before the Normal/Emergency Mode branch - present identically in both
+modes, preserving mode-content-parity.
+
+**Live deployment:** `var/www/html` changes deployed via the approved
+sudo automation. `piratebox_status_helper.sh` (root-owned,
+`/usr/local/bin`) required the operator's own `sudo cp`, plus a re-run
+of `setup_claude_automation.sh` to pick up `piratebox_deploy.sh`'s new
+`data/connection-stats.json` exclude line, plus a service restart -
+batched into one command the operator ran interactively. Live-verified
+afterward: the new tmpfs scratch files (`prev-stations`, `hour-scratch`)
+were created correctly; the very first poll on the real, updated helper
+correctly counted **zero** events despite a real device already being
+associated (the bootstrap-safety refinement, confirmed working on real
+hardware, not just the simulated test); a second poll 30s later
+correctly stayed at zero for the same still-connected device
+(steady-state, no false recount); the homepage indicator, Stats page
+breakdown/explanation, and admin card all render correctly with the
+real live numbers; confirmed present and correct in both Normal and
+Emergency Mode; `nginx`/`php8.4-fpm`/`piratebox-status` logs clean
+throughout; mode restored to Normal.
+
+**Backup:** `~/piratebox-backups/connstats-pre-20260901-124144/`.
+
 ## Stage 32: Final Expansion Review / Wrap-Up (Stages 13-32 complete)
 
 **Decision date:** 2026-09-01. Layered on Stage 31 (`6a6c112`). No
