@@ -1,0 +1,18 @@
+[Unit]
+Description=Run the PirateBox live data backup periodically
+
+[Timer]
+# Every 6 hours is frequent enough to bound data loss to a small window
+# during actual sustained emergency use (when chat/bulletin/guestbook
+# traffic matters most), without the tiny live-data footprint (a few
+# hundred KB to a few MB) making this a meaningful resource cost.
+OnBootSec=5min
+OnUnitActiveSec=6h
+AccuracySec=5min
+# If the Pi was off when a run was due, run it soon after the next boot
+# instead of silently waiting up to 6 hours - relevant for a device that
+# may be powered off between uses.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

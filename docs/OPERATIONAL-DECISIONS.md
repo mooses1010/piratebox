@@ -20,6 +20,85 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 25: Backup / Restore for Live Community Data
+
+**Decision date:** 2026-09-01. Layered on Stage 24 (`f8557af`).
+
+Distinct from this project's own `~/piratebox-backups/` convention (a
+Claude session's pre-stage snapshot of the whole `var/www/html` tree,
+taken once per development stage for rollback during development). This
+stage instead protects the live, growing **community data** itself -
+chat/guestbook/bulletin/recovery-message history, the device ID, the
+Emergency Mode runtime log, and uploaded files - against SD card
+corruption or accidental loss during actual field/emergency use, when
+that data can't be recreated from git at all.
+
+**New `tools/backup_piratebox_data.sh`:** runs as the `moose` account,
+no sudo - every file it reads (`data/*.json`, `data/*.log`,
+`public/uploads/*`) is world-readable by design, so it can never write
+anywhere the account running it couldn't already write on its own.
+Creates a timestamped `tar.gz` under `~/piratebox-data-backups/`,
+verifies the archive is actually readable before trusting it (`tar -tzf`
+round-trip), refuses to run below 50MB free at the destination, and
+prunes to the newest 30 backups by default (`--retain N` to override) -
+only ever touching files matching its own naming pattern in its own
+directory. Gracefully skips any store that doesn't exist yet (a fresh
+install, or `bulletin.json` before the first bulletin post).
+
+**New `tools/restore_piratebox_data.sh`:** deliberately **not** part of
+the NOPASSWD sudo automation and **not** installed to `/usr/local/bin` -
+unlike `purge_uploads.sh`/`restart_hostapd.sh` (root-owned deployed
+copies, run for routine maintenance), a restore is rare, high-stakes,
+and irreversible, so this always requires the operator's actual sudo
+password, every time, run directly from a repo checkout
+(`sudo bash tools/restore_piratebox_data.sh <archive> [--yes]`). Also
+deliberately **not** reachable from the web UI at all (unlike purge,
+which is confirm-gated but web-reachable) - a network-reachable restore
+path would be a much larger foothold for anyone who ever found the
+admin password. Refuses a file that doesn't look like one of this
+tool's own archives (checks for top-level `data/`/`uploads/` entries
+before extracting anything), and requires typing `YES` at an
+interactive prompt (or an explicit `--yes` for a supervised, scripted
+restore) before touching anything.
+
+**Scheduling, documented but not installed** (same pattern as Stage
+21's systemd fix - installing a unit is outside this session's 5-command
+sudo boundary): `etc/systemd/system/piratebox-backup.service` (`Type=
+oneshot`, runs as `moose`, no elevated privilege needed) +
+`piratebox-backup.timer` (every 6 hours, `Persistent=true` so a backup
+that was due while the Pi was off still runs soon after the next boot).
+Pending manual step for the operator, alongside Stage 21's still-open
+one: `sudo cp etc/systemd/system/piratebox-backup.* /etc/systemd/system/
+&& sudo systemctl daemon-reload && sudo systemctl enable --now
+piratebox-backup.timer`. The backup script is fully usable by hand right
+now regardless of whether the timer is ever installed.
+
+**Found while here, not fixed (out of this stage's scope):**
+`purge_uploads.sh` (Phase 2) only purges `chat.json`/`messages.json` -
+it predates `bulletin.json` (Stage 22) and `recovery-messages.json`
+(Stage 16) and was never updated for either. Changing a destructive
+admin script's behavior deserves its own deliberate pass, not a rushed
+addition alongside an unrelated backup/restore feature - flagged here
+for a future stage rather than silently left undiscovered.
+
+**Testing:** `bash -n` clean on both scripts; `systemd-analyze verify`
+clean on both units. Isolated tests against a throwaway fake site tree
+(never live data): confirmed the archive contains exactly the expected
+files (lock files excluded, missing stores gracefully skipped);
+confirmed retention pruning keeps exactly the newest N archives across
+repeated runs; confirmed restore's archive-sanity check rejects an
+unrelated file; confirmed declining the confirmation prompt makes zero
+changes; confirmed accepting (`--yes`) correctly restores a deleted file
+and reverts a modified one back to the backed-up content. Live-ran the
+real (unmodified) backup script against production - read-only,
+low-risk - and confirmed the resulting archive holds exactly live
+`chat.json`/`messages.json`/`recovery-messages.json`/`device-id.json`
+and both live-uploaded test files, with no lock files and no
+`bulletin.json` (correctly absent - none has been posted yet). Restore
+was **not** exercised against live data (unnecessary risk given the
+isolated test already covers the logic thoroughly) - this is the first
+real backup this PirateBox now has of its own community data.
+
 ## Stage 24: Resilience Audit - Low-Storage Guard for Flat-File Stores
 
 **Decision date:** 2026-09-01. Layered on Stage 23 (`90a93ba`).

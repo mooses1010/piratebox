@@ -1,0 +1,14 @@
+[Unit]
+Description=PirateBox live data backup (chat/guestbook/bulletin/recovery-messages/uploads)
+# See tools/backup_piratebox_data.sh for exactly what this does and why.
+# Documented here, NOT auto-installed - see docs/OPERATIONAL-DECISIONS.md
+# (Stage 25) for the manual install step.
+
+[Service]
+Type=oneshot
+# Runs as the moose account, not root: every file this reads is
+# world-readable by design, and its only writes are to the moose
+# account's own home directory (~/piratebox-data-backups/) - there is
+# nothing here that needs, or should have, root.
+User=moose
+ExecStart=/home/moose/piratebox/tools/backup_piratebox_data.sh
