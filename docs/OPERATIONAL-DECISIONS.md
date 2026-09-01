@@ -6,6 +6,77 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Offline Utility Library - Stage 4: First Aid Reference
+
+**Decision date:** 2026-09-01.
+
+**Scope:** builds out `/utility/firstaid/` (a Stage 1 placeholder). HIGH-
+STAKES CONTENT - see "Conservative-content decisions" below. No networking/
+security-boundary/Emergency-Mode-state changes; no packages installed.
+Layered on Stage 3 (`8cdfb28`/`9fc41c5`).
+
+**Data:** 16 topics + 21 sources (~24KB) in `data/utility/firstaid/`,
+sourced almost entirely from the **American Red Cross**'s own published
+first-aid learning pages, plus CDC (concussion signs) and Ready.gov (heat/
+cold - shared sourcing with Stage 3, first-aid-framed here). Same UI/data
+pattern as Stages 2-3 (reused `radio-*` CSS/JS, `source_id`/`confidence`/
+`source_note` provenance).
+
+**Conservative-content decisions (per explicit instruction - this is high-
+stakes material):**
+- Every topic is **overview-level**: recognize the signs, take the
+  immediate safe action, know when to call 911 - never a substitute for
+  training or a diagnosis engine. No topic tells a reader to determine what
+  condition someone has; every topic tells them what to watch for and when
+  to escalate to a professional.
+- **CPR/AED** got the most deliberate restraint: it states the well-known
+  public-facing summary ("push hard and fast, about 100-120/min," "use an
+  AED, it will guide you") because that phrasing is itself the standard
+  Red-Cross/AHA public-education message, not an invented detail - but it
+  deliberately does NOT attempt full compression-depth/hand-placement/
+  breath-timing choreography, and carries its own explicit
+  `training_note` field (rendered prominently on the page) stating that
+  hands-on certified training is strongly recommended and this is a
+  summary of what CPR involves, not a substitute for practicing it.
+- A page-level disclaimer (styled with the existing `.help-note` component,
+  not new alarm chrome) states plainly, before any topic content: this is
+  not a substitute for professional care or training, call 911 for
+  anything life-threatening, and any skill genuinely requiring practice is
+  flagged explicitly.
+- Nothing was invented: every quick-action bullet traces to specific
+  language found in the cited Red Cross/CDC source this session (see
+  Testing below - `ready.gov`/Red Cross pages also blocked direct
+  automated fetch (403) same as Stages 2-3, so content was gathered via
+  targeted search against `redcross.org`/`cdc.gov` domains specifically,
+  not general web results).
+- Two entries marked `confidence: medium` rather than high: **Minor Wounds**
+  (the specific Red Cross page was identified but not individually
+  re-verified line-by-line this session - the underlying practice is
+  extremely well-established/uncontroversial across every source) and the
+  **First-Aid Kit** reference (Red Cross publishes several activity-
+  specific checklists rather than one canonical list; this entry is a
+  synthesis of their commonly-recommended core contents, flagged as such).
+- Deliberately excluded, per instruction: dosing/medication guidance beyond
+  "use your own prescribed epinephrine auto-injector," any procedure
+  requiring visual diagnosis (e.g. distinguishing burn/fracture severity
+  precisely), and anything that reads as replacing professional judgment
+  rather than bridging the gap until it's available.
+
+**Testing performed:** JSON validated (build-time + live); `php -l` clean;
+rendered via PHP CLI pre-deploy (16 entries, 5 sections, disclaimer and the
+one `training_note` both confirmed present); live regression sweep of
+every existing page unaffected; representative search queries (`bleeding`,
+`choking`, `burn`, `cpr`, `poison`, `allergic`, `hypothermia`, `seizure`,
+`snake`) all resolve to the correct single entry live; live disclaimer/
+training-note rendering confirmed on the deployed page; live Normal vs.
+Emergency Mode content byte-diff - **identical**; `nginx`/`php8.4-fpm`/
+`hostapd`/`dnsmasq` active throughout, no restarts; error logs clean
+across the full testing window. Live mode restored to explicit Normal
+before finishing.
+
+**Backup:** `~/piratebox-backups/firstaid-stage4-pre-20260901-061123/`
+(full `var/www/html` mirror + pre-change git HEAD `9fc41c5`).
+
 ## Offline Utility Library - Stage 3: Emergency / Outage Reference
 
 **Decision date:** 2026-09-01.

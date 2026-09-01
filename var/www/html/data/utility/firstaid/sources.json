@@ -1,0 +1,149 @@
+{
+  "rc-check-call-care": {
+    "name": "Check, Call, Care: 3 Emergency Action Steps",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/articles/the-three-cs-of-first-aid-check-call-care",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-cpr-steps": {
+    "name": "CPR Steps",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/cpr/performing-cpr/cpr-steps",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-aed-steps": {
+    "name": "AED Steps",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/aed/using-an-aed/aed-steps",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-choking": {
+    "name": "Adult & Child Choking: Symptoms and First Aid",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/adult-child-choking",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-bleeding": {
+    "name": "Bleeding (Life-Threatening External)",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/bleeding-life-threatening-external",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-tourniquet": {
+    "name": "How to Apply a Tourniquet",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/articles/how-to-apply-a-tourniquet",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-shock": {
+    "name": "Shock",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/shock",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-burns": {
+    "name": "Burns: Types, Symptoms, and How To Help",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/burns",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-wounds": {
+    "name": "Wounds: Symptoms, Types, and First Aid",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/wounds",
+    "retrieved": "2026-09-01",
+    "note": "General minor-wound care practice (clean, cover, watch for infection) is well-established/consistent across sources; this specific Red Cross page was identified but not individually re-verified line-by-line this session."
+  },
+  "rc-fractures": {
+    "name": "Fractures: Types, Symptoms, and Treatment",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/fractures",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-concussion": {
+    "name": "Concussion: Symptoms, Causes, and Treatment",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/concussion",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "cdc-heads-up": {
+    "name": "Signs and Symptoms of Concussion (HEADS UP)",
+    "publisher": "CDC",
+    "url": "https://www.cdc.gov/heads-up/signs-symptoms/index.html",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-seizures": {
+    "name": "Seizures: Causes, Symptoms, and Types",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/seizures",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-poison": {
+    "name": "Poison Exposure: Signs, Symptoms, and First Aid",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/poison-exposure",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "poison-control": {
+    "name": "National Poison Control Center",
+    "publisher": "America's Poison Centers",
+    "url": "tel:1-800-222-1222",
+    "retrieved": "2026-09-01",
+    "note": "24/7 free hotline, works from anywhere in the US."
+  },
+  "rc-anaphylaxis": {
+    "name": "Allergic Reaction/Anaphylaxis: Causes, Symptoms, How To Help",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/allergic-reaction-anaphylaxis",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-heat": {
+    "name": "Extreme Heat - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/heat",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-winter": {
+    "name": "Winter Weather - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/winter-weather",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-insect-bites": {
+    "name": "Insect Bites and Stings: Symptoms and First Aid",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/insect-bites-and-stings",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-snake-bites": {
+    "name": "Snake Bites: Symptoms, Causes, and Treatment",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/learn-first-aid/venomous-snake-bites",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "rc-kit": {
+    "name": "First aid kit contents guidance (multiple Red Cross kit checklists)",
+    "publisher": "American Red Cross",
+    "url": "https://www.redcross.org/take-a-class/resources/articles/vehicle-kit-essentials",
+    "retrieved": "2026-09-01",
+    "note": "Red Cross publishes several activity-specific kit checklists (home/vehicle/hiking/travel); this list is a general-purpose synthesis of their commonly recommended core contents."
+  }
+}

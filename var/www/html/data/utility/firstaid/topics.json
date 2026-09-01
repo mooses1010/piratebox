@@ -1,0 +1,389 @@
+[
+  {
+    "id": "get-help",
+    "category": "basics",
+    "title": "Get Professional Help - Check, Call, Care",
+    "summary": "Scene safety first, then call 911 for anything life-threatening.",
+    "quick_actions": [
+      "Check: is the scene safe for YOU before approaching? Hazards can injure a second person trying to help.",
+      "Call 911 (or have someone else call) immediately if the person is unresponsive, not breathing or only gasping, has severe bleeding, or shows any obvious life-threatening condition.",
+      "Care: give the care you're trained and equipped for while help is on the way - don't attempt anything beyond that.",
+      "If multiple people are hurt, unresponsiveness and severe bleeding are the two conditions that need attention first."
+    ],
+    "more_info": "This three-step framework (Check, Call, Care) is the foundation Red Cross first aid training is built on - apply it before any of the specific topics below.",
+    "training_note": null,
+    "keywords": [
+      "911",
+      "emergency help",
+      "scene safety",
+      "check call care"
+    ],
+    "source_id": "rc-check-call-care",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "cpr-aed-overview",
+    "category": "basics",
+    "title": "CPR / AED Overview",
+    "summary": "For an unresponsive person not breathing normally: call 911, get an AED, and begin CPR if trained.",
+    "quick_actions": [
+      "Call 911 (or have someone call) and send someone to get an AED if one is available.",
+      "If trained: push hard and fast in the center of the chest, about 100-120 compressions per minute, allowing the chest to fully rise between compressions.",
+      "Use an AED as soon as one arrives - it will guide you with voice prompts; most models are designed for untrained bystanders to use.",
+      "Continue until EMS arrives, the person starts breathing normally, or an AED tells you to stop."
+    ],
+    "more_info": "CPR quality (hand placement, depth, rate, rescue breaths) is a physical skill that genuinely requires hands-on practice - a free/low-cost Red Cross or AHA course teaches and lets you practice it properly. This overview is not a substitute for that training.",
+    "training_note": "Hands-on certified training (Red Cross/AHA) is strongly recommended - this is a summary of what CPR/AED involves, not a substitute for practicing the technique.",
+    "keywords": [
+      "cpr",
+      "aed",
+      "cardiac arrest",
+      "defibrillator",
+      "not breathing"
+    ],
+    "source_id": "rc-cpr-steps",
+    "secondary_source_id": "rc-aed-steps",
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "choking",
+    "category": "breathing",
+    "title": "Choking (Conscious Adult/Child)",
+    "summary": "Alternate 5 back blows and 5 abdominal thrusts until the object clears.",
+    "quick_actions": [
+      "Ask 'Are you choking?' - if they can cough, speak, or breathe, encourage coughing rather than intervening.",
+      "If they can't breathe/speak/cough: give 5 back blows between the shoulder blades, then 5 abdominal thrusts (pull inward and upward, above the navel).",
+      "Alternate 5-and-5 until the object comes out or the person can breathe, cough, or cry.",
+      "If the person becomes unresponsive: lower them to the ground and begin CPR, starting with compressions."
+    ],
+    "more_info": "For someone too large to reach around, or who is pregnant, give chest thrusts instead of abdominal thrusts.",
+    "training_note": null,
+    "keywords": [
+      "choking",
+      "abdominal thrusts",
+      "heimlich",
+      "can't breathe"
+    ],
+    "source_id": "rc-choking",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "severe-bleeding",
+    "category": "trauma",
+    "title": "Severe (Life-Threatening) Bleeding",
+    "summary": "Direct pressure first; a tourniquet if bleeding on a limb won't stop.",
+    "quick_actions": [
+      "Call 911. Apply firm, direct pressure to the wound with a clean cloth, gauze, or your hand.",
+      "Keep pressing - don't peek or remove the material to check; add more on top if it soaks through.",
+      "If bleeding from an arm or leg won't stop with direct pressure and you have a tourniquet (and training), apply it 2-3 inches above the wound, tighten until bleeding stops.",
+      "Once a tourniquet is applied, do not loosen or remove it - that's for medical professionals only."
+    ],
+    "more_info": "Severe blood loss can be fatal in minutes - don't wait to see if pressure alone is working before escalating to a tourniquet if one is available and the bleeding is on a limb.",
+    "training_note": null,
+    "keywords": [
+      "bleeding",
+      "severe bleeding",
+      "tourniquet",
+      "blood loss"
+    ],
+    "source_id": "rc-bleeding",
+    "secondary_source_id": "rc-tourniquet",
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "shock",
+    "category": "trauma",
+    "title": "Shock",
+    "summary": "Pale, cool, clammy skin and a fast weak pulse are early warning signs.",
+    "quick_actions": [
+      "Call 911 - shock is life-threatening and gets worse without treatment.",
+      "Have the person lie flat; if no sign of a broken bone or head/spine injury, raise their feet 6-12 inches.",
+      "Keep them warm and calm - anxiety and pain can make shock progress faster.",
+      "Don't give food or drink."
+    ],
+    "more_info": "Shock commonly follows severe bleeding, serious injury, or a severe allergic reaction - treat it as an emergency even if the original cause seems to be improving.",
+    "training_note": null,
+    "keywords": [
+      "shock",
+      "pale clammy skin",
+      "weak pulse"
+    ],
+    "source_id": "rc-shock",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "burns",
+    "category": "trauma",
+    "title": "Burns",
+    "summary": "Cool the burn under clean, cool running water for 10-20 minutes.",
+    "quick_actions": [
+      "Cool the burn under cool (not ice-cold) running water for at least 10-20 minutes - this both relieves pain and limits damage.",
+      "Remove tight items (rings, clothing) near the burn before swelling starts, if they aren't stuck to it.",
+      "Cover loosely with a clean, non-stick dressing - don't apply butter, oil, or ice.",
+      "Seek prompt medical care for large burns, burns with blisters covering a wide area, or burns on the face/hands/feet/genitals - and always for a child."
+    ],
+    "more_info": "A burn that looks white, leathery, or charred, or any chemical/electrical burn, needs immediate emergency care - don't wait to see if it improves.",
+    "training_note": null,
+    "keywords": [
+      "burn",
+      "burns",
+      "scald",
+      "cool water"
+    ],
+    "source_id": "rc-burns",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "minor-wounds",
+    "category": "trauma",
+    "title": "Minor Cuts & Wounds",
+    "summary": "Clean it, cover it, and watch for signs of infection.",
+    "quick_actions": [
+      "Wash your hands, then rinse the wound with clean water to remove dirt/debris.",
+      "Apply gentle direct pressure with clean gauze/cloth until any minor bleeding stops.",
+      "Apply a thin layer of antibiotic ointment (if no known allergy) and cover with a clean bandage.",
+      "Watch for infection over the following days: increasing redness, warmth, swelling, pus, red streaking, or fever - seek medical care if these appear."
+    ],
+    "more_info": "Most small cuts and scrapes heal fine with basic cleaning and a clean dressing - this is for minor wounds only, not deep or heavily bleeding ones (see Severe Bleeding).",
+    "training_note": null,
+    "keywords": [
+      "cut",
+      "scrape",
+      "wound",
+      "minor injury",
+      "infection"
+    ],
+    "source_id": "rc-wounds",
+    "secondary_source_id": null,
+    "confidence": "medium",
+    "source_note": null
+  },
+  {
+    "id": "sprains-fractures",
+    "category": "trauma",
+    "title": "Sprains & Fractures",
+    "summary": "Rest, immobilize, cool, and elevate - don't try to straighten a deformed limb.",
+    "quick_actions": [
+      "Rest: stop using the injured area. Immobilize: keep it as still as possible, ideally splinted in the position found.",
+      "Cool: apply ice or a cold pack wrapped in cloth (never directly on skin) to reduce swelling.",
+      "Elevate the injured area above heart level if possible and if it doesn't cause more pain.",
+      "Seek medical care for a suspected fracture (deformity, inability to bear weight, bone visible through skin) - and call 911 for an open fracture or if it's a head/neck/back injury."
+    ],
+    "more_info": "It's often not possible to tell a bad sprain from a fracture without an X-ray - when in doubt, treat it as a possible fracture and get it evaluated.",
+    "training_note": null,
+    "keywords": [
+      "sprain",
+      "fracture",
+      "broken bone",
+      "rice method",
+      "splint"
+    ],
+    "source_id": "rc-fractures",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "head-injury",
+    "category": "trauma",
+    "title": "Head Injury Warning Signs",
+    "summary": "Watch closely after any bump to the head - some warning signs appear later.",
+    "quick_actions": [
+      "Call 911 immediately for: unresponsiveness, repeated vomiting, worsening/persistent headache, seizure, or a noticeable change in behavior or vision.",
+      "Any loss of consciousness, even brief, after a head injury deserves prompt medical evaluation.",
+      "Symptoms of a concussion can appear hours or even days after the injury - keep watching, don't assume you're clear just because nothing showed up right away.",
+      "Suspected neck/spine injury: keep the person as still as possible and avoid moving them unless there's immediate danger, until EMS arrives."
+    ],
+    "more_info": "Most concussions don't need an ER visit, but any of the red-flag signs above do - when in doubt, get it checked.",
+    "training_note": null,
+    "keywords": [
+      "head injury",
+      "concussion",
+      "hit head",
+      "brain injury"
+    ],
+    "source_id": "rc-concussion",
+    "secondary_source_id": "cdc-heads-up",
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "seizures",
+    "category": "medical",
+    "title": "Seizures",
+    "summary": "Protect them from injury - don't restrain, and don't put anything in their mouth.",
+    "quick_actions": [
+      "Help them to the ground, clear the area of anything they could hit, and cushion their head.",
+      "Do not restrain them and do not put anything in their mouth.",
+      "Time the seizure. Once it stops, roll them onto their side to help keep the airway clear.",
+      "Call 911 for: a first-time seizure, one lasting more than 5 minutes, repeated seizures without waking between, difficulty breathing afterward, or if it happened in water."
+    ],
+    "more_info": "Stay with the person until they're fully alert - they may be confused or disoriented for a while after the seizure ends.",
+    "training_note": null,
+    "keywords": [
+      "seizure",
+      "convulsion",
+      "epilepsy"
+    ],
+    "source_id": "rc-seizures",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "poisoning",
+    "category": "medical",
+    "title": "Poisoning",
+    "summary": "Call Poison Control (1-800-222-1222) or 911 - don't guess at home remedies.",
+    "quick_actions": [
+      "Call the National Poison Control Center: 1-800-222-1222 (free, 24/7, anywhere in the US) - or 911 if the person is unresponsive, having trouble breathing, or seizing.",
+      "Do not give anything to eat or drink, and do not try to induce vomiting, unless specifically told to by Poison Control or EMS.",
+      "If possible, have the container/substance on hand when you call - it helps them give the right instructions fast.",
+      "Follow their specific guidance exactly - poisoning first aid varies a lot by what was involved."
+    ],
+    "more_info": "Poison Control is staffed by medical professionals and is almost always faster and safer than guessing - call before you act, not after.",
+    "training_note": null,
+    "keywords": [
+      "poisoning",
+      "poison control",
+      "swallowed something",
+      "toxic"
+    ],
+    "source_id": "rc-poison",
+    "secondary_source_id": "poison-control",
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "allergic-reaction-anaphylaxis",
+    "category": "medical",
+    "title": "Allergic Reaction / Anaphylaxis",
+    "summary": "Anaphylaxis can turn life-threatening within minutes - epinephrine, not antihistamines, is the treatment.",
+    "quick_actions": [
+      "Mild reaction (rash, stuffy nose, mild swelling at the contact site): monitor closely for worsening.",
+      "Anaphylaxis signs: swelling of face/tongue/throat, hives, trouble breathing, dizziness, or feeling faint - call 911 immediately.",
+      "If the person has their own epinephrine auto-injector, help them use it (or administer it if you're trained) right away - don't wait to see if it's 'bad enough.'",
+      "If symptoms haven't improved 5-10 minutes after the first dose and EMS hasn't arrived, a second dose may be given if available."
+    ],
+    "more_info": "Antihistamines (like Benadryl) may ease minor symptoms but do NOT treat anaphylaxis and should never be used as a substitute for epinephrine.",
+    "training_note": null,
+    "keywords": [
+      "allergic reaction",
+      "anaphylaxis",
+      "epipen",
+      "epinephrine",
+      "allergy"
+    ],
+    "source_id": "rc-anaphylaxis",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "heat-illness",
+    "category": "environmental",
+    "title": "Heat Exhaustion & Heat Stroke",
+    "summary": "Heat stroke (hot, dry/red skin, confusion) is a 911 emergency - cool the person immediately.",
+    "quick_actions": [
+      "Heat exhaustion: heavy sweating, cool/pale/clammy skin, dizziness, nausea - move to a cool place, sip water, loosen clothing, cool with a damp cloth.",
+      "Heat stroke: hot/red/dry skin, confusion, body temp over 103°F, possible unconsciousness - call 911 immediately.",
+      "While waiting for help with heat stroke, cool the person by any means available (cool water, wet cloths, fanning) - don't wait for symptoms to worsen further.",
+      "Get medical help for heat exhaustion too if symptoms last over an hour or get worse."
+    ],
+    "more_info": "Heat stroke can be fatal without rapid cooling and medical care - it's a true emergency, not just \"very tired from the heat.\"",
+    "training_note": null,
+    "keywords": [
+      "heat stroke",
+      "heat exhaustion",
+      "overheating",
+      "hot weather"
+    ],
+    "source_id": "ready-gov-heat",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "hypothermia-frostbite",
+    "category": "environmental",
+    "title": "Hypothermia & Frostbite",
+    "summary": "Warm the person gradually - never with direct high heat, and never rub frostbitten skin.",
+    "quick_actions": [
+      "Hypothermia signs: uncontrollable shivering, confusion, slurred speech, drowsiness - a body temp below 95°F is an emergency, call 911.",
+      "Move to a warm, dry place; remove wet clothing; warm the chest/neck/head/groin first with blankets or dry layers.",
+      "Frostbite signs: numbness, waxy or grayish-white skin - rewarm gradually in warm (not hot) water; do not rub or massage the area.",
+      "Do not give alcohol, and don't apply direct high heat (like a heating pad or fire) directly to skin - it can burn numb tissue without the person feeling it."
+    ],
+    "more_info": "Severe hypothermia can slow breathing and pulse enough to seem absent - keep checking and don't assume the worst before EMS confirms.",
+    "training_note": null,
+    "keywords": [
+      "hypothermia",
+      "frostbite",
+      "cold exposure",
+      "freezing"
+    ],
+    "source_id": "ready-gov-winter",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "bites-stings",
+    "category": "environmental",
+    "title": "Insect Bites, Stings & Snake Bites",
+    "summary": "Watch for allergic reaction after any sting; call 911 immediately for any snake bite.",
+    "quick_actions": [
+      "Insect sting: scrape out a visible stinger (don't squeeze it), wash with soap and water, apply a cold pack.",
+      "Watch closely for signs of allergic reaction/anaphylaxis for at least 30 minutes after any sting (see that topic).",
+      "Snake bite: call 911 immediately. Keep the person calm and still, and keep the bitten limb below heart level if possible.",
+      "Do NOT cut the wound, apply ice, use a tourniquet, or attempt suction on a snake bite - these can make things worse."
+    ],
+    "more_info": "Don't waste time trying to catch or identify the snake - describing its appearance to EMS after the fact is enough, and delays care.",
+    "training_note": null,
+    "keywords": [
+      "bite",
+      "sting",
+      "snake bite",
+      "bee sting",
+      "insect bite"
+    ],
+    "source_id": "rc-insect-bites",
+    "secondary_source_id": "rc-snake-bites",
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "first-aid-kit",
+    "category": "basics",
+    "title": "First-Aid Kit Reference",
+    "summary": "A basic kit covers most minor injuries and buys time for anything bigger.",
+    "quick_actions": [
+      "Wound care: adhesive bandages (assorted sizes), gauze pads and roller gauze, adhesive tape, antiseptic wipes, antibiotic ointment.",
+      "Tools: nonlatex gloves, tweezers, small scissors, an instant cold compress, a breathing barrier/CPR mask.",
+      "Medication: any personal prescriptions (epinephrine auto-injector, inhaler, etc.), pain reliever, hydrocortisone cream.",
+      "Other: emergency blanket, hand sanitizer - and check/replace expired items periodically."
+    ],
+    "more_info": "Tailor contents to your household - known allergies, medications, and activities (vehicle, hiking, home) all change what's actually useful to include.",
+    "training_note": null,
+    "keywords": [
+      "first aid kit",
+      "first-aid kit",
+      "supplies",
+      "checklist"
+    ],
+    "source_id": "rc-kit",
+    "secondary_source_id": null,
+    "confidence": "medium",
+    "source_note": null
+  }
+]
