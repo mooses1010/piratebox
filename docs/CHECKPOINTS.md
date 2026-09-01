@@ -28,5 +28,7 @@ back to (`git checkout <hash>` or restore the matching backup under
 | Stage 17: Local Info / Content Audit | `7924e01` | `~/piratebox-backups/audit-stage17-pre-20260901-073340/` |
 | Stage 18: Global Search Expansion (verification only) | `0190a70` | (no site changes) |
 | Stage 19: "Take This With You" Export System | `87c4307` | `~/piratebox-backups/export-stage19-pre-20260901-075834/` |
+| Stage 20: PirateBox Manifest ("What's On This PirateBox?") | `b241a4e` | `~/piratebox-backups/manifest-stage20-pre-20260901-094955/` |
+| Stage 21: Stats/Metrics/Appliance Status | `7579ff9` | `~/piratebox-backups/stats-stage21-pre-20260901-095339/` |
 
 Live box mode should be **Normal** when unattended between test sessions.
