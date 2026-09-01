@@ -42,24 +42,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
     }
 
     if ($content !== '') {
-        $next_id = (!empty($messages) && isset($messages[0]['id'])) ? $messages[0]['id'] + 1 : 0;
+        // Serialize concurrent writers with an exclusive lock, then re-read the
+        // file while holding it so we never overwrite another request's message
+        // (multiple people can post/poll within the same second).
+        $lockHandle = fopen($DATA_FILE . '.lock', 'c');
+        if ($lockHandle !== false && flock($lockHandle, LOCK_EX)) {
+            $messages = [];
+            if (file_exists($DATA_FILE)) {
+                $json = file_get_contents($DATA_FILE);
+                if ($json !== false) {
+                    $decoded = json_decode($json, true);
+                    if (is_array($decoded)) {
+                        $messages = $decoded;
+                    }
+                }
+            }
 
-        $newMessage = [
-            'id' => $next_id,
-            'name' => $name,
-            'message' => $content,
-            'timestamp' => time()
-        ];
+            $next_id = (!empty($messages) && isset($messages[0]['id'])) ? $messages[0]['id'] + 1 : 0;
 
-        // Add to the beginning of the array (Newest first)
-        array_unshift($messages, $newMessage);
+            $newMessage = [
+                'id' => $next_id,
+                'name' => $name,
+                'message' => $content,
+                'timestamp' => time()
+            ];
 
-        if (count($messages) > $message_size) {
-            $messages = array_slice($messages, 0, $message_size);
+            // Add to the beginning of the array (Newest first)
+            array_unshift($messages, $newMessage);
+
+            if (count($messages) > $message_size) {
+                $messages = array_slice($messages, 0, $message_size);
+            }
+
+            // Atomic write: write to a temp file then rename over the real file,
+            // so concurrent unlocked readers (the ?fetch=1 poll) never see a
+            // partially-written file.
+            $tmpFile = $DATA_FILE . '.tmp.' . getmypid() . '.' . bin2hex(random_bytes(4));
+            if (file_put_contents($tmpFile, json_encode($messages, JSON_PRETTY_PRINT)) !== false) {
+                rename($tmpFile, $DATA_FILE);
+            }
+
+            flock($lockHandle, LOCK_UN);
         }
-
-        // Save to file
-        file_put_contents($DATA_FILE, json_encode($messages, JSON_PRETTY_PRINT));
+        if ($lockHandle !== false) {
+            fclose($lockHandle);
+        }
 
         // Redirect to avoid resubmission
         header('Location: messages.php');

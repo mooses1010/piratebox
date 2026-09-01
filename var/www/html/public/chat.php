@@ -42,23 +42,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
     }
 
     if ($message !== '') {
-        $next_id = (count($chat) > 0) ? $chat[count($chat) - 1]["id"] + 1 : 0;
+        // Serialize concurrent writers with an exclusive lock, then re-read the
+        // file while holding it so we never overwrite another request's message
+        // (multiple people can post/poll within the same second).
+        $lockHandle = fopen($DATA_FILE . '.lock', 'c');
+        if ($lockHandle !== false && flock($lockHandle, LOCK_EX)) {
+            $chat = [];
+            if (file_exists($DATA_FILE)) {
+                $json = file_get_contents($DATA_FILE);
+                if ($json !== false) {
+                    $decoded = json_decode($json, true);
+                    if (is_array($decoded)) {
+                        $chat = $decoded;
+                    }
+                }
+            }
 
-        $newChat = [
-            "id" => $next_id,
-            "name" => $name,
-            "message" => $message,
-            "timestamp" => time()
-        ];
+            $next_id = (count($chat) > 0) ? $chat[count($chat) - 1]["id"] + 1 : 0;
 
-        // Add to the end of the array (Newest last)
-        $chat[] = $newChat;
+            $newChat = [
+                "id" => $next_id,
+                "name" => $name,
+                "message" => $message,
+                "timestamp" => time()
+            ];
 
-        if (count($chat) > $chat_size) {
-            $chat = array_slice($chat, -$chat_size);
+            // Add to the end of the array (Newest last)
+            $chat[] = $newChat;
+
+            if (count($chat) > $chat_size) {
+                $chat = array_slice($chat, -$chat_size);
+            }
+
+            // Atomic write: write to a temp file then rename over the real file,
+            // so concurrent unlocked readers (the ?fetch=1 poll) never see a
+            // partially-written file.
+            $tmpFile = $DATA_FILE . '.tmp.' . getmypid() . '.' . bin2hex(random_bytes(4));
+            if (file_put_contents($tmpFile, json_encode($chat, JSON_PRETTY_PRINT)) !== false) {
+                rename($tmpFile, $DATA_FILE);
+            }
+
+            flock($lockHandle, LOCK_UN);
         }
-
-        file_put_contents($DATA_FILE, json_encode($chat, JSON_PRETTY_PRINT));
+        if ($lockHandle !== false) {
+            fclose($lockHandle);
+        }
     }
 }
 
