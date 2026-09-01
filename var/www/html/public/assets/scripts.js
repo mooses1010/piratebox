@@ -244,6 +244,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // Chat Character Counter
         const chatInput = chatForm.querySelector('input[name="message"]');
         const chatCharCount = document.getElementById('char-count');
+        const chatError = document.getElementById('chat-post-error');
 
         if (chatInput && chatCharCount) {
             const maxLength = chatInput.getAttribute('maxlength');
@@ -275,11 +276,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 sendBtn.disabled = true;
             }
 
+            let response;
             try {
-                await fetch(form.action, { method: "POST", body: new URLSearchParams({ name, message, csrf_token }) });
+                response = await fetch(form.action, { method: "POST", body: new URLSearchParams({ name, message, csrf_token }) });
             } finally {
                 if (sendBtn) sendBtn.disabled = false;
             }
+
+            // Stage 24: chat.php now returns 507 if there isn't enough free
+            // storage to save the message (see its matching comment). Only
+            // render the message optimistically once the server has
+            // actually confirmed the write - otherwise this would lie to
+            // the sender about whether their message was saved, and the
+            // message text they typed would be lost for nothing.
+            if (!response.ok) {
+                if (chatError) {
+                    chatError.textContent = response.status === 507
+                        ? 'Not enough free storage space is available to save this message right now. Please try again later, or let the PirateBox operator know storage is running low.'
+                        : 'Your message could not be sent. Please try again.';
+                    chatError.hidden = false;
+                }
+                return;
+            }
+
+            if (chatError) chatError.hidden = true;
 
             const template = chatList.querySelector("template");
             if (template) {

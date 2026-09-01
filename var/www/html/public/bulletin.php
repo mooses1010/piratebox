@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 session_start();
+require_once __DIR__ . '/../includes/storage_guard.php';
+
+$postError = null;
 
 // Community Bulletin Board (Stage 22).
 //
@@ -77,7 +80,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
         $name = 'Anonymous';
     }
 
-    if ($content !== '') {
+    // Stage 24: same free-space guard as messages.php - checked before
+    // attempting the write, so genuine storage exhaustion produces an
+    // honest error rather than a silently dropped post.
+    if ($content !== '' && piratebox_low_storage(dirname($DATA_FILE))) {
+        $postError = 'Not enough free storage space is available to save this post right now. Please try again later, or let the PirateBox operator know storage is running low.';
+    } elseif ($content !== '') {
         $lockHandle = fopen($DATA_FILE . '.lock', 'c');
         if ($lockHandle !== false && flock($lockHandle, LOCK_EX)) {
             $posts = [];
@@ -150,20 +158,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['message']) && isset($
     <h1>Community Bulletin Board</h1>
     <p class="muted" style="text-align:center;">Announcements, local info, and requests/offers of help - visible to anyone connected to this PirateBox. Posts aren't private and aren't moderated beyond what an operator clears manually.</p>
 
+    <?php if ($postError !== null): ?>
+        <p style="text-align:center;"><strong class="status-bad"><?= htmlspecialchars($postError) ?></strong></p>
+    <?php endif; ?>
+
     <form id="bulletin-form" action="bulletin.php" method="post">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <label>Name:
-            <input type="text" name="name" placeholder="Anonymous" maxlength="32">
+            <input type="text" name="name" placeholder="Anonymous" maxlength="32" value="<?= $postError !== null ? htmlspecialchars($_POST['name'] ?? '') : '' ?>">
         </label>
         <label>Category:
             <select name="category">
+                <?php $selectedCat = $postError !== null ? ($_POST['category'] ?? 'info') : 'info'; ?>
                 <?php foreach ($CATEGORIES as $key => $label): ?>
-                    <option value="<?= htmlspecialchars($key) ?>"<?= $key === 'info' ? ' selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                    <option value="<?= htmlspecialchars($key) ?>"<?= $key === $selectedCat ? ' selected' : '' ?>><?= htmlspecialchars($label) ?></option>
                 <?php endforeach; ?>
             </select>
         </label>
         <label>Message:
-            <textarea name="message" required rows="3" placeholder="What do you want the network to know?" maxlength="2000"></textarea>
+            <textarea name="message" required rows="3" placeholder="What do you want the network to know?" maxlength="2000"><?= $postError !== null ? htmlspecialchars($_POST['message'] ?? '') : '' ?></textarea>
         </label>
         <button type="submit">Post to Bulletin Board</button>
         <div class="char-counter">

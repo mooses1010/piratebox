@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 session_start();
+require_once __DIR__ . '/../includes/storage_guard.php';
+
+$postError = null;
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -54,7 +57,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
         $name = 'Anonymous';
     }
 
-    if ($message !== '') {
+    // Stage 24: same free-space guard as messages.php/bulletin.php,
+    // checked before attempting the write. chat.php's own form submits via
+    // JS fetch() (see scripts.js) and, until now, never looked at the
+    // response at all - it optimistically rendered the sent message in the
+    // sender's own browser regardless of whether the server actually saved
+    // it, which is misleading under ANY server-side write failure, not
+    // just this one. Fixed together: this sets a real HTTP status
+    // (507 Insufficient Storage) that scripts.js now checks before doing
+    // that optimistic render, and also sets $postError below for the
+    // non-JS fallback (plain HTML form submit, page reload), which
+    // otherwise would have just silently reloaded with the message
+    // missing and no explanation - the same honest-error standard
+    // messages.php/bulletin.php already hold.
+    if ($message !== '' && piratebox_low_storage(dirname($DATA_FILE))) {
+        http_response_code(507);
+        $postError = 'Not enough free storage space is available to save this message right now. Please try again later, or let the PirateBox operator know storage is running low.';
+    } elseif ($message !== '') {
         // Serialize concurrent writers with an exclusive lock, then re-read the
         // file while holding it so we never overwrite another request's message
         // (multiple people can post/poll within the same second).
@@ -132,6 +151,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
 <body class="chat-page">
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
     <h1>Chat</h1>
+    <?php if ($postError !== null): ?>
+        <p style="text-align:center;"><strong class="status-bad"><?= htmlspecialchars($postError) ?></strong></p>
+    <?php endif; ?>
+    <p id="chat-post-error" class="status-bad" style="text-align:center;" hidden></p>
     <ul id="chat" data-last-message-id="<?= !empty($chat) ? $chat[count($chat) - 1]['id'] : -1 ?>">
         <?php if (empty($chat)): ?>
             <li class="muted empty-state" style="text-align:center;">No messages yet - say hello!</li>
@@ -155,8 +178,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
     <form id="chat-form" method="post" action="chat.php">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <div class="input-group">
-            <input type="text" name="name" placeholder="Anonymous" maxlength="32">
-            <input type="text" name="message" placeholder="Message" maxlength="2000" autofocus>
+            <input type="text" name="name" placeholder="Anonymous" maxlength="32" value="<?= $postError !== null ? htmlspecialchars($_POST['name'] ?? '') : '' ?>">
+            <input type="text" name="message" placeholder="Message" maxlength="2000" autofocus value="<?= $postError !== null ? htmlspecialchars($_POST['message'] ?? '') : '' ?>">
             <button type="submit">Send</button>
         </div>
         <div class="char-counter">

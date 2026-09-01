@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 session_start();
+require_once __DIR__ . '/../includes/storage_guard.php';
+
+$postError = null;
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -54,7 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
         $name = 'Anonymous';
     }
 
-    if ($content !== '') {
+    // Stage 24: check free space BEFORE attempting the write, same guard
+    // upload.php already had - a silent file_put_contents() failure under
+    // genuine storage exhaustion would otherwise drop the message with no
+    // indication to the poster that it wasn't saved.
+    if ($content !== '' && piratebox_low_storage(dirname($DATA_FILE))) {
+        $postError = 'Not enough free storage space is available to save this message right now. Please try again later, or let the PirateBox operator know storage is running low.';
+    } elseif ($content !== '') {
         // Serialize concurrent writers with an exclusive lock, then re-read the
         // file while holding it so we never overwrite another request's message
         // (multiple people can post/poll within the same second).
@@ -136,13 +145,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
     <h1>Guestbook</h1>
 
+    <?php if ($postError !== null): ?>
+        <p style="text-align:center;"><strong class="status-bad"><?= htmlspecialchars($postError) ?></strong></p>
+    <?php endif; ?>
+
     <form id="message-form" action="messages.php" method="post">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <label>Name:
-            <input type="text" name="name" placeholder="Anonymous" maxlength="32">
+            <input type="text" name="name" placeholder="Anonymous" maxlength="32" value="<?= $postError !== null ? htmlspecialchars($_POST['name'] ?? '') : '' ?>">
         </label>
         <label>Message:
-            <textarea name="message" required rows="3" placeholder="Write a message..." maxlength="2000"></textarea>
+            <textarea name="message" required rows="3" placeholder="Write a message..." maxlength="2000"><?= $postError !== null ? htmlspecialchars($_POST['message'] ?? '') : '' ?></textarea>
         </label>
         <button type="submit">Post Message</button>
         <div class="char-counter">
