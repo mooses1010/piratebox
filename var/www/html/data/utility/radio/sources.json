@@ -1,0 +1,72 @@
+{
+  "fcc-part97": {
+    "name": "FCC Part 97 - Amateur Radio Service",
+    "publisher": "Federal Communications Commission (eCFR)",
+    "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-97",
+    "retrieved": "2026-09-01",
+    "note": "Direct FCC/eCFR page fetch was blocked (HTTP 403) this session; band edges were cross-checked against a secondary source (Wikipedia's sourced US amateur allocation table) rather than fetched directly from this URL."
+  },
+  "arrl-band-plan": {
+    "name": "ARRL Band Plan",
+    "publisher": "American Radio Relay League",
+    "url": "http://www.arrl.org/band-plan",
+    "retrieved": "2026-09-01",
+    "note": "Voluntary operating convention (calling frequencies, phone/CW sub-band customs), not federal regulation."
+  },
+  "noaa-nwr": {
+    "name": "NOAA Weather Radio All Hazards",
+    "publisher": "NOAA / National Weather Service",
+    "url": "https://www.weather.gov/nwr",
+    "retrieved": "2026-09-01",
+    "note": "Fetched directly this session."
+  },
+  "fcc-part95-prs": {
+    "name": "FCC Part 95 - Personal Radio Services (FRS/GMRS/MURS/CB)",
+    "publisher": "Federal Communications Commission (eCFR)",
+    "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-D/part-95",
+    "retrieved": "2026-09-01",
+    "note": "FCC's own consumer-guide pages returned HTTP 403 to automated fetch this session; channel/frequency tables were cross-checked against multiple independent secondary sources that agreed exactly and themselves cite Part 95."
+  },
+  "uscg-navcen-vhf": {
+    "name": "U.S. VHF Channel Information",
+    "publisher": "USCG Navigation Center",
+    "url": "https://www.navcen.uscg.gov/us-vhf-channel-information",
+    "retrieved": "2026-09-01",
+    "note": "Fetched directly this session."
+  },
+  "fcc-part73": {
+    "name": "FCC Part 73 - Radio Broadcast Services",
+    "publisher": "Federal Communications Commission (eCFR)",
+    "url": "https://www.ecfr.gov/current/title-47/chapter-I/subchapter-C/part-73",
+    "retrieved": "2026-09-01",
+    "note": "Direct FCC page blocked (403); figures confirmed via an eCFR-citing secondary summary and are consistent across every independent reference checked. This is a long-stable, decades-unchanged allocation."
+  },
+  "itu-r-v431": {
+    "name": "ITU-R Recommendation V.431 - Nomenclature of the frequency and wavelength bands",
+    "publisher": "International Telecommunication Union",
+    "url": "https://www.itu.int/dms_pubrec/itu-r/rec/v/r-rec-v.431-8-201508-i!!pdf-e.pdf",
+    "retrieved": "2026-09-01",
+    "note": "Standard international HF/VHF/UHF band definitions; confirmed via search of ITU-R materials."
+  },
+  "faa-icao-airband": {
+    "name": "Civil aviation VHF/HF voice band allocation (FCC Part 87 / ICAO convention)",
+    "publisher": "FAA / ICAO / FCC (general aviation-service allocation)",
+    "url": "https://en.wikipedia.org/wiki/Airband",
+    "retrieved": "2026-09-01",
+    "note": "Cross-checked via secondary reference this session, not fetched directly from FAA/ICAO/FCC. Band edges and the AM-mode convention are long-stable and globally consistent across every source checked."
+  },
+  "aar-railroad": {
+    "name": "Association of American Railroads (AAR) VHF channel plan",
+    "publisher": "Association of American Railroads (no single official public frequency table located)",
+    "url": null,
+    "retrieved": "2026-09-01",
+    "note": "LOW CONFIDENCE. Three independent secondary sources gave three different lower band-edge figures (159.57 / 159.810 / 160.110 MHz) this session, and no single clean authoritative public table was found. Only the general range and channel-system description are included here by design - see docs/OPERATIONAL-DECISIONS.md. Specific channel-to-railroad assignments are regional and change; consult a current regional scanner/railfan frequency guide before relying on a specific channel."
+  },
+  "general-rf-education": {
+    "name": "General amateur radio / SWL engineering reference",
+    "publisher": null,
+    "url": null,
+    "retrieved": "2026-09-01",
+    "note": "Widely-taught RF/radio engineering concepts (modulation behavior, propagation, antenna theory, receiver technique) - not tied to a specific regulatory citation."
+  }
+}

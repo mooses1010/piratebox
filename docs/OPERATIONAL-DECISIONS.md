@@ -6,6 +6,156 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Offline Utility Library - Stage 2: Radio Reference
+
+**Decision date:** 2026-09-01.
+
+**Scope:** builds out `/utility/radio/` (a Stage 1 placeholder) into a real,
+locally-searchable reference for a wideband receiver (built with a Malahit
+DSP2-style receiver specifically in mind). No networking, hostapd, dnsmasq,
+captive-portal, nginx architecture, PHP security restrictions, or the
+Emergency Mode state system were touched. Checkpoint: layered directly on
+top of the Emergency Mode foundation commit `620c05abd08fc5c4edceddaa2d94a0a56d4ae1fd`.
+
+**Data-driven, not hard-coded:** all frequency/service data lives in 4 JSON
+files under `data/utility/radio/` (`services.json`, `modulation.json`,
+`guides.json`, `sources.json`) - none of it is hard-coded into
+`radio/index.php`, which is pure rendering/filtering logic over whatever
+these files contain. Total size: ~49KB across all 4 files - loads instantly,
+no pagination needed. 25 top-level service entries (14 individual amateur
+bands, AM/FM/shortwave broadcast, NOAA Weather Radio, CB, FRS, GMRS, MURS,
+Marine VHF, Airband, Railroad), several with nested `channels` arrays
+(NOAA's 7, CB's 40, FRS's 22, MURS's 5, Marine's 12 key channels, shortwave's
+14 meter bands) so the page shows one card per *service* rather than one row
+per individual channel. Plus 6 modulation-type glossary entries (AM/FM/WFM/
+USB/LSB/CW) and 6 practical guide entries (RF spectrum overview, HF/VHF/UHF
+explained, HF propagation basics, antenna guidance, receiver practical tips,
+and a cross-service "what to monitor during severe weather/an emergency"
+quick reference).
+
+**Every record carries source/confidence/provenance**, per the operator's
+explicit requirement: `source_id` (pointing into `sources.json`, which
+records publisher, URL, and retrieval date), `confidence` (`high`/`medium`/
+`low`), and a free-text `source_note` used especially where a regulator and
+a voluntary band-plan source are combined, where a secondary source was
+used only as a cross-check, or where regional/local assignments vary. See
+"Data-quality methodology" below for how confidence was assigned.
+
+**Receive vs. transmit is a field on every record, not just page text:**
+each service entry carries `license_required_to_transmit` (bool) and a
+plain-language `transmit_note`, rendered as a distinct colored badge
+("License required to transmit" / "No license required to transmit") right
+in the summary line, plus the full note in the expanded detail. The page's
+intro paragraph states plainly that owning a receiver does not authorize
+transmitting anywhere on the page. No entry implies otherwise.
+
+**Data-quality methodology (this session, 2026-09-01):**
+- `weather.gov/nwr` and `navcen.uscg.gov` (NOAA Weather Radio, Marine VHF)
+  were fetched directly and successfully - marked `confidence: high`.
+- FCC's own pages (eCFR and consumer-guide URLs for Part 97 amateur bands,
+  Part 95 FRS/GMRS/MURS/CB, and the AM/FM broadcast pages) returned
+  **HTTP 403 to every automated fetch attempt this session**. Those figures
+  were instead cross-checked against Wikipedia's own sourced tables (which
+  themselves cite the same CFR parts) and, for CB/MURS/AM/FM specifically,
+  against multiple independent secondary sources that agreed exactly -
+  marked `confidence: medium` (amateur bands, shortwave meter bands, FRS,
+  GMRS, airband) or `confidence: high` (CB, MURS, AM/FM broadcast, where
+  independent sources were unanimous and the allocation is long-stable).
+  **Wikipedia is never recorded as the source-of-record in the shipped
+  data** - every entry's `source_id` points at the primary regulator
+  (FCC/NOAA/USCG/ITU); the cross-check methodology is disclosed in
+  `source_note` instead.
+- The 60m amateur band is separately flagged `confidence: medium` for a
+  different reason: its rules were cross-checked as having changed as
+  recently as December 2025, so it's called out as more likely to be
+  out of date than the other amateur bands.
+- **Railroad radio is deliberately conservative**, per explicit operator
+  approval: three independent sources gave three different lower band-edge
+  figures (159.57 / 159.810 / 160.110 MHz) and no single authoritative
+  public channel table was found. The `railroad` entry ships with only the
+  approximate range, a description of how the AAR channel system works,
+  and practical receive guidance - **no specific numbered channel table** -
+  marked `confidence: low` with the discrepancy documented in
+  `source_note`. A future update can tighten this if a clean primary source
+  is found.
+- After research, this session's Pi had live outbound internet (confirmed:
+  `curl https://www.google.com` returned `200`), which was used only to
+  verify every citation URL in `sources.json` actually resolves (all 8
+  returned `200`) - not to change what ships. The finished page requires no
+  internet at all to use.
+
+**Page design:** server-rendered (every entry is real HTML from PHP, not
+injected by JS - confirmed by rendering the page via `php` CLI directly),
+using native `<details>/<summary>` for expand/collapse so full detail
+(nested channel tables, transmit note, source citation) is reachable with
+JavaScript entirely off - only the live text-search and category-chip
+filtering are JS-only, added to `assets/scripts.js` as one more guarded
+block following the file's existing pattern (same technique as the
+pre-existing file-list search). A small hand-authored inline SVG
+(`spectrum.svg.php`, log-scale, 0.5 MHz-3 GHz) gives a quick visual
+band-position reference - static markup, no charting library. All new CSS
+(~220 lines) reuses the existing dark/purple palette and component
+language (card backgrounds, accent borders, uppercase badges) rather than
+introducing a new visual style.
+
+**Shared with Emergency Mode, not duplicated:** `radio/index.php`
+deliberately never calls `piratebox_get_mode()` or touches `includes/
+mode.php` - confirmed live by fetching the page in both modes and
+byte-diffing the `.radio-page` content: **identical in both**, 37
+`<details>` entries either way. Only the site-wide navbar/banner (rendered
+by the unmodified `includes/navbar.php` from Stage 2's earlier phase)
+differs between modes, exactly as designed.
+
+**Testing performed:**
+- All 4 JSON files validated (`json.load` in Python) after generation and
+  again post-deploy from the live path.
+- `php -l` on `radio/index.php` and `spectrum.svg.php` - clean.
+- Rendered `radio/index.php` via the PHP CLI directly (not just through
+  nginx) to catch template bugs early - this caught and fixed a real bug:
+  the channel-table column list was being built from only the *first* row
+  of each service's `channels` array, silently dropping CB channel 23's
+  extra `note` field (documenting a real, intentional historical CB
+  channel-numbering quirk) since no other CB channel has that field. Fixed
+  to take the union of keys across all rows; verified the note now renders
+  and that rows without it still get a correctly-aligned empty cell.
+- Live, in both Normal and Emergency Mode: full site status sweep (all
+  existing pages, `/admin/` still `401`, all `/utility/...` pages, captive-
+  portal probes) - zero regressions. A live CSRF-authenticated **file
+  upload** (first real end-to-end upload test since Stage 1) and a live
+  **chat POST** (since `scripts.js` changed) both succeeded.
+- Simulated the exact client-side search/filter logic in Python against the
+  live deployed JSON for all 9 required queries (`NOAA`, `2 meter`, `40m`,
+  `airband`, `GMRS`, `FRS`, `marine`, `CB`, `shortwave`) - every one
+  resolved to the correct entry. Noted, not fixed: plain substring matching
+  means `"2 meter"` also incidentally matches `"12 Meter Band"` (a substring
+  of "1**2 meter**") - harmless (both are genuine radio bands, the correct
+  entry is always present), consistent with the existing file-list search's
+  same plain-substring approach, not worth added complexity for this stage.
+- All 8 unique source citation URLs in `sources.json` verified live to
+  return HTTP `200`.
+- nginx/php-fpm error logs reviewed across the full testing window: zero
+  new errors - all matches are pre-existing historical entries from earlier
+  phases (confirmed by timestamp).
+- `nginx`, `php8.4-fpm`, `hostapd`, `dnsmasq` remained `active` throughout
+  with no restarts. Final live mode restored to explicit Normal before
+  finishing.
+
+**Backup:** `~/piratebox-backups/radio-reference-phase1-pre-20260901-053341/`
+(full `var/www/html` mirror + recorded pre-change git HEAD `620c05a`),
+created before any edit in this phase.
+
+**Known residual test data:** one more live chat entry
+(`[Automated Stage 2 Radio Reference regression - safe to delete via
+/admin/]`) and one uploaded file (`stage2-upload-test.txt`) from this
+phase's live regression testing - not cleared automatically (no admin
+credentials available to this assistant); both clearable via `/admin/`.
+
+**Deliberately deferred:** Emergency, First Aid, Maps, Library, and Global
+Search sections remain Stage-1 placeholders - out of scope for this stage
+per explicit instructions. `poppler-utils`/PDF text extraction was not
+installed (not needed - this stage has no PDFs). GPIO, SSID switching, and
+the OLED/button hardware remain untouched, as in the prior phase.
+
 ## Emergency Mode: software presentation-mode foundation (no GPIO yet)
 
 **Decision date:** 2026-09-01.

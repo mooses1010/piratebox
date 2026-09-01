@@ -1,0 +1,81 @@
+[
+  {
+    "id": "am",
+    "name": "AM (Amplitude Modulation)",
+    "explainer": "Signal strength (amplitude) varies to carry sound. Simple and tolerant of weak-signal fading, and lets a stronger station be heard over a weaker one on the same frequency instead of blocking it outright.",
+    "when_used": "AM/mediumwave broadcast, shortwave broadcast, airband voice.",
+    "keywords": [
+      "am",
+      "amplitude modulation"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "fm",
+    "name": "FM / NFM (Narrowband Frequency Modulation)",
+    "explainer": "Signal frequency varies slightly to carry sound. Used for most two-way land-mobile voice. Generally clearer than AM in strong-signal conditions, but the weaker of two same-frequency signals is usually blocked entirely (the 'capture effect') rather than heard faintly underneath.",
+    "when_used": "Ham repeaters/simplex, GMRS/FRS/MURS, marine VHF, NOAA Weather Radio, railroad, most public-safety.",
+    "keywords": [
+      "fm",
+      "narrowband fm",
+      "nfm"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "wfm",
+    "name": "WFM (Wideband FM)",
+    "explainer": "Wide-deviation FM used for commercial FM broadcast - much higher audio fidelity than narrowband FM, but uses far more bandwidth. On a wideband receiver, WFM is usually a separate mode setting from (N)FM, not the same one.",
+    "when_used": "FM broadcast (88–108 MHz) only.",
+    "keywords": [
+      "wfm",
+      "wide fm",
+      "broadcast fm"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "usb",
+    "name": "USB (Upper Sideband)",
+    "explainer": "A form of single-sideband voice (roughly half of an AM signal, more efficient for a given power). Used by amateur-radio convention above 10 MHz, plus HF airband and marine SSB. Sounds badly garbled if tuned even slightly off-frequency - fine adjustment matters.",
+    "when_used": "Amateur bands 30m and up (by convention), HF airband voice, marine SSB.",
+    "keywords": [
+      "usb",
+      "ssb",
+      "single sideband",
+      "upper sideband"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "lsb",
+    "name": "LSB (Lower Sideband)",
+    "explainer": "The other half of single-sideband voice - same technical concept as USB, just the other sideband. Used by amateur-radio convention on 160m/80m/60m/40m. The USB/LSB split by band is a long-standing operating custom, not a technical requirement.",
+    "when_used": "Amateur bands 40m and below (by convention).",
+    "keywords": [
+      "lsb",
+      "ssb",
+      "single sideband",
+      "lower sideband"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "cw",
+    "name": "CW (Continuous Wave / Morse Code)",
+    "explainer": "The carrier is simply switched on and off to send Morse code - no voice. Extremely narrow bandwidth, so CW signals can often be copied through noise/interference where a voice signal couldn't.",
+    "when_used": "Common at the edges of amateur HF bands.",
+    "keywords": [
+      "cw",
+      "morse",
+      "morse code"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  }
+]

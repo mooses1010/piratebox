@@ -429,4 +429,50 @@ document.addEventListener('DOMContentLoaded', function () {
         updateBadges();
         setInterval(updateBadges, 3000);
     }
+
+    // Radio Reference search/filter (utility/radio/index.php) - progressive
+    // enhancement: every entry is already server-rendered and reachable via
+    // native <details>/<summary> expansion with JS entirely off. This just
+    // adds live text search + category chip filtering on top, matching the
+    // existing fileSearch technique above (filter already-rendered elements
+    // client-side - no extra request, no server round-trip).
+    const radioSearch = document.getElementById('radioSearch');
+    const radioChips = document.getElementById('radioChips');
+    if (radioSearch && radioChips) {
+        const entries = Array.from(document.querySelectorAll('.radio-entry'));
+        const sections = Array.from(document.querySelectorAll('[data-group-section]'));
+        const noResults = document.getElementById('radioNoResults');
+        let activeGroup = 'all';
+
+        function applyRadioFilter() {
+            const query = radioSearch.value.trim().toLowerCase();
+            let anyVisible = false;
+
+            entries.forEach(entry => {
+                const groupMatch = activeGroup === 'all' || entry.dataset.group === activeGroup;
+                const textMatch = query === '' || (entry.dataset.search || '').includes(query);
+                const visible = groupMatch && textMatch;
+                entry.hidden = !visible;
+                if (visible) anyVisible = true;
+            });
+
+            sections.forEach(section => {
+                const hasVisible = section.querySelector('.radio-entry:not([hidden])') !== null;
+                section.hidden = !hasVisible;
+            });
+
+            if (noResults) noResults.hidden = anyVisible;
+        }
+
+        radioSearch.addEventListener('input', applyRadioFilter);
+
+        radioChips.querySelectorAll('.radio-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                radioChips.querySelectorAll('.radio-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                activeGroup = chip.dataset.group;
+                applyRadioFilter();
+            });
+        });
+    }
 });

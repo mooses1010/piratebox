@@ -1,0 +1,81 @@
+[
+  {
+    "id": "rf-spectrum-overview",
+    "title": "RF Spectrum Overview",
+    "body": "The usable radio spectrum for a wideband receiver like a Malahit spans roughly 100 kHz to 2+ GHz depending on the model. Moving up in frequency: LF/MF holds AM broadcast; HF (3–30 MHz) is where shortwave and most amateur long-distance activity lives; VHF (30–300 MHz) covers FM broadcast, airband, 2m ham, marine, and NOAA Weather Radio; UHF (300 MHz–3 GHz) covers 70cm ham, GMRS/FRS, and much more. As a rule of thumb: lower frequencies travel farther via ionospheric ‘skywave’ bounce (especially at night) but need longer antennas and carry more atmospheric noise; higher frequencies are mostly line-of-sight, cleaner, and use much smaller antennas.",
+    "keywords": [
+      "spectrum",
+      "overview",
+      "rf basics"
+    ],
+    "confidence": "high",
+    "source_id": "itu-r-v431"
+  },
+  {
+    "id": "hf-vhf-uhf-explained",
+    "title": "HF vs VHF vs UHF",
+    "body": "HF (High Frequency, 3–30 MHz) can travel worldwide by bouncing off the ionosphere ('skywave'), especially at night - this is how shortwave broadcast and long-distance amateur contacts work, but it also brings more static and fading. VHF (Very High Frequency, 30–300 MHz) is mostly line-of-sight - range is limited by antenna height and terrain, not time of day - and is generally quieter; this is where FM broadcast, airband, 2m ham, marine VHF, and NOAA Weather Radio live. UHF (Ultra High Frequency, 300 MHz–3 GHz) is also line-of-sight, typically shorter range than VHF for the same power, but antennas are much smaller; this is where 70cm ham, GMRS, and FRS live.",
+    "keywords": [
+      "hf",
+      "vhf",
+      "uhf",
+      "frequency bands"
+    ],
+    "confidence": "high",
+    "source_id": "itu-r-v431"
+  },
+  {
+    "id": "hf-propagation-basics",
+    "title": "HF Propagation Basics",
+    "body": "HF signals can travel very long distances by refracting off the ionosphere back down to earth ('skywave'), but how well this works depends heavily on time of day, season, and the 11-year solar cycle. During the day, the lowest HF bands (160m/80m) are absorbed by the lower ionosphere and mostly limited to short range; at night that absorbing layer disappears and those same bands can suddenly carry much farther. Higher HF bands (20m/17m/15m/12m/10m) tend to work better in daytime and can go quiet at night. None of this is exact - solar activity, season, and geography all shift the picture, so the practical approach with a wideband receiver is simply to check several HF bands at different times of day and see what's actually open right now.",
+    "keywords": [
+      "propagation",
+      "hf propagation",
+      "skywave",
+      "ionosphere",
+      "day night"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "antenna-basics",
+    "title": "Antenna & Band Guidance",
+    "body": "An antenna generally works best when its physical length relates simply to the wavelength of the frequency it's used on - lower frequencies need physically longer antennas for the same efficiency. The short telescoping whip that comes with most wideband receivers is a broad compromise that isn't well-matched to any single band, which is especially noticeable on HF (a longer wire antenna, even just tossed out a window, usually improves HF reception dramatically). VHF/UHF reception benefits less dramatically from a bigger antenna since local transmitters (repeaters, airband, marine, NOAA) are often strong enough to hear well on the stock antenna, though orientation and height still matter.",
+    "keywords": [
+      "antenna",
+      "wire antenna",
+      "whip antenna"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "receiver-practical-tips",
+    "title": "Practical Wideband Receiver Tips",
+    "body": "Squelch mutes the receiver's noise output between transmissions on FM channels - set it just above the background noise floor so it opens cleanly when a real signal appears; squelch generally isn't used on AM/SSB signals, which fade in and out naturally. Tuning step matters: different services use different channel spacing (10 kHz for CB and AM broadcast, 12.5/15/20/25 kHz for various FM services, 5 kHz common on HF), so matching the receiver's tuning step to the service being searched makes scanning much faster. Expect nearby VHF/UHF transmitters to be far easier to copy clearly than distant or weak ones; HF signal strength, by contrast, can change noticeably minute to minute as propagation shifts.",
+    "keywords": [
+      "squelch",
+      "tuning step",
+      "receiver tips",
+      "practical tips"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "emergency-monitoring-quick-reference",
+    "title": "What to Monitor During Severe Weather / an Emergency",
+    "body": "Start with NOAA Weather Radio (162.400–162.550 MHz, NFM) for official forecasts and All Hazards alerts - it's the single most reliable receive-only source here. Locally, FRS/GMRS/MURS channels are commonly used for family/neighbor coordination during an outage. CB channel 9 (27.065 MHz) is the designated emergency channel and channel 19 (27.185 MHz) often carries road-condition chatter from truckers. If you're near water, marine VHF channel 16 (156.800 MHz) carries Coast Guard distress traffic and channel 22A (157.100 MHz) carries USCG safety/weather broadcasts. Amateur radio repeaters on 2m/70cm frequently carry organized emergency nets during major events, though monitoring them doesn't require a license - only transmitting does. This reference intentionally does not cover local public-safety/trunked radio systems - coverage is highly region-specific, many systems are digital/encrypted, and the legality of monitoring varies by state; check local resources for that specifically.",
+    "keywords": [
+      "emergency",
+      "severe weather",
+      "monitoring",
+      "disaster",
+      "outage",
+      "what to listen to"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  }
+]

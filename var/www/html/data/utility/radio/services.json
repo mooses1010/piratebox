@@ -1,0 +1,1109 @@
+[
+  {
+    "id": "amateur-160m",
+    "category": "amateur",
+    "name": "160 Meter Band",
+    "freq_range": "1.800–2.000 MHz",
+    "freq_low_hz": 1800000,
+    "freq_high_hz": 2000000,
+    "common_modes": [
+      "LSB",
+      "CW",
+      "digital"
+    ],
+    "typical_receiver_mode": "LSB (voice), CW below ~1.843 MHz",
+    "license_required_to_transmit": true,
+    "transmit_note": "Amateur license required (General/Advanced/Extra have full privileges; Technician has none on 160m).",
+    "practical_note": "Primarily a night-time band; heavy static in summer thunderstorm season. Voice activity mostly above 1.840–1.900 MHz.",
+    "keywords": [
+      "160m",
+      "1.8 mhz",
+      "top band",
+      "ham"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session (FCC page blocked); voice/CW/phone sub-band splits and calling-frequency conventions are ARRL voluntary band-plan custom, not federal regulation."
+  },
+  {
+    "id": "amateur-80m",
+    "category": "amateur",
+    "name": "80/75 Meter Band",
+    "freq_range": "3.500–4.000 MHz",
+    "freq_low_hz": 3500000,
+    "freq_high_hz": 4000000,
+    "common_modes": [
+      "LSB",
+      "CW",
+      "digital"
+    ],
+    "typical_receiver_mode": "LSB (voice)",
+    "license_required_to_transmit": true,
+    "transmit_note": "License required; Novice/Technician limited to 3.525–3.600 MHz CW only. General+ gets phone privileges roughly 3.800–4.000 MHz.",
+    "practical_note": "Good regional night-time HF band; popular for regional nets and ragchews.",
+    "keywords": [
+      "80m",
+      "75m",
+      "3.5 mhz",
+      "ham"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session (FCC page blocked); voice/CW/phone sub-band splits and calling-frequency conventions are ARRL voluntary band-plan custom, not federal regulation."
+  },
+  {
+    "id": "amateur-60m",
+    "category": "amateur",
+    "name": "60 Meter Band (Channelized)",
+    "freq_range": "5330.5–5406.4 kHz (4 fixed channels + a lower-power secondary segment)",
+    "freq_low_hz": 5330500,
+    "freq_high_hz": 5406400,
+    "common_modes": [
+      "USB",
+      "CW",
+      "digital (FT8/PSK31 etc.)"
+    ],
+    "typical_receiver_mode": "USB",
+    "license_required_to_transmit": true,
+    "transmit_note": "General/Advanced/Extra only. Channelized operation is mandatory (fixed dial frequencies, 1.5 kHz below each channel center for USB) - not a tunable band. Secondary user: must not interfere with US Government stations. Automatic operation is prohibited.",
+    "practical_note": "4 channel centers: 5332.0, 5348.0, 5373.0, 5405.0 kHz, plus a reduced-power secondary WRC-15 segment at 5351.5–5366.5 kHz. Rules here changed as recently as December 2025 - reverify current rules before any transmit use.",
+    "keywords": [
+      "60m",
+      "5 mhz",
+      "channelized",
+      "ham"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Recently and repeatedly revised regulation (power limits changed as recently as December 2025 per this session's cross-check) - treat as more likely to have changed since this was written than the other amateur bands."
+  },
+  {
+    "id": "amateur-40m",
+    "category": "amateur",
+    "name": "40 Meter Band",
+    "freq_range": "7.000–7.300 MHz",
+    "freq_low_hz": 7000000,
+    "freq_high_hz": 7300000,
+    "common_modes": [
+      "LSB",
+      "CW",
+      "digital"
+    ],
+    "typical_receiver_mode": "LSB (voice)",
+    "license_required_to_transmit": true,
+    "transmit_note": "License required; Novice/Technician CW-only 7.025–7.125 MHz, General+ phone 7.125–7.300 MHz.",
+    "practical_note": "Reliable regional/continental night-time HF band; one of the most consistently active ham HF bands after dark.",
+    "keywords": [
+      "40m",
+      "7 mhz",
+      "ham",
+      "hf"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session (FCC page blocked); voice/CW/phone sub-band splits and calling-frequency conventions are ARRL voluntary band-plan custom, not federal regulation."
+  },
+  {
+    "id": "amateur-30m",
+    "category": "amateur",
+    "name": "30 Meter Band",
+    "freq_range": "10.100–10.150 MHz",
+    "freq_low_hz": 10100000,
+    "freq_high_hz": 10150000,
+    "common_modes": [
+      "CW",
+      "digital"
+    ],
+    "typical_receiver_mode": "CW / digital (no voice here)",
+    "license_required_to_transmit": true,
+    "transmit_note": "General/Advanced/Extra only; 200W PEP max. No phone (voice) permitted - CW and digital only, and no contests, by international agreement.",
+    "practical_note": "Narrow shared band; mostly CW and FT8/other digital activity, rarely voice.",
+    "keywords": [
+      "30m",
+      "10 mhz",
+      "ham",
+      "digital",
+      "ft8",
+      "wspr"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session (FCC page blocked)."
+  },
+  {
+    "id": "amateur-20m",
+    "category": "amateur",
+    "name": "20 Meter Band",
+    "freq_range": "14.000–14.350 MHz",
+    "freq_low_hz": 14000000,
+    "freq_high_hz": 14350000,
+    "common_modes": [
+      "USB",
+      "CW",
+      "digital"
+    ],
+    "typical_receiver_mode": "USB (voice)",
+    "license_required_to_transmit": true,
+    "transmit_note": "License required; Technician has no phone privileges here. General+ gets 14.225–14.350 MHz phone (Extra gets more).",
+    "practical_note": "The most popular HF DX (long-distance) band; often active worldwide nearly any time of day.",
+    "keywords": [
+      "20m",
+      "14 mhz",
+      "ham",
+      "hf",
+      "dx"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session (FCC page blocked); voice/CW/phone sub-band splits and calling-frequency conventions are ARRL voluntary band-plan custom, not federal regulation."
+  },
+  {
+    "id": "amateur-17m",
+    "category": "amateur",
+    "name": "17 Meter Band",
+    "freq_range": "18.068–18.168 MHz",
+    "freq_low_hz": 18068000,
+    "freq_high_hz": 18168000,
+    "common_modes": [
+      "USB",
+      "CW",
+      "digital"
+    ],
+    "typical_receiver_mode": "USB (voice)",
+    "license_required_to_transmit": true,
+    "transmit_note": "General/Advanced/Extra only.",
+    "practical_note": "WARC band (no contests permitted); good daytime DX band.",
+    "keywords": [
+      "17m",
+      "18 mhz",
+      "ham",
+      "warc"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session (FCC page blocked); voice/CW/phone sub-band splits and calling-frequency conventions are ARRL voluntary band-plan custom, not federal regulation."
+  },
+  {
+    "id": "amateur-15m",
+    "category": "amateur",
+    "name": "15 Meter Band",
+    "freq_range": "21.000–21.450 MHz",
+    "freq_low_hz": 21000000,
+    "freq_high_hz": 21450000,
+    "common_modes": [
+      "USB",
+      "CW",
+      "digital"
+    ],
+    "typical_receiver_mode": "USB (voice)",
+    "license_required_to_transmit": true,
+    "transmit_note": "License required; Technician CW-only 21.025–21.200 MHz, General+ phone 21.275–21.450 MHz.",
+    "practical_note": "Daytime band, strongly tied to the solar/sunspot cycle - can be excellent or nearly dead depending on solar activity.",
+    "keywords": [
+      "15m",
+      "21 mhz",
+      "ham"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session (FCC page blocked); voice/CW/phone sub-band splits and calling-frequency conventions are ARRL voluntary band-plan custom, not federal regulation."
+  },
+  {
+    "id": "amateur-12m",
+    "category": "amateur",
+    "name": "12 Meter Band",
+    "freq_range": "24.890–24.990 MHz",
+    "freq_low_hz": 24890000,
+    "freq_high_hz": 24990000,
+    "common_modes": [
+      "USB",
+      "CW",
+      "digital"
+    ],
+    "typical_receiver_mode": "USB (voice)",
+    "license_required_to_transmit": true,
+    "transmit_note": "General/Advanced/Extra only.",
+    "practical_note": "WARC band; narrow, daytime, solar-cycle dependent.",
+    "keywords": [
+      "12m",
+      "24 mhz",
+      "ham",
+      "warc"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session (FCC page blocked); voice/CW/phone sub-band splits and calling-frequency conventions are ARRL voluntary band-plan custom, not federal regulation."
+  },
+  {
+    "id": "amateur-10m",
+    "category": "amateur",
+    "name": "10 Meter Band",
+    "freq_range": "28.000–29.700 MHz",
+    "freq_low_hz": 28000000,
+    "freq_high_hz": 29700000,
+    "common_modes": [
+      "USB",
+      "FM",
+      "CW",
+      "digital"
+    ],
+    "typical_receiver_mode": "USB (voice); FM on the 29.5–29.7 MHz repeater segment",
+    "license_required_to_transmit": true,
+    "transmit_note": "License required; Novice/Technician get limited phone privileges 28.300–28.500 MHz, General+ gets the full band.",
+    "practical_note": "FM repeaters/simplex cluster near 29.520–29.680 MHz. Otherwise very solar-cycle dependent - can be nearly dead for years, then open worldwide during high solar activity.",
+    "keywords": [
+      "10m",
+      "28 mhz",
+      "ham"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session (FCC page blocked); voice/CW/phone sub-band splits and calling-frequency conventions are ARRL voluntary band-plan custom, not federal regulation."
+  },
+  {
+    "id": "amateur-6m",
+    "category": "amateur",
+    "name": "6 Meter Band",
+    "freq_range": "50–54 MHz",
+    "freq_low_hz": 50000000,
+    "freq_high_hz": 54000000,
+    "common_modes": [
+      "USB",
+      "FM",
+      "CW",
+      "digital"
+    ],
+    "typical_receiver_mode": "USB near 50.125 MHz (weak-signal calling); FM in the upper portion",
+    "license_required_to_transmit": true,
+    "transmit_note": "License required; all license classes have some 6m privileges.",
+    "practical_note": "Nicknamed ‘the Magic Band’ - usually quiet, but sporadic-E and other propagation can unpredictably open it for long-distance contacts.",
+    "keywords": [
+      "6m",
+      "50 mhz",
+      "ham",
+      "magic band"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session (FCC page blocked); voice/CW/phone sub-band splits and calling-frequency conventions are ARRL voluntary band-plan custom, not federal regulation."
+  },
+  {
+    "id": "amateur-2m",
+    "category": "amateur",
+    "name": "2 Meter Band",
+    "freq_range": "144–148 MHz",
+    "freq_low_hz": 144000000,
+    "freq_high_hz": 148000000,
+    "common_modes": [
+      "FM",
+      "USB",
+      "CW",
+      "digital"
+    ],
+    "typical_receiver_mode": "FM (repeaters/simplex); USB in the ~144.200 MHz weak-signal segment",
+    "license_required_to_transmit": true,
+    "transmit_note": "License required; all classes, including Technician, have full 2m privileges - this is the most common entry-level ham VHF band.",
+    "practical_note": "The most popular VHF ham band. National FM simplex calling frequency: 146.520 MHz. FM repeater outputs are commonly found across 144–148 MHz per local band plan.",
+    "keywords": [
+      "2m",
+      "144 mhz",
+      "146.52",
+      "ham",
+      "vhf",
+      "repeater"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session; 146.520 MHz national simplex calling frequency is ARRL/community voluntary convention, not FCC regulation."
+  },
+  {
+    "id": "amateur-1.25m",
+    "category": "amateur",
+    "name": "1.25 Meter Band",
+    "freq_range": "219–220 MHz and 222–225 MHz",
+    "freq_low_hz": 219000000,
+    "freq_high_hz": 225000000,
+    "common_modes": [
+      "FM",
+      "digital"
+    ],
+    "typical_receiver_mode": "FM",
+    "license_required_to_transmit": true,
+    "transmit_note": "License required, all classes; the 219–220 MHz segment is limited to fixed digital message-forwarding systems.",
+    "practical_note": "Less common band - fewer radios support it. 222.100 MHz is a widely-used national simplex calling frequency in many regions.",
+    "keywords": [
+      "1.25m",
+      "220 mhz",
+      "222 mhz",
+      "ham"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session (FCC page blocked)."
+  },
+  {
+    "id": "amateur-70cm",
+    "category": "amateur",
+    "name": "70 Centimeter Band",
+    "freq_range": "420–450 MHz",
+    "freq_low_hz": 420000000,
+    "freq_high_hz": 450000000,
+    "common_modes": [
+      "FM",
+      "digital"
+    ],
+    "typical_receiver_mode": "FM",
+    "license_required_to_transmit": true,
+    "transmit_note": "License required, all classes.",
+    "practical_note": "Second most popular ham VHF/UHF band after 2m. National FM simplex calling frequency: 446.000 MHz. Widely used for repeaters and digital voice (DMR/D-STAR/System Fusion).",
+    "keywords": [
+      "70cm",
+      "440 mhz",
+      "446",
+      "ham",
+      "uhf",
+      "repeater"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part97",
+    "secondary_source_id": "arrl-band-plan",
+    "source_note": "Band edges cross-checked via secondary source this session; 446.000 MHz national simplex calling frequency is voluntary convention, not FCC regulation."
+  },
+  {
+    "id": "broadcast-am",
+    "category": "broadcast-am",
+    "name": "AM Broadcast (Mediumwave)",
+    "freq_range": "535–1705 kHz (540–1700 kHz channelized, 10 kHz spacing, 117 channels)",
+    "freq_low_hz": 535000,
+    "freq_high_hz": 1705000,
+    "common_modes": [
+      "AM"
+    ],
+    "typical_receiver_mode": "AM",
+    "license_required_to_transmit": true,
+    "transmit_note": "Broadcasting requires an FCC broadcast station license - not for casual/personal transmission. This is a receive-only service for the public.",
+    "practical_note": "AM travels far at night via skywave (ionospheric) propagation - distant stations often become audible after dark that are inaudible during the day.",
+    "keywords": [
+      "am radio",
+      "am broadcast",
+      "medium wave",
+      "mediumwave",
+      "540",
+      "1700"
+    ],
+    "confidence": "high",
+    "source_id": "fcc-part73",
+    "source_note": "Direct FCC page blocked (403); figure confirmed via an eCFR-citing secondary summary and is consistent across every independent reference checked - a long-stable, decades-unchanged allocation."
+  },
+  {
+    "id": "broadcast-fm",
+    "category": "broadcast-fm",
+    "name": "FM Broadcast",
+    "freq_range": "88.0–108.0 MHz (100 channels, 200 kHz spacing)",
+    "freq_low_hz": 88000000,
+    "freq_high_hz": 108000000,
+    "common_modes": [
+      "WFM"
+    ],
+    "typical_receiver_mode": "WFM",
+    "license_required_to_transmit": true,
+    "transmit_note": "Broadcasting requires an FCC broadcast station license - not for casual/personal transmission. This is a receive-only service for the public.",
+    "practical_note": "Line-of-sight VHF propagation - range is mostly limited by antenna height/terrain, not time of day (unlike AM).",
+    "keywords": [
+      "fm radio",
+      "fm broadcast",
+      "88 mhz",
+      "108 mhz"
+    ],
+    "confidence": "high",
+    "source_id": "fcc-part73",
+    "source_note": "Direct FCC page blocked (403); figure confirmed via an eCFR-citing secondary summary and is consistent across every independent reference checked - a long-stable, decades-unchanged allocation."
+  },
+  {
+    "id": "broadcast-shortwave",
+    "category": "broadcast-shortwave",
+    "name": "Shortwave Broadcast",
+    "freq_range": "2.3–26.1 MHz (multiple international meter bands)",
+    "freq_low_hz": 2300000,
+    "freq_high_hz": 26100000,
+    "common_modes": [
+      "AM",
+      "synchronous AM",
+      "digital (DRM, less common)"
+    ],
+    "typical_receiver_mode": "AM",
+    "license_required_to_transmit": true,
+    "transmit_note": "International shortwave broadcasting requires government/international coordination - not for casual transmission. Receive-only for the public.",
+    "practical_note": "Best reception varies a lot by band, time of day, and season - lower bands tend to favor night reception, higher bands favor daytime; all of it is sensitive to solar activity.",
+    "keywords": [
+      "shortwave",
+      "sw broadcast",
+      "international broadcast",
+      "hf broadcast"
+    ],
+    "confidence": "medium",
+    "source_id": "itu-r-v431",
+    "source_note": "Meter-band ranges are ITU-coordinated international allocations; cross-checked via secondary source this session, not fetched directly from ITU.",
+    "channels": [
+      {
+        "band": "120m",
+        "freq_range": "2.300–2.495 MHz"
+      },
+      {
+        "band": "90m",
+        "freq_range": "3.200–3.400 MHz"
+      },
+      {
+        "band": "75m",
+        "freq_range": "3.900–4.000 MHz"
+      },
+      {
+        "band": "60m",
+        "freq_range": "4.750–4.995 MHz"
+      },
+      {
+        "band": "49m",
+        "freq_range": "5.900–6.200 MHz",
+        "note": "Most heavily used broadcast band historically; good year-round night reception."
+      },
+      {
+        "band": "41m",
+        "freq_range": "7.200–7.450 MHz"
+      },
+      {
+        "band": "31m",
+        "freq_range": "9.400–9.900 MHz",
+        "note": "Often the most active band overall; good night reception, seasonal in daytime."
+      },
+      {
+        "band": "25m",
+        "freq_range": "11.600–12.100 MHz"
+      },
+      {
+        "band": "22m",
+        "freq_range": "13.570–13.870 MHz"
+      },
+      {
+        "band": "19m",
+        "freq_range": "15.100–15.800 MHz"
+      },
+      {
+        "band": "16m",
+        "freq_range": "17.480–17.900 MHz"
+      },
+      {
+        "band": "15m",
+        "freq_range": "18.900–19.020 MHz"
+      },
+      {
+        "band": "13m",
+        "freq_range": "21.450–21.850 MHz"
+      },
+      {
+        "band": "11m",
+        "freq_range": "25.670–26.100 MHz"
+      }
+    ]
+  },
+  {
+    "id": "noaa-weather-radio",
+    "category": "noaa-wx",
+    "name": "NOAA Weather Radio (All Hazards)",
+    "freq_range": "162.400–162.550 MHz (7 fixed frequencies)",
+    "freq_low_hz": 162400000,
+    "freq_high_hz": 162550000,
+    "common_modes": [
+      "NFM"
+    ],
+    "typical_receiver_mode": "NFM (narrow FM)",
+    "license_required_to_transmit": true,
+    "transmit_note": "NOAA/NWS transmitting stations only - receive-only for the public.",
+    "practical_note": "Continuous weather broadcast plus All Hazards alerts (severe weather and some non-weather emergencies). Typical range ~40 miles from a full-power transmitter over level terrain. Coverage depends on the specific transmitter serving your location, not just your state. Channel numbering (WX1–WX7) is a common radio-manufacturer convention, not an official NOAA designation - confirm by frequency, not channel number.",
+    "keywords": [
+      "noaa",
+      "weather radio",
+      "nwr",
+      "wx",
+      "all hazards",
+      "162 mhz"
+    ],
+    "confidence": "high",
+    "source_id": "noaa-nwr",
+    "channels": [
+      {
+        "channel": "WX1",
+        "freq": "162.550 MHz"
+      },
+      {
+        "channel": "WX2",
+        "freq": "162.400 MHz"
+      },
+      {
+        "channel": "WX3",
+        "freq": "162.475 MHz"
+      },
+      {
+        "channel": "WX4",
+        "freq": "162.425 MHz"
+      },
+      {
+        "channel": "WX5",
+        "freq": "162.450 MHz"
+      },
+      {
+        "channel": "WX6",
+        "freq": "162.500 MHz"
+      },
+      {
+        "channel": "WX7",
+        "freq": "162.525 MHz"
+      }
+    ]
+  },
+  {
+    "id": "cb-radio",
+    "category": "cb",
+    "name": "Citizens Band (CB) Radio",
+    "freq_range": "26.965–27.405 MHz (40 channels, 10 kHz spacing)",
+    "freq_low_hz": 26965000,
+    "freq_high_hz": 27405000,
+    "common_modes": [
+      "AM",
+      "FM",
+      "USB"
+    ],
+    "typical_receiver_mode": "AM (most common); USB for sideband-equipped radios",
+    "license_required_to_transmit": false,
+    "transmit_note": "License-free since 1983. Power limited to 4W AM/FM, 12W PEP on SSB. Channel 9 is reserved for emergency/roadside-assistance use; Channel 19 is the common trucker/highway channel.",
+    "practical_note": "Normally short-range ground-wave propagation (a few miles), but can skip long distances during sporadic-E or other solar/atmospheric conditions.",
+    "keywords": [
+      "cb",
+      "cb radio",
+      "citizens band",
+      "channel 9",
+      "channel 19",
+      "27 mhz"
+    ],
+    "confidence": "high",
+    "source_id": "fcc-part95-prs",
+    "source_note": "Direct FCC page blocked (403); numbers were cross-checked against multiple independent secondary sources that agreed exactly, and this channel plan is decades-stable/well-documented.",
+    "channels": [
+      {
+        "channel": 1,
+        "freq": "26.965 MHz"
+      },
+      {
+        "channel": 2,
+        "freq": "26.975 MHz"
+      },
+      {
+        "channel": 3,
+        "freq": "26.985 MHz"
+      },
+      {
+        "channel": 4,
+        "freq": "27.005 MHz"
+      },
+      {
+        "channel": 5,
+        "freq": "27.015 MHz"
+      },
+      {
+        "channel": 6,
+        "freq": "27.025 MHz"
+      },
+      {
+        "channel": 7,
+        "freq": "27.035 MHz"
+      },
+      {
+        "channel": 8,
+        "freq": "27.055 MHz"
+      },
+      {
+        "channel": 9,
+        "freq": "27.065 MHz"
+      },
+      {
+        "channel": 10,
+        "freq": "27.075 MHz"
+      },
+      {
+        "channel": 11,
+        "freq": "27.085 MHz"
+      },
+      {
+        "channel": 12,
+        "freq": "27.105 MHz"
+      },
+      {
+        "channel": 13,
+        "freq": "27.115 MHz"
+      },
+      {
+        "channel": 14,
+        "freq": "27.125 MHz"
+      },
+      {
+        "channel": 15,
+        "freq": "27.135 MHz"
+      },
+      {
+        "channel": 16,
+        "freq": "27.155 MHz"
+      },
+      {
+        "channel": 17,
+        "freq": "27.165 MHz"
+      },
+      {
+        "channel": 18,
+        "freq": "27.175 MHz"
+      },
+      {
+        "channel": 19,
+        "freq": "27.185 MHz"
+      },
+      {
+        "channel": 20,
+        "freq": "27.205 MHz"
+      },
+      {
+        "channel": 21,
+        "freq": "27.215 MHz"
+      },
+      {
+        "channel": 22,
+        "freq": "27.225 MHz"
+      },
+      {
+        "channel": 23,
+        "freq": "27.255 MHz",
+        "note": "Channels 23-24 are intentionally non-sequential in frequency (a historical CB band-plan quirk from when channels 22-23 were inserted later) - not an error."
+      },
+      {
+        "channel": 24,
+        "freq": "27.235 MHz"
+      },
+      {
+        "channel": 25,
+        "freq": "27.245 MHz"
+      },
+      {
+        "channel": 26,
+        "freq": "27.265 MHz"
+      },
+      {
+        "channel": 27,
+        "freq": "27.275 MHz"
+      },
+      {
+        "channel": 28,
+        "freq": "27.285 MHz"
+      },
+      {
+        "channel": 29,
+        "freq": "27.295 MHz"
+      },
+      {
+        "channel": 30,
+        "freq": "27.305 MHz"
+      },
+      {
+        "channel": 31,
+        "freq": "27.315 MHz"
+      },
+      {
+        "channel": 32,
+        "freq": "27.325 MHz"
+      },
+      {
+        "channel": 33,
+        "freq": "27.335 MHz"
+      },
+      {
+        "channel": 34,
+        "freq": "27.345 MHz"
+      },
+      {
+        "channel": 35,
+        "freq": "27.355 MHz"
+      },
+      {
+        "channel": 36,
+        "freq": "27.365 MHz"
+      },
+      {
+        "channel": 37,
+        "freq": "27.375 MHz"
+      },
+      {
+        "channel": 38,
+        "freq": "27.385 MHz"
+      },
+      {
+        "channel": 39,
+        "freq": "27.395 MHz"
+      },
+      {
+        "channel": 40,
+        "freq": "27.405 MHz"
+      }
+    ]
+  },
+  {
+    "id": "frs",
+    "category": "frs",
+    "name": "FRS (Family Radio Service)",
+    "freq_range": "462.5625–467.7125 MHz (22 channels)",
+    "freq_low_hz": 462550000,
+    "freq_high_hz": 467725000,
+    "common_modes": [
+      "FM"
+    ],
+    "typical_receiver_mode": "NFM",
+    "license_required_to_transmit": false,
+    "transmit_note": "No individual license required. Power limits: channels 1-7 & 15-22 up to 2W, channels 8-14 up to 0.5W. All 22 channels are shared with GMRS.",
+    "practical_note": "Real-world range is usually well under 1 mile in typical terrain, despite marketing claims of much longer range.",
+    "keywords": [
+      "frs",
+      "family radio service",
+      "walkie talkie"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part95-prs",
+    "source_note": "FCC page blocked (403) this session; table cross-checked via secondary source.",
+    "channels": [
+      {
+        "channel": 1,
+        "freq": "462.5625 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 2,
+        "freq": "462.5875 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 3,
+        "freq": "462.6125 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 4,
+        "freq": "462.6375 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 5,
+        "freq": "462.6625 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 6,
+        "freq": "462.6875 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 7,
+        "freq": "462.7125 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 8,
+        "freq": "467.5625 MHz",
+        "power_limit": "0.5W"
+      },
+      {
+        "channel": 9,
+        "freq": "467.5875 MHz",
+        "power_limit": "0.5W"
+      },
+      {
+        "channel": 10,
+        "freq": "467.6125 MHz",
+        "power_limit": "0.5W"
+      },
+      {
+        "channel": 11,
+        "freq": "467.6375 MHz",
+        "power_limit": "0.5W"
+      },
+      {
+        "channel": 12,
+        "freq": "467.6625 MHz",
+        "power_limit": "0.5W"
+      },
+      {
+        "channel": 13,
+        "freq": "467.6875 MHz",
+        "power_limit": "0.5W"
+      },
+      {
+        "channel": 14,
+        "freq": "467.7125 MHz",
+        "power_limit": "0.5W"
+      },
+      {
+        "channel": 15,
+        "freq": "462.5500 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 16,
+        "freq": "462.5750 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 17,
+        "freq": "462.6000 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 18,
+        "freq": "462.6250 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 19,
+        "freq": "462.6500 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 20,
+        "freq": "462.6750 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 21,
+        "freq": "462.7000 MHz",
+        "power_limit": "2W"
+      },
+      {
+        "channel": 22,
+        "freq": "462.7250 MHz",
+        "power_limit": "2W"
+      }
+    ]
+  },
+  {
+    "id": "gmrs",
+    "category": "gmrs",
+    "name": "GMRS (General Mobile Radio Service)",
+    "freq_range": "462.550–467.725 MHz (22 shared channels + repeater input pairs on ch.15-22)",
+    "freq_low_hz": 462550000,
+    "freq_high_hz": 467725000,
+    "common_modes": [
+      "FM"
+    ],
+    "typical_receiver_mode": "NFM",
+    "license_required_to_transmit": true,
+    "transmit_note": "Requires a $35 FCC license (10-year term, no test required) covering the licensee's immediate family. Repeater use (channels 15-22) permitted up to 50W; channels 1-14 are simplex-only, shared with FRS at FRS power limits when used that way.",
+    "practical_note": "Repeaters can extend usable range to roughly 20+ miles depending on antenna height/terrain. Per a 2024 FCC clarification, GMRS repeaters may not be linked to each other over the internet.",
+    "keywords": [
+      "gmrs",
+      "general mobile radio service",
+      "repeater"
+    ],
+    "confidence": "medium",
+    "source_id": "fcc-part95-prs",
+    "source_note": "FCC page blocked (403) this session; cross-checked via secondary source. See the FRS entry for the shared channel table (channels 1-22 are identical frequencies)."
+  },
+  {
+    "id": "murs",
+    "category": "murs",
+    "name": "MURS (Multi-Use Radio Service)",
+    "freq_range": "151.820–154.600 MHz (5 channels)",
+    "freq_low_hz": 151820000,
+    "freq_high_hz": 154600000,
+    "common_modes": [
+      "FM"
+    ],
+    "typical_receiver_mode": "NFM",
+    "license_required_to_transmit": false,
+    "transmit_note": "Licensed by rule - no individual FCC license needed. Power limited to 2W. External antennas are permitted (unlike FRS), subject to a height limit.",
+    "practical_note": "Generally less crowded than FRS/GMRS in many areas; popular for trail, farm, and property use.",
+    "keywords": [
+      "murs",
+      "multi-use radio service"
+    ],
+    "confidence": "high",
+    "source_id": "fcc-part95-prs",
+    "source_note": "Numbers agreed exactly across two independent fetch attempts this session, despite the FCC page itself being blocked (403).",
+    "channels": [
+      {
+        "channel": 1,
+        "freq": "151.820 MHz",
+        "bandwidth": "11.25 kHz (narrowband)"
+      },
+      {
+        "channel": 2,
+        "freq": "151.880 MHz",
+        "bandwidth": "11.25 kHz (narrowband)"
+      },
+      {
+        "channel": 3,
+        "freq": "151.940 MHz",
+        "bandwidth": "11.25 kHz (narrowband)"
+      },
+      {
+        "channel": 4,
+        "freq": "154.570 MHz",
+        "bandwidth": "20.00 kHz (wideband)"
+      },
+      {
+        "channel": 5,
+        "freq": "154.600 MHz",
+        "bandwidth": "20.00 kHz (wideband)"
+      }
+    ]
+  },
+  {
+    "id": "marine-vhf",
+    "category": "marine-vhf",
+    "name": "Marine VHF",
+    "freq_range": "156.050–162.025 MHz (channelized)",
+    "freq_low_hz": 156050000,
+    "freq_high_hz": 162025000,
+    "common_modes": [
+      "FM"
+    ],
+    "typical_receiver_mode": "NFM",
+    "license_required_to_transmit": false,
+    "transmit_note": "Recreational vessels generally don't need an individual FCC license for domestic marine VHF use; commercial/passenger vessels and international voyages have separate licensing requirements. Channel 16 is for hailing/distress only - move to a working channel for conversation.",
+    "practical_note": "Channel 16 = international distress/calling/safety. Channel 9 = recreational hailing (alternate to 16 in many areas). Channel 13 = bridge-to-bridge navigation safety. Channel 22A/1022 = USCG safety/weather announcements. Channel 70 = digital calling only, no voice.",
+    "keywords": [
+      "marine vhf",
+      "boat radio",
+      "channel 16",
+      "distress",
+      "coast guard"
+    ],
+    "confidence": "high",
+    "source_id": "uscg-navcen-vhf",
+    "channels": [
+      {
+        "channel": "16",
+        "freq": "156.800 MHz",
+        "use": "International distress, safety & calling - monitored by USCG"
+      },
+      {
+        "channel": "9",
+        "freq": "156.450 MHz",
+        "use": "Recreational boater calling/hailing"
+      },
+      {
+        "channel": "13",
+        "freq": "156.650 MHz",
+        "use": "Bridge-to-bridge navigation safety; vessels >20m must monitor"
+      },
+      {
+        "channel": "22A / 1022",
+        "freq": "157.100 MHz",
+        "use": "USCG liaison & marine safety/weather broadcasts (announced first on ch.16)"
+      },
+      {
+        "channel": "70",
+        "freq": "156.525 MHz",
+        "use": "Digital Selective Calling (DSC) only - no voice"
+      },
+      {
+        "channel": "WX1",
+        "freq": "162.550 MHz",
+        "use": "NOAA weather broadcast"
+      },
+      {
+        "channel": "WX2",
+        "freq": "162.400 MHz",
+        "use": "NOAA weather broadcast"
+      },
+      {
+        "channel": "WX3",
+        "freq": "162.475 MHz",
+        "use": "NOAA weather broadcast"
+      },
+      {
+        "channel": "WX4",
+        "freq": "162.425 MHz",
+        "use": "NOAA weather broadcast"
+      },
+      {
+        "channel": "WX5",
+        "freq": "162.450 MHz",
+        "use": "NOAA weather broadcast"
+      },
+      {
+        "channel": "WX6",
+        "freq": "162.500 MHz",
+        "use": "NOAA weather broadcast"
+      },
+      {
+        "channel": "WX7",
+        "freq": "162.525 MHz",
+        "use": "NOAA weather broadcast"
+      }
+    ]
+  },
+  {
+    "id": "airband",
+    "category": "airband",
+    "name": "Aviation / Airband",
+    "freq_range": "118.000–136.975 MHz (voice); 108.000–117.975 MHz (VOR/ILS navigation, not voice)",
+    "freq_low_hz": 108000000,
+    "freq_high_hz": 136975000,
+    "common_modes": [
+      "AM"
+    ],
+    "typical_receiver_mode": "AM",
+    "license_required_to_transmit": true,
+    "transmit_note": "Aircraft/ground station radios operating under FAA/FCC rules - not for casual public transmission. Receive-only interest for most listeners.",
+    "practical_note": "Deliberately uses AM, not FM - lets a stronger nearby signal be heard over a weaker one instead of one completely blocking the other ('capture effect'), which matters for safety. Standard US channel spacing is 25 kHz (8.33 kHz in parts of Europe). HF (2.850–22 MHz, USB) is used for oceanic/remote-area voice beyond VHF range.",
+    "keywords": [
+      "airband",
+      "aviation",
+      "atc",
+      "air traffic control",
+      "118 mhz"
+    ],
+    "confidence": "medium",
+    "source_id": "faa-icao-airband",
+    "source_note": "Cross-checked via secondary reference this session (FAA/ICAO pages not directly fetched); band edges and the AM-mode convention are long-stable and globally consistent."
+  },
+  {
+    "id": "railroad",
+    "category": "railroad",
+    "name": "Railroad Radio",
+    "freq_range": "approximately 159.6–161.6 MHz (exact lower edge unconfirmed - see note)",
+    "freq_low_hz": null,
+    "freq_high_hz": null,
+    "common_modes": [
+      "NFM"
+    ],
+    "typical_receiver_mode": "NFM",
+    "license_required_to_transmit": true,
+    "transmit_note": "Licensed to railroads under FCC Part 90 - not for public transmission. Receive-only for the general public.",
+    "practical_note": "Uses an AAR-coordinated channel plan (roughly 97 channels, 15 kHz spacing) for dispatch, road/yard operations, and defect detectors. Specific channel-to-railroad/purpose assignments are regional and change over time - consult a current regional scanner/railfan frequency guide for your area rather than relying on a fixed list here.",
+    "keywords": [
+      "railroad",
+      "train",
+      "rail scanner",
+      "aar"
+    ],
+    "confidence": "low",
+    "source_id": "aar-railroad",
+    "source_note": "Three independent secondary sources gave three different lower band-edge figures (159.57 / 159.810 / 160.110 MHz) this session and no single clean authoritative public table was found. Range shown is approximate; no specific channel table is included by design - see docs/OPERATIONAL-DECISIONS.md."
+  }
+]
