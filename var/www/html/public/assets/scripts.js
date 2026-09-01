@@ -31,6 +31,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (uploadForm) {
         const progressWrap = document.getElementById('upload-progress');
         const progressBar = document.getElementById('upload-progress-bar');
+        const selectedFilename = document.getElementById('selected-filename');
+        const uploadFileInput = uploadForm.querySelector('input[name="file"]');
+
+        if (selectedFilename && uploadFileInput) {
+            uploadFileInput.addEventListener('change', function () {
+                selectedFilename.textContent = uploadFileInput.files.length > 0
+                    ? uploadFileInput.files[0].name
+                    : '';
+            });
+        }
 
         uploadForm.addEventListener('submit', function (e) {
             e.preventDefault();
@@ -120,6 +130,64 @@ document.addEventListener('DOMContentLoaded', function () {
                     row.style.display = "none";
                 } else {
                     row.style.display = "";
+                }
+            });
+        });
+    }
+
+    // File Sort Logic (index.php) - progressive enhancement: the table is
+    // already server-rendered newest-first, so without JS (or before this
+    // runs) it's still a perfectly usable, correctly-sorted list. This just
+    // lets the visitor re-sort it client-side from the data-* attributes
+    // already on each row - no extra request, no server round-trip.
+    const fileTable = document.getElementById('file-table');
+    const fileSortSelect = document.getElementById('fileSort');
+    if (fileTable) {
+        const tbody = fileTable.querySelector('tbody');
+
+        function sortFiles(key, ascending) {
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const dir = ascending ? 1 : -1;
+            rows.sort((a, b) => {
+                if (key === 'name') {
+                    return dir * a.dataset.name.localeCompare(b.dataset.name);
+                }
+                return dir * (parseInt(a.dataset[key], 10) - parseInt(b.dataset[key], 10));
+            });
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        function applySortMode(mode) {
+            switch (mode) {
+                case 'oldest': sortFiles('uploaded', true); break;
+                case 'name': sortFiles('name', true); break;
+                case 'size': sortFiles('size', false); break;
+                case 'newest':
+                default: sortFiles('uploaded', false); break;
+            }
+        }
+
+        if (fileSortSelect) {
+            fileSortSelect.addEventListener('change', () => applySortMode(fileSortSelect.value));
+        }
+
+        // Clicking (or, via keyboard, focusing + Enter/Space) a column
+        // header sorts by that column too, matching the dropdown's
+        // equivalent option.
+        fileTable.querySelectorAll('th.sortable').forEach(th => {
+            th.setAttribute('tabindex', '0');
+            th.setAttribute('role', 'button');
+            const activate = () => {
+                const key = th.dataset.sortKey;
+                const mode = key === 'uploaded' ? 'newest' : key;
+                if (fileSortSelect) fileSortSelect.value = mode;
+                applySortMode(mode);
+            };
+            th.addEventListener('click', activate);
+            th.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    activate();
                 }
             });
         });

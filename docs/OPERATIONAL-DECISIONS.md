@@ -6,6 +6,148 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Phase 5: onboarding/UI redesign, help page, and QR codes
+
+**Decision date:** 2026-09-01 (Phase 5).
+
+**Scope:** front-end/UX only, per the phase's own instructions - no
+networking, captive-portal, or backend architecture changes. Builds on
+the existing dark/purple/sharp-corners visual identity from earlier
+phases rather than replacing it.
+
+**New pages/includes:**
+- `includes/footer.php` - a small shared footer (not used on `chat.php`,
+  see below) repeating the "this network is offline, no Internet
+  required" message and the direct `http://10.0.0.1/` fallback, so it's
+  discoverable without hunting for it, but not repeated on every single
+  element of every page.
+- `includes/helpers.php` - `piratebox_fmt_bytes()`/`piratebox_fmt_duration()`,
+  pulled out of `admin/index.php` (which had its own private copy) once
+  `index.php`'s file listing also needed human-readable byte formatting -
+  now there's one shared copy instead of a second one.
+- `public/help.php` - Connect steps, an Android/Samsung-specific note,
+  generic Apple/Windows/Linux guidance, a short "using PirateBox" summary,
+  and an About section. Content was written to the phase's exact
+  constraints: it does **not** tell users to install a certificate,
+  disable browser security, or click through an HTTPS warning to use
+  PirateBox (there is no HTTPS on this device to warn about in the first
+  place - see the Phase 3 captive-portal entries below), and it does
+  **not** claim anonymity - it explicitly states "offline does not
+  automatically mean anonymous," matching this device's actual behavior
+  (it can see connected devices and their requests, like any local
+  network).
+- `index.php` gained a hero/intro block ("PirateBox - Offline File
+  Sharing" + a one-sentence explanation + quick links) so a first-time
+  visitor understands what this is and what they can do, without needing
+  the Help page.
+
+**Footer NOT added to `chat.php`:** that page uses a fixed-height,
+`overflow: hidden` flex layout (message list scrolls internally, input
+bar pinned to the bottom - a deliberate mobile chat UX pattern from
+before this phase). Appending a footer there would either get clipped or
+break that layout. Chat already has full nav access to Help, so nothing
+is lost.
+
+**QR codes:** generated at *install/deploy time* by the installer via
+`qrencode` (added to the `apt-get install` line - a tiny, standard CLI
+tool, not a PHP/runtime dependency), not committed to git (they're a
+rendering of two static strings - `http://10.0.0.1/` and
+`WIFI:T:nopass;S:PirateBox;;`, matching this device's fixed IP and open
+`PirateBox` SSID - the installer already knows both, so there's nothing
+gained by committing a rendered PNG that's trivially regenerable and
+would need to be kept in sync by hand). Both live on the Help page,
+visually distinguished by caption so scanning either one is unambiguous:
+the URL QR to jump straight to PirateBox once already connected, the
+Wi-Fi QR to join the network in the first place. Decoded with `zbarimg`
+(a temporary verification tool, installed, used once, then `apt purge`d
++ `autoremove`d again - not left on the Pi) to confirm each PNG actually
+encodes the exact intended string - both did.
+
+**File list sorting:** a `<select>` (Newest/Oldest/Name/Size) plus
+clickable/keyboard-activatable column headers, implemented as pure
+client-side re-ordering of the already-rendered `<tr>` elements from
+`data-*` attributes already on each row - no extra request, no server
+round-trip, and the table is already correctly newest-first sorted by PHP
+even if this JS never runs at all (progressive enhancement, not a
+requirement).
+
+**Progressive enhancement / JS-optional baseline:** timestamps
+(`file-timestamp`/`chat-timestamp`/`message-time` spans) now render a
+server-side `date('Y-m-d H:i', ...)` fallback string in PHP, which JS
+then upgrades to a locale-formatted version via `Intl.DateTimeFormat` on
+load - previously these spans were emptied and populated by JS alone, so
+a no-JS visitor saw blank timestamps everywhere. Upload still requires JS
+for the progress bar specifically (explicitly acceptable per this phase's
+own instructions - "except features inherently requiring JS"), but file
+Browse/download, chat/guestbook reading, and navigation all work with
+JS disabled.
+
+**Admin page:** visually reorganized into two clearly distinct zones -
+"System status" (labeled `read-only`) and "Destructive maintenance"
+(labeled `irreversible`, dashed red border) - with no change whatsoever
+to the Phase 4 security/privilege model: same nginx Basic Auth boundary,
+same CSRF token, same confirmation-checkbox requirement, same
+`flock()`-based locking, no sudo, no exec, no reboot/service-restart
+controls added.
+
+**Offline-resource audit:** every served page (`/`, `help.php`,
+`chat.php`, `messages.php`, `admin/`) plus `styles.css` and `scripts.js`
+were fetched live and grepped for any `http(s)://` reference other than
+`10.0.0.1` itself, and for `@import`/`url()` in CSS - none found anywhere.
+The only network calls `scripts.js` ever makes are `fetch()` to this same
+site's own `chat.php`/`messages.php` endpoints.
+
+**Deferred / explicitly out of scope for this phase** (per instructions,
+not oversights): file thumbnails, chunked/resumable uploads, WebSockets,
+accounts/avatars, reboot/service-restart buttons, any further
+captive-portal work, and the TP-Link adapter.
+
+**Real-device testing status:** the operator did a quick real-device pass
+and confirmed the redesigned UI looks good, but explicitly deferred the
+full manual checklist (desktop browser, Android/Samsung portrait layout,
+QR scanning with an actual camera app, upload progress, download, chat,
+guestbook, help instructions, admin page rendering - see this phase's own
+instructions for the complete list) rather than running it in this
+session. Everything in that list was exercised programmatically
+(`curl`/`zbarimg`/etc., see the automated test results in this phase's
+git commit and report) but a real-camera QR scan and real-browser
+rendering check on an actual phone have not yet happened. Do this before
+relying on the QR codes or mobile layout for an actual event/demo.
+
+## Phase 4 regression found and fixed: chat/guestbook posting was completely broken (missing mbstring)
+
+**Decision date:** 2026-09-01 (Phase 5).
+
+Phase 4 added `mb_substr()` calls to `chat.php`/`messages.php` (server-side
+length caps matching the client-side `maxlength` attributes). The
+`mbstring` PHP extension was never installed on this system, so every
+single POST to `chat.php` or `messages.php` since that Phase 4 commit
+threw an uncaught `Error: Call to undefined function mb_substr()` and
+returned an HTTP 500 - **chat and the guestbook were completely unable to
+accept new posts** for the entire time between the Phase 4 commit and
+this fix. This was not caught by Phase 4's own testing: that phase tested
+`GET` requests to both pages and tested the admin "clear chat"/"clear
+messages" actions, but never re-POSTed a new message *after* the
+`mb_substr()` code was added (an earlier POST test in that same session
+ran before that code existed). Found during Phase 5's functional retest
+of the redesigned pages.
+
+**Fix:** installed `php8.4-mbstring` (`php-mbstring` in the installer, to
+match the existing `php-fpm` version-agnostic package name convention).
+`mb_substr()` was kept (not replaced with byte-based `substr()`) because
+truncating raw bytes at a fixed offset can split a multi-byte UTF-8
+character in the middle and produce invalid, corrupted text if a message
+happens to land exactly at the 32/2000-character boundary - a real
+concern for a chat/guestbook that has to handle arbitrary language
+input - whereas installing one small, extremely common PHP extension has
+no real downside. Verified live: posting to both `chat.php` and
+`messages.php` now returns success and the message appears correctly.
+
+**Lesson applied going forward:** after any change to a POST/write code
+path, re-test that exact path with a live POST in the same session,
+even if the underlying code "obviously" hasn't changed since an earlier
+test in the same conversation.
+
 ## PHP's upload_tmp_dir moved off tmpfs onto the SD card
 
 **Decision date:** 2026-09-01 (Phase 4).

@@ -7,3 +7,8 @@ var/www/html/includes/VERSION
 # tree by any script here, but ignored defensively in case anyone copies
 # it in locally while testing.
 *.piratebox_admin_htpasswd
+
+# QR codes (Phase 5) - generated fresh at install time by the installer
+# via qrencode, not committed (see installer_pi_zero_trixie.sh).
+var/www/html/public/assets/qr-url.png
+var/www/html/public/assets/qr-wifi.png

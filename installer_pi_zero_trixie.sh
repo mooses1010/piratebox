@@ -38,7 +38,7 @@ fi
 # Install Dependencies
 echo "[+] Updating system and installing dependencies..."
 apt-get update
-apt-get install -y hostapd dnsmasq dhcpcd5 nginx php-fpm
+apt-get install -y hostapd dnsmasq dhcpcd5 nginx php-fpm php-mbstring qrencode
 # NOTE (Phase 2 decision, 2026-08-31): this installer deliberately does NOT
 # run `rpi-update`. Modern Raspberry Pi OS should not be moved onto
 # bleeding-edge/untested firmware and kernel builds as part of a PirateBox
@@ -176,6 +176,21 @@ cp -r var/www/html/* /var/www/html/
 chown -R www-data:www-data /var/www/html
 chmod 0755 /var/www/html/public/uploads
 chmod 0755 /var/www/html/data
+
+# Phase 5: QR codes for the Help page, generated fresh at deploy time
+# with qrencode (a small, standard CLI tool - not a PHP/runtime
+# dependency, and not committed to git since they're just a rendering of
+# two static strings this installer already knows). SSID/security here
+# match hostapd.conf's open "PirateBox" network - if you change the SSID
+# or add a password, update the WIFI: string below to match.
+echo "    Generating QR codes..."
+if command -v qrencode >/dev/null 2>&1; then
+    qrencode -o /var/www/html/public/assets/qr-url.png -s 6 -m 2 "http://10.0.0.1/"
+    qrencode -o /var/www/html/public/assets/qr-wifi.png -s 6 -m 2 "WIFI:T:nopass;S:PirateBox;;"
+    chown www-data:www-data /var/www/html/public/assets/qr-url.png /var/www/html/public/assets/qr-wifi.png
+else
+    echo "    WARNING: qrencode not found - QR images will be missing from the Help page."
+fi
 
 # Phase 4: record the deployed commit for the admin page's version display.
 # Best-effort only - if this isn't a git checkout, the admin page just

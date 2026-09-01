@@ -21,13 +21,21 @@ This configuration has been tested on a Raspberry Pi Zero 2 W running Raspberry 
 
 !['PirateBox WiFi QR Code'](https://github.com/teklynk/piratebox/blob/main/PirateBox-wifi-qrcode.png?raw=true)
 
+The device itself also serves this same Wi-Fi QR code, plus a second one
+for the direct URL, on its own Help page (`http://10.0.0.1/help.php`) -
+generated locally at install time, no external QR service involved. See
+[docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md) (Phase 5).
+
 ## Features
 - **Offline Network**: Creates its own Wi-Fi hotspot (SSID: PirateBox).
 - **Captive Portal**: DNS redirection resolves all requests to the local server.
-- **File Sharing**: Simple web interface to upload and download files.
-- **Messages**: Guestbook style messages. Let people know that you were here.
+- **File Sharing**: Simple web interface to upload and download files, with sortable listing and human-readable sizes.
+- **Messages (Guestbook)**: Leave a message that stays for later visitors to read.
 - **Live Chat**: Have a conversation with others connected to the PirateBox.
-- **Auto-Cleanup**: Script included to purge uploads and messages (optional via scheduled cron job).
+- **Help page**: `help.php` - connect instructions (including a note for Android/Samsung devices that show "Internet may not be available"), platform guidance, and a short About section. Linked from every page's navigation.
+- **Admin/status page**: see "Admin/Status Page" below.
+- **Auto-Cleanup**: Script included to purge uploads and messages (optional via scheduled cron job - off by default, see "Maintenance" below).
+- **Fully offline-rendered**: no CDNs, no Google Fonts, no external JS/CSS/images/APIs anywhere in the app - everything required to render and use every page ships with the device. See docs/OPERATIONAL-DECISIONS.md for the Phase 5 audit.
 
 ## Prerequisites
 - Raspberry Pi with Wi-Fi capability.

@@ -2,6 +2,7 @@
 declare(strict_types=1);
 session_start();
 require_once __DIR__ . '/../includes/config.php';
+require_once __DIR__ . '/../includes/helpers.php';
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -76,8 +77,20 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
 <body>
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
+    <div class="hero">
+        <div class="hero-tagline">Offline File Sharing</div>
+        <h1>PirateBox</h1>
+        <p>This is a local, offline network - no Internet connection is used or required. Share files, chat, and leave messages with anyone else connected to this Wi-Fi.</p>
+        <div class="hero-actions">
+            <a href="#upload-form">Upload a file</a>
+            <a href="chat.php">Chat</a>
+            <a href="messages.php">Guestbook</a>
+            <a href="help.php">Help</a>
+        </div>
+    </div>
+
     <?php if (!empty($msg)): ?>
-        <p><strong><?= htmlspecialchars($msg) ?></strong></p>
+        <p style="text-align:center;"><strong><?= htmlspecialchars($msg) ?></strong></p>
     <?php endif; ?>
 
     <form action="/upload.php" method="post" enctype="multipart/form-data" id="upload-form">
@@ -85,6 +98,7 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
         <label>Select a file (max <?= $MAX_SIZE / 1024 / 1024 ?>MiB):
             <input type="file" name="file" required data-max-size="<?= $MAX_SIZE ?>">
         </label>
+        <span id="selected-filename" class="muted" aria-live="polite"></span>
         <button type="submit">Upload</button>
         <div class="upload-progress" id="upload-progress" hidden>
             <div class="upload-progress-bar" id="upload-progress-bar"></div>
@@ -93,44 +107,56 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
 
     <?php if ($freeBytes !== false): ?>
         <p class="storage-notice<?= $lowStorage ? ' low' : '' ?>">
-            <?= $lowStorage ? 'Storage is running low - ' : '' ?><?= round($freeBytes / 1024 / 1024 / 1024, 1) ?>GiB free
+            <?= $lowStorage ? 'Storage is running low - ' : '' ?><?= piratebox_fmt_bytes((int) $freeBytes) ?> free
         </p>
     <?php endif; ?>
 
     <?php if (empty($files)): ?>
-        <p style="text-align:center; color: #606085;">No files uploaded yet.</p>
+        <p class="empty-state">No files uploaded yet - be the first to share something!</p>
     <?php else: ?>
         <h2>Available files</h2>
-        <div class="search-container">
-            <input type="text" id="fileSearch" placeholder="Search files..." aria-label="Search files">
+        <div class="list-controls">
+            <div class="search-container">
+                <input type="text" id="fileSearch" placeholder="Search files..." aria-label="Search files">
+            </div>
+            <label for="fileSort">Sort by
+                <select id="fileSort" aria-label="Sort files">
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="name">Name</option>
+                    <option value="size">Size</option>
+                </select>
+            </label>
         </div>
         <div class="table-wrapper">
-            <table>
+            <table id="file-table">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Size</th>
-                        <th>Uploaded</th>
+                        <th class="sortable" data-sort-key="name">Name</th>
+                        <th class="sortable" data-sort-key="size">Size</th>
+                        <th class="sortable" data-sort-key="uploaded">Uploaded</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($files as $f): ?>
-                        <?php 
+                        <?php
                         $download = "";
                         if (!in_array(pathinfo(rawurlencode($f['name']), PATHINFO_EXTENSION), $OPEN_FILE_TYPES)) {
                             $download = "download";
-                        }    
+                        }
                         ?>
-                        <tr>
+                        <tr data-name="<?= htmlspecialchars(strtolower($f['name'])) ?>" data-size="<?= $f['size'] ?>" data-uploaded="<?= $f['uploaded'] ?>">
                             <td><a href="uploads/<?= rawurlencode($f['name']) ?>" <?= $download ?>><?= htmlspecialchars($f['name']) ?></a></td>
-                            <td><?= round($f['size'] / 1024, 1) ?>KB</td>
-                            <td><span class="file-timestamp" data-timestamp="<?= $f['uploaded'] ?>"></span></td>
+                            <td><?= piratebox_fmt_bytes($f['size']) ?></td>
+                            <td><span class="file-timestamp" data-timestamp="<?= $f['uploaded'] ?>"><?= date('Y-m-d H:i', $f['uploaded']) ?></span></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
         </div>
     <?php endif; ?>
+
+    <?php require_once __DIR__ . '/../includes/footer.php'; ?>
 </body>
 
 </html>

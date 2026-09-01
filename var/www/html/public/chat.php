@@ -131,6 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
 
 <body class="chat-page">
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
+    <h1>Chat</h1>
     <ul id="chat" data-last-message-id="<?= !empty($chat) ? $chat[count($chat) - 1]['id'] : -1 ?>">
         <?php if (empty($chat)): ?>
             <li class="muted empty-state" style="text-align:center;">No messages yet - say hello!</li>
@@ -138,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
         <?php foreach ($chat as $msg): ?>
             <li>
                 <small>
-                    <span class="chat-name"><?= htmlspecialchars($msg['name']) ?></span> (<span class="chat-timestamp" data-timestamp="<?= $msg['timestamp'] ?>"></span>):
+                    <span class="chat-name"><?= htmlspecialchars($msg['name']) ?></span> (<span class="chat-timestamp" data-timestamp="<?= $msg['timestamp'] ?>"><?= date('Y-m-d H:i', $msg['timestamp']) ?></span>):
                 </small>
                 <span><?= htmlspecialchars($msg['message']) ?></span>
             </li>

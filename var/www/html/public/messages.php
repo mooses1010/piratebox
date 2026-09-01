@@ -134,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
 
 <body>
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
+    <h1>Guestbook</h1>
 
     <form id="message-form" action="messages.php" method="post">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
@@ -151,20 +152,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
 
     <div class="message-container">
         <?php if (empty($messages)): ?>
-            <p style="text-align:center; color: #606085;">No messages yet. Be the first!</p>
+            <p class="empty-state">No messages yet. Be the first!</p>
         <?php else: ?>
             <?php foreach ($messages as $msg): ?>
                 <div class="message-card">
                     <div class="message-header">
                         <span class="message-name"><?= htmlspecialchars($msg['name']) ?></span>
-                        <span class="message-time" data-timestamp="<?= $msg['timestamp'] ?>"></span>
+                        <span class="message-time" data-timestamp="<?= $msg['timestamp'] ?>"><?= date('Y-m-d H:i', $msg['timestamp']) ?></span>
                     </div>
                     <div class="message-body"><?= htmlspecialchars($msg['message']) ?></div>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
-    
+
+    <?php require_once __DIR__ . '/../includes/footer.php'; ?>
 </body>
 
 </html>

@@ -543,3 +543,273 @@ ul#chat li.pending {
     background: #8c8dff;
     transition: width 0.2s ease;
 }
+
+/* -------------------------------------------------
+   Phase 5: onboarding hero, footer, help/about page,
+   file-list sorting, chat/guestbook polish, admin
+   section distinction.
+   ------------------------------------------------- */
+
+/* Larger touch targets and visible keyboard focus everywhere (Phase 5
+   accessibility pass) - kept generic so it applies to every existing
+   button/link/input without needing per-page changes. */
+button,
+input,
+textarea,
+select,
+a {
+    min-height: 2.25rem;
+}
+
+a.navbar-brand,
+img,
+.badge {
+    min-height: 0;
+}
+
+:focus-visible {
+    outline: 2px solid #a0a1ff;
+    outline-offset: 2px;
+}
+
+/* Hero / onboarding card (index.php) */
+.hero {
+    max-width: 700px;
+    margin: 0 auto 1.5rem auto;
+    padding: 1.25rem 1.5rem;
+    background: #292938;
+    border-left: 4px solid #8c8dff;
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+}
+
+.hero h1 {
+    text-align: left;
+    margin: 0 0 0.5rem 0;
+    font-size: 1.5rem;
+}
+
+.hero p {
+    margin: 0.5rem 0;
+}
+
+.hero .hero-tagline {
+    color: #8c8dff;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+}
+
+.hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.hero-actions a {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background: #181821;
+    border: 1px solid #8c8dff;
+    color: #ddd9e8;
+    text-transform: uppercase;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.hero-actions a:hover {
+    background: #8c8dff;
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Footer - shown on every page, keeps the IP address easy to find without
+   plastering it everywhere (item 5). */
+.site-footer {
+    max-width: 900px;
+    margin: 2rem auto 0 auto;
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.8rem;
+    color: #606085;
+    border-top: 1px solid #292938;
+}
+
+.site-footer a {
+    color: #606085;
+}
+
+.site-footer .footer-url {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #8c8dff;
+}
+
+/* Help / About page */
+.help-section {
+    max-width: 700px;
+    margin: 0 auto 2rem auto;
+    padding: 0 1rem;
+}
+
+.help-section h2 {
+    text-align: left;
+    border-bottom: 1px solid #292938;
+    padding-bottom: 0.5rem;
+}
+
+.help-steps {
+    padding-left: 1.25rem;
+}
+
+.help-steps li {
+    margin-bottom: 0.75rem;
+}
+
+.help-url {
+    display: inline-block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: #000;
+    color: #8c8dff;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #8c8dff;
+    font-size: 1.1rem;
+    user-select: all;
+}
+
+.help-note {
+    background: #292938;
+    border-left: 4px solid #ffb347;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.help-note strong {
+    color: #ffb347;
+}
+
+.qr-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: flex-start;
+    margin: 1rem 0;
+}
+
+.qr-card {
+    background: #fff;
+    padding: 0.75rem;
+    display: inline-block;
+}
+
+.qr-card img {
+    display: block;
+    width: 160px;
+    height: 160px;
+}
+
+.qr-caption {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #606085;
+    margin-top: 0.4rem;
+    max-width: 160px;
+}
+
+/* File list: human-readable sizes + sort control */
+.list-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.list-controls label {
+    font-size: 0.85rem;
+    color: #606085;
+}
+
+#fileSort {
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 0.4rem;
+    border: 1px solid #8c8dff;
+    background: #000;
+    color: #8c8dff;
+}
+
+th.sortable {
+    cursor: pointer;
+    user-select: none;
+}
+
+th.sortable .sort-indicator {
+    color: #8c8dff;
+    margin-left: 0.25rem;
+}
+
+.empty-state {
+    text-align: center;
+    color: #606085;
+    padding: 2rem 1rem;
+}
+
+/* Chat/guestbook: small readability polish, existing classes untouched */
+ul#chat li.empty-state {
+    border-bottom: none;
+}
+
+@media (max-width: 480px) {
+
+    .message-header {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .hero {
+        padding: 1rem;
+    }
+
+    .qr-card img {
+        width: 130px;
+        height: 130px;
+    }
+}
+
+/* Admin page: distinguish read-only status from destructive maintenance */
+.admin-section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.admin-section-heading .section-tag {
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid #606085;
+    color: #606085;
+}
+
+.maintenance-zone {
+    max-width: 900px;
+    margin: 0 auto 2rem auto;
+    padding: 1rem;
+    border: 1px dashed #7a1f2b;
+}
+
+.maintenance-zone .admin-section-heading .section-tag {
+    border-color: #ff4444;
+    color: #ff4444;
+}
+
+.maintenance-warning {
+    text-align: center;
+    color: #ffb347;
+    max-width: 600px;
+    margin: 0 auto 1rem auto;
+    font-size: 0.85rem;
+}

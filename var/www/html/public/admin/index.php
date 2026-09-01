@@ -2,6 +2,7 @@
 declare(strict_types=1);
 session_start();
 require_once __DIR__ . '/../../includes/config.php';
+require_once __DIR__ . '/../../includes/helpers.php';
 
 // PirateBox admin/status page - Phase 4.
 //
@@ -186,31 +187,10 @@ if ($helperRaw !== false) {
 $versionRaw = @file_get_contents(__DIR__ . '/../../includes/VERSION');
 $versionLine = $versionRaw !== false ? trim($versionRaw) : null;
 
-function fmtBytes(?int $bytes): string
-{
-    if ($bytes === null) return 'unknown';
-    $units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
-    $i = 0;
-    $val = (float) $bytes;
-    while ($val >= 1024 && $i < count($units) - 1) {
-        $val /= 1024;
-        $i++;
-    }
-    return round($val, 1) . ' ' . $units[$i];
-}
-
-function fmtDuration(?float $seconds): string
-{
-    if ($seconds === null) return 'unknown';
-    $days = (int) floor($seconds / 86400);
-    $hours = (int) floor(($seconds % 86400) / 3600);
-    $mins = (int) floor(($seconds % 3600) / 60);
-    $out = [];
-    if ($days > 0) $out[] = "{$days}d";
-    if ($hours > 0) $out[] = "{$hours}h";
-    $out[] = "{$mins}m";
-    return implode(' ', $out);
-}
+// Byte/duration formatting now lives in includes/helpers.php (Phase 5) as
+// piratebox_fmt_bytes()/piratebox_fmt_duration() - index.php needs the
+// same byte formatting for the file list, so this is now the one shared
+// copy instead of a second one living only here.
 ?>
 <!doctype html>
 <html lang="en">
@@ -239,26 +219,26 @@ function fmtDuration(?float $seconds): string
         </p>
     <?php endif; ?>
 
-    <h2>Status</h2>
+    <h2 class="admin-section-heading">System status <span class="section-tag">read-only</span></h2>
     <div class="stat-grid">
         <div class="stat-card">
             <span class="stat-label">Storage free</span>
-            <span class="stat-value"><?= fmtBytes($diskFree !== false ? (int) $diskFree : null) ?></span>
-            <span class="stat-sub">of <?= fmtBytes($diskTotal !== false ? (int) $diskTotal : null) ?></span>
+            <span class="stat-value"><?= piratebox_fmt_bytes($diskFree !== false ? (int) $diskFree : null) ?></span>
+            <span class="stat-sub">of <?= piratebox_fmt_bytes($diskTotal !== false ? (int) $diskTotal : null) ?></span>
         </div>
         <div class="stat-card">
             <span class="stat-label">Uploads</span>
             <span class="stat-value"><?= $uploadCount ?> file<?= $uploadCount === 1 ? '' : 's' ?></span>
-            <span class="stat-sub"><?= fmtBytes($uploadBytes) ?> total</span>
+            <span class="stat-sub"><?= piratebox_fmt_bytes($uploadBytes) ?> total</span>
         </div>
         <div class="stat-card">
             <span class="stat-label">Uptime</span>
-            <span class="stat-value"><?= fmtDuration($uptimeSeconds) ?></span>
+            <span class="stat-value"><?= piratebox_fmt_duration($uptimeSeconds) ?></span>
         </div>
         <div class="stat-card">
             <span class="stat-label">RAM available</span>
-            <span class="stat-value"><?= $memAvailableKb !== null ? fmtBytes($memAvailableKb * 1024) : 'unknown' ?></span>
-            <span class="stat-sub">of <?= $memTotalKb !== null ? fmtBytes($memTotalKb * 1024) : 'unknown' ?></span>
+            <span class="stat-value"><?= $memAvailableKb !== null ? piratebox_fmt_bytes($memAvailableKb * 1024) : 'unknown' ?></span>
+            <span class="stat-sub">of <?= $memTotalKb !== null ? piratebox_fmt_bytes($memTotalKb * 1024) : 'unknown' ?></span>
         </div>
         <div class="stat-card">
             <span class="stat-label">CPU temp</span>
@@ -297,34 +277,37 @@ function fmtDuration(?float $seconds): string
         <?= $versionLine !== null ? 'Version: ' . htmlspecialchars($versionLine) : 'Version: unknown (no includes/VERSION file - see README)' ?>
     </p>
 
-    <h2>Maintenance</h2>
-    <p class="muted" style="text-align:center; max-width:600px; margin:0 auto 1rem auto;">
-        Each action below is independent and does exactly what it says - clearing
-        chat does not touch messages or uploads, and vice versa. Service
-        restarts and reboot are intentionally not available here; see the
-        README for the SSH commands.
-    </p>
-    <div class="admin-actions">
-        <form method="post" class="admin-action-form" onsubmit="return confirm('Clear ALL chat history? This cannot be undone.');">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-            <input type="hidden" name="action" value="clear_chat">
-            <label><input type="checkbox" name="confirm" value="1" required> I understand this permanently deletes all live chat history.</label>
-            <button type="submit" class="danger-button">Clear chat history</button>
-        </form>
+    <div class="maintenance-zone">
+        <h2 class="admin-section-heading">Destructive maintenance <span class="section-tag">irreversible</span></h2>
+        <p class="maintenance-warning">
+            Each action below is independent and does exactly what it says - clearing
+            chat does not touch messages or uploads, and vice versa. Every action
+            requires the checkbox below AND a confirmation dialog, and cannot be
+            undone. Service restarts and reboot are intentionally not available
+            here; see the README for the SSH commands.
+        </p>
+        <div class="admin-actions">
+            <form method="post" class="admin-action-form" onsubmit="return confirm('Clear ALL chat history? This cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                <input type="hidden" name="action" value="clear_chat">
+                <label><input type="checkbox" name="confirm" value="1" required> I understand this permanently deletes all live chat history.</label>
+                <button type="submit" class="danger-button">Clear chat history</button>
+            </form>
 
-        <form method="post" class="admin-action-form" onsubmit="return confirm('Clear ALL guestbook messages? This cannot be undone.');">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-            <input type="hidden" name="action" value="clear_messages">
-            <label><input type="checkbox" name="confirm" value="1" required> I understand this permanently deletes all guestbook messages.</label>
-            <button type="submit" class="danger-button">Clear messages</button>
-        </form>
+            <form method="post" class="admin-action-form" onsubmit="return confirm('Clear ALL guestbook messages? This cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                <input type="hidden" name="action" value="clear_messages">
+                <label><input type="checkbox" name="confirm" value="1" required> I understand this permanently deletes all guestbook messages.</label>
+                <button type="submit" class="danger-button">Clear messages</button>
+            </form>
 
-        <form method="post" class="admin-action-form" onsubmit="return confirm('Delete ALL uploaded files? This cannot be undone.');">
-            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-            <input type="hidden" name="action" value="purge_uploads">
-            <label><input type="checkbox" name="confirm" value="1" required> I understand this permanently deletes every uploaded file.</label>
-            <button type="submit" class="danger-button">Purge all uploads</button>
-        </form>
+            <form method="post" class="admin-action-form" onsubmit="return confirm('Delete ALL uploaded files? This cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                <input type="hidden" name="action" value="purge_uploads">
+                <label><input type="checkbox" name="confirm" value="1" required> I understand this permanently deletes every uploaded file.</label>
+                <button type="submit" class="danger-button">Purge all uploads</button>
+            </form>
+        </div>
     </div>
 </body>
 
