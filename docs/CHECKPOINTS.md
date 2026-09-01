@@ -80,3 +80,4 @@ Items 6-7 remain untouched, as before.
 | Post-Stage-32 feature | Commit | Backup |
 |---|---|---|
 | Privacy-preserving connection statistics | `7493974` | `~/piratebox-backups/connstats-pre-20260901-124144/` |
+| Canonical human-facing URL (`http://piratebox/`) | `e3863ba` | `~/piratebox-backups/piratebox-url-pre-20260901-130355/` |
