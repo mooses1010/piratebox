@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 session_start();
+require_once __DIR__ . '/../includes/mode.php';
+$piratebox_mode = piratebox_get_mode();
 ?>
 <!doctype html>
 <html lang="en">
@@ -45,6 +47,21 @@ session_start();
     </section>
 
     <section class="help-section">
+        <h2>Connection Status</h2>
+        <div class="table-wrapper">
+            <table>
+                <tbody>
+                    <tr><td>Connected to PirateBox</td><td><strong class="status-ok">Yes</strong> - you're reading this page from it</td></tr>
+                    <tr><td>Internet access</td><td>Not provided - PirateBox is intentionally offline</td></tr>
+                    <tr><td>PirateBox services</td><td>Local only - everything here is served from this device</td></tr>
+                    <tr><td>Local address</td><td class="help-url">http://10.0.0.1/</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <p class="muted">If a "sign in to network" page didn't appear automatically, see the Android/Samsung and Apple/Windows/Linux notes below for what to do.</p>
+    </section>
+
+    <section class="help-section">
         <h2>Android / Samsung</h2>
         <div class="help-note">
             <p><strong>Some modern Android and Samsung phones show "Internet may not be available"</strong> instead of a normal sign-in prompt after joining. This is expected - PirateBox is intentionally offline and doesn't provide Internet access, and some phones are cautious about that.</p>
@@ -66,14 +83,52 @@ session_start();
             <li><strong>Files</strong> - the home page. Upload a file from your device, or download anything others have shared.</li>
             <li><strong>Chat</strong> - a live, shared chat room for everyone currently connected.</li>
             <li><strong>Guestbook</strong> - leave a longer message that stays for later visitors to read.</li>
+            <li><strong>Utility</strong> - an offline reference library: radio, emergency/outage guidance, first aid, maps, local information, manuals, and search - all built into this device, no Internet needed. See <a href="/utility/">Utility Library</a>.</li>
         </ul>
     </section>
 
     <section class="help-section">
-        <h2>About PirateBox</h2>
-        <p>PirateBox is a small local file-sharing and messaging network, run entirely from this one device. There's no Internet connection involved anywhere - devices connected to it just talk directly to this box over Wi-Fi.</p>
-        <p>Anything uploaded, chatted, or written in the guestbook is stored on this device's storage, for as long as the operator keeps it around.</p>
-        <p><strong>"Offline" does not automatically mean "anonymous."</strong> Like any local network, this device can see which devices are connected and the requests they make - being offline is not, by itself, a privacy or anonymity guarantee.</p>
+        <h2>What is PirateBox?</h2>
+        <p>PirateBox is an open, free-culture project: a small, self-contained device that creates its own local Wi-Fi network for anonymous file sharing and communication, deliberately disconnected from the Internet. It was designed in 2011 by David Darts, an artist and professor at New York University's Steinhardt School, and released under the Free Art License.</p>
+        <p>Darts was inspired by pirate radio and the free culture movement, and had also been following the "Dead Drops" project (anonymous USB drives cemented into public spaces for anyone to plug into and swap files). PirateBox took that same offline, anonymous, no-permission-needed spirit and built it on Wi-Fi instead - something portable, that anyone nearby could join without special hardware.</p>
+        <p>The original project ran on inexpensive OpenWrt-flashed travel routers (the TP-Link MR3020/MR3040 were common choices), plug computers, Raspberry Pis, and even Android phones. It offered a browser-based file-sharing interface, anonymous chat, and a forum/image board. It became especially popular in Western Europe - notably in France, championed by Jean Debaecker - and later development was primarily maintained by Matthias Strubel. It saw use at festivals and gigs (musicians sharing music directly with an audience), in classrooms, and at CryptoParties and other privacy/censorship-circumvention-focused events.</p>
+        <p>A related project, <strong>LibraryBox</strong>, forked from PirateBox in 2012 - librarian Jason Griffey built it for educational and library use ("PirateBox without the pirate"), and its later versions were developed in concert with PirateBox itself, with some code shared back between the two projects.</p>
+        <p>The original PirateBox project was <strong>discontinued on November 17, 2019</strong> - Matthias Strubel announced its closure, citing increasingly locked-down router firmware and browsers requiring HTTPS as obstacles that had become impractical to keep working around.</p>
+        <p class="muted">Sources: <a href="https://en.wikipedia.org/wiki/PirateBox" target="_blank" rel="noopener">Wikipedia: PirateBox</a>; <a href="https://jasongriffey.net/librarybox/about.php" target="_blank" rel="noopener">The LibraryBox Project</a> (retrieved 2026-09-01).</p>
+        <div class="help-note">
+            <p><strong>This PirateBox is not an official continuation of the original project</strong> and has no affiliation with David Darts, Matthias Strubel, or the original PirateBox development team. It's an independent, modern reimplementation inspired by the original concept - built on different software (nginx, PHP, a Raspberry Pi) rather than the original's OpenWrt-router-era stack - carrying the name and spirit forward after the original's 2019 discontinuation, not maintained by or representing its original creators.</p>
+        </div>
+    </section>
+
+    <section class="help-section">
+        <h2>About This PirateBox</h2>
+        <p>This page is being served directly by the PirateBox you're connected to right now - there's no Internet involved anywhere in loading it. The website, every file, and every reference document lives on this one device's local storage; your device is talking directly to it over Wi-Fi.</p>
+        <p>This particular PirateBox is built around:</p>
+        <ul class="help-steps">
+            <li>A Raspberry Pi-based computer</li>
+            <li>Local storage for files and reference material</li>
+            <li>An independent Wi-Fi access point (not connected to any other network)</li>
+            <li>Portable, battery-capable power (planned/in progress)</li>
+            <li>Physical mode/status controls (planned)</li>
+            <li>A local status display (planned)</li>
+        </ul>
+        <p>It's meant to work as a portable community information and file-sharing appliance - useful sitting at home, riding in a vehicle, carried in a backpack, or set up at an event, depending on where it's needed.</p>
+
+        <div class="help-note utility-placeholder-note">
+            <p><strong>Photo pending:</strong> a photograph of this PirateBox's actual physical build will be added here once the hardware is finished - not a stock photo or a generated image, just this note until then.</p>
+        </div>
+    </section>
+
+    <section class="help-section">
+        <h2>If You Encounter This Network</h2>
+        <p>PirateBox is portable and may sometimes run unattended. The physical device itself might not be obvious - it may be placed somewhere protected from weather, accidental damage, theft, or interference, simply as part of normal, sensible operation.</p>
+        <p><strong>Seeing the "PirateBox" Wi-Fi network is not, by itself, a reason to go looking for the physical hardware.</strong> You're welcome to connect and use whatever it offers - the network isn't dangerous, and it isn't surveillance equipment. There's normally no reason to locate, move, or disturb the appliance itself just because you can see its Wi-Fi signal.
+        <?php if ($piratebox_mode === PIRATEBOX_MODE_EMERGENCY): ?>
+            In fact, during a situation like this one, leaving an appropriately-placed PirateBox running and undisturbed helps make sure its offline emergency and reference resources stay available to others nearby who may also need them.
+        <?php endif; ?>
+        </p>
+        <p class="muted">Of course, legitimate safety or property concerns always come first - if something about a specific situation genuinely needs attention, use your own judgment. This is just general guidance, not a rule that overrides common sense.</p>
+        <p class="muted">If you've physically found this device and think it may be lost, displaced, or abandoned (rather than just seeing its Wi-Fi signal from a distance), see <a href="/found/">About &rarr; Found This Device</a>.</p>
     </section>
 
     <?php require_once __DIR__ . '/../includes/footer.php'; ?>

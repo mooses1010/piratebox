@@ -6,6 +6,66 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Product Roadmap Expansion (Stages 13-32) - scope note
+
+**Decision date:** 2026-09-01. Starting with Stage 13, entries below cover
+a much larger approved roadmap expansion (identity/transparency, onboarding,
+recovery/found-device system, content audit, search expansion, export/
+"Take This With You", manifest, stats, bulletin board, resilience,
+backup/restore, versioning, build pipeline, RTC/time readiness, physical
+control UX design, accessibility, content profiles) layered on the
+completed and approved Stages 1-12 baseline. Per instruction, changelog
+entries for this expansion are intentionally more concise than Stages
+1-12's - the underlying testing/documentation/backup/commit discipline is
+unchanged, but narrative depth is calibrated to keep pace with the much
+larger scope. Full detail for any entry remains in its commit message.
+
+## Stage 13: PirateBox Identity / Transparency / About
+
+**Decision date:** 2026-09-01. Expands `help.php` (no new page/data file)
+with researched PirateBox history and appliance-transparency content.
+Layered on Stage 12 (`dd09e5f`).
+
+**History researched, not asserted from the prompt** - David Darts (NYU
+Steinhardt, 2011, Free Art License), Dead Drops/pirate-radio/free-culture
+inspiration, original OpenWrt-router implementation, popularity in France
+(Jean Debaecker), later maintenance (Matthias Strubel), the LibraryBox
+fork (Jason Griffey, 2012), and the project's Nov 17 2019 discontinuation
+(cited reason: locked router firmware + HTTPS-only browsers) - sourced to
+Wikipedia and LibraryBox's own About page, both cited on-page with
+retrieval date. Explicit, prominent disclaimer that this installation is
+an independent reimplementation, not an official continuation, no
+affiliation with the original developers - satisfies the operator's
+explicit non-affiliation instruction directly rather than leaving it
+implied.
+
+**"About This PirateBox"** describes the appliance at a deliberately safe
+level (Raspberry Pi, local storage, independent AP, planned battery/
+controls/display) - no serial numbers, MAC addresses, SSH/admin details,
+exact location, or operator identity, matching the instruction's exposure
+list exactly. Photo area reuses the existing `.utility-placeholder-note`
+style (zero new CSS) and states a real photo will be added post-build -
+no stock/fake/generated imagery per instruction.
+
+**"If You Encounter This Network"** - one sentence is Emergency-Mode-only
+(`help.php` now reads `piratebox_get_mode()` for the first time among core,
+non-Utility pages), verified live present only in Emergency Mode: notes
+that leaving an appropriately-placed unit running helps preserve access
+for others during an actual emergency, exactly as instructed. Forward-
+references `/found/`, built next in Stage 16.
+
+**Also fixed in passing:** "Using PirateBox" never mentioned the Utility
+Library at all - a real, pre-existing gap, corrected. Folded in a compact
+Connection Status table (Stage 15's content) since it belongs on the same
+page as everything else added this stage.
+
+**Testing:** `php -l` clean; PHP-CLI render confirmed the mode-conditional
+sentence correctly absent under the missing-file fallback; deployed via
+automation; live-verified in both modes (conditional sentence present only
+in Emergency); full regression sweep unaffected; mode restored to Normal.
+
+**Backup:** `~/piratebox-backups/identity-stage13-pre-20260901-071759/`.
+
 ## Offline Utility Library - Stage 10: Accessibility / Resilience / Performance Audit
 
 **Decision date:** 2026-09-01.
