@@ -20,6 +20,62 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 30: Accessibility Audit (Stages 11-29)
+
+**Decision date:** 2026-09-01. Layered on Stage 29 (`5eb5e0a`).
+Verification pass, same shape as Stage 10 (which covered Stages 1-9) and
+Stage 18 (search, verification-only) - re-applies Stage 10's checklist
+to every page/feature added since: `help.php`'s expansion (13),
+`whatcanidohere.php` (14), `found/` (16), `utility/download/` (19),
+`utility/manifest/` (20), `utility/status/` (21), `bulletin.php` (22),
+and `admin/index.php`'s Stage 27 refactor.
+
+**Findings, by checklist item (all clean - no code changes resulted):**
+
+- **Heading hierarchy:** every page checked has exactly one `<h1>`
+  followed only by `<h2>`s, no skipped levels - confirmed across all 7
+  pages, not assumed.
+- **Keyboard/semantic elements:** zero `onclick`/`tabindex`/custom
+  `role="button"` divs across any page added since Stage 10 - every
+  interactive element remains a real `<button>`/`<a>`/`<input>`/
+  `<select>`, keyboard-operable by construction, same as Stage 10's
+  original finding.
+- **Form labels:** every new form field (`bulletin.php`'s Name/
+  Category/Message, `found/`'s message/contact/recovery-code fields) is
+  wrapped in a real `<label>`.
+- **Contrast:** computed WCAG contrast ratios directly (not eyeballed)
+  for every color introduced since Stage 10 - the four bulletin category
+  pills (6.55:1 to 9.21:1) and the Stage 21 `.status-ok`/`.status-bad`
+  colors (10.11:1 / 5.17:1) against the body background - all comfortably
+  clear AA's 4.5:1 for normal text.
+- **Resilience under corruption - actually tested, not just read:**
+  deliberately corrupted `bulletin.json`, `recovery-messages.json`,
+  `device-id.json`, and the exports `manifest.json` on an isolated
+  throwaway copy (never live data) and rendered `bulletin.php`,
+  `found/`, `help.php` (a `device-id.json` consumer), and
+  `utility/manifest/` via PHP's built-in server - all four returned 200
+  with zero fatal errors/warnings/notices; `help.php` correctly omitted
+  its whole Device ID paragraph rather than rendering a broken one,
+  confirming its `!== null` guard actually works under real corruption,
+  not just in code review.
+- **External dependencies:** re-confirmed zero unwanted
+  `http(s)://` references in any page/script/style added since Stage
+  10 - the only matches are `help.php`'s plain-text mentions of the
+  device's own local address (`10.0.0.1`), not network requests, plus
+  the two already-cited external sources (Wikipedia, LibraryBox) from
+  Stage 13, both re-checked live and still resolving (200).
+- **Stale placeholder text:** none found anywhere in `public/` beyond
+  the already-known-legitimate empty states (Local Information's blank
+  fields, Stage 6/17).
+- **Touch targets / mobile:** no custom small interactive-element sizing
+  introduced in any newer page - all reuse the global Phase 5
+  `min-height: 2.25rem` rule Stage 9's audit already confirmed covers
+  every element added since.
+
+**No code changes resulted** - everything checked came back clean, same
+outcome as Stage 10 and Stage 18 for their own scopes. This entry is
+the deliverable for this stage.
+
 ## Stage 29: Physical Control UX Design
 
 **Decision date:** 2026-09-01. Layered on Stage 28. Full detail in
