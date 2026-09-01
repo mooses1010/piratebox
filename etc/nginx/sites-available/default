@@ -1,38 +1,66 @@
 # -------------------------------------------------
 # PirateBox - captive-portal
 # -------------------------------------------------
+
 server {
     client_max_body_size 150M;
 
     listen 80 default_server;
     server_name _;
+
     root /var/www/html/public;
     index index.php index.html;
 
-    # Apple (iOS/macOS)
+    # Apple - iOS / macOS captive portal detection
     location = /hotspot-detect.html {
-        try_files /captive.html =404;
+        return 302 http://10.0.0.1/;
     }
+
+    location = /library/test/success.html {
+        return 302 http://10.0.0.1/;
+    }
+
     location = /success.html {
-        try_files /captive.html =404;
+        return 302 http://10.0.0.1/;
     }
 
-    # Android (Google 204 check)
-    # location = /generate_204 {
-    #    return 204;
-    # }
+    # RFC 8908 Captive Portal API, advertised to clients via DHCP option 114
+    # (RFC 8910, see dnsmasq.conf). Always reports captive=true - this
+    # network never gains real Internet access, so there is no "accept" flow
+    # to unlock; user-portal-url points at the real PirateBox homepage.
+    # Plain HTTP is intentional: neither RFC mandates TLS, and this project
+    # does not implement TLS/HTTPS interception.
+    location = /.well-known/captive-portal {
+        default_type application/captive+json;
+        add_header Cache-Control "private, no-store" always;
+        return 200 '{"captive":true,"user-portal-url":"http://10.0.0.1/"}';
+    }
 
-    # Windows NCSI
+    # Android / ChromeOS captive portal detection
+    location = /generate_204 {
+        return 302 http://10.0.0.1/;
+    }
+
+    location = /gen_204 {
+        return 302 http://10.0.0.1/;
+    }
+
+    # Modern Windows NCSI
+    location = /connecttest.txt {
+        return 302 http://10.0.0.1/;
+    }
+
+    # Older Windows NCSI
     location = /ncsi.txt {
-        default_type text/plain;
-        return 200 "Microsoft NCSI";
+        return 302 http://10.0.0.1/;
     }
 
+    # PirateBox application
     location / {
-        # Serve real files directly; otherwise hand off to index.php
         try_files $uri $uri/ /index.php?$args;
     }
 
+    # PHP
     location ~ \.php$ {
         try_files $uri =404;
 
@@ -41,12 +69,12 @@ server {
 
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        fastcgi_param DOCUMENT_ROOT   $document_root;
+        fastcgi_param DOCUMENT_ROOT $document_root;
 
-        # Adjust socket path if you use a different PHP version
         fastcgi_pass unix:/run/php/php8.4-fpm.sock;
     }
 
+    # Block hidden files
     location ~ /\.(?!well-known).* {
         deny all;
         access_log off;

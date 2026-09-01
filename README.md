@@ -119,11 +119,12 @@ sudo systemctl daemon-reload
 ```
 
 #### DNS & DHCP (dnsmasq)
-Configure `/etc/dnsmasq.conf` to handle IP leasing and redirect all DNS queries to the PirateBox:
+Configure `/etc/dnsmasq.conf` to handle IP leasing, redirect all DNS queries to the PirateBox, and advertise the RFC 8910 Captive Portal API URL via DHCP option 114:
 ```ini
 interface=wlan0
 dhcp-range=10.0.0.10,10.0.0.250,12h
 address=/#/10.0.0.1
+dhcp-option=114,"http://10.0.0.1/.well-known/captive-portal"
 ```
 Restart dnsmasq:
 ```bash
@@ -133,7 +134,7 @@ sudo systemctl restart dnsmasq
 ### 3. Web Server Configuration
 
 #### Nginx
-The default Nginx site configuration handles the captive portal redirection and large file uploads.
+The default Nginx site configuration handles captive portal detection/redirection and large file uploads. See [Captive Portal Detection](#captive-portal-detection) below for how each platform is handled.
 
 Copy the provided configuration from `etc/nginx/sites-available/default` to `/etc/nginx/sites-available/default`.
 
@@ -210,6 +211,35 @@ sudo systemctl disable --now ssh
 sudo systemctl mask ssh
 sudo systemctl status ssh
 ```
+
+### Captive Portal Detection
+
+PirateBox is intentionally offline - it never has real Internet access, and
+this project does not intercept or MITM HTTPS/TLS in any way (HTTPS sites
+simply fail while connected, which is expected). Getting a client's OS to
+recognize the network as a captive portal and present the PirateBox page
+therefore relies entirely on plain-HTTP detection mechanisms:
+
+- **Legacy HTTP-probe redirects** (nginx, all platforms): dnsmasq's
+  wildcard DNS (`address=/#/10.0.0.1`) sends every hostname a client's OS
+  probes - `connectivitycheck.gstatic.com`, `captive.apple.com`,
+  `msftconnecttest.com`, etc. - to 10.0.0.1. nginx matches the well-known
+  probe paths (`/generate_204`, `/gen_204`, `/hotspot-detect.html`,
+  `/library/test/success.html`, `/success.html`, `/connecttest.txt`,
+  `/ncsi.txt`) and 302-redirects them to `http://10.0.0.1/`, which the
+  OS's captive-portal browser then loads. This is what Firefox/Linux,
+  Windows NCSI, and Apple devices rely on.
+- **RFC 8910/8908 Captive Portal API** (dnsmasq DHCP option 114 + nginx
+  `/.well-known/captive-portal`): Android 11+ (confirmed on a Samsung
+  device running Android 16) requests DHCP option 114 directly as part of
+  its normal DHCP handshake and uses it as a first-class captive-portal
+  signal, bypassing the DNS-hijack heuristic entirely. The endpoint always
+  returns `{"captive":true,"user-portal-url":"http://10.0.0.1/"}` - see
+  `docs/OPERATIONAL-DECISIONS.md` for why this was needed and how it was
+  confirmed working.
+
+Both mechanisms are active at once and don't conflict; a client that
+doesn't support Capport simply falls back to the legacy probes.
 
 ### Known Issues and troubleshooting
 

@@ -122,6 +122,119 @@ This is deliberately the **one** place this policy value lives, so a future
 admin interface has a single obvious constant to make configurable rather
 than a value duplicated across files.
 
+## Captive portal detection: DHCP option 114 (RFC 8910) added alongside legacy HTTP probes
+
+**Decision date:** 2026-09-01 (Phase 3).
+
+**Symptom:** a Samsung device running Android 16 (SM-F946U1) did not show a
+normal "Sign in to network" captive-portal prompt on connecting to
+PirateBox. Instead it showed "Internet may not be available" with
+"Connect only this time / Always connect / Disconnect" - the fallback
+Android shows when it decides a network has *no* internet and *no*
+detected portal, which is a materially worse experience than the intended
+"tap to open PirateBox" flow. Firefox/Linux, by contrast, already
+correctly showed "You must log in to this network."
+
+**Investigation:** the stock nginx access log doesn't include the `Host`
+header, so a temporary, narrowly-scoped diagnostic log
+(`map $request_uri $captive_diag_hit` + `access_log ... if=$captive_diag_hit`,
+restricted to `/` and the known captive-probe URIs only - never all
+traffic) was added to nginx, and dnsmasq's `log-dhcp` was enabled
+temporarily. Both were removed again once the investigation below was
+confirmed; this is a repeatable technique, not something left running.
+
+This surfaced two things:
+
+1. The device's system HTTP client (`Dalvik/2.1.0`, i.e. not a browser)
+   was repeatedly requesting plain `GET /` with `Host: 10.0.0.1` - not
+   `/generate_204` or any other standard Google/Samsung probe path - and
+   getting `200` with the real PirateBox homepage body. This is a
+   different, additional probe from Android's standard NetworkMonitor
+   check; it was not the cause of the bad dialog by itself.
+2. AOSP's `NetworkStack` module (`NetworkMonitor.java`) has a feature flag
+   named `DNS_PROBE_PRIVATE_IP_NO_INTERNET_VERSION` and documented
+   handling for the case where a captive-check hostname resolves to a
+   private/RFC1918 address - exactly PirateBox's situation, since the
+   wildcard DNS (`address=/#/10.0.0.1`) resolves
+   `connectivitycheck.gstatic.com` (and everything else) to `10.0.0.1`.
+   The working theory is that modern Android specifically distrusts a
+   captive-portal signal derived from a DNS answer pointing at a private
+   IP (a reasonable anti-hijacking precaution in general), and falls back
+   to "no internet" rather than trusting the heuristic HTTP redirect - a
+   fundamental limitation of DNS-hijack-based captive detection on an
+   intentionally-private, intentionally-offline network like this one.
+
+**Fix:** RFC 8910 (DHCP option 114) plus RFC 8908 (the Captive Portal API
+JSON it points to) exist precisely to give clients a captive-portal signal
+that doesn't depend on DNS-hijack heuristics. dnsmasq now sends option 114
+(`dhcp-option=114,"http://10.0.0.1/.well-known/captive-portal"` - dnsmasq
+2.91 has no built-in name for option 114, so it's set numerically; the
+quoted value is sent as a raw ASCII URI string, which is the correct RFC
+8910 wire encoding, confirmed both via `dnsmasq --test` and by reading the
+live `log-dhcp` trace of the option actually being sent). nginx serves
+that URL with `Content-Type: application/captive+json` and body
+`{"captive":true,"user-portal-url":"http://10.0.0.1/"}`. `captive` is
+permanently `true` - there is no "accept" flow, because this network never
+gains real internet access and shouldn't pretend to; `user-portal-url`
+points straight at the real PirateBox homepage over plain HTTP (neither
+RFC 8908 nor RFC 8910 mandates TLS for this URL - it's a SHOULD in RFC
+8910 section 5's security considerations, not a MUST - and this project
+does not implement TLS/HTTPS interception).
+
+**Confirmation:** the DHCP trace showed the device's own client
+(`vendor class: android-dhcp-16`) requesting option 114 in its parameter
+request list, and dnsmasq sending it back correctly encoded. After a live
+Wi-Fi reconnect on the same device with this in place, the phone showed
+the normal captive "Sign in to network" prompt instead of "Internet may
+not be available" - confirmed by the device's owner in the same session.
+Full end-to-end confirmation that tapping the notification loads the
+PirateBox homepage in the system captive browser (as already independently
+observed working via the legacy `/generate_204` redirect path earlier in
+this same investigation) is still worth re-checking after any future
+change, but the core fix - getting the correct prompt to appear at all -
+is confirmed on real hardware, not just config-level testing.
+
+The legacy DNS-hijack HTTP-probe redirects (`/generate_204`, `/gen_204`,
+`/hotspot-detect.html`, `/library/test/success.html`, `/success.html`,
+`/connecttest.txt`, `/ncsi.txt`, all still returning `302` to
+`http://10.0.0.1/`) are unchanged and untouched - they remain the only
+mechanism for Firefox/Linux, Windows NCSI, Apple, and any Android/ChromeOS
+device that doesn't request option 114. The two mechanisms are additive,
+not a replacement.
+
+**Not done:** no attempt was made to intercept HTTPS, generate certificates,
+redirect port 443, or otherwise make the network appear to have real
+Internet access - all explicitly out of scope and contrary to this
+project's offline-by-design intent.
+
+**Housekeeping:** `var/www/html/public/captive.html` (a self-refreshing
+HTML page, previously `try_files`-served for the Apple probe paths) is no
+longer referenced by nginx now that those paths 302-redirect directly to
+`http://10.0.0.1/` like every other probe path. Left in place, unreferenced
+- harmless, and simple to wire back in if a future platform quirk needs a
+non-redirect response instead of a 302.
+
+## Pre-existing `dhcpcd.conf` / `hostapd.conf` live drift, synced during Phase 3
+
+**Decision date:** 2026-09-01 (Phase 3).
+
+While reviewing live config before making captive-portal changes, two
+small pre-existing differences between the live system and this repo (not
+part of Phase 1 or Phase 2's tracked changes) were found and synced into
+the repo, since they reflect the actual working configuration and neither
+carries any risk:
+
+- `dhcpcd.conf`: `option ntp_servers` was uncommented live (harmless -
+  just requests NTP server info via DHCP) and `denyinterfaces eth0` was
+  present live but missing from the repo copy (keeps dhcpcd from touching
+  eth0 at all, leaving it to plain DHCP/whatever the network provides -
+  consistent with eth0 being the dedicated SSH/management interface, not
+  part of the PirateBox AP).
+- `hostapd.conf`: only a missing trailing newline - cosmetic.
+
+No live system files were changed for this - only the repo's reference
+copies, to match what was already actually running.
+
 ## The repo's `etc/php/8.4/fpm/php.ini` is a reference copy, not what gets deployed
 
 **Decision date:** discovered during Phase 1, documented 2026-08-31.
