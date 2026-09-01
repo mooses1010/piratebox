@@ -1,6 +1,67 @@
 <?php
 declare(strict_types=1);
 session_start();
+
+// Maps / Location Reference (Stage 5). Two independent parts on one page:
+// (1) a small reference section (coordinates/GPS/navigation basics - real
+//     content, works today), and
+// (2) a data-driven map catalog framework - currently EMPTY (no map files
+//     shipped this stage, per instruction not to download large datasets
+//     or invent placeholder local content). Adding a real map later is:
+//     drop the file in public/utility/maps/files/, add one entry to
+//     data/utility/maps/catalog.json - no PHP edit needed.
+//
+// Deliberately does NOT read piratebox_get_mode() - identical in Normal and
+// Emergency Mode by design. Reuses the Stage 2/3/4 shared reference-list UI
+// component (see OPERATIONAL-DECISIONS.md).
+
+$DATA_DIR = __DIR__ . '/../../../data/utility/maps';
+
+function ref_load_json(string $path): array
+{
+    $raw = @file_get_contents($path);
+    if ($raw === false) return [];
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+$reference = ref_load_json($DATA_DIR . '/reference.json');
+$catalog = ref_load_json($DATA_DIR . '/catalog.json');
+$sources = ref_load_json($DATA_DIR . '/sources.json');
+
+function ref_search_blob(array $fields): string
+{
+    $parts = [];
+    foreach ($fields as $f) {
+        if (is_array($f)) $parts[] = implode(' ', $f);
+        elseif ($f !== null) $parts[] = (string) $f;
+    }
+    return htmlspecialchars(strtolower(implode(' ', $parts)));
+}
+
+function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId, ?string $confidence, ?string $note): string
+{
+    $bits = [];
+    if ($sourceId !== null && isset($sources[$sourceId])) {
+        $s = $sources[$sourceId];
+        $name = htmlspecialchars($s['name']);
+        if (!empty($s['url'])) {
+            $bits[] = '<a href="' . htmlspecialchars($s['url']) . '" target="_blank" rel="noopener">' . $name . '</a>';
+        } else {
+            $bits[] = $name;
+        }
+        if (!empty($s['retrieved'])) $bits[0] .= ' (retrieved ' . htmlspecialchars($s['retrieved']) . ')';
+    }
+    if ($secondaryId !== null && isset($sources[$secondaryId])) {
+        $bits[] = 'plus ' . htmlspecialchars($sources[$secondaryId]['name']);
+    }
+    $out = 'Source: ' . implode('; ', $bits ?: ['unspecified']);
+    if ($confidence !== null) {
+        $out .= ' &mdash; confidence: <span class="radio-confidence confidence-' . htmlspecialchars($confidence) . '">' . htmlspecialchars($confidence) . '</span>';
+    }
+    if (!empty($note)) $out .= '<br>' . htmlspecialchars($note);
+    return $out;
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -8,7 +69,7 @@ session_start();
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PirateBox - Maps &amp; Local Information</title>
+    <title>PirateBox - Maps &amp; Location Reference</title>
     <link rel="stylesheet" href="/assets/styles.css">
     <script src="/assets/scripts.js"></script>
 </head>
@@ -16,20 +77,89 @@ session_start();
 <body>
     <?php require_once __DIR__ . '/../../../includes/navbar.php'; ?>
 
-    <h1>Maps &amp; Local Information</h1>
-
-    <section class="help-section">
+    <div class="radio-page">
+        <h1>Maps &amp; Location Reference</h1>
         <p class="utility-breadcrumb"><a href="/utility/">&larr; Utility Library</a></p>
 
-        <div class="help-note utility-placeholder-note">
-            <p><strong>This section is not built yet.</strong> It will hold offline local/regional/state/US maps and evacuation/topographic references, plus a single centralized, editable file of local information - emergency phone numbers, hospitals, shelters, emergency management contacts, NOAA/NWS info, and local amateur radio repeaters - so it stays easy to update if this PirateBox moves.</p>
+        <p>Coordinate/GPS/navigation basics below work offline right now. The map catalog is a ready-to-use framework for local/regional/evacuation/topographic maps - empty until real maps for this box's area are deliberately added.</p>
+
+        <div class="radio-search-bar">
+            <input type="text" id="radioSearch" placeholder="Search: coordinates, gps, compass, utm..." aria-label="Search maps and location reference">
+            <div class="radio-chip-row" id="radioChips" role="group" aria-label="Filter by category">
+                <button type="button" class="radio-chip active" data-group="all">All</button>
+                <button type="button" class="radio-chip" data-group="reference">Reference</button>
+                <button type="button" class="radio-chip" data-group="catalog">Map Catalog</button>
+            </div>
+        </div>
+
+        <p class="radio-no-results" id="radioNoResults" hidden>No matches. Try a different search term or choose "All".</p>
+
+        <div id="radioResults">
+            <section class="radio-group" data-group-section="reference">
+                <h2 class="radio-group-heading">Coordinates, GPS &amp; Navigation Basics</h2>
+                <?php foreach ($reference as $t): ?>
+                    <?php $search = ref_search_blob([$t['title'], $t['summary'], $t['keywords'] ?? [], 'reference']); ?>
+                    <details class="radio-entry" data-group="reference" data-search="<?= $search ?>">
+                        <summary>
+                            <span class="radio-entry-name"><?= htmlspecialchars($t['title']) ?></span>
+                            <span class="radio-entry-mode-badge"><?= htmlspecialchars($t['summary']) ?></span>
+                        </summary>
+                        <div class="radio-entry-detail">
+                            <?php if (!empty($t['quick_actions'])): ?>
+                                <ul class="ref-quick-actions">
+                                    <?php foreach ($t['quick_actions'] as $qa): ?>
+                                        <li><?= htmlspecialchars($qa) ?></li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                            <?php if (!empty($t['more_info'])): ?>
+                                <p><?= htmlspecialchars($t['more_info']) ?></p>
+                            <?php endif; ?>
+                            <p class="radio-entry-source"><?= ref_source_line($sources, $t['source_id'] ?? null, $t['secondary_source_id'] ?? null, $t['confidence'] ?? null, $t['source_note'] ?? null) ?></p>
+                        </div>
+                    </details>
+                <?php endforeach; ?>
+            </section>
+
+            <section class="radio-group" data-group-section="catalog">
+                <h2 class="radio-group-heading">Map Catalog</h2>
+                <?php if (empty($catalog)): ?>
+                    <p class="empty-state">No maps have been added yet. See "Adding a Map" below to add one for this box's area.</p>
+                <?php else: ?>
+                    <?php foreach ($catalog as $m): ?>
+                        <?php $search = ref_search_blob([$m['title'] ?? '', $m['region'] ?? '', $m['category'] ?? '', $m['tags'] ?? [], 'catalog']); ?>
+                        <details class="radio-entry" data-group="catalog" data-search="<?= $search ?>">
+                            <summary>
+                                <span class="radio-entry-name"><?= htmlspecialchars($m['title'] ?? 'Untitled map') ?></span>
+                                <span class="radio-entry-mode-badge"><?= htmlspecialchars($m['category'] ?? '') ?></span>
+                            </summary>
+                            <div class="radio-entry-detail">
+                                <?php if (!empty($m['description'])): ?><p><?= htmlspecialchars($m['description']) ?></p><?php endif; ?>
+                                <?php if (!empty($m['region'])): ?><p><strong>Region:</strong> <?= htmlspecialchars($m['region']) ?></p><?php endif; ?>
+                                <?php if (!empty($m['file'])): ?>
+                                    <p><a href="/utility/maps/files/<?= rawurlencode($m['file']) ?>" target="_blank" rel="noopener">Open map file</a> (<?= htmlspecialchars($m['format'] ?? 'file') ?>)</p>
+                                <?php endif; ?>
+                                <?php if (!empty($m['source'])): ?><p class="radio-entry-source">Source: <?= htmlspecialchars($m['source']) ?><?= !empty($m['date']) ? ' (' . htmlspecialchars($m['date']) . ')' : '' ?></p><?php endif; ?>
+                            </div>
+                        </details>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+
+                <div class="help-note">
+                    <p><strong>Adding a map:</strong> copy the image/PDF file into <code>/var/www/html/public/utility/maps/files/</code> on the box, then add one entry to <code>data/utility/maps/catalog.json</code> (title, category, region, description, file, format, source, date, tags). No PHP editing required - this page renders whatever the catalog contains.</p>
+                </div>
+
+                <div class="help-note utility-placeholder-note">
+                    <p><strong>Future option, not implemented:</strong> a proper offline slippy/zoomable map viewer (pan/zoom like an online map) would need a JS mapping library (e.g. Leaflet, self-hosted - no CDN) plus locally-stored map tiles, which can range from tens of MB to several GB depending on area and zoom levels covered. That tradeoff should be a deliberate decision when real map data is chosen, not a default - static images/PDFs above work today with zero extra dependency or storage commitment.</p>
+                </div>
+            </section>
         </div>
 
         <div class="hero-actions">
             <a href="/utility/">Utility Library</a>
             <a href="/utility/search/">Search</a>
         </div>
-    </section>
+    </div>
 
     <?php require_once __DIR__ . '/../../../includes/footer.php'; ?>
 </body>

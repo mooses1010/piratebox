@@ -1,0 +1,38 @@
+{
+  "gps-gov-general": {
+    "name": "GPS satellite/positioning basics (cross-checked against multiple technical references)",
+    "publisher": "General GPS/GNSS technical reference",
+    "url": "https://www.gps.gov",
+    "retrieved": "2026-09-01",
+    "note": "gps.gov (the official US government GPS info site) is the authoritative reference for this topic; specific figures here (24+ satellite constellation, 4-satellite minimum for a position fix) were cross-checked via secondary technical sources this session rather than fetched directly from gps.gov."
+  },
+  "usgs-topoview": {
+    "name": "USGS topoView Help Guide (coordinate formats)",
+    "publisher": "U.S. Geological Survey",
+    "url": "https://ngmdb.usgs.gov/topoview/help/",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "usgs-utm-faq": {
+    "name": "What does the term UTM mean?",
+    "publisher": "U.S. Geological Survey",
+    "url": "https://www.usgs.gov/faqs/what-does-term-utm-mean-utm-better-or-more-accurate-latitudelongitude",
+    "publisher_url": null,
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "noaa-declination": {
+    "name": "NOAA National Centers for Environmental Information - Magnetic Declination",
+    "publisher": "NOAA/NCEI",
+    "url": "https://www.ngdc.noaa.gov/geomag",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "general-nav-education": {
+    "name": "General land-navigation practical guidance",
+    "publisher": null,
+    "url": null,
+    "retrieved": "2026-09-01",
+    "note": "Widely-taught map-and-compass navigation concepts, not tied to one specific regulatory citation."
+  }
+}

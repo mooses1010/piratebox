@@ -1,0 +1,121 @@
+[
+  {
+    "id": "latitude-longitude-basics",
+    "category": "reference",
+    "title": "Latitude & Longitude Basics",
+    "summary": "Latitude = how far north/south of the equator; longitude = how far east/west of the Prime Meridian.",
+    "quick_actions": [
+      "Latitude lines run east-west and measure 0° (equator) to 90° N or S at the poles.",
+      "Longitude lines run north-south (pole to pole) and measure 0° (Prime Meridian, through Greenwich, UK) to 180° E or W.",
+      "Coordinates are always written latitude first, then longitude (e.g. 40.7128° N, 74.0060° W).",
+      "A minus sign is a common shorthand for S or W (e.g. -74.0060 means 74.0060° W)."
+    ],
+    "more_info": "Every point on Earth's surface has a unique latitude/longitude pair - this is the basis every other coordinate format (DMS, UTM, MGRS) is built on or converts to/from.",
+    "keywords": [
+      "latitude",
+      "longitude",
+      "coordinates",
+      "lat long"
+    ],
+    "source_id": "usgs-topoview",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "coordinate-formats",
+    "category": "reference",
+    "title": "Coordinate Formats (DD, DMS, UTM, MGRS)",
+    "summary": "The same location can be written several different ways - know which one your device/map uses.",
+    "quick_actions": [
+      "Decimal Degrees (DD): e.g. 38.5, -98.30 - the format most phone GPS apps show by default.",
+      "Degrees Minutes Seconds (DMS): e.g. 42°30'00\" N, 98°15'30\" W - each degree splits into 60 minutes, each minute into 60 seconds.",
+      "UTM (Universal Transverse Mercator): divides the world into 60 numbered zones, position given as an easting/northing in meters - common on USGS topographic maps.",
+      "MGRS (Military Grid Reference System): the same UTM grid, but identifies the 100km square with letters instead of numbers - common on military/tactical maps."
+    ],
+    "more_info": "To convert DD to DMS: the whole number is degrees; multiply the decimal part by 60 for minutes; multiply the leftover decimal by 60 again for seconds. All formats describe the same underlying grid - they're just different notations for it.",
+    "keywords": [
+      "coordinate format",
+      "dms",
+      "utm",
+      "mgrs",
+      "decimal degrees"
+    ],
+    "source_id": "usgs-topoview",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": "usgs-utm-faq"
+  },
+  {
+    "id": "gps-without-internet",
+    "category": "reference",
+    "title": "How GPS Works Without Internet",
+    "summary": "GPS gets your position from satellites directly - it never needed the internet or cell service.",
+    "quick_actions": [
+      "A GPS receiver listens for timing signals broadcast by satellites - it doesn't send or receive anything over the internet or cell network to compute a position.",
+      "At least 4 satellites in view are needed for a full 3D position fix (latitude, longitude, and elevation).",
+      "The US maintains at least 24 operational GPS satellites at all times, so several are visible from almost anywhere on Earth at any time.",
+      "What DOES need the internet/cell data: downloading new map tiles, live traffic, or searching for an address by name - the position fix itself does not."
+    ],
+    "more_info": "This is why a phone in airplane mode (with GPS/location services left on) can still show your coordinates and a pre-downloaded map with no signal at all - only fetching new map data or looking up a place by name requires connectivity.",
+    "keywords": [
+      "gps",
+      "satellite",
+      "offline gps",
+      "no signal",
+      "no internet"
+    ],
+    "source_id": "gps-gov-general",
+    "confidence": "medium",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "cardinal-directions-bearings",
+    "category": "reference",
+    "title": "Cardinal Directions & Compass Bearings",
+    "summary": "N/E/S/W at 90° intervals; a bearing is the clockwise angle from north to your target.",
+    "quick_actions": [
+      "Cardinal directions: North 0°, East 90°, South 180°, West 270°.",
+      "Intercardinal directions sit halfway between: Northeast 45°, Southeast 135°, Southwest 225°, Northwest 315°.",
+      "A compass bearing is the clockwise angle from north to wherever you're pointing/heading.",
+      "Check current magnetic declination for your area (ngdc.noaa.gov/geomag) before navigating by compass bearing - a map's 'true north' and a compass's 'magnetic north' can differ enough to send you well off course."
+    ],
+    "more_info": "Magnetic declination varies by location and changes slowly over time, so a fixed number memorized once can become inaccurate years later - check it for your actual area when it matters.",
+    "keywords": [
+      "cardinal directions",
+      "compass",
+      "bearing",
+      "north south east west",
+      "declination"
+    ],
+    "source_id": "noaa-declination",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "offline-navigation-basics",
+    "category": "reference",
+    "title": "Basic Offline Navigation Concepts",
+    "summary": "A paper map, a compass, and knowing your last confirmed position go a long way with zero electronics.",
+    "quick_actions": [
+      "Orient the map: align it so north on the paper points to actual north (using a compass, or the sun near local noon in the Northern Hemisphere as a rough check).",
+      "Dead reckoning: estimate your current position from a known starting point plus the direction and distance you've traveled since - simple, but errors add up the longer you go without checking a landmark.",
+      "Use terrain/landmarks (a distinct hill, river bend, or intersection) to confirm your estimated position whenever you can - don't rely on dead reckoning alone for long stretches.",
+      "A GPS device or phone (see How GPS Works Without Internet) can give you an exact coordinate to place on a paper map even with zero cell/Wi-Fi signal, combining the reliability of electronics with the resilience of paper."
+    ],
+    "more_info": "None of this requires memorizing survival techniques - the practical takeaway is: carry a paper map of your area as a backup, know roughly how to read it, and treat GPS coordinates and paper maps as complementary, not either/or.",
+    "keywords": [
+      "navigation",
+      "dead reckoning",
+      "paper map",
+      "offline navigation",
+      "compass navigation"
+    ],
+    "source_id": "general-nav-education",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  }
+]

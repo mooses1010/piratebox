@@ -6,6 +6,69 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Offline Utility Library - Stage 5: Maps / Location Framework
+
+**Decision date:** 2026-09-01.
+
+**Scope:** builds out `/utility/maps/` (a Stage 1 placeholder). No
+networking/security-boundary/Emergency-Mode-state changes; no packages
+installed; **no map data downloaded** (per explicit instruction). Layered
+on Stage 4 (`58cd348`/`1411569`).
+
+**Two independent halves on one page:**
+1. **Reference section** (real content, works today): 5 topics on
+   coordinates/GPS/navigation - Latitude & Longitude Basics, Coordinate
+   Formats (DD/DMS/UTM/MGRS), How GPS Works Without Internet, Cardinal
+   Directions & Compass Bearings, and Basic Offline Navigation Concepts.
+   Sourced from USGS (coordinate formats) and NOAA/NCEI (magnetic
+   declination); GPS mechanics cross-checked against general technical
+   references (marked `confidence: medium` - no single authoritative page
+   fetch succeeded this session for that specific topic, see Testing).
+2. **Map catalog framework** (deliberately empty): a data-driven catalog
+   (`data/utility/maps/catalog.json`) ready to list local/regional/
+   evacuation/topographic/trail maps, each entry pointing at a static
+   image/PDF file under `public/utility/maps/files/`. **Shipped as an
+   empty array, on purpose** - no placeholder/fabricated map entries,
+   consistent with the same "don't invent content to make a page look
+   populated" principle that will also govern Stage 6's local-info dataset.
+   The page's own empty-state message and an in-page "Adding a Map" note
+   explain exactly how to add a real one later: drop the file in
+   `public/utility/maps/files/`, add one JSON entry - no PHP editing
+   required, mirroring the "clean metadata structure" the operator asked
+   for.
+
+**Why static files under webroot, not an outside-webroot design like
+Library will use:** map images/PDFs aren't sensitive or copyright-risky
+the way Stage 7's document library payload might be - they're reference
+images. Keeping them in `public/utility/maps/files/` (same pattern as the
+existing `public/uploads/`) needed zero `open_basedir` change and is
+simpler; Stage 7 will make its own outside-webroot call deliberately, with
+its own stop-and-explain if that needs an `open_basedir` change (per
+instruction).
+
+**Future offline slippy-map viewer - documented, not built:** the page
+itself carries a short note (styled like Stage 1's other placeholder
+notes) explaining the tradeoff: a real pan/zoom map viewer would need a
+self-hosted JS mapping library (e.g. Leaflet - no CDN) plus locally-stored
+map tiles (tens of MB to multiple GB depending on area/zoom coverage) -
+explicitly flagged as a future, deliberate decision once real map data is
+chosen, not something to default into. Static images/PDFs via the catalog
+above work today with zero extra dependency.
+
+**Testing performed:** all 3 JSON files validated (build-time + live);
+`php -l` clean; rendered via PHP CLI pre-deploy (5 reference entries,
+empty-state and future-viewer notes both confirmed present); live
+regression sweep of every existing page unaffected; representative search
+queries (`gps`, `utm`, `compass`, `coordinate`, `dead reckoning`) all
+resolve correctly against live data; live empty-state and future-viewer
+note confirmed rendering on the deployed page; live Normal vs. Emergency
+Mode content byte-diff - **identical**; `nginx`/`php8.4-fpm`/`hostapd`/
+`dnsmasq` active throughout, no restarts; error logs clean across the full
+testing window. Live mode restored to explicit Normal before finishing.
+
+**Backup:** `~/piratebox-backups/maps-stage5-pre-20260901-061942/` (full
+`var/www/html` mirror + pre-change git HEAD `1411569`).
+
 ## Offline Utility Library - Stage 4: First Aid Reference
 
 **Decision date:** 2026-09-01.
