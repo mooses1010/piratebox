@@ -20,6 +20,26 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 14: Main-Page Onboarding / "What Can I Do Here?"
+
+**Decision date:** 2026-09-01. Layered on Stage 13 (`2081c4b`).
+
+Normal Mode's hero gains one short paragraph (offline library exists,
+link to the new capabilities page, Emergency Mode is physical-switch-only,
+not-an-official-emergency-service) - kept short/non-intrusive per
+instruction, doesn't touch the existing Files-first identity. Emergency
+Mode's tagline became the literal "Emergency Mode is Active" (previously
+"Local Offline Network"), with a subtle amber accent (reused color, not a
+new alarm color) and the same not-an-official-service line, previously
+missing from Emergency Mode entirely. New `public/whatcanidohere.php`:
+mode-aware capabilities list covering every item in the instruction, not
+added to the primary navbar (reachable via links) to avoid crowding it.
+
+**Testing:** `php -l` clean; deployed via automation; live-verified both
+modes; regression unaffected; mode restored to Normal.
+
+**Backup:** `~/piratebox-backups/onboarding-stage14-pre-20260901-072201/`.
+
 ## Stage 13: PirateBox Identity / Transparency / About
 
 **Decision date:** 2026-09-01. Expands `help.php` (no new page/data file)

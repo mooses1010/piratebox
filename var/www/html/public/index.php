@@ -81,11 +81,12 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
     <?php if ($piratebox_mode === PIRATEBOX_MODE_EMERGENCY): ?>
-        <div class="hero">
-            <div class="hero-tagline">Local Offline Network</div>
+        <div class="hero hero-emergency">
+            <div class="hero-tagline">Emergency Mode is Active</div>
             <h1>This Network Does Not Require Internet Access</h1>
             <p>This is an intentionally local, offline network - it is designed to run on battery power, and does not provide or require Internet access.</p>
-            <p>Useful information is stored directly on this device: emergency guidance, radio references, maps, first-aid references, and reference documents. Local file sharing and messaging with anyone else connected here still work normally.</p>
+            <p>Emergency, First Aid, Radio, Maps, and Local Information have been prioritized below because they're likely to be most useful right now - the same file sharing and chat/community tools from normal operation still work too, just further down this page.</p>
+            <p class="muted">PirateBox is not an official emergency service and does not replace calling 911 or your local emergency services for anything urgent.</p>
         </div>
 
         <div class="utility-grid">
@@ -145,6 +146,9 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
         <div class="hero-tagline">Offline File Sharing</div>
         <?= $piratebox_mode === PIRATEBOX_MODE_EMERGENCY ? '<h2>PirateBox</h2>' : '<h1>PirateBox</h1>' ?>
         <p>This is a local, offline network - no Internet connection is used or required. Share files, chat, and leave messages with anyone else connected to this Wi-Fi.</p>
+        <?php if ($piratebox_mode !== PIRATEBOX_MODE_EMERGENCY): ?>
+            <p>This PirateBox also carries an offline reference library - maps, radio references, first-aid and emergency guidance, manuals, and search - available any time, not just during an outage. See <a href="/whatcanidohere.php">What can I do here?</a> for the full list, or switch to Emergency Mode by physical switch to prioritize that material. <span class="muted">PirateBox is not an official emergency service.</span></p>
+        <?php endif; ?>
         <div class="hero-actions">
             <a href="#upload-form">Upload a file</a>
             <a href="chat.php">Chat</a>
