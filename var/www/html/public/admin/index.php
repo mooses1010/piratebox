@@ -3,6 +3,7 @@ declare(strict_types=1);
 session_start();
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/helpers.php';
+require_once __DIR__ . '/../../includes/metrics.php';
 
 // PirateBox admin/status page - Phase 4.
 //
@@ -232,42 +233,25 @@ foreach ((is_dir($UPLOAD_DIR) ? scandir($UPLOAD_DIR) : []) as $entry) {
     }
 }
 
-$uptimeSeconds = null;
-$uptimeRaw = @file_get_contents('/proc/uptime');
-if ($uptimeRaw !== false) {
-    $parts = explode(' ', trim($uptimeRaw));
-    if (isset($parts[0])) $uptimeSeconds = (float) $parts[0];
-}
-
-$memTotalKb = null;
-$memAvailableKb = null;
-$meminfoRaw = @file_get_contents('/proc/meminfo');
-if ($meminfoRaw !== false) {
-    if (preg_match('/^MemTotal:\s+(\d+)/m', $meminfoRaw, $m)) $memTotalKb = (int) $m[1];
-    if (preg_match('/^MemAvailable:\s+(\d+)/m', $meminfoRaw, $m)) $memAvailableKb = (int) $m[1];
-}
-
-$cpuTempC = null;
-$tempRaw = @file_get_contents('/sys/class/thermal/thermal_zone0/temp');
-if ($tempRaw !== false && is_numeric(trim($tempRaw))) {
-    $cpuTempC = ((int) trim($tempRaw)) / 1000.0;
-}
+// Stage 27 (maintenance/consolidation): these all now come from the
+// shared includes/metrics.php module the Stats page already uses
+// (Stage 21), instead of a second copy of the same /proc reads and
+// helper-snapshot logic living only here. Deliberately deferred at the
+// time Stage 21 introduced that module - see docs/OPERATIONAL-
+// DECISIONS.md for why refactoring this destructive-action-containing
+// page wasn't worth doing in the same stage as adding a brand new one,
+// and for this stage's regression testing before making the swap.
+$uptimeSeconds = piratebox_get_uptime_seconds();
+[$memTotalKb, $memAvailableKb] = piratebox_get_meminfo_kb();
+$cpuTempC = piratebox_get_cpu_temp_c();
 
 // Status snapshot from the root helper timer (Wi-Fi clients, per-service
 // health, undervoltage). Treated as advisory/best-effort: if the file is
 // missing or stale (timer not running, or its first run hasn't happened
 // yet), we say so rather than guessing.
-$helperStatus = null;
-$helperStale = true;
-$helperRaw = @file_get_contents('/run/piratebox/status.json');
-if ($helperRaw !== false) {
-    $decoded = json_decode($helperRaw, true);
-    if (is_array($decoded)) {
-        $helperStatus = $decoded;
-        $age = time() - (int) ($decoded['generated_at'] ?? 0);
-        $helperStale = $age > 300; // helper runs every 30s; 5 min = clearly not running
-    }
-}
+$helperResult = piratebox_get_helper_status();
+$helperStatus = $helperResult['status'];
+$helperStale = $helperResult['stale'];
 
 $versionRaw = @file_get_contents(__DIR__ . '/../../includes/VERSION');
 $versionLine = $versionRaw !== false ? trim($versionRaw) : null;

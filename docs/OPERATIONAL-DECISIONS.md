@@ -20,6 +20,70 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 27: Build / Maintenance Pipeline Consolidation
+
+**Decision date:** 2026-09-01. Layered on Stage 26 (`ebc1b5f`).
+
+Two independent consolidations, both explicitly flagged as deferred
+work in earlier stages rather than newly invented scope:
+
+**1. `admin/index.php` now uses the shared `includes/metrics.php`
+module** (Stage 21) instead of its own second copy of the `/proc`
+reads and helper-snapshot logic - exactly the consolidation Stage 21's
+own entry named as "a Stage 27 consolidation candidate" once the
+higher regression-risk of touching a destructive-action-containing page
+in the same stage that introduced the shared module had passed.
+Straight drop-in replacement (`piratebox_get_uptime_seconds()`,
+`piratebox_get_meminfo_kb()`, `piratebox_get_cpu_temp_c()`,
+`piratebox_get_helper_status()`) - removed ~35 lines, added ~10,
+identical variable names/shapes so every downstream display line was
+untouched. **Verified functionally identical**, not just assumed: ran
+the pre-change and post-change `admin/index.php` on two isolated
+PHP-built-in-server copies simultaneously and diffed their rendered
+output - the only differences were the per-session CSRF token (expected
+- random per session) and the live free-RAM figure (expected - two
+separate reads of real system state, seconds apart).
+
+**2. New `tools/rebuild_all.sh`:** one entrypoint for the three
+"regenerate derived content from source data" tools this project has
+accumulated (Stages 7/8/19) - `check_library_catalog.py`,
+`build_search_index.py`, `build_export_bundles.py` - run in the order
+that respects their actual data dependency (catalog consistency first,
+then the search index, then export bundles, which read the just-built
+index). Fails fast: `check_library_catalog.py`'s own nonzero exit on a
+real inconsistency stops the whole pipeline under `set -e` before
+either build step runs, rather than silently baking a known content
+problem into the search index or an export bundle - verified directly
+with a deliberately orphaned test file. Every step is independently
+idempotent (confirmed byte-identical search-index.json before/after a
+real run against live source data) and touches only `data/utility/`
+(source) and `public/utility/{search-index consumers,exports}`
+(generated output) - never any live user-generated content.
+
+**Testing:** `php -l` clean; `bash -n` clean on `rebuild_all.sh`;
+output-diff verification described above; isolated fail-fast test with
+a deliberately orphaned library file; real run of the full pipeline
+against live source data (search index confirmed byte-identical,
+export bundles rebuilt cleanly). Live-deployed the `admin/index.php`
+change via the approved sudo automation; live-verified via a direct
+PHP-built-in-server render of the actual deployed file (200, all stat
+values sane - disk/RAM/uptime/CPU temp populated, status-helper
+"not reporting" state correctly preserved from the still-open Stage 21
+issue, version correctly still shown as "unknown" pending Stage 26's
+fix taking effect); confirmed `nginx`'s Basic Auth gate on `/admin/`
+unaffected (401 without credentials, as before); verified in both
+Normal and Emergency Mode; mode restored to Normal; logs clean
+throughout.
+
+**Process note:** like Stage 22, no dedicated pre-stage `var/www/html`
+backup was taken before deploying this stage's `admin/index.php`
+change - caught only afterward. Risk was low in practice (the change
+was verified byte-for-byte functionally equivalent before deploying,
+and `piratebox_deploy.sh` remains add/update-only), and a backup was
+taken immediately after (`pipeline-stage27-post-20260901-111137`). The
+miss is recorded here rather than glossed over, same as Stage 22's own
+entry.
+
 ## Stage 26: Versioning - Live VERSION File Actually Reflects What's Deployed
 
 **Decision date:** 2026-09-01. Layered on Stage 25 (`3f653b4`).
