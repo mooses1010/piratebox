@@ -125,6 +125,7 @@ $sectionLabels = [
 
         <div class="hero-actions">
             <a href="/utility/">Utility Library</a>
+            <a href="/utility/manifest/">What's On This PirateBox?</a>
             <a href="/utility/search/">Search</a>
         </div>
     </div>

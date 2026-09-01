@@ -20,6 +20,48 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 20: PirateBox Manifest ("What's On This PirateBox?")
+
+**Decision date:** 2026-09-01. Layered on Stage 19 (`87c4307`).
+
+New `/utility/manifest/` combines two read-only sources rather than
+recomputing anything: Stage 19's `manifest.json` (content counts, bundle
+size - reused, not duplicated) plus a live count of `public/uploads/`
+using the exact same `scandir()` logic `index.php`'s file listing already
+uses (nothing newly exposed - that listing is already public). Offers
+TXT/JSON/CSV downloads, generated on the fly (cheap - a handful of
+numbers, not the "giant archive" the instruction warns against
+rebuilding per-request - that concern applies to the ZIP bundles, built
+once by Stage 19's script, not this small text formatting).
+
+**Real bug found and fixed during testing:** the initial version pointed
+at `../../exports/manifest.json` - one directory level too many
+(`manifest/` and `exports/` are sibling directories, both direct children
+of `utility/`, so it needed `../exports/`). Caught immediately because
+testing showed every count rendering as `0` - traced, fixed, and
+**re-verified with a corrected test method**: the first test pass used
+`php index.php` under plain CLI, which doesn't populate `$_GET` from
+`QUERY_STRING` (a CGI/SAPI-specific behavior) - it couldn't have caught
+the three download-format code paths at all, only the fact that counts
+were zero. Correctly re-tested via PHP's built-in web server instead
+(same technique already used for Stage 16), confirming all three formats
+work with correct headers (`Content-Disposition: attachment`,
+appropriate `Content-Type`) and correct data.
+
+**Not added to the `/utility/` landing grid** (already at 8 cards) -
+cross-linked instead from the closely-related Download page, consistent
+with the same "don't crowd the primary grid" judgment Stage 9 already
+established for Local Information.
+
+**Testing:** `php -l` clean; deploy previewed with an itemized dry-run;
+live-verified the HTML page and all three download formats against
+production (real upload count: 2 files, 143 bytes, matching actual
+accumulated test uploads from earlier stages); full regression sweep
+unaffected; logs clean; mode confirmed still Normal (not mode-
+conditional, matching every other Utility section).
+
+**Backup:** `~/piratebox-backups/manifest-stage20-pre-20260901-094955/`.
+
 ## Stage 19: "Take This With You" Download / Export System
 
 **Decision date:** 2026-09-01. Layered on Stage 18 (`0190a70`). The
