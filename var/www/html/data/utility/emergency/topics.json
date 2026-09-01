@@ -1,0 +1,487 @@
+[
+  {
+    "id": "thunderstorms-lightning",
+    "category": "hazards",
+    "title": "Thunderstorms & Lightning",
+    "summary": "If you can hear thunder, you're close enough to be struck.",
+    "quick_actions": [
+      "Go indoors to a fully enclosed building (not a shed, tent, or covered porch) or a car with a roof.",
+      "Stay inside until 30 minutes after the last thunder you hear.",
+      "Avoid corded electronics and running water while the storm is overhead.",
+      "Lightning can strike over 10 miles from where it's raining - don't wait for rain to take shelter."
+    ],
+    "more_info": "A sturdy building with wiring and plumbing gives the lightning a path to ground other than you. If caught outside with no shelter, avoid open fields, tall isolated objects, and water.",
+    "keywords": [
+      "lightning",
+      "thunderstorm",
+      "storm",
+      "thunder"
+    ],
+    "source_id": "ready-gov-thunderstorms",
+    "secondary_source_id": "nws-lightning",
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "tornado",
+    "category": "hazards",
+    "title": "Tornadoes",
+    "summary": "Get to the lowest, most interior, windowless room you can, right away.",
+    "quick_actions": [
+      "Go to a basement or an interior room/hallway on the lowest floor, away from windows.",
+      "Drop, Cover, Hold On: get low, cover your head/neck, hold onto something sturdy.",
+      "Put as many walls as possible between yourself and the outside.",
+      "In a vehicle: don't try to outrun a tornado - get low, buckle in, cover your head."
+    ],
+    "more_info": "A basement or an ICC-500/FEMA-criteria safe room is best. If no shelter is available, avoid vehicles and mobile homes, which offer little protection.",
+    "keywords": [
+      "tornado",
+      "twister",
+      "funnel cloud"
+    ],
+    "source_id": "ready-gov-tornadoes",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "flood",
+    "category": "hazards",
+    "title": "Flooding",
+    "summary": "Turn Around, Don't Drown - never walk, swim, or drive through flood water.",
+    "quick_actions": [
+      "6 inches of moving water can knock an adult down; 1 foot can sweep away a car.",
+      "Evacuate immediately if told to - never drive around barricades.",
+      "If your car is trapped in rising water, get out and get on the roof rather than staying inside.",
+      "Stay off bridges over fast-moving water."
+    ],
+    "more_info": "Floodwater can hide washed-out roads, downed lines, and contamination. Most flood deaths are vehicle-related.",
+    "keywords": [
+      "flood",
+      "flooding",
+      "flash flood",
+      "water rising"
+    ],
+    "source_id": "ready-gov-floods",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "earthquake",
+    "category": "hazards",
+    "title": "Earthquakes",
+    "summary": "Drop, Cover, and Hold On the moment you feel shaking.",
+    "quick_actions": [
+      "Drop onto your hands and knees immediately.",
+      "Cover your head and neck with one arm/hand; get under a sturdy table if one is near.",
+      "Hold on until the shaking completely stops.",
+      "After: expect aftershocks, watch for gas leaks and downed lines, and leave a damaged building carefully."
+    ],
+    "more_info": "Do not run outside during shaking - most injuries happen from falling objects indoors, not building collapse.",
+    "keywords": [
+      "earthquake",
+      "quake",
+      "aftershock",
+      "shaking"
+    ],
+    "source_id": "ready-gov-earthquakes",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "wildfire-smoke",
+    "category": "hazards",
+    "title": "Wildfire & Smoke",
+    "summary": "Evacuate immediately if told to; otherwise reduce smoke exposure indoors.",
+    "quick_actions": [
+      "If authorities order evacuation, leave right away - don't wait to see how bad it gets.",
+      "Close windows/doors; run a HEPA/MERV-13+ filter if you have one, or seal one room as a clean-air space.",
+      "An N95 mask (properly fitted) reduces smoke particle inhalation outdoors.",
+      "Monitor local alerts for evacuation routes and shelter locations."
+    ],
+    "more_info": "Wildfire smoke's fine particles are the main health hazard - they irritate eyes/airways and worsen heart/lung conditions. Pregnant people, children, older adults, and anyone with respiratory or heart conditions are at higher risk.",
+    "keywords": [
+      "wildfire",
+      "smoke",
+      "air quality",
+      "fire",
+      "n95"
+    ],
+    "source_id": "ready-gov-wildfires",
+    "secondary_source_id": "cdc-wildfire-smoke",
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "extreme-heat",
+    "category": "hazards",
+    "title": "Extreme Heat",
+    "summary": "Recognize heat exhaustion vs. heat stroke - heat stroke is a 911 emergency.",
+    "quick_actions": [
+      "Heat exhaustion: heavy sweating, cold/pale/clammy skin, dizziness, nausea - move to cool space, sip water, loosen clothing.",
+      "Heat stroke: hot/red/dry skin, confusion, body temp above 103°F - call 911 immediately, cool the person by any means while waiting.",
+      "If AC is out, find a library, mall, or official cooling center.",
+      "Check on elderly neighbors and anyone without AC - they're at highest risk."
+    ],
+    "more_info": "Heat stroke can be fatal within minutes without cooling and medical care - don't wait to see if symptoms improve.",
+    "keywords": [
+      "heat",
+      "heat stroke",
+      "heat exhaustion",
+      "hot weather",
+      "extreme heat"
+    ],
+    "source_id": "ready-gov-heat",
+    "secondary_source_id": "cdc-extreme-heat",
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "extreme-cold",
+    "category": "hazards",
+    "title": "Extreme Cold & Winter Weather",
+    "summary": "Hypothermia and frostbite both need warmth first - know the signs.",
+    "quick_actions": [
+      "Frostbite: numbness, white/grayish-yellow, firm/waxy skin - rewarm gradually in warm (not hot) water, don't rub.",
+      "Hypothermia (temp below 95°F is an emergency): shivering, confusion, slurred speech - warm the chest/neck/head/groin first, keep dry.",
+      "Never use a gas stove/oven to heat a room - carbon monoxide risk (see Carbon Monoxide topic).",
+      "Limit time outdoors; dress in layers; keep a battery-powered CO detector working."
+    ],
+    "more_info": "Winter storms also raise the risk of car accidents, overexertion heart attacks (e.g. shoveling snow), and CO poisoning from indoor heating workarounds.",
+    "keywords": [
+      "cold",
+      "hypothermia",
+      "frostbite",
+      "winter storm",
+      "freezing"
+    ],
+    "source_id": "ready-gov-winter",
+    "secondary_source_id": "cdc-winter-weather",
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "power-outage",
+    "category": "utilities",
+    "title": "When the Power Goes Out",
+    "summary": "Keep freezers/fridges closed and have a plan for medical devices.",
+    "quick_actions": [
+      "Keep refrigerator and freezer doors closed - fridge stays cold ~4 hours, a full freezer ~48 hours.",
+      "Turn off/unplug sensitive electronics to avoid surge damage when power returns.",
+      "Know how long any powered medical devices/refrigerated medication can go without power.",
+      "Use flashlights, not candles, for light (see Alternative Lighting & Fire Safety)."
+    ],
+    "more_info": "For anything beyond a few hours, see Food Safety, Generator Safety, and Carbon Monoxide topics before improvising heat, cooling, or refrigeration workarounds.",
+    "keywords": [
+      "power outage",
+      "blackout",
+      "no power",
+      "electricity out"
+    ],
+    "source_id": "ready-gov-power",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "downed-power-lines",
+    "category": "utilities",
+    "title": "Downed Power Lines",
+    "summary": "Assume every downed line is live - stay back and call it in.",
+    "quick_actions": [
+      "Stay at least 30-50 feet away from a downed line and anything it's touching (fence, puddle, car, tree).",
+      "Never touch a downed line or anything in contact with it, even if it looks dead.",
+      "Call 911 or your utility immediately to report it.",
+      "If it falls on your car while you're inside, stay inside until utility workers say it's safe - if you must exit, shuffle away with small steps, feet together."
+    ],
+    "more_info": "Electricity from a downed line can energize the ground and nearby puddles, not just the wire itself.",
+    "keywords": [
+      "downed power line",
+      "electrical line",
+      "fallen wire"
+    ],
+    "source_id": "power-line-safety",
+    "secondary_source_id": null,
+    "confidence": "medium",
+    "source_note": null
+  },
+  {
+    "id": "generator-safety",
+    "category": "utilities",
+    "title": "Generator Safety",
+    "summary": "Generators belong outside, far from windows - never in a garage or basement.",
+    "quick_actions": [
+      "Run generators outdoors, at least 20 feet from windows/doors/vents.",
+      "Never run a generator in a garage, basement, or carport, even with the door open.",
+      "Let the engine cool before refueling - spilled fuel on hot parts can ignite.",
+      "Use a battery-powered CO detector indoors whenever a generator is running nearby."
+    ],
+    "more_info": "Look for generators with a built-in CO shutoff feature if buying new.",
+    "keywords": [
+      "generator",
+      "generator safety",
+      "portable generator"
+    ],
+    "source_id": "ready-gov-power",
+    "secondary_source_id": "cdc-co-generator",
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "carbon-monoxide",
+    "category": "utilities",
+    "title": "Carbon Monoxide Safety",
+    "summary": "CO is invisible and odorless - symptoms feel like the flu.",
+    "quick_actions": [
+      "Symptoms: headache, dizziness, weakness, nausea, confusion - get to fresh air and call 911 if suspected.",
+      "Never run a generator, grill, or camp stove indoors, in a garage, or near an open window.",
+      "Never use a gas oven/stovetop to heat a room.",
+      "Install and maintain battery-powered CO detectors - people asleep or impaired can die before noticing symptoms."
+    ],
+    "more_info": "Infants, older adults, and people with heart or breathing conditions are at higher risk from lower CO levels.",
+    "keywords": [
+      "carbon monoxide",
+      "co poisoning",
+      "co detector"
+    ],
+    "source_id": "cdc-co",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "lighting-fire-safety",
+    "category": "utilities",
+    "title": "Alternative Lighting & Fire Safety",
+    "summary": "Use flashlights instead of candles during an outage.",
+    "quick_actions": [
+      "Prefer flashlights, headlamps, or battery/solar lanterns over open flame.",
+      "If you must use candles, never leave them unattended and keep them away from anything flammable.",
+      "Flameless (battery LED) candles remove the fire risk entirely.",
+      "Keep a working smoke detector - fire departments see a real rise in candle fires during outages."
+    ],
+    "more_info": "NFPA data: roughly 20 home candle fires happen every day nationally on average, most started by a candle left too close to something flammable.",
+    "keywords": [
+      "candle",
+      "flashlight",
+      "lighting",
+      "fire safety"
+    ],
+    "source_id": "nfpa-candles",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "water-storage-safety",
+    "category": "essentials",
+    "title": "Water Storage & Boil-Water Advisories",
+    "summary": "Store 1 gallon per person per day; follow local guidance on advisories.",
+    "quick_actions": [
+      "Store at least 1 gallon per person per day; aim for a 2-week supply (~14 gal/person) if space allows.",
+      "Use food-grade containers; tap water generally stores fine without additives if containers are clean.",
+      "Boil-water advisory: bring water to a rolling boil for 1 minute (longer at high altitude) before drinking/cooking/brushing teeth.",
+      "If flood, chemical, or fuel contamination is suspected, boiling may NOT make water safe - use bottled/approved water instead and follow local health department guidance."
+    ],
+    "more_info": "1 gallon/person/day is a survival minimum (hydration + basic hygiene), not a comfortable supply - more is better if storage allows.",
+    "keywords": [
+      "water",
+      "water storage",
+      "boil water",
+      "boil water advisory",
+      "drinking water"
+    ],
+    "source_id": "ready-gov-water",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "food-safety-outage",
+    "category": "essentials",
+    "title": "Food Safety During an Outage",
+    "summary": "When in doubt, throw it out.",
+    "quick_actions": [
+      "A closed fridge keeps food cold ~4 hours; a full freezer ~48 hours (24 hours if half-full).",
+      "Discard perishable food held above 40°F for 2+ hours, or anything with an unusual smell, color, or texture.",
+      "Keep an appliance thermometer in the fridge/freezer to know the actual temperature if the outage is long.",
+      "When power returns, check temperatures before deciding what's safe to keep."
+    ],
+    "more_info": "This applies broadly - meat, dairy, leftovers, and anything perishable. Canned/shelf-stable food is generally unaffected by a power outage itself.",
+    "keywords": [
+      "food safety",
+      "refrigerator",
+      "freezer",
+      "spoiled food"
+    ],
+    "source_id": "ready-gov-power",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "sanitation",
+    "category": "essentials",
+    "title": "Sanitation Without Running Water",
+    "summary": "Plan for toilets before you need one - poor sanitation spreads disease fast.",
+    "quick_actions": [
+      "A 'twin bucket' system (one for urine, one for solid waste with an absorbent/bag liner) is a common low-tech option.",
+      "Urine is generally low-risk and can be diluted and disposed of in soil; solid waste needs to be bagged and handled carefully.",
+      "Set up a hand-washing station (water container with a spigot + soap) near the toilet area.",
+      "Wash hands after any toilet use and before handling food or water, even more so than normal."
+    ],
+    "more_info": "Loss of running water or sewage service is a common secondary effect of floods, earthquakes, and extended power outages - not just its own separate disaster.",
+    "keywords": [
+      "sanitation",
+      "toilet",
+      "no water",
+      "hygiene"
+    ],
+    "source_id": "cdc-water-emergency",
+    "secondary_source_id": null,
+    "confidence": "medium",
+    "source_note": null
+  },
+  {
+    "id": "family-emergency-plan",
+    "category": "planning",
+    "title": "Family Emergency Communication Plan",
+    "summary": "Pick an out-of-town contact - long-distance calls/texts often work when local ones don't.",
+    "quick_actions": [
+      "Choose one out-of-town contact everyone can reach/report in to.",
+      "Text, don't talk - texts often get through when voice calls can't (see Communications Outages).",
+      "Write down/print emergency contacts and a meeting place - don't rely on a phone that could be dead or lost.",
+      "Practice the plan (a test text/call) so everyone knows it actually works before you need it."
+    ],
+    "more_info": "Local phone circuits can jam during a widespread emergency even when the network itself is technically up; a distant contact and text messages route around that more reliably.",
+    "keywords": [
+      "emergency plan",
+      "communication plan",
+      "family plan",
+      "emergency contacts",
+      "out of town contact"
+    ],
+    "source_id": "ready-gov-plan",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "evacuation",
+    "category": "planning",
+    "title": "Evacuation",
+    "summary": "If told to evacuate, go - don't wait to see how bad it gets.",
+    "quick_actions": [
+      "Follow official evacuation orders promptly; never drive around barricades.",
+      "Know at least two routes out of your area in case one is blocked.",
+      "Bring your go-bag, medications, and pets (see Pets) - don't plan to come back for them.",
+      "Let your out-of-town contact know where you're going if you can."
+    ],
+    "more_info": "Evacuation is warranted for many different hazards - fire, flood, extended power/utility loss, hazardous material releases - not just the 'obvious' ones.",
+    "keywords": [
+      "evacuation",
+      "evacuate",
+      "leave",
+      "go bag"
+    ],
+    "source_id": "ready-gov-evacuation",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "shelter-in-place",
+    "category": "planning",
+    "title": "Shelter-in-Place vs. Evacuating",
+    "summary": "Sometimes staying put is safer than trying to leave.",
+    "quick_actions": [
+      "Shelter-in-place when going outside is more dangerous than staying (e.g. airborne contamination, extreme weather already underway).",
+      "Evacuate when officials order it, or when a hazard makes staying clearly unsafe (fire approaching, structural damage, rising water).",
+      "If unsure and not explicitly ordered either way, use the best information you have - local alerts, what you can see/hear/smell - to judge immediate danger.",
+      "Always comply immediately if officials specifically order evacuation or medical treatment."
+    ],
+    "more_info": "Plan for both possibilities in advance - the right call depends on the specific hazard, not a fixed rule.",
+    "keywords": [
+      "shelter in place",
+      "stay or go",
+      "shelter"
+    ],
+    "source_id": "ready-gov-shelter",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "communications-outage",
+    "category": "planning",
+    "title": "When Phones & Internet Are Down",
+    "summary": "Text over talk, and know your offline fallback.",
+    "quick_actions": [
+      "Text messages often get through even when voice calls fail - cell networks handle them differently under load.",
+      "Keep phones charged and conserve battery (see Battery & Power Conservation) - don't stream or leave apps running.",
+      "A local device like this PirateBox works with no internet or cell service at all - it's exactly built for this situation.",
+      "Consider a battery/hand-crank NOAA weather radio and, if licensed, amateur radio (see the Radio Reference section) as backups that don't depend on cell towers."
+    ],
+    "more_info": "Cell networks can be overwhelmed (congestion) or physically down (towers without power/backhaul) during a widespread event - both look like \"no signal\" to you but have different likely durations.",
+    "keywords": [
+      "communications outage",
+      "no cell service",
+      "no internet",
+      "phone down",
+      "network down"
+    ],
+    "source_id": "general-prep-education",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "battery-conservation",
+    "category": "planning",
+    "title": "Battery & Power Conservation",
+    "summary": "Assume you won't be able to recharge - make it last.",
+    "quick_actions": [
+      "Lower screen brightness, enable low-power/airplane mode when not actively checking for messages.",
+      "Close unused apps and disable background refresh/location services you don't need.",
+      "Keep devices out of extreme heat/cold - both reduce battery performance and lifespan.",
+      "Prioritize charging communication devices (phone, radio) over convenience devices."
+    ],
+    "more_info": "A phone in airplane mode with Wi-Fi on (to still reach a local network like this PirateBox) uses far less battery than one actively searching for a weak cell signal.",
+    "keywords": [
+      "battery",
+      "power conservation",
+      "phone battery",
+      "save battery"
+    ],
+    "source_id": "general-prep-education",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "pets-disaster-prep",
+    "category": "pets",
+    "title": "Pets in an Emergency",
+    "summary": "If it's not safe for you to stay, it's not safe for your pet either.",
+    "quick_actions": [
+      "Keep a pet kit: several days of food/water, bowls, leash/carrier, litter/waste bags, and any medications.",
+      "Microchip pets and keep ID tags/contact info current in case you're separated.",
+      "Identify pet-friendly shelters or a safe location in advance - not every emergency shelter accepts animals.",
+      "Never leave pets behind when evacuating - they can end up lost, injured, or worse."
+    ],
+    "more_info": "Keep a current photo of each pet in your kit in case you need to identify or describe them if separated.",
+    "keywords": [
+      "pets",
+      "dog",
+      "cat",
+      "animal",
+      "pet emergency kit"
+    ],
+    "source_id": "ready-gov-pets",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  }
+]

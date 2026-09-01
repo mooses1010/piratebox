@@ -1,0 +1,163 @@
+{
+  "ready-gov-power": {
+    "name": "Power Outages - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/power-outages",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-thunderstorms": {
+    "name": "Thunderstorms & Lightning - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/thunderstorms-lightning",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "nws-lightning": {
+    "name": "When Thunder Roars, Go Indoors - Lightning Safety Awareness",
+    "publisher": "NOAA / National Weather Service",
+    "url": "https://www.weather.gov/ind/LightningSafetyAwareness",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-tornadoes": {
+    "name": "Tornadoes - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/tornadoes",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-floods": {
+    "name": "Floods - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/floods",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-earthquakes": {
+    "name": "Earthquakes - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/earthquakes",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-wildfires": {
+    "name": "Wildfires - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/wildfires",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "cdc-wildfire-smoke": {
+    "name": "Safety Guidelines: Wildfires and Wildfire Smoke",
+    "publisher": "CDC",
+    "url": "https://www.cdc.gov/wildfires/safety/how-to-safely-stay-safe-during-a-wildfire.html",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-heat": {
+    "name": "Extreme Heat - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/heat",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "cdc-extreme-heat": {
+    "name": "Protect Yourself From the Dangers of Extreme Heat",
+    "publisher": "CDC",
+    "url": "https://www.cdc.gov/climate-health/php/resources/protect-yourself-from-the-dangers-of-extreme-heat.html",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-winter": {
+    "name": "Winter Weather - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/winter-weather",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "cdc-winter-weather": {
+    "name": "Winter Weather: Before, During, and After",
+    "publisher": "CDC",
+    "url": "https://www.cdc.gov/winter-weather/about/index.html",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-plan": {
+    "name": "Make a Plan - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/plan",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-evacuation": {
+    "name": "Evacuation Guidelines - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/node/152",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-shelter": {
+    "name": "Shelter - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/shelter",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "ready-gov-water": {
+    "name": "Water - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/water",
+    "retrieved": "2026-09-01",
+    "note": "Also reflects CDC emergency water storage guidance (1 gal/person/day, ~2 week target) found via cross-check this session."
+  },
+  "cdc-co": {
+    "name": "Carbon Monoxide Poisoning Basics",
+    "publisher": "CDC",
+    "url": "https://www.cdc.gov/carbon-monoxide/about/index.html",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "cdc-co-generator": {
+    "name": "Generator Safety Fact Sheet",
+    "publisher": "CDC",
+    "url": "https://www.cdc.gov/carbon-monoxide/factsheets/generator-safety-fact-sheet.html",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "cdc-water-emergency": {
+    "name": "Water, Sanitation, and Hygiene (WASH)-related Emergencies",
+    "publisher": "CDC",
+    "url": "https://www.cdc.gov/water-emergency/index.html",
+    "retrieved": "2026-09-01",
+    "note": "Specific practices (twin-bucket toilet system etc.) were cross-checked via secondary sources this session, not fetched directly from this CDC page - treat as general guidance, confirm specifics with current CDC/local health department material."
+  },
+  "ready-gov-pets": {
+    "name": "Prepare Your Pets for Disasters - Ready.gov",
+    "publisher": "FEMA / Ready.gov",
+    "url": "https://www.ready.gov/pets",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "nfpa-candles": {
+    "name": "Safety with Candles",
+    "publisher": "National Fire Protection Association (NFPA)",
+    "url": "https://www.nfpa.org/education-and-research/home-fire-safety/candles",
+    "retrieved": "2026-09-01",
+    "note": null
+  },
+  "power-line-safety": {
+    "name": "Downed power line safety guidance (utility/PUC consumer safety material)",
+    "publisher": "State utility commissions / electric utilities (consistent cross-source guidance)",
+    "url": "https://www.puc.pa.gov/General/consumer_ed/pdf/Power_Line_Safety-FS.pdf",
+    "retrieved": "2026-09-01",
+    "note": "FCC/Ready.gov-equivalent single federal page not identified this session; guidance was consistent word-for-word in substance across multiple independent utility/state sources."
+  },
+  "general-prep-education": {
+    "name": "General emergency-preparedness practical guidance",
+    "publisher": null,
+    "url": null,
+    "retrieved": "2026-09-01",
+    "note": "Practical synthesis (e.g. phone/battery conservation, PirateBox-specific communications guidance) not tied to one specific regulatory/agency citation - common-sense preparedness practice."
+  }
+}

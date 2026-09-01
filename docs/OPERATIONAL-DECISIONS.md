@@ -6,6 +6,94 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Offline Utility Library - Stage 3: Emergency / Outage Reference
+
+**Decision date:** 2026-09-01.
+
+**Scope:** builds out `/utility/emergency/` (a Stage 1 placeholder) into a
+skimmable, card-based practical reference. No networking/security-boundary/
+Emergency-Mode-state changes; no packages installed. Layered on Stage 2
+Radio Reference (`1ead465`).
+
+**Deliberate UI/CSS/JS reuse - not duplication:** this page reuses the
+*exact same* CSS classes and JS element IDs Stage 2 introduced for Radio
+(`#radioSearch`, `#radioChips`, `.radio-entry`, `.radio-chip`, `.radio-group`,
+`data-group-section`, etc.), rather than inventing a second parallel
+"searchable card list" component. Since each Utility page is its own
+separate document (never loaded alongside another), reusing the same
+element IDs across pages is safe and required **zero changes** to the
+already-tested `scripts.js` filter logic - it works on this page unmodified.
+One new small CSS rule was added (`.ref-quick-actions`, a bullet list style)
+since Emergency topics needed a "quick actions" list that Radio's schema
+didn't have. This "shared reference-list component, `radio-*`-named but
+domain-generic" pattern is intended to be reused again for First Aid,
+Maps, and Library in later stages - noting it here once rather than
+repeating the rationale in every subsequent stage's entry.
+
+**Data:** 21 topics across 5 groups (Severe Weather & Hazards; Power,
+Utilities & Home Safety; Water, Food & Sanitation; Planning &
+Communication; Pets) in `data/utility/emergency/topics.json`, plus
+`sources.json` (23 sources - primarily Ready.gov/FEMA, CDC, NOAA/NWS, and
+NFPA). ~27KB total. Each topic has a one-line `summary`, a short
+`quick_actions` bullet list (the primary skimmable content), an optional
+`more_info` paragraph, and the same `source_id`/`confidence`/`source_note`
+provenance fields Stage 2 established.
+
+**Calm-not-alarmist design, per explicit instruction:** no red/danger
+styling, no severity icons, no "WARNING" chrome. Priority is conveyed
+structurally instead - hazards needing an immediate physical action
+(tornado, earthquake, downed lines, CO) are grouped together and lead with
+a one-line action-oriented `summary`, but visually use the same calm
+card style as every other topic. The intro paragraph explicitly tells
+readers to follow official local instructions over this reference.
+
+**Data-quality notes:**
+- Most topics (19/21) are `confidence: high`, sourced directly from
+  Ready.gov/FEMA, CDC, NOAA/NWS, or NFPA topic pages - `ready.gov` also
+  blocked direct automated fetch (403) this session same as FCC did in
+  Stage 2, so content was gathered via targeted web search against these
+  same official domains rather than a raw page fetch; multiple independent
+  official sources were cross-referenced per topic where practical.
+- **Downed power lines** (`confidence: medium`): no single federal
+  Ready.gov-equivalent page was identified this session; guidance was
+  consistent word-for-word in substance across multiple independent state
+  utility-commission/electric-utility consumer-safety sources, which is
+  why it's marked medium rather than low.
+- **Sanitation without running water** (`confidence: medium`): the general
+  need and health rationale are CDC-sourced, but specific low-tech
+  practices (e.g. the "twin bucket" toilet method) were cross-checked via
+  secondary sources this session, not fetched directly from the CDC page
+  cited - flagged in `source_note` accordingly.
+- **Communications outages** and **battery/power conservation** are marked
+  `source_id: general-prep-education` (no single regulatory/agency
+  citation - practical synthesis, consistent with how Stage 2 handled
+  general RF-education content). The communications-outage topic
+  deliberately cross-references this PirateBox itself as a working offline
+  fallback.
+- **Known gap, deliberately deferred:** hurricanes/broad "severe storm"
+  guidance beyond thunderstorms/lightning was not given its own topic this
+  stage (searching "hurricane" currently returns no results) - not a
+  defect, a scope/completeness tradeoff made to avoid rushing a distinct
+  research pass late in an already-large stage, consistent with the
+  operator's "accuracy over completeness" instruction. Good candidate for
+  a future small addition using the same Ready.gov/NOAA sourcing pattern.
+
+**Testing performed:** JSON validated (build-time and post-deploy from the
+live path); `php -l` clean; rendered via PHP CLI directly pre-deploy (21
+entries, 5 sections, 19 source links, zero warnings); live regression sweep
+of every existing page unaffected; simulated the live search/filter logic
+in Python against deployed data for representative queries (`generator`,
+`flood`, `water`, `evacuat*` all resolve correctly; `bleeding`/`hurricane`
+correctly return nothing - First Aid and the noted gap, respectively, not
+bugs); live Normal vs. Emergency Mode content byte-diff - **identical**,
+confirming zero content duplication; `nginx`/`php8.4-fpm`/`hostapd`/
+`dnsmasq` all remained active throughout with no restarts; error logs
+reviewed across the full testing window - zero new entries. Live mode
+restored to explicit Normal before finishing.
+
+**Backup:** `~/piratebox-backups/emergency-ref-stage3-pre-20260901-060133/`
+(full `var/www/html` mirror + pre-change git HEAD `1987f5a`).
+
 ## Offline Utility Library - Stage 2: Radio Reference
 
 **Decision date:** 2026-09-01.

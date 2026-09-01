@@ -1119,3 +1119,18 @@ ul#chat li.empty-state {
     color: #606085;
     margin: -0.75rem 0 1.5rem 0;
 }
+
+/* -------------------------------------------------
+   Stage 3+: quick-action bullet lists, used by
+   Emergency/First Aid-style reference entries (reuses
+   the .radio-entry/.radio-search-bar/.radio-chip family
+   above - see OPERATIONAL-DECISIONS.md for why).
+   ------------------------------------------------- */
+.ref-quick-actions {
+    margin: 0.5rem 0;
+    padding-left: 1.25rem;
+}
+
+.ref-quick-actions li {
+    margin-bottom: 0.4rem;
+}
