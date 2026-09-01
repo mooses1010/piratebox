@@ -11,12 +11,18 @@
 #     repo. It can never remove a live file. Removing something from the
 #     site remains a deliberate, separate, manual action.
 #   - Explicit --exclude list for every piece of live user-generated
-#     content (uploads, chat/guestbook data, the deployed VERSION file, the
-#     admin password hash, generated QR codes) - belt-and-suspenders on top
-#     of the fact that none of these are ever tracked in the repo/.gitignore
-#     in the first place, so a plain sync could not touch them even without
-#     these excludes. See docs/OPERATIONAL-DECISIONS.md for the full
-#     rationale ("Claude deployment/mode-switch automation").
+#     content (uploads, chat/guestbook data, recovery messages, the
+#     deployed VERSION file, the admin password hash, generated QR codes) -
+#     belt-and-suspenders on top of the fact that none of these are ever
+#     tracked in the repo/.gitignore in the first place, so a plain sync
+#     could not touch them even without these excludes. See
+#     docs/OPERATIONAL-DECISIONS.md for the full rationale ("Claude
+#     deployment/mode-switch automation"; recovery-messages.json gap found
+#     and fixed in Stage 17 - see that entry for what happened and why).
+#     IMPORTANT: any future live-writable data store (a new user-facing
+#     form that writes its own JSON file) needs adding here BEFORE its
+#     first deploy, not after - this file is the one place that forgetting
+#     to do so has real consequences.
 #   - Installed to /usr/local/bin, root:root, not writable by the `moose`
 #     account - the account this runs on behalf of cannot modify what this
 #     script actually does, only trigger it via the narrow sudoers rule
@@ -45,6 +51,8 @@ rsync -a "${DRYRUN[@]}" --chown=www-data:www-data \
     --exclude 'data/chat.json.lock' \
     --exclude 'data/messages.json' \
     --exclude 'data/messages.json.lock' \
+    --exclude 'data/recovery-messages.json' \
+    --exclude 'data/recovery-messages.json.lock' \
     --exclude 'includes/VERSION' \
     --exclude 'public/assets/qr-url.png' \
     --exclude 'public/assets/qr-wifi.png' \

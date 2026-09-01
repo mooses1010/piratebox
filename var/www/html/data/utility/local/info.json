@@ -1,7 +1,7 @@
 {
   "region_label": "",
   "last_updated": "",
-  "notes": "Fill in region_label and last_updated, then populate each section below for this PirateBox's current location. Leave a section's array empty (not fabricated placeholder entries) if you don't have real information yet - the page shows a clean 'not yet added' message instead.",
+  "notes": "Fill in region_label and last_updated, then populate each section below for this PirateBox's current location. Leave a section's array empty (not fabricated placeholder entries) if you don't have real information yet - the page shows a clean 'not yet added' message instead. Each entry in hospitals/shelters/amateur_repeaters/other_resources can optionally include \"source\" (where the info came from), \"verified\" (date last confirmed, e.g. 2026-09-01), and \"confidence\" (high/medium/low) - see README.md in this directory for the full schema. Not required for entries you're confident are stable/well-known, but recommended for anything that could go stale.",
   "emergency_management": {
     "name": "",
     "phone": "",

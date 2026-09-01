@@ -30,6 +30,23 @@ function li_empty(string $msg): void
     echo '<p class="empty-state">' . htmlspecialchars($msg) . '</p>';
 }
 
+/**
+ * Stage 17: optional per-entry provenance (source/verified/confidence),
+ * documented in data/utility/local/README.md. Renders nothing if none of
+ * the three fields are present - purely additive, never required.
+ */
+function li_provenance(array $entry): string
+{
+    $bits = [];
+    if (!empty($entry['source'])) $bits[] = 'Source: ' . htmlspecialchars((string) $entry['source']);
+    if (!empty($entry['verified'])) $bits[] = 'verified ' . htmlspecialchars((string) $entry['verified']);
+    if (!empty($entry['confidence'])) {
+        $c = htmlspecialchars((string) $entry['confidence']);
+        $bits[] = 'confidence: <span class="radio-confidence confidence-' . $c . '">' . $c . '</span>';
+    }
+    return $bits ? '<br><span class="muted">' . implode(' &middot; ', $bits) . '</span>' : '';
+}
+
 function li_field_row(string $label, ?string $value): void
 {
     if (empty($value)) return;
@@ -124,7 +141,7 @@ function li_field_row(string $label, ?string $value): void
                                     <td><?= htmlspecialchars($h['name'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($h['address'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($h['phone'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($h['notes'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars($h['notes'] ?? '') ?><?= li_provenance($h) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -147,7 +164,7 @@ function li_field_row(string $label, ?string $value): void
                                     <td><?= htmlspecialchars($s['name'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($s['address'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($s['phone'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($s['notes'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars($s['notes'] ?? '') ?><?= li_provenance($s) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -172,7 +189,7 @@ function li_field_row(string $label, ?string $value): void
                                     <td><?= htmlspecialchars($r['offset'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($r['tone'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($r['location'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($r['notes'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars($r['notes'] ?? '') ?><?= li_provenance($r) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -212,7 +229,7 @@ function li_field_row(string $label, ?string $value): void
                                 <tr>
                                     <td><?= htmlspecialchars($r['name'] ?? '') ?></td>
                                     <td><?= htmlspecialchars($r['contact'] ?? '') ?></td>
-                                    <td><?= htmlspecialchars($r['notes'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars($r['notes'] ?? '') ?><?= li_provenance($r) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>
