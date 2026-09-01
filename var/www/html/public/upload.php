@@ -59,23 +59,62 @@ if ($err !== UPLOAD_ERR_OK) {
         $name = '_' . substr($name, 1);
     }
     $safe = preg_replace('/[^A-Za-z0-9._-]/', '_', $name);
-    $dest = $UPLOAD_DIR . '/' . $safe;
 
-    $i = 1;
-    while (file_exists($dest)) {
-        $info = pathinfo($safe);
-        $dest = $UPLOAD_DIR . '/' .
-            $info['filename'] . '_' . $i .
-            (isset($info['extension']) ? '.' . $info['extension'] : '');
-        $i++;
+    // Cap filename length. ext4 rejects a filename component over 255
+    // bytes outright; without this, a very long original filename would
+    // fail move_uploaded_file()/link() with a confusing "check permissions"
+    // error further down instead of just... having a shorter name.
+    $info = pathinfo($safe);
+    $base = $info['filename'];
+    $ext = isset($info['extension']) && $info['extension'] !== '' ? '.' . $info['extension'] : '';
+    $maxBaseLen = 180; // leaves headroom for "_NNN" + extension well under 255
+    if (strlen($base) > $maxBaseLen) {
+        $base = substr($base, 0, $maxBaseLen);
+    }
+    if ($base === '') {
+        $base = 'file';
     }
 
-    if (move_uploaded_file($tmp, $dest)) {
-        // SUCCESS: redirect back to the portal UI (PRG)
-        header('Location: /');
-        exit;
+    // Receive the upload into a privately-named staging file first (the
+    // random name can never collide with anything, so this step alone is
+    // always safe), then atomically claim the real, user-facing filename
+    // with link() - which fails with EEXIST rather than silently
+    // overwriting if another request claimed that name microseconds
+    // earlier. This is what actually makes two clients uploading the same
+    // filename at the same moment safe: the old file_exists()-then-move
+    // approach had a race where the loser's file would silently replace
+    // the winner's. Both staging and the final uploads/ dir are on the
+    // same filesystem (Phase 4 also moved PHP's own upload_tmp_dir here),
+    // so link() always works. See docs/OPERATIONAL-DECISIONS.md.
+    $staging = $UPLOAD_DIR . '/.incoming-' . bin2hex(random_bytes(16));
+    if (!move_uploaded_file($tmp, $staging)) {
+        $msg = "Failed to receive the uploaded file. Check permissions.";
     } else {
-        $msg = "Failed to move uploaded file to $dest. Check permissions.";
+        $dest = $UPLOAD_DIR . '/' . $base . $ext;
+        $claimed = false;
+        for ($i = 0; $i <= 1000; $i++) {
+            $candidate = $i === 0 ? $dest : ($UPLOAD_DIR . '/' . $base . '_' . $i . $ext);
+            if (@link($staging, $candidate)) {
+                $dest = $candidate;
+                $claimed = true;
+                break;
+            }
+            if (!file_exists($candidate)) {
+                // link() failed for a reason other than the name already
+                // existing (permissions, filesystem full, etc.) - retrying
+                // with a different name won't help.
+                break;
+            }
+        }
+        @unlink($staging);
+
+        if ($claimed) {
+            // SUCCESS: redirect back to the portal UI (PRG)
+            header('Location: /');
+            exit;
+        } else {
+            $msg = "Failed to save the uploaded file. Check permissions and free space.";
+        }
     }
 }
 

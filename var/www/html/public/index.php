@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 session_start();
+require_once __DIR__ . '/../includes/config.php';
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -24,21 +25,42 @@ foreach ((is_dir($UPLOAD_DIR) ? scandir($UPLOAD_DIR) : []) as $entry) {
     if ($entry === '.' || $entry === '..')
         continue;
 
+    // Skip dotfiles - in particular upload.php's brief ".incoming-*"
+    // staging files (see upload.php), which should never normally be
+    // visible here but could linger if a worker were killed mid-upload.
+    if (str_starts_with($entry, '.'))
+        continue;
+
     $fullPath = $UPLOAD_DIR . '/' . $entry;
 
     if (!is_file($fullPath))
         continue;
 
+    // A file can vanish between scandir() and here (e.g. an admin purge
+    // running at the same moment someone is loading this page) - skip it
+    // rather than showing a broken row with a false/empty size or date.
+    $size = @filesize($fullPath);
+    $mtime = @filemtime($fullPath);
+    if ($size === false || $mtime === false)
+        continue;
+
     $files[] = [
         'name' => $entry,
-        'size' => filesize($fullPath),
-        'uploaded' => filemtime($fullPath),   // timestamp of last modification (upload time)
-        'created' => filectime($fullPath),   // inode creation time (may equal uploaded on ext4)
+        'size' => $size,
+        'uploaded' => $mtime,   // timestamp of last modification (upload time)
     ];
 }
 
 // Sort newest first
 usort($files, fn($a, $b) => $b['uploaded'] <=> $a['uploaded']);
+
+// Storage visibility (Phase 4) - reuses the same PIRATEBOX_MIN_FREE_BYTES
+// reserve upload.php enforces (see includes/config.php), so the number
+// shown here always matches the point at which an upload actually gets
+// rejected. Shown as a friendly warning once free space is within 2x the
+// reserve, well before it actually blocks anything.
+$freeBytes = @disk_free_space($UPLOAD_DIR);
+$lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2);
 ?>
 <!doctype html>
 <html lang="en">
@@ -58,13 +80,22 @@ usort($files, fn($a, $b) => $b['uploaded'] <=> $a['uploaded']);
         <p><strong><?= htmlspecialchars($msg) ?></strong></p>
     <?php endif; ?>
 
-    <form action="/upload.php" method="post" enctype="multipart/form-data">
+    <form action="/upload.php" method="post" enctype="multipart/form-data" id="upload-form">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
         <label>Select a file (max <?= $MAX_SIZE / 1024 / 1024 ?>MiB):
             <input type="file" name="file" required data-max-size="<?= $MAX_SIZE ?>">
         </label>
         <button type="submit">Upload</button>
+        <div class="upload-progress" id="upload-progress" hidden>
+            <div class="upload-progress-bar" id="upload-progress-bar"></div>
+        </div>
     </form>
+
+    <?php if ($freeBytes !== false): ?>
+        <p class="storage-notice<?= $lowStorage ? ' low' : '' ?>">
+            <?= $lowStorage ? 'Storage is running low - ' : '' ?><?= round($freeBytes / 1024 / 1024 / 1024, 1) ?>GiB free
+        </p>
+    <?php endif; ?>
 
     <?php if (empty($files)): ?>
         <p style="text-align:center; color: #606085;">No files uploaded yet.</p>

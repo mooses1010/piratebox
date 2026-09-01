@@ -139,6 +139,33 @@ if [ -f "$PHP_INI" ]; then
     sed -i 's/^display_errors.*/display_errors = Off/' "$PHP_INI"
     sed -i 's/^log_errors.*/log_errors = On/' "$PHP_INI"
     sed -i 's/^disable_functions.*/disable_functions = exec,passthru,shell_exec,system,proc_open,popen,curl_exec,curl_multi_exec,parse_ini_file,show_source/' "$PHP_INI"
+    # Phase 1 defense-in-depth restriction (previously live-only, not
+    # reproduced by this installer - fixed in Phase 4). Phase 4 adds
+    # /var/www/piratebox-tmp (the disk-backed upload_tmp_dir configured
+    # below via pool.d/www.conf) plus the exact /proc, /sys, and /run
+    # paths the admin status page reads.
+    sed -i 's|^;\?open_basedir.*|open_basedir = /var/www/html:/var/lib/php/sessions:/tmp:/var/www/piratebox-tmp:/proc/uptime:/proc/meminfo:/sys/class/thermal/thermal_zone0/temp:/run/piratebox/status.json|' "$PHP_INI"
+fi
+
+# PHP-FPM pool config (upload_tmp_dir, upload_max_filesize/post_max_size
+# per-pool overrides) - previously present in this repo but never actually
+# deployed by this installer; fixed in Phase 4.
+if [ -f "etc/php/8.4/fpm/pool.d/www.conf" ] && [ -d "/etc/php/$PHP_VER/fpm/pool.d" ]; then
+    echo "    Copying PHP-FPM pool configuration..."
+    cp "etc/php/8.4/fpm/pool.d/www.conf" "/etc/php/$PHP_VER/fpm/pool.d/www.conf"
+fi
+
+# Phase 4: disk-backed PHP upload temp directory (replaces the tmpfs-backed
+# system default /tmp - see docs/OPERATIONAL-DECISIONS.md). Declared via
+# tmpfiles.d so it's recreated with correct ownership on every boot and
+# periodically cleaned of anything abandoned by a crashed PHP-FPM worker.
+echo "    Configuring disk-backed PHP upload temp directory..."
+mkdir -p /var/www/piratebox-tmp
+chown www-data:www-data /var/www/piratebox-tmp
+chmod 0700 /var/www/piratebox-tmp
+if [ -f "etc/tmpfiles.d/piratebox-tmp.conf" ]; then
+    cp "etc/tmpfiles.d/piratebox-tmp.conf" /etc/tmpfiles.d/piratebox-tmp.conf
+    systemd-tmpfiles --create /etc/tmpfiles.d/piratebox-tmp.conf || true
 fi
 
 # Application Deployment
@@ -150,12 +177,48 @@ chown -R www-data:www-data /var/www/html
 chmod 0755 /var/www/html/public/uploads
 chmod 0755 /var/www/html/data
 
+# Phase 4: record the deployed commit for the admin page's version display.
+# Best-effort only - if this isn't a git checkout, the admin page just
+# shows "unknown" rather than failing.
+if command -v git >/dev/null 2>&1 && git rev-parse HEAD >/dev/null 2>&1; then
+    git rev-parse HEAD > /var/www/html/includes/VERSION
+    chown www-data:www-data /var/www/html/includes/VERSION
+else
+    rm -f /var/www/html/includes/VERSION
+fi
+
+# Phase 4: admin/status page (public/admin/, already copied above by the
+# `cp -r var/www/html/*` step). Protected by nginx HTTP Basic Auth - see
+# etc/nginx/sites-available/default. The htpasswd file is created EMPTY
+# here (nobody can log in) rather than with any default credential; run
+# setup_admin_password.sh afterwards to set a real password. No secret is
+# ever committed to git or written by this installer.
+echo "[+] Setting up admin page authentication (locked out until configured)..."
+if [ ! -f /etc/nginx/.piratebox_admin_htpasswd ]; then
+    touch /etc/nginx/.piratebox_admin_htpasswd
+fi
+chown root:www-data /etc/nginx/.piratebox_admin_htpasswd
+chmod 0640 /etc/nginx/.piratebox_admin_htpasswd
+
+# Phase 4: status helper timer (Wi-Fi client count, per-service health,
+# undervoltage - see docs/OPERATIONAL-DECISIONS.md for why this needs to
+# run as a separate root helper instead of from PHP).
+echo "[+] Installing status helper timer..."
+cp piratebox_status_helper.sh /usr/local/bin/
+chmod +x /usr/local/bin/piratebox_status_helper.sh
+cp etc/systemd/system/piratebox-status.service /etc/systemd/system/piratebox-status.service
+cp etc/systemd/system/piratebox-status.timer /etc/systemd/system/piratebox-status.timer
+systemctl daemon-reload
+systemctl enable --now piratebox-status.timer
+
 # Maintenance Scripts & Cron
 echo "[+] Installing Maintenance Scripts..."
 cp purge_uploads.sh /usr/local/bin/
 chmod +x /usr/local/bin/purge_uploads.sh
 cp restart_hostapd.sh /usr/local/bin/
 chmod +x /usr/local/bin/restart_hostapd.sh
+cp setup_admin_password.sh /usr/local/bin/
+chmod +x /usr/local/bin/setup_admin_password.sh
 
 echo "[+] Setting up Cron Jobs..."
 # NOTE (Phase 2 decision, 2026-08-31): the nightly purge_uploads.sh cron and
@@ -181,4 +244,8 @@ systemctl mask wpa_supplicant.service 2>/dev/null || true
 echo "========================================"
 echo "   Installation Complete!"
 echo "   Please reboot your system: sudo reboot"
+echo ""
+echo "   The admin/status page at http://10.0.0.1/admin/ is LOCKED OUT"
+echo "   by default (no credential was set). Run this to enable it:"
+echo "       sudo /usr/local/bin/setup_admin_password.sh"
 echo "========================================"

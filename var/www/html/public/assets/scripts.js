@@ -21,34 +21,89 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Upload Form Logic (index.php)
-    // We select by enctype to specifically target the file upload form
+    // We select by enctype to specifically target the file upload form.
+    // Submitted via XHR (instead of a plain form POST) purely so we can
+    // show real upload progress (xhr.upload.onprogress) for what can be a
+    // 120MB transfer over Wi-Fi - the actual request/response semantics
+    // (redirect on success, HTML error page on failure) are unchanged
+    // from what upload.php has always done.
     const uploadForm = document.querySelector('form[enctype="multipart/form-data"]');
     if (uploadForm) {
+        const progressWrap = document.getElementById('upload-progress');
+        const progressBar = document.getElementById('upload-progress-bar');
+
         uploadForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
             const btn = uploadForm.querySelector('button');
             const fileLabel = uploadForm.querySelector('label');
             const fileInput = uploadForm.querySelector('input[name="file"]');
 
-            if (fileInput && fileInput.files.length > 0) {
-                // Get max size from data attribute
-                const maxSize = parseInt(fileInput.getAttribute('data-max-size'), 10);
+            if (!fileInput || fileInput.files.length === 0) return;
 
-                if (!isNaN(maxSize) && fileInput.files[0].size > maxSize) {
-                    e.preventDefault();
-                    alert('File is too large. Maximum size is ' + (maxSize / 1024 / 1024) + 'MiB.');
-                    return;
-                }
+            const maxSize = parseInt(fileInput.getAttribute('data-max-size'), 10);
+            if (!isNaN(maxSize) && fileInput.files[0].size > maxSize) {
+                alert('File is too large. Maximum size is ' + (maxSize / 1024 / 1024) + 'MiB.');
+                return;
             }
 
-            btn.disabled = true;
-            btn.textContent = 'UPLOADING...';
-            btn.classList.add('upload-animation');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'UPLOADING...';
+                btn.classList.add('upload-animation');
+            }
             if (fileInput) {
                 fileInput.style.pointerEvents = 'none';
                 fileInput.style.opacity = '0.5';
                 fileInput.style.display = 'none';
-                fileLabel.style.display = 'none';
+                if (fileLabel) fileLabel.style.display = 'none';
             }
+            if (progressWrap) progressWrap.hidden = false;
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', uploadForm.action, true);
+
+            xhr.upload.addEventListener('progress', function (evt) {
+                if (evt.lengthComputable && progressBar) {
+                    progressBar.style.width = Math.round((evt.loaded / evt.total) * 100) + '%';
+                }
+            });
+
+            xhr.addEventListener('load', function () {
+                // upload.php redirects (302 -> followed by the browser's
+                // XHR implementation) to "/" on success, and returns its
+                // own HTML directly (still at upload.php, no redirect) on
+                // any error - so responseURL tells us which happened
+                // without needing to parse anything.
+                const success = !/\/upload\.php(\?|$)/.test(xhr.responseURL);
+                if (success) {
+                    window.location.href = '/';
+                } else {
+                    // Show the server's actual error page/message rather
+                    // than a generic one, then let the user try again.
+                    document.open();
+                    document.write(xhr.responseText);
+                    document.close();
+                }
+            });
+
+            xhr.addEventListener('error', function () {
+                if (progressWrap) progressWrap.hidden = true;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'Upload';
+                    btn.classList.remove('upload-animation');
+                }
+                if (fileInput) {
+                    fileInput.style.pointerEvents = '';
+                    fileInput.style.opacity = '';
+                    fileInput.style.display = '';
+                    if (fileLabel) fileLabel.style.display = '';
+                }
+                alert('Upload failed - network error. Please try again.');
+            });
+
+            xhr.send(new FormData(uploadForm));
         });
     }
 
@@ -78,6 +133,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const maxLength = messageInput.getAttribute('maxlength');
         messageInput.addEventListener('input', function () {
             charCountDisplay.textContent = `${messageInput.value.length} / ${maxLength}`;
+        });
+    }
+
+    // Guard against a double-click double-posting a guestbook message
+    // before the page navigates away (messages.php is a plain synchronous
+    // form submit, unlike chat's fetch-based one).
+    const messageForm = document.getElementById('message-form');
+    if (messageForm) {
+        messageForm.addEventListener('submit', function () {
+            // A disabled button can't be clicked again, so simply
+            // disabling it here is enough to stop a double-submit - the
+            // page navigates away shortly after anyway.
+            const submitBtn = messageForm.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
         });
     }
 
@@ -129,10 +198,24 @@ document.addEventListener('DOMContentLoaded', function () {
             if (message == "")
                 return;
 
-            await fetch(form.action, { method: "POST", body: new URLSearchParams({ name, message, csrf_token }) });
+            // Guard against a double-tap/double-click firing two POSTs
+            // before the first completes (this form's submit is async, so
+            // nothing else stops that).
+            const sendBtn = chatForm.querySelector('button[type="submit"]');
+            if (sendBtn) {
+                if (sendBtn.disabled) return;
+                sendBtn.disabled = true;
+            }
+
+            try {
+                await fetch(form.action, { method: "POST", body: new URLSearchParams({ name, message, csrf_token }) });
+            } finally {
+                if (sendBtn) sendBtn.disabled = false;
+            }
 
             const template = chatList.querySelector("template");
             if (template) {
+                chatList.querySelector(".empty-state")?.remove();
                 const messageElement = template.content.cloneNode(true);
                 const small = messageElement.querySelector("small");
                 const contentSpan = messageElement.querySelector("span");
@@ -177,6 +260,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 chatList.querySelectorAll("li.pending").forEach(li => li.remove());
 
                 const lastMessageId = parseInt(chatList.dataset.lastMessageId ?? "-1");
+
+                if (chat.length > 0) chatList.querySelector(".empty-state")?.remove();
 
                 for (const msg of chat) {
                     if (msg.id > lastMessageId) {

@@ -1,0 +1,17 @@
+[Unit]
+Description=PirateBox status snapshot (Wi-Fi client count, service health, power)
+# Read-only system inspection for the admin status page. See
+# piratebox_status_helper.sh for exactly what this does and why it needs
+# to run as root instead of granting www-data any privilege.
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/piratebox_status_helper.sh
+# Defense in depth even though the script itself does nothing but read
+# system state and write to tmpfs: no network, no new privileges, minimal
+# writable filesystem surface.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/run/piratebox

@@ -6,6 +6,172 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## PHP's upload_tmp_dir moved off tmpfs onto the SD card
+
+**Decision date:** 2026-09-01 (Phase 4).
+
+PHP's default `upload_tmp_dir` is the system temp directory, which on this
+system is `/tmp` - a **tmpfs** (RAM-backed) mount, ~453MB, on a Pi with
+~905MB total RAM. Every upload sits fully in `$_FILES[...]['tmp_name']`
+before `move_uploaded_file()` runs, so a large upload (this app allows up
+to 120MB) was consuming real RAM rather than disk during that window, on a
+system that already has 300-600MB RAM in active use.
+
+**Fix:** `upload_tmp_dir` is now `/var/www/piratebox-tmp`, a dedicated
+directory on the ext4/SD-backed root filesystem, set via
+`php_admin_value[upload_tmp_dir]` in `pool.d/www.conf` (`php_admin_value`
+rather than `php_value` so application code can't override it back via
+`ini_set()`). The directory is `www-data:www-data`, mode `0700` (private -
+only PHP-FPM needs it), created via `etc/tmpfiles.d/piratebox-tmp.conf` so
+it exists with correct ownership after every boot. It sits outside
+`/var/www/html/public` (nginx's document root), so nginx can never serve
+it regardless of location-block configuration - there was nothing to
+explicitly block.
+
+**open_basedir** (`php.ini`) was extended to include the new directory -
+without this, PHP would refuse to write there at all and every upload
+would fail. `/tmp` itself was left in the allowed list (harmless, nothing
+depends on removing it).
+
+**Cleanup of abandoned temp files:** under normal operation PHP deletes
+its own upload temp file at the end of every request whether or not
+`move_uploaded_file()` was called, so nothing should ever actually
+accumulate here. The `tmpfiles.d` rule also declares a 1-day cleanup age,
+which uses systemd's existing `systemd-tmpfiles-clean.timer` (ships
+enabled by default on Debian - no new cron/timer was added for this) to
+catch the rare case of a file orphaned by a killed/crashed PHP-FPM worker
+(OOM kill, `request_terminate_timeout`, power loss).
+
+**Side benefit:** `upload_tmp_dir` and the `uploads/` directory are now on
+the *same* filesystem, which is what makes `upload.php`'s new
+collision-safe rename (see below) able to use `link()` at all - `link()`
+fails across filesystems (`EXDEV`), which would have been a problem while
+uploads landed in `uploads/` (ext4) via a tmpfs staging area.
+
+**Gap found and fixed along the way:** the installer previously never
+actually deployed `etc/php/8.4/fpm/pool.d/www.conf` at all (only
+`sites-available/default` was copied for nginx) - the repo copy was
+undeployed reference material, same category of gap as the already-
+documented `php.ini` drift below. The installer now copies it, and also
+now sets `open_basedir` itself (previously only ever set live, by hand,
+during Phase 1 - never reproduced by a fresh install). Both are Phase 4
+fixes, not new Phase 4 policy.
+
+## Concurrent same-filename uploads no longer race
+
+**Decision date:** 2026-09-01 (Phase 4).
+
+`upload.php`'s duplicate-filename handling used to be
+`file_exists($dest)` followed by `move_uploaded_file($tmp, $dest)` in a
+loop - a classic check-then-act race. If two clients uploaded a file with
+the same name at close to the same instant, both could pass the
+`file_exists()` check for the same candidate name before either finished
+moving its file, and the second `move_uploaded_file()` call would silently
+overwrite the first, discarding one upload with no error to either party.
+
+Now the upload is first moved to a privately-named staging file within
+`uploads/` (a random 32-hex-char name, which can never collide with
+anything), then the real, user-facing filename is *claimed* with
+`link()` - a single atomic syscall that fails with `EEXIST` rather than
+overwriting if another request claimed that name microseconds earlier. On
+`EEXIST` the code retries with `_1`, `_2`, etc., exactly as before, just
+race-free. Verified live with two genuinely concurrent uploads of the same
+filename (see git history / this phase's testing) - both files survive
+intact with distinct content.
+
+**Also added:** an explicit filename-length cap (180 characters for the
+base name, before the extension) - ext4 rejects a filename component over
+255 bytes outright, and a very long original filename would previously
+have failed at `move_uploaded_file()`/`link()` with a misleading "check
+permissions" message instead of just... having a shorter name.
+
+## Admin/status page (Phase 4): design and security boundaries
+
+**Decision date:** 2026-09-01 (Phase 4).
+
+A read-only status view plus three narrow maintenance actions, at
+`/admin/`, protected by nginx HTTP Basic Auth on that path only. Design
+goals: no accounts anywhere else in the app (unchanged), no privilege
+escalation path from the web tier to root, and no arbitrary command
+execution surface.
+
+**Access control:** HTTP Basic Auth via `auth_basic_user_file
+/etc/nginx/.piratebox_admin_htpasswd`, chosen over a PHP-level login
+(simpler, well-tested, doesn't need a new session/account model) or a
+"secret URL" (Basic Auth is stronger and standard). The installer creates
+this file **empty** - a locked-out default, not a hardcoded credential -
+so the admin page is completely inaccessible until an operator explicitly
+runs `setup_admin_password.sh`. No password is ever written by the
+installer or committed to git.
+
+**Why the status data doesn't come from PHP directly:** `disable_functions`
+already blocks `exec`/`shell_exec`/`system`/`passthru`/`proc_open`/`popen`
+at the php.ini level for this whole app (a Phase 1/2 decision, unchanged).
+Wi-Fi client count, per-service active/inactive state, and undervoltage
+status all fundamentally require either running a command or reading
+files a `www-data` process can't reach without broader privilege. Rather
+than carve any exception into `disable_functions` or grant `www-data`
+sudo, a **separate, narrowly-scoped root helper**
+(`piratebox_status_helper.sh`) runs those specific reads on a fixed
+30-second `systemd` timer, and writes the result as a small JSON file to
+`/run/piratebox/status.json` (tmpfs - never the SD card), world-readable
+(`0644`). The admin page just does a plain file read of that JSON - no
+new privilege, no exec, no input the helper ever consumes (it takes no
+arguments and reads no request data of any kind). The systemd unit also
+runs the helper under `NoNewPrivileges`/`ProtectSystem=strict`/
+`ProtectHome` for defense in depth, even though the script itself does
+nothing but read system state.
+
+Everything else the admin page shows (disk space, uploads directory size,
+uptime, RAM, CPU temperature) PHP reads directly and safely: plain
+`disk_free_space()`/`disk_total_space()` calls and plain reads of
+`/proc/uptime`, `/proc/meminfo`, and
+`/sys/class/thermal/thermal_zone0/temp` - each added to `open_basedir` as
+an exact file path (not a whole directory) to keep the restriction as
+narrow as everything else on that list.
+
+**Maintenance actions - three, deliberately narrow:** clear chat, clear
+guestbook messages, purge uploads. Each is independent (clearing chat
+never touches messages or uploads), each requires the same CSRF token as
+the rest of the app plus an explicit confirmation checkbox (plus a JS
+`confirm()` dialog), and none of them shell out or need any privilege
+`www-data` doesn't already have - `chat.json`/`messages.json`/`uploads/`
+are already owned by `www-data` (PHP creates them), so no sudo is needed
+for any of these three actions. Clearing chat/messages reuses the exact
+`flock()` + atomic temp-file-then-`rename()` pattern Phase 1 established
+for writes to those files, so an admin-triggered clear can never race a
+visitor's concurrent post and corrupt the file.
+
+**This fixes the Phase 2-documented `purge_uploads.sh` lock-race issue -
+for the web-triggered path only.** Phase 2 noted that `purge_uploads.sh`
+deletes `chat.json`/`messages.json` with a bare `rm`, which doesn't
+coordinate with `flock()` at all. The new admin "clear chat"/"clear
+messages" actions do NOT have this problem (they use the proper lock).
+`purge_uploads.sh` itself was deliberately left unchanged - it remains the
+manual, SSH-only, "wipe absolutely everything at once" utility it always
+was, and still carries the same documented caveat as before. The admin
+page's "purge uploads" action is also new/separate: it only touches
+`uploads/`, never chat or messages, unlike the script.
+
+**Deliberately deferred: no reboot or service-restart buttons.** Doing
+these safely from `www-data` would need either broad `sudo` for
+`www-data` (explicitly ruled out) or a second privileged helper with a
+much larger and more dangerous surface than the read-only status helper
+above (a helper that *restarts services or reboots on request* is a
+fundamentally different risk than one that only ever reads and writes a
+JSON snapshot on a fixed timer). Not worth it for what these commands
+already do fine over SSH - see the README's "Known Issues and
+troubleshooting" section for the exact commands
+(`systemctl restart nginx`/`php8.4-fpm`/`dnsmasq`, `restart_hostapd.sh`,
+`reboot`).
+
+**Version display:** the installer writes the deployed commit hash to
+`includes/VERSION` (best-effort - if the installer isn't run from a git
+checkout, the admin page just shows "unknown" rather than failing). This
+file is never committed to the repo itself (each deploy generates its
+own); it's a `.gitignore`-worthy artifact but small enough not to bother
+- if it's ever accidentally committed, it's harmless (just a commit hash).
+
 ## Typed hostnames can silently fail to resolve due to client-side DoH - not a PirateBox bug
 
 **Decision date:** 2026-09-01 (post-Phase 3).

@@ -437,3 +437,109 @@ ul#chat li.pending {
         flex: 0 0 auto;
     }
 }
+
+/* Phase 4: admin/status page */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    max-width: 900px;
+    margin: 0 auto 2rem auto;
+    padding: 0 1rem;
+}
+
+.stat-card {
+    background: #292938;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+}
+
+.stat-label {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: #606085;
+    font-weight: bold;
+}
+
+.stat-value {
+    font-size: 1.4rem;
+    font-weight: bold;
+}
+
+.stat-sub {
+    font-size: 0.8rem;
+    color: #606085;
+}
+
+.status-ok {
+    color: #4ade80;
+}
+
+.status-bad {
+    color: #ff4444;
+}
+
+.admin-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    max-width: 900px;
+    margin: 0 auto 2rem auto;
+    padding: 0 1rem;
+}
+
+.admin-action-form {
+    flex: 1 1 260px;
+    max-width: 320px;
+}
+
+.admin-action-form label {
+    font-size: 0.85rem;
+    display: block;
+}
+
+.danger-button {
+    background: #7a1f2b;
+    border-color: #7a1f2b;
+}
+
+.danger-button:hover {
+    background: #a02636;
+    border-color: #a02636;
+}
+
+/* Phase 4: storage notice on the main upload page */
+.storage-notice {
+    max-width: 600px;
+    margin: 0 auto 1rem auto;
+    padding: 0.5rem 1rem;
+    text-align: center;
+    font-size: 0.85rem;
+    color: #606085;
+}
+
+.storage-notice.low {
+    color: #ffb347;
+    font-weight: bold;
+}
+
+/* Phase 4: upload progress bar */
+.upload-progress {
+    width: 100%;
+    height: 0.5rem;
+    background: #000;
+    border: 1px solid #8c8dff;
+    margin-top: 0.5rem;
+    overflow: hidden;
+}
+
+.upload-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #8c8dff;
+    transition: width 0.2s ease;
+}

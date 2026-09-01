@@ -1,3 +1,9 @@
 var/www/html/data/messages.json
 var/www/html/data/chat.json
 var/www/html/public/uploads/*
+var/www/html/includes/VERSION
+
+# Admin page credential (Phase 4) - never generated/stored inside the repo
+# tree by any script here, but ignored defensively in case anyone copies
+# it in locally while testing.
+*.piratebox_admin_htpasswd

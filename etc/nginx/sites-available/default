@@ -55,6 +55,35 @@ server {
         return 302 http://10.0.0.1/;
     }
 
+    # Phase 4: admin/status page. HTTP Basic Auth on this one path only -
+    # everything else on the site stays open, matching PirateBox's
+    # no-accounts design. auth_basic_user_file is created empty (locked
+    # out - no default credential) by the installer; run
+    # setup_admin_password.sh to set a real password. See
+    # docs/OPERATIONAL-DECISIONS.md.
+    location ^~ /admin/ {
+        auth_basic "PirateBox Admin";
+        auth_basic_user_file /etc/nginx/.piratebox_admin_htpasswd;
+
+        try_files $uri $uri/ /admin/index.php?$args;
+
+        # Explicit auth_basic repeated here too (nginx already inherits it
+        # from the parent block) so this stays protected even if the
+        # blocks above are ever reordered or split apart.
+        location ~ \.php$ {
+            auth_basic "PirateBox Admin";
+            auth_basic_user_file /etc/nginx/.piratebox_admin_htpasswd;
+
+            try_files $uri =404;
+            fastcgi_split_path_info ^(.+\.php)(/.+)$;
+            fastcgi_index index.php;
+            include fastcgi_params;
+            fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_param DOCUMENT_ROOT $document_root;
+            fastcgi_pass unix:/run/php/php8.4-fpm.sock;
+        }
+    }
+
     # PirateBox application
     location / {
         try_files $uri $uri/ /index.php?$args;

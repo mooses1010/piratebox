@@ -42,6 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
     $name = trim(strip_tags($_POST['name'] ?? ''));
     $content = trim(strip_tags($_POST['message'] ?? ''));
 
+    // Server-side length caps matching the client-side maxlength attributes
+    // (32 / 2000) - those are a UX nicety, not a security boundary, since
+    // any raw POST can ignore them. Truncating rather than rejecting keeps
+    // this forgiving for a slightly-over-limit legitimate paste, while
+    // still bounding how much a single message can grow messages.json by.
+    $name = mb_substr($name, 0, 32);
+    $content = mb_substr($content, 0, 2000);
+
     if ($name === '') {
         $name = 'Anonymous';
     }

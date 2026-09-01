@@ -193,7 +193,41 @@ scheduled on your own install, you can add it back with `sudo crontab -e`:
 disk completely - `var/www/html/includes/config.php` defines a minimum
 free-space reserve (1 GiB by default) that an upload may never cross;
 uploads that would violate it are rejected with a clear message and never
-written to disk. No existing files are ever deleted to make room.
+written to disk. No existing files are ever deleted to make room. The main
+page also shows current free space, with a warning once it's within 2x
+that reserve.
+
+**Narrower maintenance actions are also available from the admin page**
+(see below) for clearing just chat, just the guestbook, or just uploads,
+each independently and each behind a confirmation checkbox -
+`purge_uploads.sh` remains available for the original "wipe everything at
+once" behavior.
+
+### 6. Admin/Status Page (Phase 4)
+
+A lightweight, local-only admin page at `http://10.0.0.1/admin/` shows
+storage/RAM/CPU/uptime, Wi-Fi client count, per-service health (hostapd/
+dnsmasq/nginx/PHP-FPM), and power/undervoltage status, plus three narrow
+maintenance actions (clear chat, clear guestbook, purge uploads - each
+independent, each requiring an explicit confirmation checkbox).
+
+**It is locked out by default** - the installer creates an *empty*
+password file for it, so nobody (including you) can log in until you set
+a password:
+```bash
+sudo /usr/local/bin/setup_admin_password.sh
+```
+This prompts for a username/password, hashes it, and writes
+`/etc/nginx/.piratebox_admin_htpasswd` (mode 0640, root:www-data - never
+committed to git, never has a default value). Re-run it any time to
+change the password. The admin page itself is protected by nginx HTTP
+Basic Auth on the `/admin/` path only - the rest of the site stays
+account-free, matching PirateBox's normal design.
+
+There is no reboot or service-restart button - see "Known Issues and
+troubleshooting" below for the SSH commands. See
+[docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md) for the
+full design rationale and security boundaries.
 
 ### Disable Unnecessary Services
 
@@ -257,4 +291,15 @@ history, including live crash-test results.
 If you're seeing genuine Wi-Fi instability (not just the old hourly cron),
 check `dmesg` / `journalctl -k` for `hwmon: Undervoltage detected!` first -
 that's a power supply/cable problem, not a software one, and is a more
-likely cause on a Pi 3B+ than anything `rpi-update` would fix.
+likely cause on a Pi 3B+ than anything `rpi-update` would fix. (The admin
+page also surfaces this - see `vcgencmd get_throttled` under Power below.)
+
+**Service restarts / reboot (SSH only - Phase 4 deliberately does not
+expose these as web buttons; see docs/OPERATIONAL-DECISIONS.md):**
+```bash
+sudo systemctl restart nginx
+sudo systemctl restart php8.4-fpm
+sudo systemctl restart dnsmasq
+sudo /usr/local/bin/restart_hostapd.sh   # or: sudo systemctl restart hostapd
+sudo reboot
+```

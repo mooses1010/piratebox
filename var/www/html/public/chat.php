@@ -42,6 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
     $name = trim(strip_tags($_POST['name'] ?? ''));
     $message = trim(strip_tags($_POST['message'] ?? ''));
 
+    // Server-side length caps matching the client-side maxlength attributes
+    // (32 / 2000) - those are a UX nicety, not a security boundary, since
+    // any raw POST can ignore them. Truncating rather than rejecting keeps
+    // this forgiving for a slightly-over-limit legitimate paste, while
+    // still bounding how much a single message can grow chat.json by.
+    $name = mb_substr($name, 0, 32);
+    $message = mb_substr($message, 0, 2000);
+
     if ($name === '') {
         $name = 'Anonymous';
     }
@@ -124,6 +132,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
 <body class="chat-page">
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
     <ul id="chat" data-last-message-id="<?= !empty($chat) ? $chat[count($chat) - 1]['id'] : -1 ?>">
+        <?php if (empty($chat)): ?>
+            <li class="muted empty-state" style="text-align:center;">No messages yet - say hello!</li>
+        <?php endif; ?>
         <?php foreach ($chat as $msg): ?>
             <li>
                 <small>
