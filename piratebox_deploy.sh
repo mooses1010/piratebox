@@ -27,6 +27,11 @@
 #     account - the account this runs on behalf of cannot modify what this
 #     script actually does, only trigger it via the narrow sudoers rule
 #     that names this exact path.
+#   - Stage 26 (versioning): every real (non-dry-run) run re-stamps
+#     includes/VERSION from this checkout's current HEAD, so the admin/
+#     Stats pages' version display reflects what's actually live instead
+#     of going stale after the first install (see
+#     docs/OPERATIONAL-DECISIONS.md).
 #
 # Run via: sudo /usr/local/bin/piratebox_deploy.sh [--dry-run]
 
@@ -63,6 +68,20 @@ rsync -a "${DRYRUN[@]}" --chown=www-data:www-data \
     "$SRC" "$DST"
 
 if [ "${#DRYRUN[@]}" -eq 0 ]; then
+    # Stage 26 (versioning): keep includes/VERSION reflecting what's
+    # actually live, not just what was true at initial install.
+    # installer_pi_zero_trixie.sh's one-time stamp (Phase 4) went stale
+    # after the very first deploy and was never updated again since -
+    # found live still showing a "Phase 4" commit hash after 25
+    # subsequent stages had already been deployed on top of it. Every
+    # real (non-dry-run) deploy now re-stamps it from this checkout's
+    # actual HEAD. Best-effort, same as the installer's own version
+    # stamp: never fails the deploy itself if git isn't usable here for
+    # some reason (e.g. a non-git deployment of this repo).
+    if COMMIT=$(git -C "${SRC%/}" rev-parse HEAD 2>/dev/null); then
+        echo "$COMMIT  (deployed $(date '+%Y-%m-%d %H:%M:%S %Z'))" > "${DST}includes/VERSION"
+        chown www-data:www-data "${DST}includes/VERSION"
+    fi
     echo "$(date '+%Y-%m-%d %H:%M:%S') - piratebox_deploy.sh: synced $SRC -> $DST"
 else
     echo "$(date '+%Y-%m-%d %H:%M:%S') - piratebox_deploy.sh: DRY RUN (nothing changed)"

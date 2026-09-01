@@ -20,6 +20,65 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 26: Versioning - Live VERSION File Actually Reflects What's Deployed
+
+**Decision date:** 2026-09-01. Layered on Stage 25 (`3f653b4`).
+
+**Real pre-existing bug found (not introduced by this stage):**
+`includes/VERSION` (the commit hash shown on the admin page and the
+Stats page as "Software version") is stamped exactly once, by
+`installer_pi_zero_trixie.sh`, at initial install - and
+`piratebox_deploy.sh` has always explicitly excluded it from every
+subsequent sync (correctly, since it's live-generated state, not
+source-controlled content). Nothing, however, ever *regenerated* it
+after that first install. Confirmed live: the deployed `VERSION` file
+still read a "Phase 4" commit hash - `0d9cb69` ("Phase 4 fixup: mark
+piratebox_status_helper.sh executable in git") - despite 25 subsequent
+stages already having been deployed on top of it. The version display
+has been silently wrong for the entire life of this expansion batch.
+
+**Fix:** `piratebox_deploy.sh` now re-stamps `includes/VERSION` from the
+deploying checkout's current `git rev-parse HEAD` on every real
+(non-dry-run) run, alongside a human-readable deploy timestamp - e.g.
+`<full sha>  (deployed 2026-09-01 11:01:21 PDT)`. Both existing readers
+(`admin/index.php`, `utility/status/index.php`) just `trim()` and
+display whatever single line is there, so this is compatible with the
+existing format without needing to touch either page. Best-effort,
+matching the installer's own original stamp: never fails the deploy
+itself if git isn't usable in the checkout for some reason.
+
+**Not yet live** - same as every prior change to this script (Stage 21,
+and the exclude-list drift found during Stage 24's audit), the deployed
+root-owned `/usr/local/bin/piratebox_deploy.sh` only picks up a repo
+change to this file once the operator re-runs
+`setup_claude_automation.sh` - outside this session's 5-command sudo
+boundary. **This conveniently means there is no risk of this session's
+own git-branch situation (see Stage 24/25's recovery notes) ever
+stamping a technically-inaccurate hash live** - the feature simply
+doesn't run at all until that manual step happens, by which point a
+normal (non-recovery) session's git state will be back to reflecting
+reality.
+
+**Consolidated pending manual steps** (previously scattered across
+Stage 21/24's entries - gathered here in one place so they don't need
+hunting down): running `sudo ./setup_claude_automation.sh` once is
+needed to pick up, in one shot: (1) Stage 21's `set_piratebox_mode.sh`
+Emergency-runtime transition logging, (2) Stage 22/24's
+`data/bulletin.json`/`data/mode-transitions.log` deploy excludes, and
+(3) this stage's `includes/VERSION` auto-stamping. None of these are
+urgent (each degrades gracefully - a missing stat, a currently-harmless
+stale exclude, an already-known-stale version string - see each
+stage's own entry for why), but doing the one re-run picks up all three
+at once.
+
+**Testing:** `bash -n` clean. Isolated test against a throwaway
+destination directory (skipping the actual `rsync`/`chown` steps, which
+need root) confirmed the VERSION-stamping logic produces the correct
+single-line format from a real `git rev-parse HEAD`. Not deployed live
+this stage (nothing under `var/www/html` changed, and the feature can't
+take effect live until the pending `setup_claude_automation.sh` re-run
+regardless - see above), so no live verification cycle was needed.
+
 ## Stage 25: Backup / Restore for Live Community Data
 
 **Decision date:** 2026-09-01. Layered on Stage 24 (`f8557af`).
