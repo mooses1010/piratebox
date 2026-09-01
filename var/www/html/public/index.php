@@ -3,6 +3,9 @@ declare(strict_types=1);
 session_start();
 require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/helpers.php';
+require_once __DIR__ . '/../includes/mode.php';
+
+$piratebox_mode = piratebox_get_mode();
 
 if (empty($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -69,7 +72,7 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PirateBox - Offline File Share</title>
+    <title><?= $piratebox_mode === PIRATEBOX_MODE_EMERGENCY ? 'PirateBox - Local Emergency Information Network' : 'PirateBox - Offline File Share' ?></title>
     <link rel="stylesheet" href="assets/styles.css">
     <script src="assets/scripts.js"></script>
 </head>
@@ -77,9 +80,70 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
 <body>
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
 
-    <div class="hero">
+    <?php if ($piratebox_mode === PIRATEBOX_MODE_EMERGENCY): ?>
+        <div class="hero">
+            <div class="hero-tagline">Local Emergency Information Network</div>
+            <h1>Local Offline Network</h1>
+            <p>This is designed to run on battery power. Internet access is not required or provided.</p>
+            <p>This network contains locally stored emergency information, radio references, maps, first-aid references, files, and local communication tools.</p>
+        </div>
+
+        <div class="utility-grid">
+            <a class="utility-card" href="/utility/emergency/">
+                <span class="utility-card-icon" aria-hidden="true">🚨</span>
+                <span class="utility-card-title">Emergency Info</span>
+                <span class="utility-card-desc">Outage, storm &amp; disaster guidance</span>
+            </a>
+            <a class="utility-card" href="/utility/radio/">
+                <span class="utility-card-icon" aria-hidden="true">📻</span>
+                <span class="utility-card-title">Radio</span>
+                <span class="utility-card-desc">Bands, frequencies &amp; modes</span>
+            </a>
+            <a class="utility-card" href="/utility/maps/">
+                <span class="utility-card-icon" aria-hidden="true">🗺️</span>
+                <span class="utility-card-title">Maps</span>
+                <span class="utility-card-desc">Local &amp; regional maps</span>
+            </a>
+            <a class="utility-card" href="/utility/firstaid/">
+                <span class="utility-card-icon" aria-hidden="true">🩹</span>
+                <span class="utility-card-title">First Aid</span>
+                <span class="utility-card-desc">Basic conservative reference</span>
+            </a>
+            <a class="utility-card" href="/chat.php">
+                <span class="utility-card-icon" aria-hidden="true">💬</span>
+                <span class="utility-card-title">Messages / Chat</span>
+                <span class="utility-card-desc">Talk with others connected here</span>
+            </a>
+            <a class="utility-card" href="#files">
+                <span class="utility-card-icon" aria-hidden="true">📁</span>
+                <span class="utility-card-title">Files</span>
+                <span class="utility-card-desc">Share &amp; download files</span>
+            </a>
+            <a class="utility-card" href="/utility/search/">
+                <span class="utility-card-icon" aria-hidden="true">🔍</span>
+                <span class="utility-card-title">Search</span>
+                <span class="utility-card-desc">Search everything on this network</span>
+            </a>
+            <a class="utility-card" href="/utility/library/">
+                <span class="utility-card-icon" aria-hidden="true">📚</span>
+                <span class="utility-card-title">Library</span>
+                <span class="utility-card-desc">Manuals &amp; reference documents</span>
+            </a>
+        </div>
+
+        <section class="help-section">
+            <h2>Also on this network</h2>
+            <div class="hero-actions">
+                <a href="/messages.php">Guestbook</a>
+                <a href="/help.php">Help / About this network</a>
+                <a href="/utility/">Full Utility Library</a>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <div class="hero" id="files">
         <div class="hero-tagline">Offline File Sharing</div>
-        <h1>PirateBox</h1>
+        <?= $piratebox_mode === PIRATEBOX_MODE_EMERGENCY ? '<h2>PirateBox</h2>' : '<h1>PirateBox</h1>' ?>
         <p>This is a local, offline network - no Internet connection is used or required. Share files, chat, and leave messages with anyone else connected to this Wi-Fi.</p>
         <div class="hero-actions">
             <a href="#upload-form">Upload a file</a>

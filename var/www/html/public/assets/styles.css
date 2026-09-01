@@ -884,3 +884,18 @@ ul#chat li.empty-state {
 .utility-placeholder-note strong {
     color: #a0a1ff;
 }
+
+/* -------------------------------------------------
+   Emergency Mode software foundation: shared banner
+   only - the landing-page hero/card grid reuses the
+   .hero / .utility-grid / .utility-card / .help-section
+   components already defined above, unchanged.
+   ------------------------------------------------- */
+.mode-banner {
+    max-width: 700px;
+    margin: 0.75rem auto 0 auto;
+}
+
+.mode-banner .help-note {
+    margin: 0;
+}

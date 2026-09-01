@@ -6,6 +6,214 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Emergency Mode: software presentation-mode foundation (no GPIO yet)
+
+**Decision date:** 2026-09-01.
+
+**Scope:** additive, presentation-layer only. No networking, hostapd,
+dnsmasq/DHCP/DNS, captive-portal, nginx architecture, PHP security
+restrictions (`open_basedir`/`disable_functions`), or existing application
+logic (`upload.php`, `chat.php`, `messages.php`, `admin/index.php`) changed.
+No GPIO access, no OLED display, no momentary-button handling, no SSID
+change, and hostapd was never touched or restarted this phase - all
+explicitly deferred, per the operator's own instructions, to a later phase
+once the ordered hardware (MTS-101 toggle switch, SSD1306 OLED, momentary
+buttons) actually arrives. Checkpoint: this phase starts from and is layered
+directly on top of the Stage 1 commit `e428b578bf1bd25c7faf1c10980a4bfc8c001e8c`,
+kept as the known-good pre-Emergency-Mode reference point.
+
+**Concept:** the site now has two presentation modes, Normal and Emergency,
+selected by a single piece of trusted state. Radio/Emergency/Maps/First
+Aid/Library/Search/Files/Chat/Guestbook content is **not duplicated** between
+modes - every page under `/utility/...` and every existing PirateBox page is
+byte-identical regardless of mode (confirmed live - none of them even
+reference the mode system). Only three things change with mode: the
+homepage's landing content, the navbar's link order, and (site-wide) whether
+a small "Emergency Mode" banner is shown. Eventually mode will also
+determine the Wi-Fi SSID (not implemented this phase - see below).
+
+**Where mode state lives:** `/tmp/piratebox/mode` - a single-line plain-text
+file containing exactly the word `normal` or `emergency`, nothing else (no
+JSON). Chosen over the JSON `status.json` pattern used elsewhere in this
+project because a single enum value doesn't need JSON's structure, and
+plain text has exactly one way to be malformed instead of a whole parser's
+worth - simpler and more robust, matching the operator's explicit
+"simple and robust" requirement for this subsystem.
+
+**Why `/tmp` and not `/run/piratebox/` (which is what an earlier planning
+discussion for this feature proposed):** the operator's safety list for this
+phase explicitly said not to change "PHP security restrictions." `/tmp` is
+already fully inside `open_basedir` (it has been since before this project's
+Phase 1), so reading a file there required **zero** `php.ini`/`open_basedir`
+edit. `/run/piratebox/mode.json` would have needed a new `open_basedir`
+entry, same as `status.json` got in Phase 4 - a reasonable change in
+general, but not one this phase's explicit instructions permitted, so the
+design was adjusted to avoid it rather than doing it anyway. Both paths are
+tmpfs, so the reboot-reset behavior below is identical either way; this can
+be revisited when the real GPIO daemon is built, if there's a reason to
+prefer `/run`.
+
+**Why tmpfs specifically:** a fresh boot always starts with **no state file
+present**, which resolves to the safe Normal fallback - by construction, not
+by a special case that has to be remembered and kept correct. This also
+matches the operator's stated requirement that the physical switch (once
+wired) should be read fresh at every boot rather than trusting a persisted
+last-known value from the SD card.
+
+**How PHP reads it:** one new function, `piratebox_get_mode()` in the new
+`includes/mode.php` (not `helpers.php`, which is documented as pure
+formatting helpers - mode detection is a distinct concern and was given its
+own small file so it stays the one obvious place this logic lives). Reads
+the state file, trims/lowercases it, and returns the literal string
+`'emergency'` only on an exact match; **every other outcome - file missing,
+empty, unreadable, garbage content - returns `'normal'`.** The function
+cannot throw and never returns a third "unknown" value. Verified against all
+of these cases both as a direct unit-level check (`php -r` against the
+deployed file, all 7 cases: missing dir, empty file, garbage content,
+explicit `normal`, explicit `emergency`, mixed-case/whitespace `emergency`,
+and `chmod 000`-unreadable) and live, end-to-end, against the actual
+deployed site (missing-file case - the site's default state before this
+phase's testing began, invalid-content case). Every one correctly resolved
+to the expected mode.
+
+**www-data/PHP never writes this file, ever, and there is deliberately no
+web-reachable way to change mode.** Mode changes only come from a trusted,
+privileged, out-of-band actor: today that's an operator running
+`set_piratebox_mode.sh` by hand with `sudo`; later it will be a root-owned
+GPIO daemon. This preserves the same "web tier can only read, a separate
+privileged helper does anything sensitive" boundary this project has used
+since the Phase 4 admin/status page.
+
+**`set_piratebox_mode.sh`** (repo root, not yet installed to
+`/usr/local/bin` - can be run directly from the repo path with `sudo`):
+manual stand-in for the not-yet-installed MTS-101 toggle switch. Takes
+`normal`, `emergency`, or `status`; refuses to run as non-root for
+`normal`/`emergency` (mode changes are a trusted operation, matching the "no
+public unauthenticated way to change mode" requirement even for this manual
+tool); writes atomically (temp file in the same tmpfs directory, then
+`rename()`) so a concurrent PHP request never observes a half-written file.
+Deliberately built to be the same write path a future GPIO daemon will use -
+proving out this script now means the daemon inherits already-tested
+behavior rather than needing its own from-scratch verification of the state
+file mechanics.
+
+**Landing page (`index.php`) in Emergency Mode:** per the operator's
+explicit instruction ("do not merely add a banner to the normal Files-first
+page... someone who has never heard of PirateBox should connect and
+immediately understand what this network is"), the root URL genuinely
+changes what renders first - an emergency-framed hero ("Local Emergency
+Information Network... designed to run on battery power... Internet access
+is not required or provided...") followed by an 8-card grid (Emergency
+Info, Radio, Maps, First Aid, Messages/Chat, Files, Search, Library, in that
+order) using the exact `.utility-grid`/`.utility-card` component Stage 1
+already built for `/utility/`'s own landing page - zero new CSS needed for
+this part. The existing Files/Upload/file-list block - **completely
+unchanged code**, not a copy - still renders on the same page immediately
+below, now anchored `id="files"` so the grid's "Files" card can jump
+straight to it, with its own heading demoted from `<h1>` to `<h2>` in
+Emergency Mode only (correct HTML semantics with two hero sections on one
+page; same text either way). In Normal Mode `index.php`'s output is
+byte-for-byte what Stage 1 already produced - confirmed live.
+
+**Navbar (`includes/navbar.php`):** same six links/targets in both modes -
+only the order changes. Normal: Files, Upload, Chat, Guestbook, Help,
+Utility (unchanged from Stage 1). Emergency: Utility, Chat, Files,
+Guestbook, Help, Upload. Implemented as a small ordered-key array picked by
+mode and rendered via one `foreach`, rather than two hard-coded `<li>`
+blocks, so adding a mode or changing an order later is a one-line change.
+Labels/hrefs deliberately left unchanged between modes (considered
+relabeling "Utility" to "Emergency" in the navbar, rejected: it would then
+point somewhere different from the landing page's separate "Emergency Info"
+card, which links to `/utility/emergency/` specifically - keeping one
+label/target pair everywhere avoids that mismatch).
+
+**Emergency Mode banner:** a small site-wide notice ("Emergency Mode - this
+is a local offline network. No Internet access is required or provided.")
+rendered by `navbar.php` itself (so every page that includes the navbar
+gets it automatically, with zero per-page changes) whenever mode is
+Emergency, and rendered nowhere at all in Normal Mode. Reuses the existing
+`.help-note` component style (warm amber accent, matching the project's
+"informative, not alarming" visual language - not the red/`.status-bad`
+styling used for actual faults) plus one small new 2-rule CSS block
+(`.mode-banner`) purely for width/centering - confirmed present on `/`,
+`/chat.php`, `/messages.php`, `/utility/`, and `/help.php` in Emergency
+Mode, and confirmed absent from all of them in Normal Mode. `admin/index.php`
+was deliberately left out (it hand-rolls its own nav, is Basic-Auth-gated,
+and is an operator/status page rather than part of the public presentation
+- not worth the extra touched file for this phase).
+
+**Testing performed (unit-level and live, both directions):**
+- `php -l` on every new/changed PHP file - clean.
+- Direct unit-level test of `piratebox_get_mode()` against the deployed
+  file for all 7 state-file conditions listed above - all correct.
+- **Normal Mode** (the site's actual state through most of this phase's
+  testing, since no state file existed yet): confirmed Files-first landing,
+  correct nav order, no emergency hero/grid/banner anywhere, `/admin/` still
+  `401`, all `/utility/...` pages still `200`, all 7 captive-portal probe
+  paths and the Capport JSON endpoint unchanged, upload form still renders,
+  and a **live CSRF-authenticated guestbook POST** accepted and visible on
+  refetch (proving the write path still works through the modified
+  `navbar.php`).
+- **Emergency Mode** (operator ran `sudo set_piratebox_mode.sh emergency`):
+  confirmed the emergency hero copy, all 8 grid cards resolving to their
+  correct existing URLs (verified individually, not just that the grid
+  exists), the "Also on this network" secondary links (Guestbook/Help/full
+  Utility Library), correct reordered nav, the banner present on every page
+  checked, `/admin/` still `401`, every existing and `/utility/...` page
+  still `200`, captive-portal probes unchanged, and a **live
+  CSRF-authenticated chat POST** accepted and visible on refetch.
+- **Content-sharing check:** confirmed none of the files under
+  `public/utility/*/index.php` reference `mode.php`/`piratebox_get_mode()`
+  at all - they render identically regardless of mode, reached by a
+  different nav path only.
+- **Live failure-mode checks**, run against the actual deployed site (not
+  just simulated): operator wrote invalid content
+  (`echo not-a-real-mode > /tmp/piratebox/mode`) - site correctly rendered
+  full Normal presentation, `/admin/` still gated. The state file not
+  existing at all was also exercised live for real, since that was the
+  site's actual condition before the first `set_piratebox_mode.sh` call
+  this phase.
+- `nginx`/`php8.4-fpm` error logs reviewed across the entire testing window
+  (spanning both mode switches and all live POSTs): zero new errors: the
+  only matches are pre-existing historical entries from earlier phases
+  (confirmed by timestamp, well before this phase's testing began).
+- `nginx`, `php8.4-fpm`, `hostapd`, `dnsmasq` all remained `active`
+  throughout, with no restarts - expected, since nothing in this phase
+  touches any of those services. Final state was explicitly restored to
+  Normal Mode (`sudo set_piratebox_mode.sh normal`) before finishing.
+
+**Backup:** `~/piratebox-backups/emergency-mode-phase1-pre-20260901-052052/`
+(full `var/www/html` mirror + recorded pre-change git HEAD `e428b57`),
+created before any edit in this phase.
+
+**Known residual test data:** this phase's live write-path tests left two
+more clearly-labeled entries in `data/chat.json`/`data/messages.json`
+(`[Automated Emergency Mode Stage regression - ... - safe to delete via
+/admin/]`), in addition to the two left by Stage 1's testing. Same as
+before: not cleared automatically (no admin credentials available to this
+assistant); clear via `/admin/` if desired.
+
+**Deliberately deferred to a later phase** (per the operator's explicit
+instructions - none of this exists yet):
+- Actual GPIO access / the MTS-101 toggle switch. `set_piratebox_mode.sh`
+  is the interim stand-in and is intended to be directly replaceable by a
+  future root-owned GPIO daemon that writes the same state file with the
+  same atomic-write technique.
+- SSID switching. hostapd/`hostapd.conf` were not touched or restarted this
+  phase. No Emergency SSID has been chosen. When this is implemented, the
+  design this phase establishes is meant to support it safely: the
+  privileged mode-writer (today the script, later the GPIO daemon) is the
+  one place that would decide "did the mode actually change," debounce the
+  physical switch before acting, and - only on a genuine, stable transition
+  - swap in the correct static `hostapd-{normal,emergency}.conf` and
+    restart hostapd, never on every poll.
+- The SSD1306 OLED display and the five momentary buttons. Neither is
+  implemented; no GPIO pins have been assigned to anything. The OLED is
+  intended to eventually be a read-only consumer of the same
+  `piratebox_get_mode()`-equivalent state, informational only, never
+  required for the site to function - consistent with the fallback
+  behavior already built and tested this phase.
+
 ## Offline Utility Library - Stage 1: scaffolding, landing page, nav link
 
 **Decision date:** 2026-09-01 (Utility Phase 1).
