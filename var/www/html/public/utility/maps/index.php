@@ -99,7 +99,7 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                 <h2 class="radio-group-heading">Coordinates, GPS &amp; Navigation Basics</h2>
                 <?php foreach ($reference as $t): ?>
                     <?php $search = ref_search_blob([$t['title'], $t['summary'], $t['keywords'] ?? [], 'reference']); ?>
-                    <details class="radio-entry" data-group="reference" data-search="<?= $search ?>">
+                    <details class="radio-entry" id="<?= htmlspecialchars($t['id']) ?>" data-group="reference" data-search="<?= $search ?>">
                         <summary>
                             <span class="radio-entry-name"><?= htmlspecialchars($t['title']) ?></span>
                             <span class="radio-entry-mode-badge"><?= htmlspecialchars($t['summary']) ?></span>
@@ -126,9 +126,9 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                 <?php if (empty($catalog)): ?>
                     <p class="empty-state">No maps have been added yet. See "Adding a Map" below to add one for this box's area.</p>
                 <?php else: ?>
-                    <?php foreach ($catalog as $m): ?>
+                    <?php foreach ($catalog as $mapIdx => $m): ?>
                         <?php $search = ref_search_blob([$m['title'] ?? '', $m['region'] ?? '', $m['category'] ?? '', $m['tags'] ?? [], 'catalog']); ?>
-                        <details class="radio-entry" data-group="catalog" data-search="<?= $search ?>">
+                        <details class="radio-entry" id="<?= htmlspecialchars($m['id'] ?? ('map-' . $mapIdx)) ?>" data-group="catalog" data-search="<?= $search ?>">
                             <summary>
                                 <span class="radio-entry-name"><?= htmlspecialchars($m['title'] ?? 'Untitled map') ?></span>
                                 <span class="radio-entry-mode-badge"><?= htmlspecialchars($m['category'] ?? '') ?></span>

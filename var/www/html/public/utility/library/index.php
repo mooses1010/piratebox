@@ -88,9 +88,9 @@ function ref_search_blob(array $fields): string
                     <?php if (empty($groups[$groupKey])) continue; ?>
                     <section class="radio-group" data-group-section="<?= htmlspecialchars($groupKey) ?>">
                         <h2 class="radio-group-heading"><?= htmlspecialchars($groupLabel) ?></h2>
-                        <?php foreach ($groups[$groupKey] as $doc): ?>
+                        <?php foreach ($groups[$groupKey] as $docIdx => $doc): ?>
                             <?php $search = ref_search_blob([$doc['title'] ?? '', $doc['description'] ?? '', $doc['tags'] ?? [], $groupKey]); ?>
-                            <details class="radio-entry" data-group="<?= htmlspecialchars($groupKey) ?>" data-search="<?= $search ?>">
+                            <details class="radio-entry" id="<?= htmlspecialchars($doc['id'] ?? ('doc-' . $docIdx)) ?>" data-group="<?= htmlspecialchars($groupKey) ?>" data-search="<?= $search ?>">
                                 <summary>
                                     <span class="radio-entry-name"><?= htmlspecialchars($doc['title'] ?? 'Untitled document') ?></span>
                                     <span class="radio-entry-mode-badge"><?= htmlspecialchars($doc['file_type'] ?? '') ?></span>

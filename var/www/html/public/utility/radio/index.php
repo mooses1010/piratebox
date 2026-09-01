@@ -154,7 +154,7 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
                         $search = radio_search_blob([$svc['name'], $svc['freq_range'], $svc['keywords'] ?? [], $svc['category']]);
                         $txLicensed = !empty($svc['license_required_to_transmit']);
                         ?>
-                        <details class="radio-entry" data-group="<?= htmlspecialchars($groupKey) ?>" data-search="<?= $search ?>">
+                        <details class="radio-entry" id="<?= htmlspecialchars($svc['id']) ?>" data-group="<?= htmlspecialchars($groupKey) ?>" data-search="<?= $search ?>">
                             <summary>
                                 <span class="radio-entry-name"><?= htmlspecialchars($svc['name']) ?></span>
                                 <span class="radio-entry-freq"><?= htmlspecialchars($svc['freq_range']) ?></span>
@@ -211,7 +211,7 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
                     <h2 class="radio-group-heading">Modulation Types</h2>
                     <?php foreach ($modulation as $m): ?>
                         <?php $search = radio_search_blob([$m['name'], $m['keywords'] ?? []]); ?>
-                        <details class="radio-entry" data-group="modulation" data-search="<?= $search ?>">
+                        <details class="radio-entry" id="<?= htmlspecialchars($m['id']) ?>" data-group="modulation" data-search="<?= $search ?>">
                             <summary>
                                 <span class="radio-entry-name"><?= htmlspecialchars($m['name']) ?></span>
                             </summary>
@@ -232,7 +232,7 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
                     <h2 class="radio-group-heading">Practical Guides</h2>
                     <?php foreach ($guides as $g): ?>
                         <?php $search = radio_search_blob([$g['title'], $g['keywords'] ?? []]); ?>
-                        <details class="radio-entry" data-group="guides" data-search="<?= $search ?>">
+                        <details class="radio-entry" id="<?= htmlspecialchars($g['id']) ?>" data-group="guides" data-search="<?= $search ?>">
                             <summary>
                                 <span class="radio-entry-name"><?= htmlspecialchars($g['title']) ?></span>
                             </summary>

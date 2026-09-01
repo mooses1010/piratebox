@@ -475,4 +475,19 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
+
+    // Deep-link support (Stage 8, Global Search): if the page was opened
+    // with a URL fragment matching a reference entry's id (e.g.
+    // /utility/radio/#noaa-weather-radio, as search results now link to),
+    // open that entry and scroll to it. Works on every page that uses the
+    // shared .radio-entry <details> component - no per-page wiring needed.
+    // A no-op on any page without a matching id, and does nothing at all
+    // if there's no fragment - plain in-page anchors still work normally.
+    if (window.location.hash) {
+        const target = document.getElementById(window.location.hash.slice(1));
+        if (target && target.classList.contains('radio-entry')) {
+            target.open = true;
+            target.scrollIntoView({ block: 'start' });
+        }
+    }
 });

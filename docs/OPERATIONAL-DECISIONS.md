@@ -6,6 +6,77 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Offline Utility Library - Stage 8: Global Offline Search
+
+**Decision date:** 2026-09-01.
+
+**Scope:** builds out `/utility/search/` (a Stage 1 placeholder) into a
+real global search across Radio, Emergency, First Aid, Maps, Local
+Information, and the Document Library, plus a small deep-linking addition
+to all 5 section pages. No networking/security-boundary/Emergency-Mode-
+state changes; no packages installed. Layered on Stage 7 (`d615346`).
+
+**`tools/build_search_index.py`** (new, re-runnable): reads the same JSON
+data files each section page already reads and writes a single flat
+`data/utility/search-index.json` (83 entries, ~34KB) - `{title, section,
+url, snippet, keywords, freq?}` per item. This is the "rebuild the index"
+command referenced in the project's original planning; re-run it any time
+section content changes. No PDF text extraction, no `pdftotext`/
+`poppler-utils` - metadata/title/tag search only, per instruction (moot
+this stage anyway, since the Library catalog has no documents yet).
+
+**Deep-linking, added to all 5 section pages:** every `<details
+class="radio-entry">` across Radio/Emergency/First Aid/Maps/Library now
+carries `id="<the item's own id from its JSON>"` (Maps catalog and Library
+catalog entries fall back to a positional `map-N`/`doc-N` id if a future
+entry omits one). A new guarded block in `scripts.js` checks
+`window.location.hash` on load and, if it matches a `.radio-entry` id,
+opens that `<details>` and scrolls to it - this is what makes "direct
+local link" in a search result actually jump to the answer
+(`/utility/radio/#noaa-weather-radio`) rather than just the section page.
+Confirmed no duplicate ids on any page before deploying. This is the one
+place this stage touched already-approved Stage 2-7 pages - a small,
+mechanical, additive change (one attribute per entry), not a redesign.
+
+**Search page design:** server-renders all 83 results as plain link cards
+(title, section badge, frequency badge where relevant, snippet) - fully
+browsable and useful with JavaScript off, same progressive-enhancement
+principle as every other section. Reuses the exact same shared filter
+component (`#radioSearch`/`#radioChips`/`data-group`/`data-search`) as
+Radio/Emergency/First Aid/Maps/Library - chips here filter by *section*
+instead of topic category. ~30 lines of new CSS for the result-card
+layout (reusing `.radio-entry-name`/`.radio-entry-mode-badge`/
+`.radio-entry-freq` for visual consistency); zero changes to the shared
+filter JS itself - it already worked on this markup shape unmodified.
+
+**Local Information indexing note:** since that dataset ships almost
+empty (Stage 6), the index always includes one generic "Local Information"
+pointer entry (keywords: local/hospital/shelter/repeater/emergency
+contact) even though the underlying arrays are empty - so a search for
+e.g. "hospital" still surfaces the right section rather than nothing,
+confirmed live. The same pattern applies to the Document Library section.
+
+**Testing performed:** search index validated (build-time + live, 83
+entries both times); `php -l` clean on all 6 changed PHP files; rendered
+the Search page via PHP CLI pre-deploy (83 result cards confirmed); no
+duplicate entry ids confirmed on the Radio page before deploy; **deploy
+previewed with an itemized dry-run** (filtered to real content changes)
+before applying; live regression sweep of every existing page unaffected;
+all 12 required test queries (NOAA, 40 meter, airband, generator,
+bleeding, hypothermia, flood, water, GPS, GMRS, manual, hospital)
+verified against the live index, each resolving to the correct
+section(s); live deep-link verified end-to-end (entry id present on the
+Radio page, search index href points at it, `scripts.js`'s handling code
+confirmed deployed); live Normal vs. Emergency Mode content byte-diff on
+both the Search page and (re-verified) the Radio page - **identical**;
+`nginx`/`php8.4-fpm`/`hostapd`/`dnsmasq` active throughout, no restarts;
+error logs clean across the full testing window. Live mode restored to
+explicit Normal before finishing - entire cycle via the automation, no
+manual round-trips.
+
+**Backup:** `~/piratebox-backups/search-stage8-pre-20260901-064643/` (full
+`var/www/html` mirror + pre-change git HEAD `b9edb15`).
+
 ## Offline Utility Library - Stage 7: Document Library
 
 **Decision date:** 2026-09-01.

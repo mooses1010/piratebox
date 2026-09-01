@@ -1,0 +1,1117 @@
+[
+  {
+    "title": "160 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-160m",
+    "snippet": "Primarily a night-time band; heavy static in summer thunderstorm season. Voice activity mostly above 1.840–1.900 MHz.",
+    "keywords": [
+      "160m",
+      "1.8 mhz",
+      "top band",
+      "ham"
+    ],
+    "freq": "1.800–2.000 MHz"
+  },
+  {
+    "title": "80/75 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-80m",
+    "snippet": "Good regional night-time HF band; popular for regional nets and ragchews.",
+    "keywords": [
+      "80m",
+      "75m",
+      "3.5 mhz",
+      "ham"
+    ],
+    "freq": "3.500–4.000 MHz"
+  },
+  {
+    "title": "60 Meter Band (Channelized)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-60m",
+    "snippet": "4 channel centers: 5332.0, 5348.0, 5373.0, 5405.0 kHz, plus a reduced-power secondary WRC-15 segment at 5351.5–5366.5 kHz. Rules here changed as recently as December 2025 - reverify current rules before any transmit use.",
+    "keywords": [
+      "60m",
+      "5 mhz",
+      "channelized",
+      "ham"
+    ],
+    "freq": "5330.5–5406.4 kHz (4 fixed channels + a lower-power secondary segment)"
+  },
+  {
+    "title": "40 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-40m",
+    "snippet": "Reliable regional/continental night-time HF band; one of the most consistently active ham HF bands after dark.",
+    "keywords": [
+      "40m",
+      "7 mhz",
+      "ham",
+      "hf"
+    ],
+    "freq": "7.000–7.300 MHz"
+  },
+  {
+    "title": "30 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-30m",
+    "snippet": "Narrow shared band; mostly CW and FT8/other digital activity, rarely voice.",
+    "keywords": [
+      "30m",
+      "10 mhz",
+      "ham",
+      "digital",
+      "ft8",
+      "wspr"
+    ],
+    "freq": "10.100–10.150 MHz"
+  },
+  {
+    "title": "20 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-20m",
+    "snippet": "The most popular HF DX (long-distance) band; often active worldwide nearly any time of day.",
+    "keywords": [
+      "20m",
+      "14 mhz",
+      "ham",
+      "hf",
+      "dx"
+    ],
+    "freq": "14.000–14.350 MHz"
+  },
+  {
+    "title": "17 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-17m",
+    "snippet": "WARC band (no contests permitted); good daytime DX band.",
+    "keywords": [
+      "17m",
+      "18 mhz",
+      "ham",
+      "warc"
+    ],
+    "freq": "18.068–18.168 MHz"
+  },
+  {
+    "title": "15 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-15m",
+    "snippet": "Daytime band, strongly tied to the solar/sunspot cycle - can be excellent or nearly dead depending on solar activity.",
+    "keywords": [
+      "15m",
+      "21 mhz",
+      "ham"
+    ],
+    "freq": "21.000–21.450 MHz"
+  },
+  {
+    "title": "12 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-12m",
+    "snippet": "WARC band; narrow, daytime, solar-cycle dependent.",
+    "keywords": [
+      "12m",
+      "24 mhz",
+      "ham",
+      "warc"
+    ],
+    "freq": "24.890–24.990 MHz"
+  },
+  {
+    "title": "10 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-10m",
+    "snippet": "FM repeaters/simplex cluster near 29.520–29.680 MHz. Otherwise very solar-cycle dependent - can be nearly dead for years, then open worldwide during high solar activity.",
+    "keywords": [
+      "10m",
+      "28 mhz",
+      "ham"
+    ],
+    "freq": "28.000–29.700 MHz"
+  },
+  {
+    "title": "6 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-6m",
+    "snippet": "Nicknamed ‘the Magic Band’ - usually quiet, but sporadic-E and other propagation can unpredictably open it for long-distance contacts.",
+    "keywords": [
+      "6m",
+      "50 mhz",
+      "ham",
+      "magic band"
+    ],
+    "freq": "50–54 MHz"
+  },
+  {
+    "title": "2 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-2m",
+    "snippet": "The most popular VHF ham band. National FM simplex calling frequency: 146.520 MHz. FM repeater outputs are commonly found across 144–148 MHz per local band plan.",
+    "keywords": [
+      "2m",
+      "144 mhz",
+      "146.52",
+      "ham",
+      "vhf",
+      "repeater"
+    ],
+    "freq": "144–148 MHz"
+  },
+  {
+    "title": "1.25 Meter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-1.25m",
+    "snippet": "Less common band - fewer radios support it. 222.100 MHz is a widely-used national simplex calling frequency in many regions.",
+    "keywords": [
+      "1.25m",
+      "220 mhz",
+      "222 mhz",
+      "ham"
+    ],
+    "freq": "219–220 MHz and 222–225 MHz"
+  },
+  {
+    "title": "70 Centimeter Band",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#amateur-70cm",
+    "snippet": "Second most popular ham VHF/UHF band after 2m. National FM simplex calling frequency: 446.000 MHz. Widely used for repeaters and digital voice (DMR/D-STAR/System Fusion).",
+    "keywords": [
+      "70cm",
+      "440 mhz",
+      "446",
+      "ham",
+      "uhf",
+      "repeater"
+    ],
+    "freq": "420–450 MHz"
+  },
+  {
+    "title": "AM Broadcast (Mediumwave)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#broadcast-am",
+    "snippet": "AM travels far at night via skywave (ionospheric) propagation - distant stations often become audible after dark that are inaudible during the day.",
+    "keywords": [
+      "am radio",
+      "am broadcast",
+      "medium wave",
+      "mediumwave",
+      "540",
+      "1700"
+    ],
+    "freq": "535–1705 kHz (540–1700 kHz channelized, 10 kHz spacing, 117 channels)"
+  },
+  {
+    "title": "FM Broadcast",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#broadcast-fm",
+    "snippet": "Line-of-sight VHF propagation - range is mostly limited by antenna height/terrain, not time of day (unlike AM).",
+    "keywords": [
+      "fm radio",
+      "fm broadcast",
+      "88 mhz",
+      "108 mhz"
+    ],
+    "freq": "88.0–108.0 MHz (100 channels, 200 kHz spacing)"
+  },
+  {
+    "title": "Shortwave Broadcast",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#broadcast-shortwave",
+    "snippet": "Best reception varies a lot by band, time of day, and season - lower bands tend to favor night reception, higher bands favor daytime; all of it is sensitive to solar activity.",
+    "keywords": [
+      "shortwave",
+      "sw broadcast",
+      "international broadcast",
+      "hf broadcast"
+    ],
+    "freq": "2.3–26.1 MHz (multiple international meter bands)"
+  },
+  {
+    "title": "NOAA Weather Radio (All Hazards)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#noaa-weather-radio",
+    "snippet": "Continuous weather broadcast plus All Hazards alerts (severe weather and some non-weather emergencies). Typical range ~40 miles from a full-power transmitter over level terrain. Coverage depends on the specific transmitter serving your location, not just your state. Channel numbering (WX1–WX7) is a common radio-manufacturer convention, not an official NOAA designation - confirm by frequency, not channel number.",
+    "keywords": [
+      "noaa",
+      "weather radio",
+      "nwr",
+      "wx",
+      "all hazards",
+      "162 mhz"
+    ],
+    "freq": "162.400–162.550 MHz (7 fixed frequencies)"
+  },
+  {
+    "title": "Citizens Band (CB) Radio",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#cb-radio",
+    "snippet": "Normally short-range ground-wave propagation (a few miles), but can skip long distances during sporadic-E or other solar/atmospheric conditions.",
+    "keywords": [
+      "cb",
+      "cb radio",
+      "citizens band",
+      "channel 9",
+      "channel 19",
+      "27 mhz"
+    ],
+    "freq": "26.965–27.405 MHz (40 channels, 10 kHz spacing)"
+  },
+  {
+    "title": "FRS (Family Radio Service)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#frs",
+    "snippet": "Real-world range is usually well under 1 mile in typical terrain, despite marketing claims of much longer range.",
+    "keywords": [
+      "frs",
+      "family radio service",
+      "walkie talkie"
+    ],
+    "freq": "462.5625–467.7125 MHz (22 channels)"
+  },
+  {
+    "title": "GMRS (General Mobile Radio Service)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#gmrs",
+    "snippet": "Repeaters can extend usable range to roughly 20+ miles depending on antenna height/terrain. Per a 2024 FCC clarification, GMRS repeaters may not be linked to each other over the internet.",
+    "keywords": [
+      "gmrs",
+      "general mobile radio service",
+      "repeater"
+    ],
+    "freq": "462.550–467.725 MHz (22 shared channels + repeater input pairs on ch.15-22)"
+  },
+  {
+    "title": "MURS (Multi-Use Radio Service)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#murs",
+    "snippet": "Generally less crowded than FRS/GMRS in many areas; popular for trail, farm, and property use.",
+    "keywords": [
+      "murs",
+      "multi-use radio service"
+    ],
+    "freq": "151.820–154.600 MHz (5 channels)"
+  },
+  {
+    "title": "Marine VHF",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#marine-vhf",
+    "snippet": "Channel 16 = international distress/calling/safety. Channel 9 = recreational hailing (alternate to 16 in many areas). Channel 13 = bridge-to-bridge navigation safety. Channel 22A/1022 = USCG safety/weather announcements. Channel 70 = digital calling only, no voice.",
+    "keywords": [
+      "marine vhf",
+      "boat radio",
+      "channel 16",
+      "distress",
+      "coast guard"
+    ],
+    "freq": "156.050–162.025 MHz (channelized)"
+  },
+  {
+    "title": "Aviation / Airband",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#airband",
+    "snippet": "Deliberately uses AM, not FM - lets a stronger nearby signal be heard over a weaker one instead of one completely blocking the other ('capture effect'), which matters for safety. Standard US channel spacing is 25 kHz (8.33 kHz in parts of Europe). HF (2.850–22 MHz, USB) is used for oceanic/remote-area voice beyond VHF range.",
+    "keywords": [
+      "airband",
+      "aviation",
+      "atc",
+      "air traffic control",
+      "118 mhz"
+    ],
+    "freq": "118.000–136.975 MHz (voice); 108.000–117.975 MHz (VOR/ILS navigation, not voice)"
+  },
+  {
+    "title": "Railroad Radio",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#railroad",
+    "snippet": "Uses an AAR-coordinated channel plan (roughly 97 channels, 15 kHz spacing) for dispatch, road/yard operations, and defect detectors. Specific channel-to-railroad/purpose assignments are regional and change over time - consult a current regional scanner/railfan frequency guide for your area rather than relying on a fixed list here.",
+    "keywords": [
+      "railroad",
+      "train",
+      "rail scanner",
+      "aar"
+    ],
+    "freq": "approximately 159.6–161.6 MHz (exact lower edge unconfirmed - see note)"
+  },
+  {
+    "title": "AM (Amplitude Modulation)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#am",
+    "snippet": "Signal strength (amplitude) varies to carry sound. Simple and tolerant of weak-signal fading, and lets a stronger station be heard over a weaker one on the same frequency instead of blocking it outright.",
+    "keywords": [
+      "am",
+      "amplitude modulation"
+    ]
+  },
+  {
+    "title": "FM / NFM (Narrowband Frequency Modulation)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#fm",
+    "snippet": "Signal frequency varies slightly to carry sound. Used for most two-way land-mobile voice. Generally clearer than AM in strong-signal conditions, but the weaker of two same-frequency signals is usually blocked entirely (the 'capture effect') rather than heard faintly underneath.",
+    "keywords": [
+      "fm",
+      "narrowband fm",
+      "nfm"
+    ]
+  },
+  {
+    "title": "WFM (Wideband FM)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#wfm",
+    "snippet": "Wide-deviation FM used for commercial FM broadcast - much higher audio fidelity than narrowband FM, but uses far more bandwidth. On a wideband receiver, WFM is usually a separate mode setting from (N)FM, not the same one.",
+    "keywords": [
+      "wfm",
+      "wide fm",
+      "broadcast fm"
+    ]
+  },
+  {
+    "title": "USB (Upper Sideband)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#usb",
+    "snippet": "A form of single-sideband voice (roughly half of an AM signal, more efficient for a given power). Used by amateur-radio convention above 10 MHz, plus HF airband and marine SSB. Sounds badly garbled if tuned even slightly off-frequency - fine adjustment matters.",
+    "keywords": [
+      "usb",
+      "ssb",
+      "single sideband",
+      "upper sideband"
+    ]
+  },
+  {
+    "title": "LSB (Lower Sideband)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#lsb",
+    "snippet": "The other half of single-sideband voice - same technical concept as USB, just the other sideband. Used by amateur-radio convention on 160m/80m/60m/40m. The USB/LSB split by band is a long-standing operating custom, not a technical requirement.",
+    "keywords": [
+      "lsb",
+      "ssb",
+      "single sideband",
+      "lower sideband"
+    ]
+  },
+  {
+    "title": "CW (Continuous Wave / Morse Code)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#cw",
+    "snippet": "The carrier is simply switched on and off to send Morse code - no voice. Extremely narrow bandwidth, so CW signals can often be copied through noise/interference where a voice signal couldn't.",
+    "keywords": [
+      "cw",
+      "morse",
+      "morse code"
+    ]
+  },
+  {
+    "title": "RF Spectrum Overview",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#rf-spectrum-overview",
+    "snippet": "The usable radio spectrum for a wideband receiver like a Malahit spans roughly 100 kHz to 2+ GHz depending on the model. Moving up in frequency: LF/MF holds AM ",
+    "keywords": [
+      "spectrum",
+      "overview",
+      "rf basics"
+    ]
+  },
+  {
+    "title": "HF vs VHF vs UHF",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#hf-vhf-uhf-explained",
+    "snippet": "HF (High Frequency, 3–30 MHz) can travel worldwide by bouncing off the ionosphere ('skywave'), especially at night - this is how shortwave broadcast and long-di",
+    "keywords": [
+      "hf",
+      "vhf",
+      "uhf",
+      "frequency bands"
+    ]
+  },
+  {
+    "title": "HF Propagation Basics",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#hf-propagation-basics",
+    "snippet": "HF signals can travel very long distances by refracting off the ionosphere back down to earth ('skywave'), but how well this works depends heavily on time of da",
+    "keywords": [
+      "propagation",
+      "hf propagation",
+      "skywave",
+      "ionosphere",
+      "day night"
+    ]
+  },
+  {
+    "title": "Antenna & Band Guidance",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#antenna-basics",
+    "snippet": "An antenna generally works best when its physical length relates simply to the wavelength of the frequency it's used on - lower frequencies need physically long",
+    "keywords": [
+      "antenna",
+      "wire antenna",
+      "whip antenna"
+    ]
+  },
+  {
+    "title": "Practical Wideband Receiver Tips",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#receiver-practical-tips",
+    "snippet": "Squelch mutes the receiver's noise output between transmissions on FM channels - set it just above the background noise floor so it opens cleanly when a real si",
+    "keywords": [
+      "squelch",
+      "tuning step",
+      "receiver tips",
+      "practical tips"
+    ]
+  },
+  {
+    "title": "What to Monitor During Severe Weather / an Emergency",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#emergency-monitoring-quick-reference",
+    "snippet": "Start with NOAA Weather Radio (162.400–162.550 MHz, NFM) for official forecasts and All Hazards alerts - it's the single most reliable receive-only source here.",
+    "keywords": [
+      "emergency",
+      "severe weather",
+      "monitoring",
+      "disaster",
+      "outage",
+      "what to listen to"
+    ]
+  },
+  {
+    "title": "Thunderstorms & Lightning",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#thunderstorms-lightning",
+    "snippet": "If you can hear thunder, you're close enough to be struck.",
+    "keywords": [
+      "lightning",
+      "thunderstorm",
+      "storm",
+      "thunder"
+    ]
+  },
+  {
+    "title": "Tornadoes",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#tornado",
+    "snippet": "Get to the lowest, most interior, windowless room you can, right away.",
+    "keywords": [
+      "tornado",
+      "twister",
+      "funnel cloud"
+    ]
+  },
+  {
+    "title": "Flooding",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#flood",
+    "snippet": "Turn Around, Don't Drown - never walk, swim, or drive through flood water.",
+    "keywords": [
+      "flood",
+      "flooding",
+      "flash flood",
+      "water rising"
+    ]
+  },
+  {
+    "title": "Earthquakes",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#earthquake",
+    "snippet": "Drop, Cover, and Hold On the moment you feel shaking.",
+    "keywords": [
+      "earthquake",
+      "quake",
+      "aftershock",
+      "shaking"
+    ]
+  },
+  {
+    "title": "Wildfire & Smoke",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#wildfire-smoke",
+    "snippet": "Evacuate immediately if told to; otherwise reduce smoke exposure indoors.",
+    "keywords": [
+      "wildfire",
+      "smoke",
+      "air quality",
+      "fire",
+      "n95"
+    ]
+  },
+  {
+    "title": "Extreme Heat",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#extreme-heat",
+    "snippet": "Recognize heat exhaustion vs. heat stroke - heat stroke is a 911 emergency.",
+    "keywords": [
+      "heat",
+      "heat stroke",
+      "heat exhaustion",
+      "hot weather",
+      "extreme heat"
+    ]
+  },
+  {
+    "title": "Extreme Cold & Winter Weather",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#extreme-cold",
+    "snippet": "Hypothermia and frostbite both need warmth first - know the signs.",
+    "keywords": [
+      "cold",
+      "hypothermia",
+      "frostbite",
+      "winter storm",
+      "freezing"
+    ]
+  },
+  {
+    "title": "When the Power Goes Out",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#power-outage",
+    "snippet": "Keep freezers/fridges closed and have a plan for medical devices.",
+    "keywords": [
+      "power outage",
+      "blackout",
+      "no power",
+      "electricity out"
+    ]
+  },
+  {
+    "title": "Downed Power Lines",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#downed-power-lines",
+    "snippet": "Assume every downed line is live - stay back and call it in.",
+    "keywords": [
+      "downed power line",
+      "electrical line",
+      "fallen wire"
+    ]
+  },
+  {
+    "title": "Generator Safety",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#generator-safety",
+    "snippet": "Generators belong outside, far from windows - never in a garage or basement.",
+    "keywords": [
+      "generator",
+      "generator safety",
+      "portable generator"
+    ]
+  },
+  {
+    "title": "Carbon Monoxide Safety",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#carbon-monoxide",
+    "snippet": "CO is invisible and odorless - symptoms feel like the flu.",
+    "keywords": [
+      "carbon monoxide",
+      "co poisoning",
+      "co detector"
+    ]
+  },
+  {
+    "title": "Alternative Lighting & Fire Safety",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#lighting-fire-safety",
+    "snippet": "Use flashlights instead of candles during an outage.",
+    "keywords": [
+      "candle",
+      "flashlight",
+      "lighting",
+      "fire safety"
+    ]
+  },
+  {
+    "title": "Water Storage & Boil-Water Advisories",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#water-storage-safety",
+    "snippet": "Store 1 gallon per person per day; follow local guidance on advisories.",
+    "keywords": [
+      "water",
+      "water storage",
+      "boil water",
+      "boil water advisory",
+      "drinking water"
+    ]
+  },
+  {
+    "title": "Food Safety During an Outage",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#food-safety-outage",
+    "snippet": "When in doubt, throw it out.",
+    "keywords": [
+      "food safety",
+      "refrigerator",
+      "freezer",
+      "spoiled food"
+    ]
+  },
+  {
+    "title": "Sanitation Without Running Water",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#sanitation",
+    "snippet": "Plan for toilets before you need one - poor sanitation spreads disease fast.",
+    "keywords": [
+      "sanitation",
+      "toilet",
+      "no water",
+      "hygiene"
+    ]
+  },
+  {
+    "title": "Family Emergency Communication Plan",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#family-emergency-plan",
+    "snippet": "Pick an out-of-town contact - long-distance calls/texts often work when local ones don't.",
+    "keywords": [
+      "emergency plan",
+      "communication plan",
+      "family plan",
+      "emergency contacts",
+      "out of town contact"
+    ]
+  },
+  {
+    "title": "Evacuation",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#evacuation",
+    "snippet": "If told to evacuate, go - don't wait to see how bad it gets.",
+    "keywords": [
+      "evacuation",
+      "evacuate",
+      "leave",
+      "go bag"
+    ]
+  },
+  {
+    "title": "Shelter-in-Place vs. Evacuating",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#shelter-in-place",
+    "snippet": "Sometimes staying put is safer than trying to leave.",
+    "keywords": [
+      "shelter in place",
+      "stay or go",
+      "shelter"
+    ]
+  },
+  {
+    "title": "When Phones & Internet Are Down",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#communications-outage",
+    "snippet": "Text over talk, and know your offline fallback.",
+    "keywords": [
+      "communications outage",
+      "no cell service",
+      "no internet",
+      "phone down",
+      "network down"
+    ]
+  },
+  {
+    "title": "Battery & Power Conservation",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#battery-conservation",
+    "snippet": "Assume you won't be able to recharge - make it last.",
+    "keywords": [
+      "battery",
+      "power conservation",
+      "phone battery",
+      "save battery"
+    ]
+  },
+  {
+    "title": "Pets in an Emergency",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#pets-disaster-prep",
+    "snippet": "If it's not safe for you to stay, it's not safe for your pet either.",
+    "keywords": [
+      "pets",
+      "dog",
+      "cat",
+      "animal",
+      "pet emergency kit"
+    ]
+  },
+  {
+    "title": "Get Professional Help - Check, Call, Care",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#get-help",
+    "snippet": "Scene safety first, then call 911 for anything life-threatening.",
+    "keywords": [
+      "911",
+      "emergency help",
+      "scene safety",
+      "check call care"
+    ]
+  },
+  {
+    "title": "CPR / AED Overview",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#cpr-aed-overview",
+    "snippet": "For an unresponsive person not breathing normally: call 911, get an AED, and begin CPR if trained.",
+    "keywords": [
+      "cpr",
+      "aed",
+      "cardiac arrest",
+      "defibrillator",
+      "not breathing"
+    ]
+  },
+  {
+    "title": "Choking (Conscious Adult/Child)",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#choking",
+    "snippet": "Alternate 5 back blows and 5 abdominal thrusts until the object clears.",
+    "keywords": [
+      "choking",
+      "abdominal thrusts",
+      "heimlich",
+      "can't breathe"
+    ]
+  },
+  {
+    "title": "Severe (Life-Threatening) Bleeding",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#severe-bleeding",
+    "snippet": "Direct pressure first; a tourniquet if bleeding on a limb won't stop.",
+    "keywords": [
+      "bleeding",
+      "severe bleeding",
+      "tourniquet",
+      "blood loss"
+    ]
+  },
+  {
+    "title": "Shock",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#shock",
+    "snippet": "Pale, cool, clammy skin and a fast weak pulse are early warning signs.",
+    "keywords": [
+      "shock",
+      "pale clammy skin",
+      "weak pulse"
+    ]
+  },
+  {
+    "title": "Burns",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#burns",
+    "snippet": "Cool the burn under clean, cool running water for 10-20 minutes.",
+    "keywords": [
+      "burn",
+      "burns",
+      "scald",
+      "cool water"
+    ]
+  },
+  {
+    "title": "Minor Cuts & Wounds",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#minor-wounds",
+    "snippet": "Clean it, cover it, and watch for signs of infection.",
+    "keywords": [
+      "cut",
+      "scrape",
+      "wound",
+      "minor injury",
+      "infection"
+    ]
+  },
+  {
+    "title": "Sprains & Fractures",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#sprains-fractures",
+    "snippet": "Rest, immobilize, cool, and elevate - don't try to straighten a deformed limb.",
+    "keywords": [
+      "sprain",
+      "fracture",
+      "broken bone",
+      "rice method",
+      "splint"
+    ]
+  },
+  {
+    "title": "Head Injury Warning Signs",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#head-injury",
+    "snippet": "Watch closely after any bump to the head - some warning signs appear later.",
+    "keywords": [
+      "head injury",
+      "concussion",
+      "hit head",
+      "brain injury"
+    ]
+  },
+  {
+    "title": "Seizures",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#seizures",
+    "snippet": "Protect them from injury - don't restrain, and don't put anything in their mouth.",
+    "keywords": [
+      "seizure",
+      "convulsion",
+      "epilepsy"
+    ]
+  },
+  {
+    "title": "Poisoning",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#poisoning",
+    "snippet": "Call Poison Control (1-800-222-1222) or 911 - don't guess at home remedies.",
+    "keywords": [
+      "poisoning",
+      "poison control",
+      "swallowed something",
+      "toxic"
+    ]
+  },
+  {
+    "title": "Allergic Reaction / Anaphylaxis",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#allergic-reaction-anaphylaxis",
+    "snippet": "Anaphylaxis can turn life-threatening within minutes - epinephrine, not antihistamines, is the treatment.",
+    "keywords": [
+      "allergic reaction",
+      "anaphylaxis",
+      "epipen",
+      "epinephrine",
+      "allergy"
+    ]
+  },
+  {
+    "title": "Heat Exhaustion & Heat Stroke",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#heat-illness",
+    "snippet": "Heat stroke (hot, dry/red skin, confusion) is a 911 emergency - cool the person immediately.",
+    "keywords": [
+      "heat stroke",
+      "heat exhaustion",
+      "overheating",
+      "hot weather"
+    ]
+  },
+  {
+    "title": "Hypothermia & Frostbite",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#hypothermia-frostbite",
+    "snippet": "Warm the person gradually - never with direct high heat, and never rub frostbitten skin.",
+    "keywords": [
+      "hypothermia",
+      "frostbite",
+      "cold exposure",
+      "freezing"
+    ]
+  },
+  {
+    "title": "Insect Bites, Stings & Snake Bites",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#bites-stings",
+    "snippet": "Watch for allergic reaction after any sting; call 911 immediately for any snake bite.",
+    "keywords": [
+      "bite",
+      "sting",
+      "snake bite",
+      "bee sting",
+      "insect bite"
+    ]
+  },
+  {
+    "title": "First-Aid Kit Reference",
+    "section": "firstaid",
+    "section_label": "First Aid Reference",
+    "url": "/utility/firstaid/#first-aid-kit",
+    "snippet": "A basic kit covers most minor injuries and buys time for anything bigger.",
+    "keywords": [
+      "first aid kit",
+      "first-aid kit",
+      "supplies",
+      "checklist"
+    ]
+  },
+  {
+    "title": "Latitude & Longitude Basics",
+    "section": "maps",
+    "section_label": "Maps & Location Reference",
+    "url": "/utility/maps/#latitude-longitude-basics",
+    "snippet": "Latitude = how far north/south of the equator; longitude = how far east/west of the Prime Meridian.",
+    "keywords": [
+      "latitude",
+      "longitude",
+      "coordinates",
+      "lat long"
+    ]
+  },
+  {
+    "title": "Coordinate Formats (DD, DMS, UTM, MGRS)",
+    "section": "maps",
+    "section_label": "Maps & Location Reference",
+    "url": "/utility/maps/#coordinate-formats",
+    "snippet": "The same location can be written several different ways - know which one your device/map uses.",
+    "keywords": [
+      "coordinate format",
+      "dms",
+      "utm",
+      "mgrs",
+      "decimal degrees"
+    ]
+  },
+  {
+    "title": "How GPS Works Without Internet",
+    "section": "maps",
+    "section_label": "Maps & Location Reference",
+    "url": "/utility/maps/#gps-without-internet",
+    "snippet": "GPS gets your position from satellites directly - it never needed the internet or cell service.",
+    "keywords": [
+      "gps",
+      "satellite",
+      "offline gps",
+      "no signal",
+      "no internet"
+    ]
+  },
+  {
+    "title": "Cardinal Directions & Compass Bearings",
+    "section": "maps",
+    "section_label": "Maps & Location Reference",
+    "url": "/utility/maps/#cardinal-directions-bearings",
+    "snippet": "N/E/S/W at 90° intervals; a bearing is the clockwise angle from north to your target.",
+    "keywords": [
+      "cardinal directions",
+      "compass",
+      "bearing",
+      "north south east west",
+      "declination"
+    ]
+  },
+  {
+    "title": "Basic Offline Navigation Concepts",
+    "section": "maps",
+    "section_label": "Maps & Location Reference",
+    "url": "/utility/maps/#offline-navigation-basics",
+    "snippet": "A paper map, a compass, and knowing your last confirmed position go a long way with zero electronics.",
+    "keywords": [
+      "navigation",
+      "dead reckoning",
+      "paper map",
+      "offline navigation",
+      "compass navigation"
+    ]
+  },
+  {
+    "title": "Local Information",
+    "section": "local",
+    "section_label": "Local Information",
+    "url": "/utility/local/",
+    "snippet": "Emergency management, NWS office, hospitals, shelters, amateur repeaters, and other resources for this PirateBox's current location.",
+    "keywords": [
+      "local",
+      "hospital",
+      "shelter",
+      "repeater",
+      "emergency contact"
+    ]
+  },
+  {
+    "title": "Emergency (police/fire/medical)",
+    "section": "local",
+    "section_label": "Local Information",
+    "url": "/utility/local/",
+    "snippet": "911 - Universal in the US - not region-specific.",
+    "keywords": [
+      "Emergency (police/fire/medical)",
+      "911"
+    ]
+  },
+  {
+    "title": "Poison Control",
+    "section": "local",
+    "section_label": "Local Information",
+    "url": "/utility/local/",
+    "snippet": "1-800-222-1222 - National Poison Control Center - free, 24/7, works from anywhere in the US. Same number cited in the First Aid section.",
+    "keywords": [
+      "Poison Control",
+      "1-800-222-1222"
+    ]
+  },
+  {
+    "title": "Document Library",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/",
+    "snippet": "Catalog of manuals and reference documents stored on this device.",
+    "keywords": [
+      "manual",
+      "document",
+      "library",
+      "pdf"
+    ]
+  }
+]

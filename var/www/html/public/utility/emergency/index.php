@@ -115,7 +115,7 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                     <h2 class="radio-group-heading"><?= htmlspecialchars($groupLabel) ?></h2>
                     <?php foreach ($groups[$groupKey] as $t): ?>
                         <?php $search = ref_search_blob([$t['title'], $t['summary'], $t['keywords'] ?? [], $t['category']]); ?>
-                        <details class="radio-entry" data-group="<?= htmlspecialchars($groupKey) ?>" data-search="<?= $search ?>">
+                        <details class="radio-entry" id="<?= htmlspecialchars($t['id']) ?>" data-group="<?= htmlspecialchars($groupKey) ?>" data-search="<?= $search ?>">
                             <summary>
                                 <span class="radio-entry-name"><?= htmlspecialchars($t['title']) ?></span>
                                 <span class="radio-entry-mode-badge"><?= htmlspecialchars($t['summary']) ?></span>

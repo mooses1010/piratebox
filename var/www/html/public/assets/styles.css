@@ -1134,3 +1134,32 @@ ul#chat li.empty-state {
 .ref-quick-actions li {
     margin-bottom: 0.4rem;
 }
+
+/* -------------------------------------------------
+   Stage 8: Global Search result cards. Reuses
+   .radio-entry/.radio-entry-name/.radio-entry-mode-badge/
+   .radio-entry-freq for visual consistency, but these are
+   plain link cards, not <details> - no expand interaction.
+   ------------------------------------------------- */
+.search-result-entry {
+    padding: 0.75rem 1rem;
+}
+
+.search-result-link {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    text-decoration: none;
+}
+
+.search-result-link:hover .radio-entry-name {
+    color: #a0a1ff;
+    text-decoration: underline;
+}
+
+.search-result-snippet {
+    margin: 0.4rem 0 0 0;
+    color: #aaa;
+    font-size: 0.9rem;
+}
