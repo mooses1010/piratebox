@@ -20,6 +20,84 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 31: Content Profiles (Deployment-Scenario Reordering)
+
+**Decision date:** 2026-09-01. Layered on Stage 30 (`bf984d7`). Scope
+confirmed with the operator before building - the roadmap listed this
+stage as only the bare phrase "content profiles" with no supporting
+detail anywhere else, unlike every other Stage 24-30 entry which had a
+concrete anchor. Chosen scope: operator-selectable deployment-scenario
+profiles (Hurricane/Coastal, Wildfire, Winter Storm, General/Community)
+that reorder which Emergency Reference topics surface first, without
+hiding or removing anything and without breaking Normal/Emergency
+content parity.
+
+**New shared module `includes/content_profile.php`**, matching
+`mode.php`'s established style (PHP constants, not a schema file;
+`function_exists()`-guarded functions): `piratebox_get_content_profile()`
+(any failure - missing file, malformed JSON, an unknown value - resolves
+to `general_community`, the safe no-reordering default, same "unknown
+always means the safe baseline" rule as `piratebox_get_mode()`);
+`piratebox_set_content_profile()` (rejects anything not in the fixed
+4-key allowlist, same defensive pattern Stage 22 already established for
+the bulletin category field; atomic temp-file-then-rename write);
+`piratebox_apply_content_profile_order()` (a stable partial sort - every
+input topic is present in the output, always, never a filter).
+
+**Persisted on the SD card** (`data/content-profile.json`), unlike
+`mode.php`'s deliberately volatile `/tmp` state - a deployment's regional
+hazard profile is a fact about where this specific device is physically
+deployed, not a per-boot toggle, so it should survive a reboot the same
+way `device-id.json` does. **Proactive Stage-17-lesson application**:
+added to both `piratebox_deploy.sh`'s `--exclude` list and `.gitignore`
+in the same change that introduced the file, before any deploy could
+touch it.
+
+**`utility/emergency/index.php`:** reorders topics *within* each of the
+page's existing 5 category sections (hazards/utilities/essentials/
+planning/pets) rather than restructuring the page - a hurricane profile
+promotes `flood`/`thunderstorms-lightning` within Hazards, `power-outage`/
+`downed-power-lines` within Utilities, `water-storage-safety` within
+Essentials, and `evacuation`/`shelter-in-place`/`communications-outage`
+within Planning, all independently verified live. A visible transparency
+note appears only when a non-default profile is active ("Showing
+Hurricane / Coastal Storm-prioritized order... every topic below is
+still shown") - never silent reordering. This page still never reads
+`piratebox_get_mode()`, so profile behavior is identical in both modes
+by construction, confirmed by a live Normal-vs-Emergency diff showing
+only the pre-existing mode-banner/nav-order differences, nothing in the
+reference content itself.
+
+**`admin/index.php`:** new non-destructive "Content profile" section
+(a dropdown + submit, not in `$CONFIRM_REQUIRED_ACTIONS` - reversible at
+any time, same reasoning as Stage 16's `reply_recovery`) using the same
+shared module.
+
+**Deliberately not touched this stage:** Local Information's fields -
+most are still blank per Stage 17's finding, so there's little for a
+profile to actually reorder yet; noted as a natural future extension
+once that data is populated, rather than building unused machinery
+against empty data.
+
+**Testing:** `php -l` clean on all 3 touched/new PHP files; `bash -n`
+clean. Isolated PHP-built-in-server tests on a throwaway copy: default
+(unconfigured) state renders topics in original JSON order with no
+transparency note; setting `hurricane_coastal` via the admin action
+correctly persisted and correctly reordered all 4 affected sections in
+the right priority order (verified topic-by-topic); a tampered
+(`<script>`) profile value was correctly rejected with the stored file
+left unchanged; a corrupted `content-profile.json` correctly fell back
+to `general_community` with zero PHP warnings/fatals. Live-deployed via
+the approved sudo automation; live-verified the default (unconfigured)
+state shows unreordered content and the admin page's new section
+renders correctly (direct PHP render of the live file, since this
+session has no admin credentials to exercise the write path through
+nginx's Basic Auth - the write path was already fully covered by the
+isolated tests above); confirmed Normal/Emergency Mode parity holds;
+mode restored to Normal; logs clean.
+
+**Backup:** `~/piratebox-backups/content-profiles-stage31-pre-20260901-113046/`.
+
 ## Stage 30: Accessibility Audit (Stages 11-29)
 
 **Decision date:** 2026-09-01. Layered on Stage 29 (`5eb5e0a`).

@@ -15,6 +15,8 @@ session_start();
 // same element IDs across different pages is safe and requires zero changes
 // to the already-tested scripts.js filter logic.
 
+require_once __DIR__ . '/../../../includes/content_profile.php';
+
 $DATA_DIR = __DIR__ . '/../../../data/utility/emergency';
 
 function ref_load_json(string $path): array
@@ -40,6 +42,15 @@ $groups = [];
 foreach ($groupLabels as $key => $label) $groups[$key] = [];
 foreach ($topics as $t) {
     if (isset($groups[$t['category']])) $groups[$t['category']][] = $t;
+}
+
+// Stage 31 (content profiles): reorder each section's topics to surface
+// the active deployment profile's most-relevant ones first - a display
+// priority hint only, never a filter (every topic from every section
+// still renders below, in every profile; see includes/content_profile.php).
+$contentProfile = piratebox_get_content_profile();
+foreach ($groups as $key => $groupTopics) {
+    $groups[$key] = piratebox_apply_content_profile_order($groupTopics, $contentProfile);
 }
 
 function ref_search_blob(array $fields): string
@@ -95,6 +106,10 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
         <p class="utility-breadcrumb"><a href="/utility/">&larr; Utility Library</a></p>
 
         <p>Practical, skimmable guidance for power outages, severe weather, and other emergencies - works with no Internet connection. This is general preparedness information, not a substitute for official local alerts or instructions from emergency responders. <strong>Always follow official evacuation orders and instructions from local authorities</strong> - this reference is meant to help you act quickly, not override them.</p>
+
+        <?php if ($contentProfile !== 'general_community'): ?>
+            <p class="muted">Showing <strong><?= htmlspecialchars(PIRATEBOX_CONTENT_PROFILES[$contentProfile]) ?></strong>-prioritized order, set by this device's operator - every topic below is still shown, just reordered within its section to surface what's most relevant first.</p>
+        <?php endif; ?>
 
         <div class="radio-search-bar">
             <input type="text" id="radioSearch" placeholder="Search: flood, generator, water, hypothermia, evacuation..." aria-label="Search emergency reference">

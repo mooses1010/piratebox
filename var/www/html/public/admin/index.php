@@ -4,6 +4,7 @@ session_start();
 require_once __DIR__ . '/../../includes/config.php';
 require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/metrics.php';
+require_once __DIR__ . '/../../includes/content_profile.php';
 
 // PirateBox admin/status page - Phase 4.
 //
@@ -203,6 +204,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? ['ok' => true, 'msg' => 'All recovery messages cleared.']
                     : ['ok' => false, 'msg' => 'Failed to clear recovery messages.'];
                 break;
+            case 'set_content_profile':
+                // Stage 31: reordering which Emergency Reference topics
+                // show first is neither destructive nor irreversible (it
+                // can always be switched back), same reasoning as
+                // reply_recovery above - deliberately not in
+                // $CONFIRM_REQUIRED_ACTIONS.
+                $profile = (string) ($_POST['profile'] ?? '');
+                $actionResult = piratebox_set_content_profile($profile)
+                    ? ['ok' => true, 'msg' => 'Content profile set to ' . (PIRATEBOX_CONTENT_PROFILES[$profile] ?? $profile) . '.']
+                    : ['ok' => false, 'msg' => 'Invalid profile - nothing was changed.'];
+                break;
             default:
                 $actionResult = ['ok' => false, 'msg' => 'Unknown action.'];
         }
@@ -255,6 +267,8 @@ $helperStale = $helperResult['stale'];
 
 $versionRaw = @file_get_contents(__DIR__ . '/../../includes/VERSION');
 $versionLine = $versionRaw !== false ? trim($versionRaw) : null;
+
+$contentProfile = piratebox_get_content_profile();
 
 // Byte/duration formatting now lives in includes/helpers.php (Phase 5) as
 // piratebox_fmt_bytes()/piratebox_fmt_duration() - index.php needs the
@@ -400,6 +414,29 @@ $versionLine = $versionRaw !== false ? trim($versionRaw) : null;
             </form>
         </div>
     <?php endif; ?>
+
+    <div class="admin-actions">
+        <h2 class="admin-section-heading">Content profile <span class="section-tag">display order only</span></h2>
+        <p class="maintenance-warning">
+            Reorders which Emergency Reference topics show first within each
+            of that page's sections, to match this device's actual
+            deployment scenario. Nothing is ever hidden or removed - every
+            topic still shows in every profile, in both Normal and
+            Emergency Mode. Reversible at any time.
+        </p>
+        <form method="post" class="admin-action-form" style="max-width:none;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+            <input type="hidden" name="action" value="set_content_profile">
+            <label>Active profile:
+                <select name="profile">
+                    <?php foreach (PIRATEBOX_CONTENT_PROFILES as $key => $label): ?>
+                        <option value="<?= htmlspecialchars($key) ?>"<?= $key === $contentProfile ? ' selected' : '' ?>><?= htmlspecialchars($label) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <button type="submit">Set content profile</button>
+        </form>
+    </div>
 
     <div class="maintenance-zone">
         <h2 class="admin-section-heading">Destructive maintenance <span class="section-tag">irreversible</span></h2>
