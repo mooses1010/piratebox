@@ -17,5 +17,6 @@ back to (`git checkout <hash>` or restore the matching backup under
 | Deployment/mode-switch automation | `1149f4e` | (infrastructure only, no site content) |
 | Stage 7: Document Library | `d615346` | `~/piratebox-backups/library-stage7-pre-20260901-064228/` |
 | Stage 8: Global Offline Search | `e1f19bd` | `~/piratebox-backups/search-stage8-pre-20260901-064643/` |
+| Stage 9: Utility Landing / Emergency Polish | `9e14b53` | `~/piratebox-backups/polish-stage9-pre-20260901-065258/` |
 
 Live box mode should be **Normal** when unattended between test sessions.
