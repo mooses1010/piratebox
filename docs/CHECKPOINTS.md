@@ -21,5 +21,8 @@ back to (`git checkout <hash>` or restore the matching backup under
 | Stage 10: Accessibility/Resilience/Performance Audit | `0bab1f7` | `~/piratebox-backups/audit-stage10-pre-20260901-065552/` (docs only, no site changes) |
 | Stage 11: Hardware Integration Design | `80046c1` | (design doc only, no site/system changes) |
 | Stage 12: Future Power / UPS Design | `2dc8700` | (design doc only, no site/system changes) |
+| Stage 13: Identity/Transparency/About (incl. Stage 15 Connection Help) | `2081c4b` | `~/piratebox-backups/identity-stage13-pre-20260901-071759/` |
+| Stage 14: Main-Page Onboarding | `afabb4e` | `~/piratebox-backups/onboarding-stage14-pre-20260901-072201/` |
+| Stage 16: PirateBox ID / Found Device / Recovery | `8266484` | `~/piratebox-backups/recovery-stage16-pre-20260901-072524/` |
 
 Live box mode should be **Normal** when unattended between test sessions.
