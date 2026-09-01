@@ -66,3 +66,17 @@ and 7 (the `purge_uploads.sh` gap) remain as-is - the former needs the
 operator's real-world data, the latter is a deliberately-deferred future
 maintenance item, not touched here per instruction to not start new
 work.
+
+**Commissioning completed 2026-09-01:** items 2-4 done interactively
+(operator ran each command, verified after each step) -
+`setup_claude_automation.sh` re-run (deployed scripts now match the
+repo, `VERSION` auto-stamping confirmed live), the `piratebox-status.
+service` fix applied (status helper now succeeds, `status.json`
+populating), and the `piratebox-backup.timer` installed (already
+produced a real automated backup). `fake-hwclock` (item 5) remains
+deliberately not installed - operator may add a hardware RTC instead.
+Items 6-7 remain untouched, as before.
+
+| Post-Stage-32 feature | Commit | Backup |
+|---|---|---|
+| Privacy-preserving connection statistics | `7493974` | `~/piratebox-backups/connstats-pre-20260901-124144/` |
