@@ -6,6 +6,66 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Offline Utility Library - Stage 6: Local Information
+
+**Decision date:** 2026-09-01.
+
+**Scope:** new `/utility/local/` page (no Stage 1 placeholder existed for
+this - it was scoped as part of Stage 1's "Maps" placeholder originally,
+now split out per the operator's staged plan). No networking/security-
+boundary/Emergency-Mode-state changes; no packages installed. Layered on
+Stage 5 (`99049d8`/`66aed5d`).
+
+**One config file, not a searchable dataset:** `data/utility/local/info.json`
+is a single object (region label, emergency management contact, NWS office,
+hospitals, shelters, emergency numbers, amateur repeaters, radio notes, map
+references, other resources) - not a list of many topics like Stages 2-5,
+so this page intentionally does **not** reuse the `radio-entry`/search/chip
+UI those pages share. Instead it's a plain, section-by-section reference
+sheet (reusing `.help-section`/`table`/`.empty-state`, all pre-existing
+classes - zero new CSS this stage). **Relocating this PirateBox to a new
+area means editing this one JSON file - no PHP/HTML change required**,
+exactly as instructed.
+
+**Deliberately almost entirely empty, per explicit instruction:** every
+array (`hospitals`, `shelters`, `amateur_repeaters`, `map_references`,
+`other_resources`) and every named contact (`emergency_management`,
+`nws_office`) ships blank - the page shows a plain "None/Not yet added for
+this location" message rather than any fabricated placeholder content. The
+**only** two pre-filled entries in `emergency_numbers` are 911 and the
+National Poison Control number (1-800-222-1222) - both included because
+they are universal, not region-specific, and the Poison Control number is
+the same one already cited (from the same authoritative source) in Stage
+4's First Aid data. Nothing else was invented to make the page look
+populated.
+
+**Integration with Emergency and Maps, as instructed:**
+- Added to the main `/utility/` landing grid (7th card, between Maps and
+  Library) - the only edit to that Stage 1 page this stage.
+- Added a "Local Information" link to both `/utility/emergency/`'s and
+  `/utility/maps/`'s existing `hero-actions` link rows.
+- Corrected the Maps card's Stage 1 description text (it previously said
+  "plus local emergency contacts," which became inaccurate once Local Info
+  became its own section) to describe what Maps actually contains now.
+- **Deliberately NOT added** to Emergency Mode's 8-card landing grid in
+  root `index.php` (confirmed unchanged - still exactly 8 cards) - that
+  grid's priority ordering is explicitly Stage 9's job to revisit
+  holistically, not something to touch piecemeal each stage.
+
+**Testing performed:** JSON validated (build-time + live); `php -l` clean
+on all 4 touched files; rendered via PHP CLI pre-deploy (6 empty-state
+sections, universal emergency-numbers table confirmed); live regression
+sweep of every existing page unaffected; live checks confirmed the new
+card, both cross-links, and the 911/Poison-Control table all render
+correctly on the deployed site; live Normal vs. Emergency Mode content
+byte-diff - **identical**; confirmed the Emergency-Mode root landing grid
+is unchanged (still 8 cards); `nginx`/`php8.4-fpm`/`hostapd`/`dnsmasq`
+active throughout, no restarts; error logs clean across the full testing
+window. Live mode restored to explicit Normal before finishing.
+
+**Backup:** `~/piratebox-backups/localinfo-stage6-pre-20260901-062636/`
+(full `var/www/html` mirror + pre-change git HEAD `66aed5d`).
+
 ## Offline Utility Library - Stage 5: Maps / Location Framework
 
 **Decision date:** 2026-09-01.

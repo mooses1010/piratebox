@@ -1,0 +1,35 @@
+{
+  "region_label": "",
+  "last_updated": "",
+  "notes": "Fill in region_label and last_updated, then populate each section below for this PirateBox's current location. Leave a section's array empty (not fabricated placeholder entries) if you don't have real information yet - the page shows a clean 'not yet added' message instead.",
+  "emergency_management": {
+    "name": "",
+    "phone": "",
+    "website": "",
+    "notes": ""
+  },
+  "nws_office": {
+    "name": "",
+    "phone": "",
+    "website": "",
+    "notes": ""
+  },
+  "hospitals": [],
+  "shelters": [],
+  "emergency_numbers": [
+    {
+      "label": "Emergency (police/fire/medical)",
+      "number": "911",
+      "notes": "Universal in the US - not region-specific."
+    },
+    {
+      "label": "Poison Control",
+      "number": "1-800-222-1222",
+      "notes": "National Poison Control Center - free, 24/7, works from anywhere in the US. Same number cited in the First Aid section."
+    }
+  ],
+  "amateur_repeaters": [],
+  "radio_notes": "",
+  "map_references": [],
+  "other_resources": []
+}

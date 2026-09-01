@@ -42,7 +42,12 @@ session_start();
         <a class="utility-card" href="/utility/maps/">
             <span class="utility-card-icon" aria-hidden="true">🗺️</span>
             <span class="utility-card-title">Maps</span>
-            <span class="utility-card-desc">Local, regional &amp; reference maps, plus local emergency contacts</span>
+            <span class="utility-card-desc">Coordinates, GPS basics, and a local/regional map catalog</span>
+        </a>
+        <a class="utility-card" href="/utility/local/">
+            <span class="utility-card-icon" aria-hidden="true">📍</span>
+            <span class="utility-card-title">Local Info</span>
+            <span class="utility-card-desc">Hospitals, shelters, emergency contacts &amp; repeaters for this area</span>
         </a>
         <a class="utility-card" href="/utility/library/">
             <span class="utility-card-icon" aria-hidden="true">📚</span>
