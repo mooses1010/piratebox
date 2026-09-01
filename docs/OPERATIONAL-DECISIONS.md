@@ -6,6 +6,63 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Typed hostnames can silently fail to resolve due to client-side DoH - not a PirateBox bug
+
+**Decision date:** 2026-09-01 (post-Phase 3).
+
+**Symptom investigated:** after Phase 3, a Samsung/Android phone that had
+just gotten the correct captive "Sign in to network" prompt and could load
+`http://10.0.0.1/` could **not** load `http://moosehost.net/` (an
+arbitrary hostname relying on dnsmasq's `address=/#/10.0.0.1` wildcard),
+even though the same hostname had reportedly worked before Phase 3.
+
+**Investigation:** a bounded, temporary live `tcpdump` capture on `wlan0`
+(installed just for this, no ongoing logging left behind) during a live
+retest showed the phone's browser never sent a DNS query for
+`moosehost.net` to the Pi at all. Instead it sent DNS-over-HTTPS/QUIC
+queries straight to a hardcoded public resolver
+(`10.0.0.206.41642 > 8.8.8.8.443: UDP, length 1200`, repeated, no reply),
+which is unreachable on this intentionally offline network
+(`net.ipv4.ip_forward` is `0`, no NAT/masquerade rule exists anywhere in
+the `nftables` ruleset) - so the query simply timed out and the page
+never loaded. In the same capture window, other hostnames resolved by
+background apps (`graph.facebook.com`, and `mtalk.google.com` /
+`alt6-mtalk.google.com` in an earlier capture) went through plain DNS to
+`10.0.0.1:53` normally and got the correct wildcard answer. Queried
+directly from the Pi, dnsmasq still resolves `moosehost.net` to `10.0.0.1`
+correctly, and `etc/dnsmasq.conf`'s wildcard line is byte-for-byte
+identical to the pre-Phase-3 backup. This conclusively rules out
+PirateBox's own DNS/network config as the cause.
+
+**Root cause:** the browser's own "Secure DNS" (DNS-over-HTTPS) feature -
+possibly compounded by Android's system Private DNS setting - bypasses
+the network-provided DNS server for some typed navigations, going to a
+fixed public resolver instead of asking dnsmasq. This is client-side
+behavior entirely outside PirateBox's control, and can plausibly be
+intermittent/state-dependent (cache, per-network trust heuristics) rather
+than a hard regression - which is consistent with the same hostname
+having appeared to work at some point before Phase 3.
+
+**Decision: not worked around server-side.** The only way to force a DoH
+query back onto the local resolver would be to block or intercept
+outbound HTTPS/QUIC (port 443/UDP-443) - which is exactly the kind of
+HTTPS interception this project has already decided against (see the
+"do not implement HTTPS MITM" constraint from Phase 3). PirateBox does
+not intercept, block, or MITM HTTPS or DoH traffic, and won't start doing
+so just to make manually-typed hostnames more reliable.
+
+**What remains reliable, and is the actually-intended path:** direct
+`http://10.0.0.1/` and the OS-level captive-portal flow (legacy HTTP
+probes and the RFC 8908 Capport API added in Phase 3) both use the
+device's own system network-validation HTTP client, not the browser's
+DoH-enabled resolver, and are unaffected by this. Typing an arbitrary
+plain-HTTP hostname was always a secondary/fallback way to reach
+PirateBox, not the primary one - the primary, supported mechanism is
+automatic captive-portal detection landing the user on `10.0.0.1`
+directly. A user who wants typed-hostname browsing to also work
+reliably can turn off their browser's "Use secure DNS" setting for this
+network; that's a client-side choice, not a PirateBox configuration.
+
 ## `rpi-update` is intentionally NOT run by the installer
 
 **Decision date:** pre-existing, documented 2026-08-31 (Phase 2).
