@@ -6,6 +6,67 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Offline Utility Library - Stage 7: Document Library
+
+**Decision date:** 2026-09-01.
+
+**Scope:** builds out `/utility/library/` (a Stage 1 placeholder). No
+networking/security-boundary/Emergency-Mode-state changes; no packages
+installed; **no documents downloaded or bundled** (per explicit
+instruction). First stage built entirely using the new deployment/mode
+automation - zero manual round-trips this stage. Layered on the automation
+commit (`1149f4e`).
+
+**Architecture decision - stayed under webroot, deliberately avoiding the
+`open_basedir` change:** the operator's instructions explicitly said to
+STOP before making an `open_basedir`/security-boundary change if the
+previously-discussed outside-webroot `/var/www/library` design required
+one. Rather than build that design and then stop, the framework was built
+using the same under-webroot pattern Stage 5's Maps catalog already
+established (`public/utility/library/files/`, matching the existing
+`public/uploads/`) - which needs **zero** `open_basedir` change, so the
+stop-condition never triggers. This is an explicit, documented tradeoff:
+if real documents are later added that are sensitive, large, or raise
+license/access-control concerns the outside-webroot design was meant to
+address, that design should be revisited deliberately at that time, not
+assumed to have been ruled out permanently.
+
+**Data:** `data/utility/library/categories.json` (8 categories: Radio
+Manuals; Raspberry Pi/Linux/Networking; Electronics References; Vehicle &
+Generator/Power Equipment; Emergency & First-Aid Documents; Maps; Equipment
+I Own; Other) and `catalog.json` - **intentionally empty array**, same
+"don't fabricate content to look populated" principle as Stages 5-6. A
+`README.md` alongside them documents the entry schema (title, category,
+description, tags, file, file_type, file_size, source, date_version,
+provenance_notes) for whoever adds a document later.
+
+**`tools/check_library_catalog.py`** (new): a small, dependency-free
+consistency checker - confirms every catalog entry's `file` exists in
+`public/utility/library/files/`, and flags any file in that directory with
+no matching catalog entry. Deliberately does NOT extract PDF metadata or
+build a search index (that would need `pdftotext`/`poppler-utils`, which
+the operator's instructions say not to install without stopping first -
+this stays dependency-free and lets metadata/title/tag search work today
+via the same client-side filter every other section uses). Tested against
+both a clean catalog and a deliberately-introduced orphaned file to
+confirm it actually catches problems, not just passes trivially.
+
+**Testing performed:** both new JSON files validated (build-time + live);
+`php -l` clean; rendered via PHP CLI pre-deploy (empty-state and
+"Adding a Document" note both confirmed present, all 8 category chips
+render); **deploy previewed with a read-only itemized `rsync --dry-run`
+before applying** (confirmed only the new Library files + modified
+`index.php` would change, nothing else, before running the real sync);
+live regression sweep of every existing page unaffected; live empty-state/
+instructions confirmed on the deployed page; live Normal vs. Emergency
+Mode content byte-diff - **identical**; `nginx`/`php8.4-fpm`/`hostapd`/
+`dnsmasq` active throughout, no restarts; error logs clean across the full
+testing window. Live mode restored to explicit Normal before finishing -
+entire cycle performed via the new automation with no manual round-trips.
+
+**Backup:** `~/piratebox-backups/library-stage7-pre-20260901-064228/`
+(full `var/www/html` mirror + pre-change git HEAD `1149f4e`).
+
 ## Claude deployment/mode-switch automation
 
 **Decision date:** 2026-09-01.
