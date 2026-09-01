@@ -6,6 +6,79 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Wi-Fi adapter notes / planned hardware
+
+**Decision date:** 2026-09-01 (post-Phase 6). Documentation only - no
+networking, service, or live configuration change accompanies this entry.
+
+**Current production state:** the PirateBox AP is, and remains, the
+Raspberry Pi 3 B+'s **built-in `wlan0`**. Nothing below changes that.
+
+### TP-Link TL-WN722N V2/V3 - tested, not suitable as-is
+
+Tested in Phase 6 (USB ID `2357:010c`, Realtek RTL8188EU chipset, driver
+`rtl8xxxu` - the mainline in-tree driver, no DKMS/vendor module
+installed). `iw phy1 info` showed only `managed` and `monitor` in
+`Supported interface modes` - no `AP`. Confirmed empirically, not just by
+reading the capability list: `iw phy1 interface add ... type __ap`
+returned **`Operation not supported (-95)` (EOPNOTSUPP)**, rejected at
+the kernel/cfg80211 level before ever reaching the driver. This adapter
+is **not suitable as the PirateBox AP with the current mainline driver**.
+
+**Do not install an out-of-tree/DKMS RTL8188EU driver** (e.g. a vendor
+`8188eu`-family fork with AP support) to work around this unless that
+tradeoff - an external, non-mainline kernel module, with its own
+maintenance and kernel-upgrade fragility - is deliberately revisited and
+approved later. See the full Phase 6 findings (chipset, firmware, power/
+undervoltage observations - unrelated to this adapter, see that report)
+in git history for this decision's evidence.
+
+### ALFA AWUS036NHA / Atheros AR9271 - considered, not chosen
+
+Has excellent mainline Linux AP support via `ath9k_htc`. Not chosen as
+the primary upgrade path because `ath9k_htc`/AR9271 AP-mode operation has
+a well-documented firmware limitation of **approximately 7 associated
+stations**. This limitation is specific to that candidate adapter's
+firmware - **it does not apply to the current PirateBox `wlan0`** (the
+Pi's built-in Broadcom chip), which has no such constraint.
+
+### Ordered: ALFA AWUS036ACM (MediaTek MT7612U) - not yet tested
+
+Hardware has been ordered for a future primary-AP upgrade attempt:
+- Chipset: MediaTek MT7612U
+- Dual-band 2.4/5 GHz, 2x2 MIMO, two detachable RP-SMA antennas
+- Expected driver: mainline `mt76x2u` (**expected**, not yet verified -
+  this hardware has NOT arrived or been tested on this Pi as of this
+  entry)
+- Intended future role: primary PirateBox USB AP, **if and only if**
+  testing succeeds
+- The AR9271's ~7-station firmware limitation above does **not** apply to
+  the MT7612U/AWUS036ACM - different chipset, different firmware/driver
+  stack entirely. Conversely, **no maximum client count is claimed for
+  the AWUS036ACM here** - that has not been tested or researched yet, and
+  should not be assumed until it is.
+
+**Future test plan, when the AWUS036ACM arrives** (same discipline as
+Phase 6 - read-only discovery first, no changes to the working `wlan0`
+PirateBox until proven):
+1. Identify USB VID:PID and chipset.
+2. Confirm the loaded kernel driver.
+3. Check `iw` `Supported interface modes` for `AP` (and, per the Phase 6
+   lesson, confirm empirically with a real `iw ... type __ap` attempt,
+   not just by reading the capability list).
+4. Check power/USB stability (`vcgencmd get_throttled`, dmesg for resets/
+   disconnects, distinguishing sticky/historical bits from active
+   ones - see Phase 6 for the method).
+5. Create an isolated, temporary `PirateBox-USB-Test` AP (not `10.0.0.1`,
+   not colliding with the production DHCP server, not the production
+   SSID).
+6. Test real client association and stability while `wlan0` remains
+   operational throughout.
+7. Only after successful testing, consider migrating the production
+   PirateBox AP from `wlan0` to the ALFA - a deliberate, separate,
+   approved step, not an automatic consequence of a successful test.
+8. Establish a stock-antenna range baseline before changing antennas.
+
 ## Phase 5: onboarding/UI redesign, help page, and QR codes
 
 **Decision date:** 2026-09-01 (Phase 5).
