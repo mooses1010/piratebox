@@ -24,5 +24,9 @@ back to (`git checkout <hash>` or restore the matching backup under
 | Stage 13: Identity/Transparency/About (incl. Stage 15 Connection Help) | `2081c4b` | `~/piratebox-backups/identity-stage13-pre-20260901-071759/` |
 | Stage 14: Main-Page Onboarding | `afabb4e` | `~/piratebox-backups/onboarding-stage14-pre-20260901-072201/` |
 | Stage 16: PirateBox ID / Found Device / Recovery | `8266484` | `~/piratebox-backups/recovery-stage16-pre-20260901-072524/` |
+| Deploy-script data-loss fix (recovery-messages.json exclude) | `a4478f1` | (infra fix) |
+| Stage 17: Local Info / Content Audit | `7924e01` | `~/piratebox-backups/audit-stage17-pre-20260901-073340/` |
+| Stage 18: Global Search Expansion (verification only) | `0190a70` | (no site changes) |
+| Stage 19: "Take This With You" Export System | `87c4307` | `~/piratebox-backups/export-stage19-pre-20260901-075834/` |
 
 Live box mode should be **Normal** when unattended between test sessions.
