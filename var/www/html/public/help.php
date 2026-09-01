@@ -2,7 +2,9 @@
 declare(strict_types=1);
 session_start();
 require_once __DIR__ . '/../includes/mode.php';
+require_once __DIR__ . '/../includes/device_id.php';
 $piratebox_mode = piratebox_get_mode();
+$piratebox_device_id = piratebox_get_device_id();
 ?>
 <!doctype html>
 <html lang="en">
@@ -113,6 +115,10 @@ $piratebox_mode = piratebox_get_mode();
             <li>A local status display (planned)</li>
         </ul>
         <p>It's meant to work as a portable community information and file-sharing appliance - useful sitting at home, riding in a vehicle, carried in a backpack, or set up at an event, depending on where it's needed.</p>
+
+        <?php if ($piratebox_device_id !== null): ?>
+            <p>Device ID: <strong class="help-url"><?= htmlspecialchars($piratebox_device_id) ?></strong> <span class="muted">- a random, non-sensitive label for this specific appliance, not derived from any hardware identifier. See <a href="/found/">Found This Device</a> if this unit seems lost or displaced.</span></p>
+        <?php endif; ?>
 
         <div class="help-note utility-placeholder-note">
             <p><strong>Photo pending:</strong> a photograph of this PirateBox's actual physical build will be added here once the hardware is finished - not a stock photo or a generated image, just this note until then.</p>

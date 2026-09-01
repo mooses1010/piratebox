@@ -44,8 +44,40 @@ $UPLOAD_DIR = __DIR__ . '/../uploads';
 $DATA_DIR = __DIR__ . '/../../data';
 $CHAT_FILE = $DATA_DIR . '/chat.json';
 $MESSAGES_FILE = $DATA_DIR . '/messages.json';
+$RECOVERY_FILE = $DATA_DIR . '/recovery-messages.json';
 
 $actionResult = null;
+
+/**
+ * Stage 16: read the recovery-messages store the same defensive way every
+ * other JSON loader in this project does - missing/corrupt file is never
+ * fatal, just an empty list.
+ */
+function loadRecoveryMessages(string $path): array
+{
+    if (!file_exists($path)) return [];
+    $raw = @file_get_contents($path);
+    if ($raw === false) return [];
+    $decoded = json_decode($raw, true);
+    return is_array($decoded) ? $decoded : [];
+}
+
+/**
+ * Stage 16: atomic write, same temp-file-then-rename pattern as every
+ * other JSON store this app writes.
+ */
+function saveRecoveryMessages(string $path, array $entries): bool
+{
+    $tmpFile = $path . '.tmp.' . getmypid() . '.' . bin2hex(random_bytes(4));
+    if (file_put_contents($tmpFile, json_encode($entries, JSON_PRETTY_PRINT)) === false) {
+        return false;
+    }
+    if (!rename($tmpFile, $path)) {
+        @unlink($tmpFile);
+        return false;
+    }
+    return true;
+}
 
 /**
  * Atomically replace a JSON data file with an empty array, under the same
@@ -95,15 +127,23 @@ function purgeUploadsDir(string $uploadDir): array
     return [$deleted, $failed];
 }
 
+// Stage 16: actions that are genuinely destructive/irreversible require the
+// explicit confirmation checkbox, matching every existing action on this
+// page. Replying to a recovery message is neither destructive nor
+// irreversible (an admin can reply again to correct a mistake), so it's
+// deliberately NOT in this set - it still requires the same CSRF token,
+// same as everything else here.
+$CONFIRM_REQUIRED_ACTIONS = ['clear_chat', 'clear_messages', 'purge_uploads', 'purge_recovery_one', 'purge_recovery_all'];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
         http_response_code(403);
         exit('Invalid CSRF token.');
     }
-    if (empty($_POST['confirm'])) {
+    $action = $_POST['action'] ?? '';
+    if (in_array($action, $CONFIRM_REQUIRED_ACTIONS, true) && empty($_POST['confirm'])) {
         $actionResult = ['ok' => false, 'msg' => 'Action not confirmed - nothing was done.'];
     } else {
-        $action = $_POST['action'] ?? '';
         switch ($action) {
             case 'clear_chat':
                 $actionResult = clearJsonFile($CHAT_FILE)
@@ -119,11 +159,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 [$deleted, $failed] = purgeUploadsDir($UPLOAD_DIR);
                 $actionResult = ['ok' => $failed === 0, 'msg' => "Deleted $deleted uploaded file(s)." . ($failed > 0 ? " $failed could not be deleted." : '')];
                 break;
+            case 'reply_recovery':
+                $code = strtoupper(trim($_POST['code'] ?? ''));
+                $replyText = mb_substr(trim(strip_tags($_POST['reply'] ?? '')), 0, 1000);
+                $entries = loadRecoveryMessages($RECOVERY_FILE);
+                $found = false;
+                foreach ($entries as &$e) {
+                    if (($e['code'] ?? null) === $code) {
+                        $e['reply'] = $replyText !== '' ? $replyText : null;
+                        $e['replied_at'] = $replyText !== '' ? date('Y-m-d H:i') : null;
+                        $e['status'] = $replyText !== '' ? 'replied' : 'new';
+                        $found = true;
+                        break;
+                    }
+                }
+                unset($e);
+                if ($found && saveRecoveryMessages($RECOVERY_FILE, $entries)) {
+                    $actionResult = ['ok' => true, 'msg' => "Reply saved for $code."];
+                } else {
+                    $actionResult = ['ok' => false, 'msg' => 'Could not save reply (message not found or write failed).'];
+                }
+                break;
+            case 'purge_recovery_one':
+                $code = strtoupper(trim($_POST['code'] ?? ''));
+                $entries = loadRecoveryMessages($RECOVERY_FILE);
+                $before = count($entries);
+                $entries = array_values(array_filter($entries, fn($e) => ($e['code'] ?? null) !== $code));
+                if (count($entries) < $before && saveRecoveryMessages($RECOVERY_FILE, $entries)) {
+                    $actionResult = ['ok' => true, 'msg' => "Deleted recovery message $code."];
+                } else {
+                    $actionResult = ['ok' => false, 'msg' => 'Message not found or delete failed.'];
+                }
+                break;
+            case 'purge_recovery_all':
+                $actionResult = saveRecoveryMessages($RECOVERY_FILE, [])
+                    ? ['ok' => true, 'msg' => 'All recovery messages cleared.']
+                    : ['ok' => false, 'msg' => 'Failed to clear recovery messages.'];
+                break;
             default:
                 $actionResult = ['ok' => false, 'msg' => 'Unknown action.'];
         }
     }
 }
+
+$recoveryMessages = array_reverse(loadRecoveryMessages($RECOVERY_FILE));
 
 // --- Gather status information (all read-only) ---
 
@@ -276,6 +355,61 @@ $versionLine = $versionRaw !== false ? trim($versionRaw) : null;
     <p style="text-align:center;" class="muted">
         <?= $versionLine !== null ? 'Version: ' . htmlspecialchars($versionLine) : 'Version: unknown (no includes/VERSION file - see README)' ?>
     </p>
+
+    <h2 class="admin-section-heading">Recovery messages <span class="section-tag">local only</span></h2>
+    <p class="muted" style="text-align:center;">Stage 16 - separate from Chat/Guestbook. Never transmitted over the Internet.</p>
+    <?php if (empty($recoveryMessages)): ?>
+        <p class="empty-state">No recovery messages.</p>
+    <?php else: ?>
+        <div class="message-container" style="max-width:900px;margin:0 auto 2rem auto;padding:0 1rem;">
+            <?php foreach ($recoveryMessages as $rm): ?>
+                <div class="message-card">
+                    <div class="message-header">
+                        <span class="message-name">
+                            <?= htmlspecialchars($rm['code'] ?? '?') ?>
+                            <span class="stat-sub"><?= ($rm['status'] ?? 'new') === 'replied' ? '(replied)' : '(new)' ?></span>
+                        </span>
+                        <span class="message-time"><?= htmlspecialchars($rm['submitted_at'] ?? '') ?></span>
+                    </div>
+                    <div class="message-body"><?= htmlspecialchars($rm['message'] ?? '') ?></div>
+                    <?php if (!empty($rm['contact'])): ?>
+                        <p class="muted">Finder contact (optional, as given): <?= htmlspecialchars($rm['contact']) ?></p>
+                    <?php endif; ?>
+                    <?php if (!empty($rm['reply'])): ?>
+                        <div class="message-card" style="border-left-color:#4ade80;">
+                            <div class="message-header">
+                                <span class="message-name">Your reply</span>
+                                <span class="message-time"><?= htmlspecialchars($rm['replied_at'] ?? '') ?></span>
+                            </div>
+                            <div class="message-body"><?= htmlspecialchars($rm['reply']) ?></div>
+                        </div>
+                    <?php endif; ?>
+                    <form method="post" class="admin-action-form" style="max-width:none;">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                        <input type="hidden" name="action" value="reply_recovery">
+                        <input type="hidden" name="code" value="<?= htmlspecialchars($rm['code'] ?? '') ?>">
+                        <label>Reply <textarea name="reply" maxlength="1000" rows="2"><?= htmlspecialchars($rm['reply'] ?? '') ?></textarea></label>
+                        <button type="submit">Save Reply</button>
+                    </form>
+                    <form method="post" class="admin-action-form" style="max-width:none;" onsubmit="return confirm('Delete this recovery message? This cannot be undone.');">
+                        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                        <input type="hidden" name="action" value="purge_recovery_one">
+                        <input type="hidden" name="code" value="<?= htmlspecialchars($rm['code'] ?? '') ?>">
+                        <label><input type="checkbox" name="confirm" value="1" required> Delete this message.</label>
+                        <button type="submit" class="danger-button">Delete</button>
+                    </form>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <div class="admin-actions">
+            <form method="post" class="admin-action-form" onsubmit="return confirm('Delete ALL recovery messages? This cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                <input type="hidden" name="action" value="purge_recovery_all">
+                <label><input type="checkbox" name="confirm" value="1" required> I understand this permanently deletes all recovery messages.</label>
+                <button type="submit" class="danger-button">Purge all recovery messages</button>
+            </form>
+        </div>
+    <?php endif; ?>
 
     <div class="maintenance-zone">
         <h2 class="admin-section-heading">Destructive maintenance <span class="section-tag">irreversible</span></h2>

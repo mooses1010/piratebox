@@ -20,6 +20,107 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 16: Public PirateBox ID / Found Device / Recovery System
+
+**Decision date:** 2026-09-01. Layered on Stage 14 (`afabb4e`). The
+largest and most privacy-sensitive stage of the roadmap expansion so far -
+tested more thoroughly than the pace-adapted norm for this batch (isolated
+PHP-built-in-server flow tests before touching live data, plus one real
+live production test).
+
+**Device ID:** `tools/generate_device_id.sh` generates a random ID
+(this device's: `PB-NSC5-3C`) from `/dev/urandom` - verified NOT derived
+from MAC/serial/hostname/IP by construction (the script never reads any of
+those). Idempotent-safe: refuses to overwrite an existing ID without
+`--force`, specifically so cloning this SD card for a second physical unit
+doesn't silently leave two devices sharing one ID. Stored in
+`data/device-id.json`, read-only from PHP via `includes/device_id.php`
+(same read-only-consumer pattern as every other small state file in this
+project). Displayed on the Help/About page and the new Found Device page.
+
+**`/found/`** (new): explains what PirateBox is, states plainly that
+seeing the Wi-Fi signal alone is never a reason to locate the hardware,
+and - for someone who has *physically* found the device - asks them not to
+reset/dismantle/erase it and offers a recovery-message path. Safety/
+property concerns are stated as taking priority throughout, not just once.
+
+**Recovery messages: deliberately separate from Chat/Guestbook/uploads** -
+own data file (`data/recovery-messages.json`), own lock, same atomic
+temp-file-then-`rename()` write pattern every other store in this project
+uses. No operator PII is ever displayed (nothing about the operator is
+even stored). Finder contact is a free-text optional field, never
+required. Explicit on-page statement that messages never leave the device
+(true by construction - there's no Internet connection for them to leave
+over).
+
+**Rate-limiting, deliberately non-invasive:** submissions are throttled by
+comparing against the store's *own last entry timestamp* under its
+existing lock (30s cooldown) - no new per-client tracking file, no IP
+logging. Lookups get a session-only cooldown (5s) - reuses the session
+that already exists for CSRF, introduces no new tracking mechanism.
+
+**Two-way thread implemented** (assessed as safely buildable within the
+existing architecture, not deferred): each submission gets a random
+6-character code (`ALPHABET` excludes 0/O/1/I/L for readability, ~30 bits
+of entropy - judged adequate given this is a local-only, non-Internet-
+exposed, rate-limited surface, not a public web service). No enumeration
+endpoint exists anywhere - the only way to see a message is to already
+have its code. Operator replies via a new, non-destructive `admin/`
+action (`reply_recovery`) - deliberately **not** gated behind the
+confirm-checkbox pattern used for destructive actions, since replying is
+neither destructive nor irreversible (documented explicitly in-code so a
+future reader doesn't "fix" this inconsistency without understanding it).
+Purge (single or all) **is** confirm-gated, matching every other
+destructive admin action.
+
+**Testing performed:** isolated end-to-end flow tests using PHP's built-in
+server against a throwaway temp copy (never live data) before touching
+production - submit→code returned, immediate second submission correctly
+cooldown-blocked, correct-code lookup shows the message, wrong code
+correctly shows "not found," admin reply correctly persists and appears
+on re-lookup, purge correctly requires confirmation and correctly clears
+when confirmed. One bug found and diagnosed during testing: an early test
+run appeared to show a reply not persisting - traced to a shell/grep
+artifact in the test script itself (confirmed by re-running with raw JSON
+inspection at each step, which showed the write path was correct all
+along), not an application defect - documented here so the false alarm
+doesn't get rediscovered and mistrusted later. `php -l` clean on all
+files; deploy previewed with an itemized dry-run; live regression sweep
+unaffected; one real live production submission test (clearly labeled,
+purgeable via `/admin/`) confirmed the deployed code path end-to-end;
+logs clean; services untouched; mode confirmed still Normal throughout
+(neither new page reads `piratebox_get_mode()`, so no mode-switch cycle
+was needed this stage).
+
+**Design-only, not implemented, per instruction:**
+- **Recovery/Lost Mode:** a third, *software-selectable* presentation
+  state, explicitly separate from Normal/Emergency and **not** changing
+  the physical toggle design at all. Concept: a prominent landing page
+  stating the unit is marked missing/awaiting return, direct access to
+  the Found Device messaging flow already built above, and just enough of
+  the rest of the site left reachable to explain what the appliance is.
+  Nothing about *how* this would be triggered has been decided (a future
+  admin toggle is the obvious candidate, mirroring `set_piratebox_mode.sh`'s
+  own pattern) - deliberately left open rather than guessed at now.
+- **`PirateBox-Please-Return` SSID:** mentioned only as a future
+  possibility for Recovery Mode. No SSID, hostapd, or networking change
+  was made or is proposed as part of this stage - any actual SSID change
+  remains squarely inside this session's explicit stop-condition and
+  would need its own approval when it's actually time to build it.
+- **Physical recovery label text** (documented here, no artwork
+  generated): "PIRATEBOX - OFFLINE NETWORK APPLIANCE / This device
+  provides a local Wi-Fi information and file-sharing service. / If
+  operational, connect to the PirateBox Wi-Fi network and choose: About →
+  Found This Device. / Device ID: `PB-NSC5-3C` / Please do not reset,
+  dismantle, or erase the device merely because it was found." - no owner
+  information anywhere on the label, matching instruction. A future QR
+  code linking to the *local* `/found/` page (never an Internet URL,
+  since one wouldn't resolve on this network anyway) is noted as a
+  reasonable future addition once physical labels are actually produced -
+  not built now.
+
+**Backup:** `~/piratebox-backups/recovery-stage16-pre-20260901-072524/`.
+
 ## Stage 14: Main-Page Onboarding / "What Can I Do Here?"
 
 **Decision date:** 2026-09-01. Layered on Stage 13 (`2081c4b`).
