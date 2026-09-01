@@ -44,6 +44,7 @@ $UPLOAD_DIR = __DIR__ . '/../uploads';
 $DATA_DIR = __DIR__ . '/../../data';
 $CHAT_FILE = $DATA_DIR . '/chat.json';
 $MESSAGES_FILE = $DATA_DIR . '/messages.json';
+$BULLETIN_FILE = $DATA_DIR . '/bulletin.json';
 $RECOVERY_FILE = $DATA_DIR . '/recovery-messages.json';
 
 $actionResult = null;
@@ -133,7 +134,7 @@ function purgeUploadsDir(string $uploadDir): array
 // irreversible (an admin can reply again to correct a mistake), so it's
 // deliberately NOT in this set - it still requires the same CSRF token,
 // same as everything else here.
-$CONFIRM_REQUIRED_ACTIONS = ['clear_chat', 'clear_messages', 'purge_uploads', 'purge_recovery_one', 'purge_recovery_all'];
+$CONFIRM_REQUIRED_ACTIONS = ['clear_chat', 'clear_messages', 'clear_bulletin', 'purge_uploads', 'purge_recovery_one', 'purge_recovery_all'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($_POST['csrf_token']) || !hash_equals($_SESSION['csrf_token'] ?? '', $_POST['csrf_token'])) {
@@ -154,6 +155,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $actionResult = clearJsonFile($MESSAGES_FILE)
                     ? ['ok' => true, 'msg' => 'Guestbook messages cleared.']
                     : ['ok' => false, 'msg' => 'Failed to clear messages.'];
+                break;
+            case 'clear_bulletin':
+                $actionResult = clearJsonFile($BULLETIN_FILE)
+                    ? ['ok' => true, 'msg' => 'Bulletin board posts cleared.']
+                    : ['ok' => false, 'msg' => 'Failed to clear bulletin board.'];
                 break;
             case 'purge_uploads':
                 [$deleted, $failed] = purgeUploadsDir($UPLOAD_DIR);
@@ -433,6 +439,13 @@ $versionLine = $versionRaw !== false ? trim($versionRaw) : null;
                 <input type="hidden" name="action" value="clear_messages">
                 <label><input type="checkbox" name="confirm" value="1" required> I understand this permanently deletes all guestbook messages.</label>
                 <button type="submit" class="danger-button">Clear messages</button>
+            </form>
+
+            <form method="post" class="admin-action-form" onsubmit="return confirm('Clear ALL bulletin board posts? This cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+                <input type="hidden" name="action" value="clear_bulletin">
+                <label><input type="checkbox" name="confirm" value="1" required> I understand this permanently deletes all bulletin board posts.</label>
+                <button type="submit" class="danger-button">Clear bulletin board</button>
             </form>
 
             <form method="post" class="admin-action-form" onsubmit="return confirm('Delete ALL uploaded files? This cannot be undone.');">

@@ -244,6 +244,42 @@ button.upload-animation:disabled {
     margin-top: -0.5rem;
 }
 
+/* Bulletin Board category pills (Stage 22) - same small-pill shape as
+   .radio-chip, distinct background per fixed category so the board is
+   scannable at a glance. Colors are decorative only, never the sole
+   signal (the label text is always present too). */
+.bulletin-category {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    padding: 0.15rem 0.5rem;
+    margin-left: 0.5rem;
+    border-radius: 1rem;
+    vertical-align: middle;
+}
+
+.bulletin-category-announcement {
+    background: #4c3d8f;
+    color: #e0d9ff;
+}
+
+.bulletin-category-info {
+    background: #2c3e50;
+    color: #cfe3f7;
+}
+
+.bulletin-category-need-help {
+    background: #5c2323;
+    color: #ffd6d6;
+}
+
+.bulletin-category-offering-help {
+    background: #1f4d2c;
+    color: #cdf7d8;
+}
+
 /* Navbar Styles */
 .navbar {
     display: flex;

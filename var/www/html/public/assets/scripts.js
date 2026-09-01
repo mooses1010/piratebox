@@ -372,6 +372,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Navbar Badges Logic
     const badgeMessages = document.getElementById('badge-messages');
     const badgeChat = document.getElementById('badge-chat');
+    const badgeBulletin = document.getElementById('badge-bulletin');
 
     const getMaxId = (items) => {
         if (!items || items.length === 0) return -1;
@@ -381,6 +382,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const updateBadges = async () => {
         const isMessagesPage = window.location.pathname.includes('messages.php');
         const isChatPage = window.location.pathname.includes('chat.php');
+        const isBulletinPage = window.location.pathname.includes('bulletin.php');
 
         // Check Messages
         try {
@@ -423,9 +425,30 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         } catch (e) { console.error(e); }
+
+        // Check Bulletin Board
+        try {
+            const res = await fetch('bulletin.php?fetch=1');
+            if (res.ok) {
+                const posts = await res.json();
+                const lastSeenId = parseInt(localStorage.getItem('piratebox_last_bulletin_id') || '-1');
+                const maxId = getMaxId(posts);
+
+                if (isBulletinPage) {
+                    localStorage.setItem('piratebox_last_bulletin_id', maxId);
+                    if (badgeBulletin) badgeBulletin.style.display = 'none';
+                } else {
+                    const unread = posts.filter(p => p.id > lastSeenId).length;
+                    if (badgeBulletin) {
+                        badgeBulletin.textContent = unread > 0 ? unread : '';
+                        badgeBulletin.style.display = unread > 0 ? 'inline-block' : 'none';
+                    }
+                }
+            }
+        } catch (e) { console.error(e); }
     };
 
-    if (badgeMessages || badgeChat) {
+    if (badgeMessages || badgeChat || badgeBulletin) {
         updateBadges();
         setInterval(updateBadges, 3000);
     }

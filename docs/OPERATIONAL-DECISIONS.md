@@ -20,6 +20,66 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 22: Community Bulletin Board
+
+**Decision date:** 2026-09-01. Layered on Stage 21 (`7579ff9`/`fb17267`).
+
+New `/bulletin.php`, modeled directly on `messages.php`'s Guestbook -
+same JSON flat-file store, `flock()`-based atomic write, CSRF token,
+server-side length caps, stale-tmp cleanup, and "newest first, capped
+list" retention (200 posts here vs. the Guestbook's 100, since this is
+meant to carry more operationally useful traffic during an actual
+emergency: road closures, meeting points, "need water at X"). One added
+field vs. the Guestbook: a `category` (Announcement / Info-Update /
+Need Help / Offering Help), a client-supplied string validated against a
+fixed server-side allowlist (invalid/tampered values silently fall back
+to `info` - verified during testing with a deliberately malicious
+`category` value). Not moderated beyond the existing admin "clear"
+action (new `clear_bulletin`, mirroring `clear_chat`/`clear_messages`
+exactly) - no accounts, no per-post delete, nothing new to keep secure.
+
+Navbar: new `Bulletin` entry with the same unread-count badge pattern as
+Chat/Guestbook (`includes/navbar.php`, `scripts.js`'s `updateBadges()`).
+Placed early in Emergency Mode's nav order (right after Utility, before
+Chat) given its coordination value during an actual emergency; kept in
+its natural position after Guestbook in Normal Mode order.
+
+**Proactive Stage-17-lesson application:** `data/bulletin.json` and its
+`.lock` file were added to both `piratebox_deploy.sh`'s `--exclude` list
+and `.gitignore` in the same change that introduced the feature, before
+any deploy could touch them.
+
+**Not added to the Stage 21 Stats page's counts** - that page is
+explicitly scoped to device health + static content catalog, not live
+community-post volume; left alone rather than expanding an
+already-committed stage's scope.
+
+**Process note:** unlike every prior stage, no dedicated pre-stage
+`var/www/html` backup was taken before deploying this one - caught only
+afterward. Risk was low in practice (`piratebox_deploy.sh` is
+add/update-only, never deletes, and no `bulletin.json` existed yet to
+lose), and git history itself still serves as the pre-stage baseline for
+every repo file, but a live-tree snapshot should still have been taken
+first as usual. A backup was taken immediately after
+(`bulletin-stage22-post-20260901-101015`) and the miss is recorded here
+rather than glossed over.
+
+**Testing:** `php -l` clean (`bulletin.php`, `admin/index.php`,
+`help.php`, `navbar.php`); manual JS brace/paren/bracket balance check
+on `scripts.js` (no JS engine available in this environment); isolated
+PHP-built-in-server flow test on a throwaway copy covered: empty-board
+state, CSRF rejection (missing token -> 403), a legitimate post
+(category pill and message rendered correctly, `?fetch=1` JSON
+correct), and a deliberately malicious post (`<script>` in both the
+message and the category field) - message body came back
+`htmlspecialchars()`-escaped with no raw `<script>` tag in the response,
+and the invalid category fell back to `info` exactly as designed;
+live-deployed via the approved sudo automation; live-verified in both
+Normal and Emergency Mode (page loads, nav link/badge present, nav
+ordering correct per mode); confirmed `recovery-messages.json` and other
+excluded live data untouched by the deploy; mode restored to Normal;
+logs clean.
+
 ## Stage 21: Stats / Metrics / Appliance Status
 
 **Decision date:** 2026-09-01. Layered on Stage 20 (`b241a4e`).

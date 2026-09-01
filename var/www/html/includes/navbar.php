@@ -11,9 +11,9 @@ $piratebox_mode = piratebox_get_mode();
 // Emergency Mode surfaces reference material and live chat first without
 // hiding or renaming anything Normal Mode users already rely on.
 if ($piratebox_mode === PIRATEBOX_MODE_EMERGENCY) {
-    $navOrder = ['utility', 'chat', 'files', 'messages', 'help', 'upload'];
+    $navOrder = ['utility', 'bulletin', 'chat', 'files', 'messages', 'help', 'upload'];
 } else {
-    $navOrder = ['files', 'upload', 'chat', 'messages', 'help', 'utility'];
+    $navOrder = ['files', 'upload', 'chat', 'messages', 'bulletin', 'help', 'utility'];
 }
 
 $navItems = [
@@ -21,6 +21,7 @@ $navItems = [
     'upload'   => '<a href="/#upload-form">Upload</a>',
     'chat'     => '<a href="/chat.php">Chat<span id="badge-chat" class="badge"></span></a>',
     'messages' => '<a href="/messages.php">Guestbook<span id="badge-messages" class="badge"></span></a>',
+    'bulletin' => '<a href="/bulletin.php">Bulletin<span id="badge-bulletin" class="badge"></span></a>',
     'help'     => '<a href="/help.php">Help</a>',
     'utility'  => '<a href="/utility/">Utility</a>',
 ];
