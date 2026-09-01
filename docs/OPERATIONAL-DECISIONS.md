@@ -20,6 +20,39 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 18: Global Offline Search Expansion
+
+**Decision date:** 2026-09-01. Layered on Stage 17 (`7924e01`).
+Verification-only - no code changes, since the audit found Stage 8's
+existing implementation (strengthened by Stage 17's cross-link fixes)
+already satisfies this stage's requirements.
+
+**Verified rather than assumed:** re-ran cross-section query checks
+directly against the live index - `hypothermia` correctly spans Emergency
+("Extreme Cold & Winter Weather") and First Aid ("Hypothermia &
+Frostbite"), exactly the example in the instruction; `repeater` correctly
+spans Radio bands and Local Information. `tools/build_search_index.py`'s
+`load()` already returns `[]` for any missing dataset file rather than
+erroring - confirmed by reading the code, consistent with Stage 10's
+already-tested resilience discipline. The Search page's category chips
+already cover all 6 sections (Radio/Emergency/First Aid/Maps/Local
+Information/Library).
+
+**Recovery/Found Device system deliberately stays OUT of global search** -
+confirmed this is correct-by-design, not a gap: `build_search_index.py`
+never reads `recovery-messages.json`, and `/found/` is a core PirateBox
+page (like `help.php`/`chat.php`), not a `/utility/` JSON-driven section.
+Indexing recovery messages would directly contradict Stage 16's own "no
+enumeration" privacy requirement - the only correct search behavior here
+is none at all.
+
+**PDF full-text indexing remains deferred**, unchanged - no
+`pdftotext`/`poppler-utils`, metadata/title/tag search only, per
+instruction (moot in practice regardless, since the Library catalog has
+no documents yet).
+
+**No files changed, no deploy performed.**
+
 ## Stage 17: Complete Local Information / Content Audit
 
 **Decision date:** 2026-09-01. Layered on Stage 16 (`8266484`/`84bb565`).
