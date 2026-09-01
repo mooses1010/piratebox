@@ -39,5 +39,6 @@ back to (`git checkout <hash>` or restore the matching backup under
 | Stage 28: RTC / Time Readiness (audited, design only) | `a246bae` | (docs only, no site/system changes) |
 | Stage 29: Physical Control UX Design | `d94a9d1` | (docs only, no site/system changes) |
 | Stage 30: Accessibility Audit (verification only) | `bf984d7` | (no site changes) |
+| Stage 31: Content Profiles (deployment-scenario reordering) | `571fefe` | `~/piratebox-backups/content-profiles-stage31-pre-20260901-113046/` |
 
 Live box mode should be **Normal** when unattended between test sessions.
