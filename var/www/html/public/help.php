@@ -28,14 +28,15 @@ $piratebox_device_id = piratebox_get_device_id();
             <li>Join the Wi-Fi network named <strong>"PirateBox"</strong>. It's open - no password.</li>
             <li>If a "sign in to network" page appears, open it.</li>
             <li>If nothing opens automatically, open any web browser and type in the address:
-                <br><span class="help-url">http://10.0.0.1/</span>
+                <br><span class="help-url">http://piratebox/</span>
+                <br><span class="muted">If that doesn't open, try <span class="help-url">http://10.0.0.1/</span></span>
             </li>
         </ol>
 
         <div class="qr-row">
             <div>
                 <div class="qr-card">
-                    <img src="assets/qr-url.png" alt="QR code linking to http://10.0.0.1/" width="160" height="160">
+                    <img src="assets/qr-url.png" alt="QR code linking to http://piratebox/" width="160" height="160">
                 </div>
                 <p class="qr-caption">Scan to open PirateBox (once connected to the Wi-Fi)</p>
             </div>
@@ -56,7 +57,7 @@ $piratebox_device_id = piratebox_get_device_id();
                     <tr><td>Connected to PirateBox</td><td><strong class="status-ok">Yes</strong> - you're reading this page from it</td></tr>
                     <tr><td>Internet access</td><td>Not provided - PirateBox is intentionally offline</td></tr>
                     <tr><td>PirateBox services</td><td>Local only - everything here is served from this device</td></tr>
-                    <tr><td>Local address</td><td class="help-url">http://10.0.0.1/</td></tr>
+                    <tr><td>Local address</td><td class="help-url">http://piratebox/ <span class="muted">(or http://10.0.0.1/)</span></td></tr>
                 </tbody>
             </table>
         </div>
@@ -69,14 +70,14 @@ $piratebox_device_id = piratebox_get_device_id();
             <p><strong>Some modern Android and Samsung phones show "Internet may not be available"</strong> instead of a normal sign-in prompt after joining. This is expected - PirateBox is intentionally offline and doesn't provide Internet access, and some phones are cautious about that.</p>
         </div>
         <p>What to do: choose to stay connected (e.g. "Connect anyway" / "Connect only this time"), then open a browser and manually go to:</p>
-        <p><span class="help-url">http://10.0.0.1/</span></p>
+        <p><span class="help-url">http://piratebox/</span> <span class="muted">(or http://10.0.0.1/ if that doesn't open)</span></p>
         <p class="muted">You do not need to install any certificate, change any security setting, or click through any HTTPS warning to use PirateBox. If a browser asks you to do any of those things, something else is going on - just use the plain address above instead.</p>
     </section>
 
     <section class="help-section">
         <h2>Apple, Windows &amp; Linux</h2>
         <p>A sign-in/captive window usually opens automatically on these platforms. If it doesn't, or if it closes before you're done, open a browser and go to:</p>
-        <p><span class="help-url">http://10.0.0.1/</span></p>
+        <p><span class="help-url">http://piratebox/</span> <span class="muted">(or http://10.0.0.1/ if that doesn't open)</span></p>
     </section>
 
     <section class="help-section">

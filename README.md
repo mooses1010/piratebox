@@ -22,8 +22,10 @@ This configuration has been tested on a Raspberry Pi Zero 2 W running Raspberry 
 !['PirateBox WiFi QR Code'](https://github.com/teklynk/piratebox/blob/main/PirateBox-wifi-qrcode.png?raw=true)
 
 The device itself also serves this same Wi-Fi QR code, plus a second one
-for the direct URL, on its own Help page (`http://10.0.0.1/help.php`) -
-generated locally at install time, no external QR service involved. See
+for the direct URL (`http://piratebox/`, falling back to
+`http://10.0.0.1/` if hostname resolution ever doesn't work on a given
+client), on its own Help page (`http://piratebox/help.php`) - generated
+locally at install time, no external QR service involved. See
 [docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md) (Phase 5).
 
 ## Features
@@ -141,8 +143,14 @@ Configure `/etc/dnsmasq.conf` to handle IP leasing, redirect all DNS queries to 
 interface=wlan0
 dhcp-range=10.0.0.10,10.0.0.250,12h
 address=/#/10.0.0.1
+no-hosts
 dhcp-option=114,"http://10.0.0.1/.well-known/captive-portal"
 ```
+`no-hosts` keeps the wildcard above deterministic for every name,
+including this Pi's own hostname (`piratebox`) - without it, dnsmasq
+answers from `/etc/hosts` first, which would send a client asking for
+`http://piratebox/` to `127.0.1.1` instead. See
+[docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md).
 Restart dnsmasq:
 ```bash
 sudo systemctl restart dnsmasq
@@ -222,7 +230,8 @@ once" behavior.
 
 ### 6. Admin/Status Page (Phase 4)
 
-A lightweight, local-only admin page at `http://10.0.0.1/admin/` shows
+A lightweight, local-only admin page at `http://piratebox/admin/` (or
+`http://10.0.0.1/admin/`) shows
 storage/RAM/CPU/uptime, Wi-Fi client count, per-service health (hostapd/
 dnsmasq/nginx/PHP-FPM), and power/undervoltage status, plus three narrow
 maintenance actions (clear chat, clear guestbook, purge uploads - each

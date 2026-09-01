@@ -104,6 +104,12 @@ interface=wlan0
 dhcp-range=10.0.0.10,10.0.0.250,12h
 address=/#/10.0.0.1
 
+# Makes the wildcard above deterministic for every name, including this
+# Pi's own hostname "piratebox" (which /etc/hosts would otherwise answer
+# with 127.0.1.1 ahead of the wildcard) - see etc/dnsmasq.conf in the
+# repo and docs/OPERATIONAL-DECISIONS.md for the full investigation.
+no-hosts
+
 # RFC 8910 / RFC 7710bis: DHCP option 114 advertises the Captive Portal API
 # URL (RFC 8908) to clients that support it (Android 11+, some others).
 # dnsmasq has no built-in name for option 114, so it's set numerically; the
@@ -185,7 +191,7 @@ chmod 0755 /var/www/html/data
 # or add a password, update the WIFI: string below to match.
 echo "    Generating QR codes..."
 if command -v qrencode >/dev/null 2>&1; then
-    qrencode -o /var/www/html/public/assets/qr-url.png -s 6 -m 2 "http://10.0.0.1/"
+    qrencode -o /var/www/html/public/assets/qr-url.png -s 6 -m 2 "http://piratebox/"
     qrencode -o /var/www/html/public/assets/qr-wifi.png -s 6 -m 2 "WIFI:T:nopass;S:PirateBox;;"
     chown www-data:www-data /var/www/html/public/assets/qr-url.png /var/www/html/public/assets/qr-wifi.png
 else

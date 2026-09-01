@@ -6,6 +6,133 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Post-Stage-32: Canonical Human-Facing URL - `http://piratebox/`
+
+**Decision date:** 2026-09-01. A second small, deliberate post-roadmap
+feature, kept in its own commit separate from the connection-statistics
+one. Goal: users see/share/scan `http://piratebox/` instead of
+`http://10.0.0.1/`, while `10.0.0.1` remains the actual AP/server
+address and a reliable, always-present fallback. Explicitly **not** a
+reason to reopen captive-portal experimentation - see the classification
+below and the two prior captive-portal entries this decision was
+required to read and respect first ("Typed hostnames can silently fail
+to resolve due to client-side DoH" and "Captive portal detection: DHCP
+option 114").
+
+**Critical finding, verified before any change was made - the wildcard
+alone was NOT deterministic for this exact name:** this Pi's own
+hostname is literally `piratebox` (`/etc/hostname`), and Debian's
+standard `/etc/hosts` maps `127.0.1.1 piratebox`. dnsmasq reads
+`/etc/hosts` by default and answers from it *before* falling back to
+the `address=/#/10.0.0.1` wildcard. Confirmed directly with a raw DNS
+query (standard-library Python, no `dig`/`host`/`nslookup` installed on
+this system) against the live resolver: querying `piratebox` returned
+**`127.0.1.1`** - meaningless off-Pi - not `10.0.0.1`. Without a fix,
+`http://piratebox/` would have silently failed for every Wi-Fi client.
+
+**Fix: `no-hosts` added to `dnsmasq.conf`** (and the installer's
+generated copy), stopping dnsmasq from consulting `/etc/hosts` at all,
+which restores full wildcard determinism for every name - `piratebox`
+included. **Verified safe in an isolated, throwaway dnsmasq instance**
+(private port `15353`, `no-dhcp-interface=lo`, never touched the live
+service) before ever touching the real config: `piratebox` → `10.0.0.1`
+✓; `localhost`, `example.com`, and
+`connectivitycheck.gstatic.com` (the actual captive-portal DNS-hijack
+target) all still correctly → `10.0.0.1`, unchanged. `no-hosts` only
+affects DNS answers dnsmasq gives to *other* devices - it has no
+interaction with DHCP leasing, option 114, or the Pi's own local
+hostname resolution (glibc resolves the Pi's own hostname via
+`/etc/hosts` directly through nsswitch's "files" source, never by
+querying this dnsmasq instance).
+
+**Every `10.0.0.1` occurrence in the project was individually
+classified, not blanket-replaced:**
+
+- **(A) Underlying network/config address - unchanged:** `dhcpcd.conf`/
+  installer static IP (`10.0.0.1/24`), `dnsmasq.conf`/installer DHCP
+  range, and the wildcard `address=/#/10.0.0.1` line itself (still the
+  actual answer, and still needed for the captive-portal DNS-hijack
+  path).
+- **(B) Captive-portal/detection behavior - unchanged, zero risk
+  taken:** every nginx `302` OS-probe redirect (`generate_204`,
+  `hotspot-detect.html`, Windows NCSI, etc.), the DHCP option 114 URI,
+  and - most importantly - the RFC 8908 `user-portal-url` JSON field.
+  That field is the exact mechanism tied to the already-documented
+  Android `DNS_PROBE_PRIVATE_IP_NO_INTERNET_VERSION` investigation
+  (Phase 3's captive-portal entry) - changing it to a hostname would
+  reintroduce a DNS-hijack-derived signal into a path specifically
+  designed to avoid depending on one, purely for cosmetic consistency.
+  Left exactly as `http://10.0.0.1/`, per instruction. `captive.html`
+  (already-documented dead/unreferenced legacy code) also untouched.
+- **(C) Human-facing text - now leads with `http://piratebox/`, with
+  `http://10.0.0.1/` retained as an explicit, visible fallback:**
+  `help.php`'s connect-steps instruction, QR alt text, "Connection
+  Status" table, and the Android/Samsung and Apple/Windows/Linux
+  sections; `footer.php`'s "Trouble connecting?" line; the QR code
+  content itself (`installer_pi_zero_trixie.sh`'s `qrencode` call); and
+  `README.md`'s user-facing mentions (its captive-portal *technical*
+  explanation section and network-config code examples were left
+  untouched, except updating the dnsmasq example to include the new
+  `no-hosts` line so a maintainer copying it from scratch doesn't
+  reproduce the bug this entry just fixed).
+- **(D) Left as `10.0.0.1`, deliberately:** the two operator-console CLI
+  echoes (`setup_admin_password.sh`, the installer's admin-lockout
+  notice) - these are read by whoever is already at the Pi's own
+  console/SSH session, not a connecting visitor, and an unambiguous,
+  DNS-independent address is arguably the more correct choice for that
+  troubleshooting context. `docs/HARDWARE-INTEGRATION-DESIGN.md`'s
+  not-yet-built OLED mockup - a physical status display's job is
+  real-IP diagnostics, unrelated to this human-facing-URL change.
+  Historical `OPERATIONAL-DECISIONS.md` entries were read for context
+  but never edited retroactively, per this file's own convention.
+
+**No captive-portal file was touched**: `etc/nginx/sites-available/
+default` and the DHCP-option-114 line are byte-for-byte unchanged.
+`etc/dhcpcd.conf` (static IP, DHCP gateway/range) is unchanged. No SSID,
+security, or hostapd change of any kind.
+
+**Testing:** `dnsmasq --test` clean on the updated config; `bash -n`
+clean on the installer; `php -l` clean on `help.php`/`footer.php`.
+Isolated dnsmasq-instance DNS-resolution testing described above.
+Isolated PHP-built-in-server rendering test on a throwaway copy
+confirmed `help.php` and the homepage footer render `http://piratebox/`
+as primary with `http://10.0.0.1/` correctly present as a visible
+fallback in every location, 200 status, zero PHP warnings/notices.
+
+**Live deployment (network config), performed interactively with the
+operator, verified after each step:** `sudo cp etc/dnsmasq.conf /etc/
+dnsmasq.conf && sudo systemctl restart dnsmasq`, then a raw DNS query
+directly against the live resolver confirmed `piratebox` → `10.0.0.1`
+for real (not just in the isolated test); `hostapd`/`dnsmasq` service
+health, existing connected-client behavior, and both legacy-HTTP-probe
+and RFC 8908 captive-portal responses re-confirmed unaffected.
+
+**QR code, verified by decoding, not assumed:** regenerated
+`qr-url.png` via `qrencode "http://piratebox/"`; `zbarimg` was
+temporarily installed (matching the exact Phase 5 precedent - install,
+decode, `apt purge` + `autoremove` again, nothing left on the Pi) and
+used to decode the newly-generated PNG, confirming it encodes exactly
+`http://piratebox/` and nothing else. The Wi-Fi-join QR
+(`qr-wifi.png`) was not touched.
+
+**Backup:** `~/piratebox-backups/piratebox-url-pre-20260901-130355/`
+(includes the full pre-change `var/www/html` mirror and a copy of the
+pre-change `/etc/dnsmasq.conf`; the live system also kept its own
+`/etc/dnsmasq.conf.bak` from the same operation).
+
+**Live verification performed, end to end, after deployment:** a raw
+DNS query directly against the live resolver confirmed `piratebox` →
+`10.0.0.1`; `curl --resolve piratebox:80:10.0.0.1 http://piratebox/`
+returned `200` with the actual PirateBox homepage body (not just a DNS
+answer - the full HTTP path was exercised); `hostapd`/`dnsmasq`/`nginx`/
+`php8.4-fpm` all confirmed active with no restart-related errors in the
+logs; `generate_204`/`hotspot-detect.html` still `302` to
+`http://10.0.0.1/` and `/.well-known/captive-portal` still returns
+`{"captive":true,"user-portal-url":"http://10.0.0.1/"}` unchanged;
+`connectivitycheck.gstatic.com` still resolves to `10.0.0.1` (the
+captive-portal DNS-hijack path, unaffected by `no-hosts`); mode
+confirmed Normal.
+
 ## Product Roadmap Expansion (Stages 13-32) - scope note
 
 **Decision date:** 2026-09-01. Starting with Stage 13, entries below cover
