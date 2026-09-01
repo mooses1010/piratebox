@@ -40,5 +40,14 @@ back to (`git checkout <hash>` or restore the matching backup under
 | Stage 29: Physical Control UX Design | `d94a9d1` | (docs only, no site/system changes) |
 | Stage 30: Accessibility Audit (verification only) | `bf984d7` | (no site changes) |
 | Stage 31: Content Profiles (deployment-scenario reordering) | `571fefe` | `~/piratebox-backups/content-profiles-stage31-pre-20260901-113046/` |
+| Stage 32: Final Expansion Review / Wrap-Up (Stages 13-32 complete) | `7dc04a0` | (audit only, no site changes) |
 
 Live box mode should be **Normal** when unattended between test sessions.
+
+**IMPORTANT for the next session (human or Claude):** Stages 24-32 above
+live on local branch `worktree-stage24`, not yet folded onto `main` -
+see Stage 32's entry in OPERATIONAL-DECISIONS.md for the full recovery
+context and a `git merge --ff-only worktree-stage24` one-liner to fix
+this. The live site already reflects all of this work regardless (file
+content was kept in sync with every deploy) - this is a git-history
+housekeeping item, not a functional gap.
