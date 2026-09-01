@@ -20,6 +20,48 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 28: RTC / Time Readiness - audited, design only
+
+**Decision date:** 2026-09-01. Layered on Stage 27 (`11dda03`). Full
+detail in `docs/RTC-TIME-READINESS-DESIGN.md`.
+
+Audited, not implemented - same treatment as Stage 11/12's hardware
+designs, since the real near-term fix this audit identifies
+(`fake-hwclock`) is a package install, and this session's instructions
+stop for explicit approval before installing anything new (same
+boundary Stage 19 already hit for `ZipArchive`).
+
+**Real gap found:** this Pi has no hardware RTC and no `fake-hwclock`
+installed, and (correctly, by design) has no reliable path to NTP in
+the field - PirateBox's whole point is running with no Internet. That
+leaves it one power cycle away from booting with a badly wrong system
+clock in exactly the sustained-offline-emergency scenario this project
+cares most about. Traced through every timestamp consumer in the
+project: anything comparing two `time()` calls *within* one boot stays
+internally correct even with a wrong clock (chat/guestbook/bulletin
+timestamps, recovery-message cooldowns); the real exposure is anything
+spanning a reboot - Stage 21's cumulative Emergency Mode runtime total,
+and Stage 25's backup-retention pruning (which sorts by timestamped
+filename and could keep the wrong backups if the clock jumps backward
+across a power cycle).
+
+**Two candidate mitigations documented, neither applied:** installing
+`fake-hwclock` (small standard package, closes most of the gap for
+free, recommended as the near-term fix) and/or a hardware RTC module
+(e.g. DS3231) alongside Stage 11's already-planned hardware build -
+confirmed compatible, not conflicting: an RTC shares Stage 11's already-
+reserved I2C bus (GPIO2/GPIO3) as a second device address, not a new
+pin. No code changes proposed - every timestamp consumer already
+behaves as well as it can given whatever `time()` returns; once
+`fake-hwclock` is approved and installed, every consumer benefits
+automatically from the next boot onward with zero PirateBox code
+changes needed.
+
+**Testing:** entirely read-only inspection of live system state
+(`timedatectl`, `dpkg -l`, `/sys/class/rtc/`) - no package installed, no
+config touched, no reboot performed (unnecessary risk to the live
+device for a finding already fully established by direct inspection).
+
 ## Stage 27: Build / Maintenance Pipeline Consolidation
 
 **Decision date:** 2026-09-01. Layered on Stage 26 (`ebc1b5f`).
