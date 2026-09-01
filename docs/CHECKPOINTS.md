@@ -19,5 +19,6 @@ back to (`git checkout <hash>` or restore the matching backup under
 | Stage 8: Global Offline Search | `e1f19bd` | `~/piratebox-backups/search-stage8-pre-20260901-064643/` |
 | Stage 9: Utility Landing / Emergency Polish | `9e14b53` | `~/piratebox-backups/polish-stage9-pre-20260901-065258/` |
 | Stage 10: Accessibility/Resilience/Performance Audit | `0bab1f7` | `~/piratebox-backups/audit-stage10-pre-20260901-065552/` (docs only, no site changes) |
+| Stage 11: Hardware Integration Design | `80046c1` | (design doc only, no site/system changes) |
 
 Live box mode should be **Normal** when unattended between test sessions.
