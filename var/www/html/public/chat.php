@@ -17,6 +17,11 @@ if (file_exists($DATA_FILE)) {
         $decoded = json_decode($json, true);
         if (is_array($decoded)) {
             $chat = $decoded;
+        } elseif (trim($json) !== '') {
+            // Non-empty but not valid JSON - surface this rather than
+            // silently starting over, so corruption is at least visible
+            // in the php-fpm log.
+            error_log('PirateBox: chat.json failed to decode (' . json_last_error_msg() . '); showing empty history until the next successful write.');
         }
     }
 }
@@ -54,6 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
                     $decoded = json_decode($json, true);
                     if (is_array($decoded)) {
                         $chat = $decoded;
+                    } elseif (trim($json) !== '') {
+                        error_log('PirateBox: chat.json failed to decode (' . json_last_error_msg() . ') while posting a new message; continuing from empty history.');
                     }
                 }
             }
@@ -74,12 +81,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
                 $chat = array_slice($chat, -$chat_size);
             }
 
+            // Opportunistically clean up any stale temp files left behind by a
+            // previous crash/power-loss mid-write (harmless if none exist;
+            // safe to do here since we already hold the exclusive lock).
+            foreach (glob($DATA_FILE . '.tmp.*') ?: [] as $staleTmp) {
+                if (is_file($staleTmp) && (time() - (int) filemtime($staleTmp)) > 300) {
+                    @unlink($staleTmp);
+                }
+            }
+
             // Atomic write: write to a temp file then rename over the real file,
             // so concurrent unlocked readers (the ?fetch=1 poll) never see a
             // partially-written file.
             $tmpFile = $DATA_FILE . '.tmp.' . getmypid() . '.' . bin2hex(random_bytes(4));
             if (file_put_contents($tmpFile, json_encode($chat, JSON_PRETTY_PRINT)) !== false) {
-                rename($tmpFile, $DATA_FILE);
+                if (!rename($tmpFile, $DATA_FILE)) {
+                    error_log("PirateBox: failed to rename $tmpFile to $DATA_FILE; the new message was not saved.");
+                    @unlink($tmpFile);
+                }
             }
 
             flock($lockHandle, LOCK_UN);

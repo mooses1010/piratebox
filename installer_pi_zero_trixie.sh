@@ -39,7 +39,10 @@ fi
 echo "[+] Updating system and installing dependencies..."
 apt-get update
 apt-get install -y hostapd dnsmasq dhcpcd5 nginx php-fpm
-sudo rpi-update
+# NOTE (Phase 2 decision, 2026-08-31): this installer deliberately does NOT
+# run `rpi-update`. Modern Raspberry Pi OS should not be moved onto
+# bleeding-edge/untested firmware and kernel builds as part of a PirateBox
+# install. See docs/OPERATIONAL-DECISIONS.md before reintroducing it.
 
 # Network Configuration
 echo "[+] Configuring Network..."
@@ -80,6 +83,18 @@ sed -i 's|DAEMON_OPTS=""|DAEMON_OPTS=""|' /etc/default/hostapd
 
 systemctl unmask hostapd
 systemctl enable hostapd
+
+# hostapd systemd override: unblock Wi-Fi via rfkill before hostapd starts
+# (fixes a boot-time race on some Pi models), and restart hostapd on ANY
+# exit rather than only Restart=on-failure. Live testing (Phase 2,
+# 2026-08-31) showed a hard hostapd failure can leave wlan0 in a state that
+# briefly loses carrier, causing hostapd to exit CLEANLY (exit code 0) -
+# which on-failure alone does not restart. Restart=always closes that gap;
+# the base unit's StartLimitBurst=5/StartLimitIntervalUSec=10s (unchanged)
+# still stops a genuine restart loop. See docs/OPERATIONAL-DECISIONS.md.
+mkdir -p /etc/systemd/system/hostapd.service.d
+cp etc/systemd/system/hostapd.service.d/override.conf /etc/systemd/system/hostapd.service.d/override.conf
+systemctl daemon-reload
 
 # dnsmasq
 echo "    Configuring dnsmasq..."
@@ -134,8 +149,17 @@ cp restart_hostapd.sh /usr/local/bin/
 chmod +x /usr/local/bin/restart_hostapd.sh
 
 echo "[+] Setting up Cron Jobs..."
-(crontab -l; echo "0 0 * * * /usr/local/bin/purge_uploads.sh > /var/log/purge_uploads.log 2>&1") | awk '!x[$0]++' | crontab -
-(crontab -l; echo "0 * * * * /usr/local/bin/restart_hostapd.sh > /dev/null 2>&1") | awk '!x[$0]++' | crontab -
+# NOTE (Phase 2 decision, 2026-08-31): the nightly purge_uploads.sh cron and
+# the hourly restart_hostapd.sh cron are deliberately NOT installed by
+# default. purge_uploads.sh deletes ALL uploads/chat/messages irreversibly -
+# this project's default data-retention policy is "automatic deletion of
+# user content = OFF", so it is left available at /usr/local/bin only as a
+# manual utility. restart_hostapd.sh unconditionally restarted hostapd every
+# hour, disconnecting every connected Wi-Fi client for no diagnosed reason;
+# real hostapd recovery is now handled by systemd (see the hostapd override
+# above). Both scripts remain installed and safe to run by hand. See
+# docs/OPERATIONAL-DECISIONS.md for the full rationale before re-adding
+# either cron entry.
 (crontab -l; echo "@daily sleep 10; reboot > /dev/null 2>&1") | awk '!x[$0]++' | crontab -
 
 # Disable Services

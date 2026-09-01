@@ -65,9 +65,7 @@ sudo apt update
 sudo apt install -y hostapd dnsmasq dhcpcd5 nginx php-fpm git
 ```
 
-**❗IMPORTANT❗**
-
-Run `sudo rpi-update` to install the latest firmware/kernel. This fixed so many issues that I was having with disconnects. iOS devices would connect and then the kernel would crash once the iOS device disconnected. I went down a rabbit hole trying to find a solution. Turns out, I just needed to update the kernel. Don't let this happen to you.
+**A note on `rpi-update`:** on a Pi Zero 2 W running an older OS image, running `sudo rpi-update` to get the latest firmware/kernel fixed real iOS-disconnect/kernel-crash issues for the original author. `installer_pi_zero_trixie.sh` deliberately does **not** run it by default on Trixie - see [docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md) before reintroducing it. If you hit Wi-Fi stability issues, check `dmesg`/`journalctl -k` for `hwmon` undervoltage warnings first.
 
 ### 2. Network Configuration
 
@@ -109,6 +107,15 @@ Unmask and start hostapd:
 sudo systemctl unmask hostapd
 sudo systemctl enable hostapd
 sudo systemctl start hostapd
+```
+
+Install the systemd override that unblocks Wi-Fi via `rfkill` before start
+and enables automatic recovery on any exit (see
+[docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md)):
+```bash
+sudo mkdir -p /etc/systemd/system/hostapd.service.d
+sudo cp etc/systemd/system/hostapd.service.d/override.conf /etc/systemd/system/hostapd.service.d/override.conf
+sudo systemctl daemon-reload
 ```
 
 #### DNS & DHCP (dnsmasq)
@@ -161,18 +168,31 @@ sudo chmod 0755 /var/www/html/public/uploads
 sudo chmod 0755 /var/www/html/data
 ```
 
-### 5. Maintenance (Auto-Purge - optional)
-A script `purge_uploads.sh` is provided to clean up uploads and messages.
+### 5. Maintenance (manual purge - not scheduled by default)
+
+**Default policy: automatic deletion of user content is OFF.** Uploads, chat
+history, and guestbook messages persist indefinitely by default - this
+installer does not add a cron job to delete them. See
+[docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md) for the
+reasoning.
+
+A script `purge_uploads.sh` is installed to `/usr/local/bin/purge_uploads.sh`
+as a **manual** utility if you ever want to wipe everything (all uploads +
+all chat/guestbook history) yourself:
 ```bash
-sudo touch /var/log/purge_uploads.log
+sudo /usr/local/bin/purge_uploads.sh
 ```
-```bash
-sudo crontab -e
-```
-Every day at midnight
+This is immediate and irreversible - there is no undo. If you want it
+scheduled on your own install, you can add it back with `sudo crontab -e`:
 ```bash
 0 0 * * * /usr/local/bin/purge_uploads.sh > /var/log/purge_uploads.log 2>&1
 ```
+
+**Storage-exhaustion guard:** uploads are also protected from filling the
+disk completely - `var/www/html/includes/config.php` defines a minimum
+free-space reserve (1 GiB by default) that an upload may never cross;
+uploads that would violate it are rejected with a clear message and never
+written to disk. No existing files are ever deleted to make room.
 
 ### Disable Unnecessary Services
 
@@ -193,6 +213,18 @@ sudo systemctl status ssh
 
 ### Known Issues and troubleshooting
 
-Run `sudo rpi-update` to install the latest firmware/kernel. 
+hostapd is configured (via `etc/systemd/system/hostapd.service.d/override.conf`)
+to unblock Wi-Fi with `rfkill` before starting, and to restart automatically
+on any exit (`Restart=always`), not just on-failure - this recovers hostapd
+even from the case where a wlan0 carrier hiccup makes it exit cleanly. A
+`restart_hostapd.sh` script remains at `/usr/local/bin/restart_hostapd.sh`
+for manual use (e.g. after hand-editing `hostapd.conf`), but is **not**
+scheduled by cron - an unconditional hourly restart was found to disconnect
+every connected client once an hour for no diagnosed benefit. See
+[docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md) for the full
+history, including live crash-test results.
 
-Set `restart_hostapd.sh` as a cron job to run every hour.
+If you're seeing genuine Wi-Fi instability (not just the old hourly cron),
+check `dmesg` / `journalctl -k` for `hwmon: Undervoltage detected!` first -
+that's a power supply/cable problem, not a software one, and is a more
+likely cause on a Pi 3B+ than anything `rpi-update` would fix.

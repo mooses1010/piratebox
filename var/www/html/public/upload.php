@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 session_start();
+require_once __DIR__ . '/../includes/config.php';
 
 // Raise the limits for this request only
 ini_set('upload_max_filesize', '120M');   // maximum size of a single file
@@ -37,6 +38,16 @@ if ($err !== UPLOAD_ERR_OK) {
     $msg = "Upload error (code $err).";
 } elseif ($_FILES['file']['size'] > $MAX_SIZE) {
     $msg = "File too big - limit is " . ($MAX_SIZE / 1024 / 1024) . "MiB.";
+} elseif (
+    ($freeBytes = @disk_free_space($UPLOAD_DIR)) !== false
+    && ($freeBytes - $_FILES['file']['size']) < PIRATEBOX_MIN_FREE_BYTES
+) {
+    // Storage-exhaustion guard: never let an upload consume the last bit of
+    // free space on the SD card. Existing files are never touched or
+    // deleted to make room - the upload is simply refused before it's
+    // committed to permanent storage.
+    $msg = "Not enough free storage space is available to accept this upload right now. "
+        . "Please try again later, or let the PirateBox operator know storage is running low.";
 } else {
 
     // Security: Prevent PHP execution by renaming dangerous extensions
