@@ -30,6 +30,15 @@ set -euo pipefail
 
 STATE_DIR="/tmp/piratebox"
 STATE_FILE="$STATE_DIR/mode"
+# Stage 21: a plain append-only log of mode transitions, used only to
+# compute "cumulative Emergency Mode runtime" on the public Stats page
+# (includes/metrics.php parses it). One line per transition:
+# "<unix timestamp> <mode>". World-readable (www-data only ever reads it,
+# never writes it) - same read-only-consumer boundary as every other
+# state file in this project. Lives on the SD card (not tmpfs), unlike
+# mode itself, since a runtime total should survive a reboot rather than
+# resetting to zero - it's a log of history, not live trusted state.
+TRANSITIONS_LOG="/var/www/html/data/mode-transitions.log"
 
 usage() {
     echo "Usage: sudo $0 {normal|emergency|status}" >&2
@@ -60,6 +69,15 @@ case "$ACTION" in
         printf '%s\n' "$ACTION" > "$TMP_FILE"
         chmod 0644 "$TMP_FILE"
         mv -f "$TMP_FILE" "$STATE_FILE"
+
+        # Log the transition (best-effort: if data/ doesn't exist yet or
+        # isn't writable for some reason, don't fail the actual mode change
+        # over it - this log is a nice-to-have for Stats, never a
+        # dependency of mode-switching itself).
+        if [ -d "$(dirname "$TRANSITIONS_LOG")" ]; then
+            echo "$(date +%s) $ACTION" >> "$TRANSITIONS_LOG" 2>/dev/null || true
+            chmod 0644 "$TRANSITIONS_LOG" 2>/dev/null || true
+        fi
 
         echo "$(date '+%Y-%m-%d %H:%M:%S') - PirateBox mode set to: $ACTION"
         ;;

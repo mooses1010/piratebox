@@ -14,4 +14,26 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectHome=yes
 ProtectSystem=strict
-ReadWritePaths=/run/piratebox
+# Stage 21 fix: ReadWritePaths= (the original form of this line) only
+# grants access to a path that ALREADY exists - it does not create one.
+# /run is tmpfs and is wiped every boot, and this project has no
+# tmpfiles.d rule for /run/piratebox (unlike /var/www/piratebox-tmp,
+# which does - see etc/tmpfiles.d/piratebox-tmp.conf), so on a real boot
+# /run/piratebox never exists when this unit first runs, and
+# ProtectSystem=strict's namespace setup fails outright (systemd error:
+# "Failed to set up mount namespacing: /run/piratebox: No such file or
+# directory", 226/NAMESPACE) before the script ever executes - this
+# script's own `mkdir -p "$OUT_DIR"` never gets a chance to run. Found
+# during Stage 21 (pre-existing since Phase 4; not introduced by Stage
+# 21's own changes) - see docs/OPERATIONAL-DECISIONS.md.
+#
+# RuntimeDirectory= is systemd's purpose-built fix for exactly this: it
+# creates /run/piratebox (mode 0755, owned by this unit's user - root,
+# since no User= is set) immediately before every start, and grants the
+# same read-write access ReadWritePaths= did. RuntimeDirectoryPreserve=yes
+# keeps the directory (and status.json inside it) across this oneshot
+# unit's repeated 30-second runs, so PHP can still read the last snapshot
+# in between - without it, a plain oneshot's runtime directory would be
+# torn down again right after each run.
+RuntimeDirectory=piratebox
+RuntimeDirectoryPreserve=yes

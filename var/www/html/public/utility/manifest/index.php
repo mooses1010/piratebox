@@ -137,6 +137,7 @@ if (in_array($format, ['txt', 'json', 'csv'], true)) {
         <div class="hero-actions">
             <a href="/utility/">Utility Library</a>
             <a href="/utility/download/">Take This With You</a>
+            <a href="/utility/status/">Status</a>
         </div>
     </div>
 

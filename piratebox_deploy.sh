@@ -53,6 +53,7 @@ rsync -a "${DRYRUN[@]}" --chown=www-data:www-data \
     --exclude 'data/messages.json.lock' \
     --exclude 'data/recovery-messages.json' \
     --exclude 'data/recovery-messages.json.lock' \
+    --exclude 'data/mode-transitions.log' \
     --exclude 'includes/VERSION' \
     --exclude 'public/assets/qr-url.png' \
     --exclude 'public/assets/qr-wifi.png' \

@@ -73,6 +73,7 @@ session_start();
             <a href="/chat.php">Chat</a>
             <a href="/messages.php">Guestbook</a>
             <a href="/help.php">Help / About this network</a>
+            <a href="/utility/status/">Status</a>
         </div>
     </section>
 

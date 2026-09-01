@@ -20,6 +20,101 @@ entries for this expansion are intentionally more concise than Stages
 unchanged, but narrative depth is calibrated to keep pace with the much
 larger scope. Full detail for any entry remains in its commit message.
 
+## Stage 21: Stats / Metrics / Appliance Status
+
+**Decision date:** 2026-09-01. Layered on Stage 20 (`b241a4e`).
+
+New public `/utility/status/` page (no login, unlike `/admin/`) shows
+aggregate device health (uptime, storage/RAM free, CPU temp, current
+mode, cumulative Emergency Mode runtime) and content-catalog counts
+(reusing Stage 19/20's export `manifest.json` - not a third independent
+count). Wi-Fi client count and per-service health reuse the existing
+Phase 4 root status helper (`/run/piratebox/status.json`) with the same
+staleness fallback `admin/index.php` already established. Page states its
+privacy scope explicitly: aggregate-only, no visitor identity/IP/MAC,
+no per-visitor or per-download logs.
+
+**New shared module `includes/metrics.php`** extracts the `/proc` reads
+and helper-snapshot logic into one place so the Stats page and any future
+consumer (an OLED status line - see Stage 29) share one implementation.
+**Deliberately not adopted by `admin/index.php` itself** - refactoring an
+already-approved, destructive-action-containing page carried more
+regression risk than the resulting de-duplication was worth; the
+duplication is accepted and flagged as a Stage 27 (maintenance pipeline)
+consolidation candidate.
+
+**New feature: cumulative Emergency Mode runtime.** `set_piratebox_mode.sh`
+now appends one line (`<unix timestamp> <mode>`) to
+`data/mode-transitions.log` on every real transition - best-effort
+(never fails the actual mode change if the log write fails), world-readable,
+lives on the SD card (unlike mode state itself) since a running total
+should survive a reboot. `includes/metrics.php` sums closed + any
+still-open Emergency interval. **Lesson from Stage 17 applied proactively
+this time**: the new data file was added to both `piratebox_deploy.sh`'s
+`--exclude` list and `.gitignore` in the same change that introduced it,
+before any deploy could touch it.
+
+**Deferred, not implemented:** lifetime counters (downloads served,
+aggregate bytes/devices served). Getting the aggregate-only,
+zero-fingerprinting privacy boundary right deserves its own careful pass
+rather than a rushed addition - left for a future stage.
+
+**Real pre-existing bug found (not introduced by this stage):**
+`/run/piratebox/status.json` was missing on the live device.
+`piratebox-status.service` was failing every run with `226/NAMESPACE`
+("Failed to set up mount namespacing: /run/piratebox: No such file or
+directory"). Root cause: the unit used `ReadWritePaths=/run/piratebox`,
+which grants access to a path but does not create it; `/run` is tmpfs and
+is wiped every boot, and unlike `/var/www/piratebox-tmp` (which has a
+`tmpfiles.d` rule - `etc/tmpfiles.d/piratebox-tmp.conf`), nothing ever
+created `/run/piratebox`, so `ProtectSystem=strict`'s namespace setup
+failed before the helper script's own `mkdir -p` could run. This has been
+silently degrading `admin/index.php`'s Wi-Fi/service-health stats (and
+would have done the same to this stage's new Stats page) to "not
+reporting" since whenever this failure mode started.
+
+**Fixed in the repo** (`etc/systemd/system/piratebox-status.service`):
+replaced `ReadWritePaths=/run/piratebox` with `RuntimeDirectory=piratebox`
++ `RuntimeDirectoryPreserve=yes` - systemd's purpose-built mechanism for
+exactly this (creates the directory before each start, owned by the
+unit's user; `Preserve=yes` keeps `status.json` across this oneshot
+unit's repeated 30s runs rather than tearing the directory down after
+each one). **NOT deployed** - copying a unit into `/etc/systemd/system/`
+plus `systemctl daemon-reload` is system configuration outside both the
+5-command sudoers boundary and `setup_claude_automation.sh`'s scope
+(which only installs the two deploy/mode-switch scripts + sudoers file).
+Both this page and `admin/index.php` handle the missing snapshot
+gracefully in the meantime (explicit "not reporting" state, never a
+guess) - nothing is broken by leaving this unapplied, just less
+informative.
+
+**Two pending manual steps, outside this session's automation, for the
+user's awareness:**
+1. Re-run `sudo ./setup_claude_automation.sh` to pick up this stage's
+   `set_piratebox_mode.sh` change (transition logging) at
+   `/usr/local/bin/set_piratebox_mode.sh`. Until then, mode switches keep
+   working exactly as before, they just don't log to
+   `data/mode-transitions.log` yet, so the Stats page's Emergency-runtime
+   figure stays at zero.
+2. To apply the `piratebox-status.service` fix above:
+   `sudo cp etc/systemd/system/piratebox-status.service /etc/systemd/system/piratebox-status.service && sudo systemctl daemon-reload && sudo systemctl restart piratebox-status.service`.
+
+**Not added to the `/utility/` landing grid** (same 8-card judgment as
+Stage 20) - cross-linked from the grid page's "Also on this PirateBox"
+row and from Manifest/Download's own link rows instead.
+
+**Testing:** `php -l` clean on all touched files; `bash -n` clean on both
+shell scripts; isolated PHP-built-in-server test (learned from Stage 20)
+confirmed the HTML page and all three download formats
+(TXT/JSON/CSV, correct headers) on a throwaway copy, including the
+graceful "status helper not reporting" fallback with no
+`/run/piratebox/status.json` present; live-deployed via
+`sudo -n piratebox_deploy.sh`; live-verified via `curl` in both Normal
+and Emergency Mode (page content, mode cell, and Emergency banner all
+correct); confirmed `data/recovery-messages.json` and other excluded
+live data untouched by the deploy; mode restored to Normal afterward;
+logs clean.
+
 ## Stage 20: PirateBox Manifest ("What's On This PirateBox?")
 
 **Decision date:** 2026-09-01. Layered on Stage 19 (`87c4307`).
