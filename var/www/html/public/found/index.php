@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../includes/device_id.php';
 // Found Device / Local Recovery Messages (Stage 16).
 //
 // A privacy-conscious, entirely local finder<->operator message system,
-// deliberately kept separate from Chat/Guestbook/uploads/normal public
+// deliberately kept separate from Chat/Logbook/uploads/normal public
 // content (its own data file, never mixed with theirs). No operator PII
 // (name/phone/email/address) is ever displayed here. Finder contact info
 // is entirely optional. Messages never leave this device - there is no

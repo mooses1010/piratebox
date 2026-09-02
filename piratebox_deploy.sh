@@ -11,7 +11,7 @@
 #     repo. It can never remove a live file. Removing something from the
 #     site remains a deliberate, separate, manual action.
 #   - Explicit --exclude list for every piece of live user-generated
-#     content (uploads, chat/guestbook data, recovery messages, the
+#     content (uploads, chat/logbook data, recovery messages, the
 #     deployed VERSION file, the admin password hash, generated QR codes) -
 #     belt-and-suspenders on top of the fact that none of these are ever
 #     tracked in the repo/.gitignore in the first place, so a plain sync

@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Stage 25 (backup/restore): creates a timestamped tar.gz snapshot of
-# PirateBox's live, user-generated data - the chat/guestbook/bulletin/
+# PirateBox's live, user-generated data - the chat/logbook/bulletin/
 # recovery-message JSON stores, the device ID, the Emergency Mode
 # runtime log, and uploaded files - into ~/piratebox-data-backups/, then
 # prunes old backups beyond a fixed retention count.

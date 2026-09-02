@@ -6,6 +6,91 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Guestbook Reframed as "Logbook" (terminology, not a rebuild)
+
+**Decision date:** 2026-09-02. Raised outside this session and handed in
+as one narrow currently-actionable increment: the feature at
+`messages.php` (previously labeled "Guestbook" everywhere) is better
+understood as a physical-style visitor/field logbook - a voluntary
+"I was here," not a message board. Recovered state first (clean tree at
+`6518a14`, matching the just-closed persistence-fix checkpoint) before
+starting.
+
+**What changed - human-facing only:** every user-visible occurrence of
+"Guestbook" (nav link, page `<h1>`/`<title>`, home page, Utility Library
+landing, "What can I do here?", Help page, admin maintenance section -
+heading, confirm dialog, checkbox label, button, and result message) now
+reads "Logbook." `messages.php` gained a short intro line in the same
+style `bulletin.php` already uses (`<p class="muted"
+style="text-align:center;">`): "Sign the PirateBox logbook - leave your
+name or handle, a short note, or simply mark that you were here." The
+name field's label became "Name / handle / callsign:" to match the
+callsign use case named in the request - still free-text, still
+optional (defaults to "Anonymous"), still not verified identity and not
+a tracking mechanism (unchanged from before - just made explicit in the
+label). Code comments describing the feature conceptually (across
+`bulletin.php`, `found/index.php`, `config.php`, `admin/index.php`,
+`scripts.js`, `styles.css`, the deploy/backup/restore/purge/rebuild
+tooling, and the current-terminology passages of `ARCHITECTURE.md`,
+`CHECKIN-BOARD-DESIGN.md`, `FIELD-TOOLS-DESIGN.md`,
+`RTC-TIME-READINESS-DESIGN.md`, `README.md`) were updated too, for the
+same reason `docs/CAPABILITY-REGISTRY.md` is kept reconciled rather than
+just extended - stale terminology in a comment is a small trap for
+whoever reads it next. **This file's own past entries were deliberately
+left untouched** - they're a decision log, not current-state prose (see
+this file's own preamble and `CLAUDE.md` §4); rewriting "Guestbook" to
+"Logbook" in a 2026-08-31 entry would misrepresent what was actually
+built and named that day.
+
+**What did NOT change:** `messages.php` (route), `data/messages.json`
+(storage file), the `clear_messages`/`messages` action/nav-key
+identifiers, the `MESSAGES_FILE` variable, every deploy-exclude/backup/
+restore/purge file reference, and the `message`/`name`/`id`/`timestamp`
+JSON field names - all stayed exactly as-is, per the operator's explicit
+instruction to prefer relabeling over migration risk. **No data
+migration of any kind** - existing `data/messages.json` entries load and
+render completely unchanged (verified below). CSRF protection, the
+32/2000-char server-side caps, the exclusive-lock-then-atomic-write
+pattern, the stale-`.tmp` cleanup, the free-space guard
+(`piratebox_low_storage()`), Travel Mode, and every backup/restore/
+export/deploy behavior are all untouched - only string literals moved
+plus the one behavior change below.
+
+**The one real behavior change - message now optional:** the request
+asked to evaluate whether a name-only entry ("just mark that you were
+here") could be safely allowed. It can: the textarea's HTML `required`
+was the only thing enforcing a message, there's no security property
+that depends on it, and the write path already defaults an empty name
+to "Anonymous" - the missing piece was a symmetric rule for the message
+side. Added `$hasEntry = ($name !== '' || $content !== '')`, computed
+*before* the empty-name default is applied, and used to gate both the
+low-storage check and the write (replacing the old `$content !== ''`
+gate in both places). This means: name-only saves an entry with an
+empty message (rendered without a message-body element, so it doesn't
+show a blank box); message-only keeps working exactly as before
+(defaults to "Anonymous"); and a **fully blank submission still creates
+nothing at all**, same as before the change - `$hasEntry` is false in
+that case too, so there's no new way to post an empty ghost row. No
+ambiguity or validation weakening identified, so the optional-message
+behavior was implemented rather than deferred.
+
+**Testing:** `php -l` clean on every changed PHP file, `bash -n` clean
+on every changed shell script. Functional testing done against an
+isolated scratch copy of the site (own temp directory, own seeded
+`messages.json`, own `php -S` instance on a high port) - **never
+against live community data** - covering: a pre-existing entry (seeded,
+not created by this session) survives and renders unchanged; a
+name-only POST saves correctly with an empty message and no
+message-body element in the output; a fully-blank POST creates no entry
+(still 200/re-render, not a redirect - unchanged from before); a normal
+name+message POST still works and IDs still increment correctly; a
+forged/missing CSRF token is still rejected (403). All scratch files and
+the temporary server were removed after testing. Full four-suite
+regression (`test_fieldtools.php`/`test_capability_state.php`/
+`test_reference_packs.php`/`test_device_memory.php`, 168 assertions -
+none of which cover this feature, so an unaffected clean pass is the
+expected/correct result, not new coverage) still passes.
+
 ## Connection-Stats Persistence Bug Found + Fixed (systemd sandboxing)
 
 **Decision date:** 2026-09-02. The operator ran the pending

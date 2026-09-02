@@ -7,7 +7,7 @@
 # DELIBERATELY NOT part of the NOPASSWD sudo automation
 # (etc/sudoers.d/piratebox-claude) and NOT installed to /usr/local/bin -
 # restoring live data is rare, high-stakes, and irreversible (it
-# overwrites whatever chat/guestbook/bulletin/recovery-message history,
+# overwrites whatever chat/logbook/bulletin/recovery-message history,
 # device ID, and uploads currently exist), so this always requires the
 # operator's own sudo password, on purpose, every single time, run
 # directly from a checkout of this repo. It is also NOT exposed
@@ -53,7 +53,7 @@ if ! tar -tzf "$ARCHIVE" 2>/dev/null | grep -qE '^(data|uploads)/'; then
     exit 1
 fi
 
-echo "This will OVERWRITE the live chat/guestbook/bulletin/recovery-message"
+echo "This will OVERWRITE the live chat/logbook/bulletin/recovery-message"
 echo "history, device ID, Emergency Mode runtime log, and uploaded files at"
 echo "$SITE_ROOT with the contents of:"
 echo "  $ARCHIVE"

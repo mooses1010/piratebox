@@ -20,7 +20,7 @@ $navItems = [
     'files'    => '<a href="/">Files</a>',
     'upload'   => '<a href="/#upload-form">Upload</a>',
     'chat'     => '<a href="/chat.php">Chat<span id="badge-chat" class="badge"></span></a>',
-    'messages' => '<a href="/messages.php">Guestbook<span id="badge-messages" class="badge"></span></a>',
+    'messages' => '<a href="/messages.php">Logbook<span id="badge-messages" class="badge"></span></a>',
     'bulletin' => '<a href="/bulletin.php">Bulletin<span id="badge-bulletin" class="badge"></span></a>',
     'help'     => '<a href="/help.php">Help</a>',
     'utility'  => '<a href="/utility/">Utility</a>',

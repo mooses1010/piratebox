@@ -17,7 +17,7 @@
 #
 # Safe to re-run any time - every step here is already independently
 # idempotent and non-destructive (see each script's own header). None of
-# these touch chat/guestbook/bulletin/recovery-message data, uploads, or
+# these touch chat/logbook/bulletin/recovery-message data, uploads, or
 # any other live user-generated content - only data/utility/ (source)
 # and public/utility/{search-index consumers,exports} (generated
 # output), exactly as each script's own scope was already documented at

@@ -204,9 +204,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Guard against a double-click double-posting a guestbook message
-    // before the page navigates away (messages.php is a plain synchronous
-    // form submit, unlike chat's fetch-based one).
+    // Guard against a double-click double-posting a logbook entry before
+    // the page navigates away (messages.php is a plain synchronous form
+    // submit, unlike chat's fetch-based one).
     const messageForm = document.getElementById('message-form');
     if (messageForm) {
         messageForm.addEventListener('submit', function () {

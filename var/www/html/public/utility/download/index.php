@@ -8,7 +8,7 @@ session_start();
 //
 // EXPORT PRIVACY: this page and the export builder only ever touch
 // data/utility/* and the resulting public/utility/exports/ directory -
-// there is no code path here that reaches chat/guestbook/recovery
+// there is no code path here that reaches chat/logbook/recovery
 // messages/admin credentials/uploads/system or network configuration.
 //
 // Deliberately does NOT read piratebox_get_mode() - identical in Normal
@@ -144,7 +144,7 @@ $sectionLabels = [
             <?php endif; ?>
 
             <div class="help-note">
-                <p><strong>How to use a downloaded bundle:</strong> extract the .zip file, then open <code>index.html</code> inside it in any web browser - no PirateBox, server, or Internet connection needed. Live-only features (uploading, chat, guestbook) aren't included, since those need an active PirateBox to talk to.</p>
+                <p><strong>How to use a downloaded bundle:</strong> extract the .zip file, then open <code>index.html</code> inside it in any web browser - no PirateBox, server, or Internet connection needed. Live-only features (uploading, chat, the logbook) aren't included, since those need an active PirateBox to talk to.</p>
             </div>
 
             <?php if ($travelMode): ?>

@@ -158,8 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 break;
             case 'clear_messages':
                 $actionResult = clearJsonFile($MESSAGES_FILE)
-                    ? ['ok' => true, 'msg' => 'Guestbook messages cleared.']
-                    : ['ok' => false, 'msg' => 'Failed to clear messages.'];
+                    ? ['ok' => true, 'msg' => 'Logbook entries cleared.']
+                    : ['ok' => false, 'msg' => 'Failed to clear the logbook.'];
                 break;
             case 'clear_bulletin':
                 $actionResult = clearJsonFile($BULLETIN_FILE)
@@ -486,7 +486,7 @@ $connStats = piratebox_get_connection_stats();
     <?php endif; ?>
 
     <h2 class="admin-section-heading">Recovery messages <span class="section-tag">local only</span></h2>
-    <p class="muted" style="text-align:center;">Stage 16 - separate from Chat/Guestbook. Never transmitted over the Internet.</p>
+    <p class="muted" style="text-align:center;">Stage 16 - separate from Chat/Logbook. Never transmitted over the Internet.</p>
     <?php if (empty($recoveryMessages)): ?>
         <p class="empty-state">No recovery messages.</p>
     <?php else: ?>
@@ -588,7 +588,7 @@ $connStats = piratebox_get_connection_stats();
         <h2 class="admin-section-heading">Destructive maintenance <span class="section-tag">irreversible</span></h2>
         <p class="maintenance-warning">
             Each action below is independent and does exactly what it says - clearing
-            chat does not touch messages or uploads, and vice versa. Every action
+            chat does not touch the logbook or uploads, and vice versa. Every action
             requires the checkbox below AND a confirmation dialog, and cannot be
             undone. Service restarts and reboot are intentionally not available
             here; see the README for the SSH commands.
@@ -601,11 +601,11 @@ $connStats = piratebox_get_connection_stats();
                 <button type="submit" class="danger-button">Clear chat history</button>
             </form>
 
-            <form method="post" class="admin-action-form" onsubmit="return confirm('Clear ALL guestbook messages? This cannot be undone.');">
+            <form method="post" class="admin-action-form" onsubmit="return confirm('Clear ALL logbook entries? This cannot be undone.');">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
                 <input type="hidden" name="action" value="clear_messages">
-                <label><input type="checkbox" name="confirm" value="1" required> I understand this permanently deletes all guestbook messages.</label>
-                <button type="submit" class="danger-button">Clear messages</button>
+                <label><input type="checkbox" name="confirm" value="1" required> I understand this permanently deletes all logbook entries.</label>
+                <button type="submit" class="danger-button">Clear logbook</button>
             </form>
 
             <form method="post" class="admin-action-form" onsubmit="return confirm('Clear ALL bulletin board posts? This cannot be undone.');">

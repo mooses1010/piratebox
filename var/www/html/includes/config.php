@@ -26,7 +26,7 @@ define('PIRATEBOX_MIN_FREE_BYTES', 1024 * 1024 * 1024);
 // bulletin.json) instead of uploads. A single post there is at most a few
 // KB (2000-char message cap), nowhere near upload.php's 130MiB ceiling, so
 // reusing the 1GiB uploads threshold would be needlessly conservative -
-// it would refuse to save a guestbook message while gigabytes of
+// it would refuse to save a logbook entry while gigabytes of
 // deliberately-reserved uploads headroom sit untouched. 5MiB is chosen as
 // comfortably larger than any realistic burst of concurrent small writes
 // (even a full 200-post board at the 2000-char cap is under 1MiB total),

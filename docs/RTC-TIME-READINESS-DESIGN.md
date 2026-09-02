@@ -55,7 +55,7 @@ property in the whole build.
 own timestamp consumers rather than assumed:
 
 - **Displayed dates are wrong, but *relative* durations inside one boot
-  session stay correct.** Chat/Guestbook/Bulletin message timestamps
+  session stay correct.** Chat/Logbook/Bulletin message timestamps
   (`time()` at write time), the recovery-message rate-limit cooldowns
   (Stage 16), and the CSRF/session lifetime all compare two `time()`
   calls taken *after* the same boot - if the clock is wrong but stable,

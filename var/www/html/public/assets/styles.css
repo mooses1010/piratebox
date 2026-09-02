@@ -589,7 +589,7 @@ ul#chat li.pending {
 
 /* -------------------------------------------------
    Phase 5: onboarding hero, footer, help/about page,
-   file-list sorting, chat/guestbook polish, admin
+   file-list sorting, chat/logbook polish, admin
    section distinction.
    ------------------------------------------------- */
 
@@ -799,7 +799,7 @@ th.sortable .sort-indicator {
     padding: 2rem 1rem;
 }
 
-/* Chat/guestbook: small readability polish, existing classes untouched */
+/* Chat/logbook: small readability polish, existing classes untouched */
 ul#chat li.empty-state {
     border-bottom: none;
 }

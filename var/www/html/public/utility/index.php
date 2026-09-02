@@ -20,7 +20,7 @@ session_start();
         <div class="hero-tagline">Local Offline Network</div>
         <h1>Offline Utility Library</h1>
         <p>No Internet connection is used or required - this network never leaves this device. Everything below is stored locally on this PirateBox: radio references, emergency and first-aid information, maps, manuals, and search all work the same with or without a working Internet connection anywhere nearby.</p>
-        <p class="muted">This is an addition to the regular PirateBox file-sharing network, not a replacement for it - Files, Chat, and the Guestbook are all still here too.</p>
+        <p class="muted">This is an addition to the regular PirateBox file-sharing network, not a replacement for it - Files, Chat, and the Logbook are all still here too.</p>
     </div>
 
     <div class="utility-grid">
@@ -81,7 +81,7 @@ session_start();
         <div class="hero-actions">
             <a href="/">Files</a>
             <a href="/chat.php">Chat</a>
-            <a href="/messages.php">Guestbook</a>
+            <a href="/messages.php">Logbook</a>
             <a href="/help.php">Help / About this network</a>
             <a href="/utility/status/">Status</a>
         </div>

@@ -7,17 +7,17 @@ $postError = null;
 
 // Community Bulletin Board (Stage 22).
 //
-// Deliberately modeled on messages.php's Guestbook - same JSON flat-file
+// Deliberately modeled on messages.php's Logbook - same JSON flat-file
 // store, same flock()-based atomic write, same CSRF token, same
 // server-side length caps, same stale-tmp cleanup, same "newest first,
 // capped list" retention. The only real difference is one extra field
-// (category) and a slightly larger cap (200 vs the Guestbook's 100),
+// (category) and a slightly larger cap (200 vs the Logbook's 100),
 // since this is meant to carry more operationally useful traffic during
 // an actual emergency - road closures, "meeting point is X", "need
 // water at address Y" - not just casual messages.
 //
 // This is a COMMUNITY board, not a moderated one: anyone on the network
-// can post, same as Chat/Guestbook, and the only cleanup lever is the
+// can post, same as Chat/Logbook, and the only cleanup lever is the
 // existing admin "clear" action (see admin/index.php) - no per-post
 // delete, no accounts, nothing new to keep secure. Categories are a
 // plain client-supplied string validated against a fixed allowlist

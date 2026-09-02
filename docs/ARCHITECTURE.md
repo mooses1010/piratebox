@@ -77,11 +77,11 @@ keeping PirateBox simple as it grows.
 ### Core
 
 The things that make PirateBox fundamentally PirateBox: the AP/network,
-the offline site, files, community features (chat/guestbook/bulletin),
+the offline site, files, community features (chat/logbook/bulletin),
 storage, basic safe operation, and shutdown/basic status. **Core should
 have as few dependencies as practical.** Everything currently live on
 this device is Core: nginx/PHP/hostapd/dnsmasq, the file-share/chat/
-guestbook/bulletin app, Normal/Emergency Mode, Travel Mode, and the
+logbook/bulletin app, Normal/Emergency Mode, Travel Mode, and the
 physical shutdown button (a safety primitive, not an add-on capability).
 
 ### Operational
@@ -662,7 +662,7 @@ any kind exists today beyond the admin page's existing password, which
 this section does not change**):
 
 - **Access** - ability to use public PirateBox services (files, chat,
-  guestbook, bulletin, Field Tools, reference library - what any
+  logbook, bulletin, Field Tools, reference library - what any
   connected visitor already gets today with zero login).
 - **Operation** - ability to perform routine trusted operator actions
   (today's closest real analog: whoever knows the admin page's

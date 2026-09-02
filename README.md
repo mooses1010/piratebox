@@ -34,7 +34,7 @@ locally at install time, no external QR service involved. See
 - **Offline Network**: Creates its own Wi-Fi hotspot (SSID: PirateBox).
 - **Captive Portal**: DNS redirection resolves all requests to the local server.
 - **File Sharing**: Simple web interface to upload and download files, with sortable listing and human-readable sizes.
-- **Messages (Guestbook)**: Leave a message that stays for later visitors to read.
+- **Logbook**: A visitor logbook - sign your name/handle, leave a short note, or just mark that you were here. Entries stay for later visitors to read.
 - **Live Chat**: Have a conversation with others connected to the PirateBox.
 - **Help page**: `help.php` - connect instructions (including a note for Android/Samsung devices that show "Internet may not be available"), platform guidance, and a short About section. Linked from every page's navigation.
 - **Admin/status page**: see "Admin/Status Page" below.
@@ -200,14 +200,14 @@ sudo chmod 0755 /var/www/html/data
 ### 5. Maintenance (manual purge - not scheduled by default)
 
 **Default policy: automatic deletion of user content is OFF.** Uploads, chat
-history, and guestbook messages persist indefinitely by default - this
+history, and logbook entries persist indefinitely by default - this
 installer does not add a cron job to delete them. See
 [docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md) for the
 reasoning.
 
 A script `purge_uploads.sh` is installed to `/usr/local/bin/purge_uploads.sh`
 as a **manual** utility if you ever want to wipe everything (all uploads +
-all chat/guestbook history) yourself:
+all chat/logbook history) yourself:
 ```bash
 sudo /usr/local/bin/purge_uploads.sh
 ```
@@ -226,7 +226,7 @@ page also shows current free space, with a warning once it's within 2x
 that reserve.
 
 **Narrower maintenance actions are also available from the admin page**
-(see below) for clearing just chat, just the guestbook, or just uploads,
+(see below) for clearing just chat, just the logbook, or just uploads,
 each independently and each behind a confirmation checkbox -
 `purge_uploads.sh` remains available for the original "wipe everything at
 once" behavior.
@@ -237,7 +237,7 @@ A lightweight, local-only admin page at `http://piratebox/admin/` (or
 `http://10.0.0.1/admin/`) shows
 storage/RAM/CPU/uptime, Wi-Fi client count, per-service health (hostapd/
 dnsmasq/nginx/PHP-FPM), and power/undervoltage status, plus three narrow
-maintenance actions (clear chat, clear guestbook, purge uploads - each
+maintenance actions (clear chat, clear logbook, purge uploads - each
 independent, each requiring an explicit confirmation checkbox).
 
 **It is locked out by default** - the installer creates an *empty*

@@ -191,7 +191,7 @@ if (in_array($format, ['txt', 'json', 'csv'], true)) {
             <?php endforeach; ?>
         </div>
         <?php if ($helperStale): ?>
-            <p class="muted status-bad">The background status helper isn't reporting right now, so Wi-Fi client count and service state above show as "unknown" rather than a guess. This doesn't affect PirateBox itself - file sharing, chat, the guestbook, and the Utility Library all keep working normally either way.</p>
+            <p class="muted status-bad">The background status helper isn't reporting right now, so Wi-Fi client count and service state above show as "unknown" rather than a guess. This doesn't affect PirateBox itself - file sharing, chat, the logbook, and the Utility Library all keep working normally either way.</p>
         <?php endif; ?>
 
         <h2 class="admin-section-heading">Wi-Fi Connection Activity <span class="section-tag">aggregate only</span></h2>

@@ -9,7 +9,7 @@ record; that entry is a summary pointing here.
 ## 1. Why this exists
 
 PirateBox's existing value is public file/community service (Files,
-Chat, Guestbook, Bulletin) plus an offline reference library
+Chat, Logbook, Bulletin) plus an offline reference library
 (`/utility/`). Neither covers the case where the device itself needs to
 be a useful **instrument** during days of no mains power, no cell
 service, and no Internet - converting an unfamiliar unit, working out

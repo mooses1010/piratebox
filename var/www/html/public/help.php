@@ -85,7 +85,7 @@ $piratebox_device_id = piratebox_get_device_id();
         <ul class="help-steps">
             <li><strong>Files</strong> - the home page. Upload a file from your device, or download anything others have shared.</li>
             <li><strong>Chat</strong> - a live, shared chat room for everyone currently connected.</li>
-            <li><strong>Guestbook</strong> - leave a longer message that stays for later visitors to read.</li>
+            <li><strong>Logbook</strong> - a visitor logbook: sign your name/handle, leave a short note, or just mark that you were here. Stays for later visitors to read.</li>
             <li><strong>Bulletin Board</strong> - post announcements, local info, or requests/offers of help, sorted by category. See <a href="/bulletin.php">Bulletin Board</a>.</li>
             <li><strong>Utility</strong> - an offline reference library: radio, emergency/outage guidance, first aid, maps, local information, manuals, and search - all built into this device, no Internet needed. See <a href="/utility/">Utility Library</a>.</li>
         </ul>

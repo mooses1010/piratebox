@@ -4,14 +4,14 @@
 #
 # Phase 2 (2026-08-31) decision: this PirateBox's default data-retention
 # policy is "automatic deletion of user content = OFF". Uploads, chat
-# history, and guestbook messages persist indefinitely unless an operator
+# history, and logbook entries persist indefinitely unless an operator
 # runs this script by hand (or a future configurable admin-interface
 # cleanup policy is deliberately enabled). See
 # docs/OPERATIONAL-DECISIONS.md for the full rationale. Do not re-add a
 # cron entry for this script without updating that document.
 #
 # WARNING: running this script deletes ALL uploaded files and ALL chat/
-# guestbook history immediately and irreversibly. There is no undo.
+# logbook history immediately and irreversibly. There is no undo.
 
 # The directory to clean
 TARGET_DIR="/var/www/html"

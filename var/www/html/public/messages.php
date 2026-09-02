@@ -53,6 +53,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
     $name = mb_substr($name, 0, 32);
     $content = mb_substr($content, 0, 2000);
 
+    // A logbook entry needs *something* deliberately provided - either a
+    // name/handle, a message, or both. Check this before defaulting an
+    // empty name to "Anonymous" below, so a genuinely blank submission
+    // (nothing typed in either field) still produces no entry at all,
+    // exactly as before - it must not turn into a bare "Anonymous" ghost
+    // row with an empty body just because the default filled the name in.
+    $hasEntry = ($name !== '' || $content !== '');
+
     if ($name === '') {
         $name = 'Anonymous';
     }
@@ -61,9 +69,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
     // upload.php already had - a silent file_put_contents() failure under
     // genuine storage exhaustion would otherwise drop the message with no
     // indication to the poster that it wasn't saved.
-    if ($content !== '' && piratebox_low_storage(dirname($DATA_FILE))) {
-        $postError = 'Not enough free storage space is available to save this message right now. Please try again later, or let the PirateBox operator know storage is running low.';
-    } elseif ($content !== '') {
+    if ($hasEntry && piratebox_low_storage(dirname($DATA_FILE))) {
+        $postError = 'Not enough free storage space is available to save this entry right now. Please try again later, or let the PirateBox operator know storage is running low.';
+    } elseif ($hasEntry) {
         // Serialize concurrent writers with an exclusive lock, then re-read the
         // file while holding it so we never overwrite another request's message
         // (multiple people can post/poll within the same second).
@@ -136,14 +144,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>PirateBox - Messages</title>
+    <title>PirateBox - Logbook</title>
     <link rel="stylesheet" href="assets/styles.css">
     <script src="assets/scripts.js"></script>
 </head>
 
 <body>
     <?php require_once __DIR__ . '/../includes/navbar.php'; ?>
-    <h1>Guestbook</h1>
+    <h1>Logbook</h1>
+    <p class="muted" style="text-align:center;">Sign the PirateBox logbook - leave your name or handle, a short note, or simply mark that you were here.</p>
 
     <?php if ($postError !== null): ?>
         <p style="text-align:center;"><strong class="status-bad"><?= htmlspecialchars($postError) ?></strong></p>
@@ -151,13 +160,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
 
     <form id="message-form" action="messages.php" method="post">
         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
-        <label>Name:
+        <label>Name / handle / callsign:
             <input type="text" name="name" placeholder="Anonymous" maxlength="32" value="<?= $postError !== null ? htmlspecialchars($_POST['name'] ?? '') : '' ?>">
         </label>
-        <label>Message:
-            <textarea name="message" required rows="3" placeholder="Write a message..." maxlength="2000"><?= $postError !== null ? htmlspecialchars($_POST['message'] ?? '') : '' ?></textarea>
+        <label>Message (optional):
+            <textarea name="message" rows="3" placeholder="Optional - add a note, or leave blank to just sign in" maxlength="2000"><?= $postError !== null ? htmlspecialchars($_POST['message'] ?? '') : '' ?></textarea>
         </label>
-        <button type="submit">Post Message</button>
+        <button type="submit">Sign Logbook</button>
         <div class="char-counter">
             <span id="char-count">0 / 2000</span>
         </div>
@@ -165,7 +174,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
 
     <div class="message-container">
         <?php if (empty($messages)): ?>
-            <p class="empty-state">No messages yet. Be the first!</p>
+            <p class="empty-state">No entries yet. Be the first to sign in!</p>
         <?php else: ?>
             <?php foreach ($messages as $msg): ?>
                 <div class="message-card">
@@ -173,7 +182,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST["message"]) && isset($
                         <span class="message-name"><?= htmlspecialchars($msg['name']) ?></span>
                         <span class="message-time" data-timestamp="<?= $msg['timestamp'] ?>"><?= date('Y-m-d H:i', $msg['timestamp']) ?></span>
                     </div>
-                    <div class="message-body"><?= htmlspecialchars($msg['message']) ?></div>
+                    <?php if (($msg['message'] ?? '') !== ''): ?>
+                        <div class="message-body"><?= htmlspecialchars($msg['message']) ?></div>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         <?php endif; ?>

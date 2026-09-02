@@ -13,7 +13,7 @@ require_once __DIR__ . '/../../../includes/helpers.php';
 //     that listing is already public on the home page.
 //
 // PRIVACY: only ever reads data/utility/*, the exports manifest, and
-// public/uploads/ - never chat/guestbook/recovery messages/admin
+// public/uploads/ - never chat/logbook/recovery messages/admin
 // credentials/system or network configuration. Deliberately does NOT
 // read piratebox_get_mode() - identical in both modes, like every other
 // Utility section.

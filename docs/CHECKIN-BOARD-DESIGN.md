@@ -17,7 +17,7 @@ local and offline.
 The immediate appeal is obvious in a real emergency: knowing who is
 accounted for is genuinely valuable. But PirateBox's entire trust model -
 no accounts, no authentication, anyone on the Wi-Fi can post anything as
-anyone - which is exactly right for Chat/Guestbook/Bulletin, becomes a
+anyone - which is exactly right for Chat/Logbook/Bulletin, becomes a
 liability for a feature whose entire point is "an accurate record of who
 is safe."
 
