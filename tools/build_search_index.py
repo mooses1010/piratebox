@@ -76,6 +76,13 @@ for g in load("radio", "guides.json"):
         f"/utility/radio/#{g.get('id', '')}",
         g.get("body", "")[:160], g.get("keywords"),
     ))
+for s in load("radio", "signal-identification.json"):
+    index.append(entry(
+        s.get("name", ""), "radio", "Radio Reference",
+        f"/utility/radio/#{s.get('id', '')}",
+        s.get("identifying_characteristics", "")[:160],
+        [s.get("category", ""), "signal identification", "sigid"],
+    ))
 
 # --- Emergency ----------------------------------------------------------
 for t in load("emergency", "topics.json"):

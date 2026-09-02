@@ -1,0 +1,90 @@
+[
+  {
+    "id": "sigid-cw-morse",
+    "name": "CW (Morse Code)",
+    "category": "voice-substitute",
+    "frequency_area": "Lower portion of most amateur HF bands (e.g. 3.5-3.6, 7.0-7.1, 14.0-14.1 MHz)",
+    "bandwidth": "Very narrow (~150 Hz)",
+    "modulation": "On/off keying of a continuous carrier",
+    "identifying_characteristics": "A single steady tone switching on and off in short (dit) and long (dah) bursts - unmistakable once heard. Often sounds musical/rhythmic from a skilled operator. See the Morse Code Reference guide above for the actual code table.",
+    "related": ["sigid-rtty"],
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "sigid-ssb-voice",
+    "name": "SSB Voice (Single Sideband)",
+    "category": "voice",
+    "frequency_area": "Most amateur HF voice sub-bands, marine HF, some utility/military HF",
+    "bandwidth": "~2.4-3 kHz",
+    "modulation": "SSB (USB above 10 MHz by convention, LSB below, on amateur bands)",
+    "identifying_characteristics": "If tuned slightly off-frequency, voice sounds high-pitched, garbled, or 'Donald Duck'-like - this is the single most reliable SSB identifier. Correctly tuned, it sounds like natural (if slightly narrow/nasal) voice. No squelch 'quieting' the way FM has - background noise is continuous.",
+    "related": ["sigid-am-voice", "sigid-nfm-voice"],
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "sigid-am-voice",
+    "name": "AM Voice / Broadcast",
+    "category": "voice",
+    "frequency_area": "AM broadcast band (0.53-1.7 MHz), airband (108-137 MHz), some shortwave broadcast",
+    "bandwidth": "~6-10 kHz (broadcast); ~6 kHz (airband)",
+    "modulation": "AM (amplitude modulation)",
+    "identifying_characteristics": "Full, natural-sounding voice/music with no 'quieting' effect - background static fades in/out smoothly rather than snapping open/closed like FM squelch. On airband specifically: short, clipped transmissions, standard phraseology, frequent callsigns/tail numbers.",
+    "related": ["sigid-ssb-voice"],
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "sigid-nfm-voice",
+    "name": "NFM Voice (Narrowband FM)",
+    "category": "voice",
+    "frequency_area": "Most VHF/UHF voice services: amateur 2m/70cm, marine VHF, GMRS/FRS/MURS, public safety",
+    "bandwidth": "~11-16 kHz depending on service",
+    "modulation": "NFM (narrowband frequency modulation)",
+    "identifying_characteristics": "Clean, quiet audio when a signal is present; squelch snaps fully open/closed rather than fading gradually the way AM/SSB static does. Weak signals often 'pop' or distort rather than just getting quieter. The most common voice mode a wideband receiver will encounter overall.",
+    "related": ["sigid-am-voice"],
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "sigid-noaa-same",
+    "name": "NOAA SAME / EAS Digital Alert Burst",
+    "category": "digital-alert",
+    "frequency_area": "NOAA Weather Radio channels (162.400-162.550 MHz)",
+    "bandwidth": "Narrow, within the NFM channel",
+    "modulation": "AFSK (audio frequency-shift keying) digital burst, on an NFM carrier",
+    "identifying_characteristics": "A distinctive harsh, buzzing warble lasting a few seconds, immediately before a spoken weather alert - this is the Specific Area Message Encoding (SAME) header that tells weather radios which counties to alert for. Unmistakable once heard once; often followed by two loud attention tones, then the spoken message.",
+    "related": [],
+    "source_id": "noaa-nwr"
+  },
+  {
+    "id": "sigid-dtmf",
+    "name": "DTMF (Touch-Tone)",
+    "category": "signaling",
+    "frequency_area": "Anywhere voice services are used - repeater access codes, phone patches",
+    "bandwidth": "Narrow, within the voice channel",
+    "modulation": "Dual-tone multi-frequency (two simultaneous audio tones per digit)",
+    "identifying_characteristics": "The familiar telephone keypad tones - a short burst of one or more distinct two-tone beeps. On amateur/business radio, usually heard briefly at the start of a transmission (repeater control/access) rather than as a sustained signal.",
+    "related": [],
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "sigid-rtty",
+    "name": "RTTY (Radioteletype)",
+    "category": "digital-data",
+    "frequency_area": "Amateur HF digital sub-bands, some utility/military HF",
+    "bandwidth": "~250-450 Hz shift, narrow",
+    "modulation": "FSK (frequency-shift keying) between two tones",
+    "identifying_characteristics": "A steady two-tone warbling/trilling sound at a constant rhythm - distinctly more mechanical and continuous than CW's dit-dah pattern. Sounds a little like an old dot-matrix printer or a rapid two-note siren.",
+    "related": ["sigid-cw-morse"],
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "sigid-packet-aprs",
+    "name": "Packet / APRS Burst",
+    "category": "digital-data",
+    "frequency_area": "144.390 MHz (APRS, North America); various amateur packet frequencies",
+    "bandwidth": "~15-20 kHz",
+    "modulation": "AFSK (1200 baud typical) on an NFM carrier",
+    "identifying_characteristics": "A brief (roughly 1 second), harsh, buzzing burst - often described as sounding like a short 'brrrt' or a modem handshake fragment. Position/status data (APRS) or general packet traffic, not voice - if you hear this on 144.390 MHz in the US, it's very likely APRS.",
+    "related": [],
+    "source_id": "general-rf-education"
+  }
+]

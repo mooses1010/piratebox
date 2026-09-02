@@ -193,8 +193,13 @@ document (e.g. Radio -> the NIST time/frequency document) is a good
 small future polish item, not yet done.
 
 **Next actions, in priority order:**
-1. Original compact Signal Identification framework (Radio section) -
-   software/content-only, no further sourcing blocker.
+1. ~~Original compact Signal Identification framework~~ - **done
+   2026-09-02** (`data/utility/radio/signal-identification.json`, 8
+   signal types, new "Signal Identification" section on
+   `/utility/radio/` - see OPERATIONAL-DECISIONS.md "Original Signal
+   Identification Framework, Not a SigIDWiki Clone"). Waterfall/audio
+   examples remain unsourced (candidate: NTIA/FCC spectrum-allocation
+   charts for a frequency-allocation visual, not per-signal crops).
 2. FEMA/FCC/CDC/USDA/US Forest Service candidate documents - identify
    1-2 specific, genuinely valuable publications per source and verify
    individually, same discipline as above, rather than a bulk sweep.

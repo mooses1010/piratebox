@@ -6,6 +6,58 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Original Signal Identification Framework, Not a SigIDWiki Clone (roadmap item 7)
+
+**Decision date:** 2026-09-02. Direct follow-through on the SigIDWiki
+finding recorded in the previous increment: investigated and rejected
+as a copy source, but the underlying idea (a Radio -> Signal
+Identification reference, valuable alongside SDR hardware) was not
+abandoned - built as an original PirateBox work instead, using only
+content this project can already stand behind.
+
+**Built:** `data/utility/radio/signal-identification.json` - 8 signal
+types genuinely likely to be encountered on a wideband receiver (CW/
+Morse, SSB voice, AM voice/broadcast, NFM voice, NOAA SAME digital
+alert bursts, DTMF, RTTY, Packet/APRS), each with frequency area,
+bandwidth, modulation, and a plain-language "how to recognize it"
+description (what it sounds like / how it behaves), cross-linked to
+related signals. Wired into `radio/index.php` as a new "Signal
+Identification" section/chip, same accordion pattern as every other
+section on that page.
+
+**Explicit transparency about the licensing decision, on the page
+itself, not just in this log:** the new section's own intro states
+plainly that SigIDWiki was investigated and not copied from (its own
+content policy grants no redistribution license - see the previous
+entry), and that no waterfall images or audio samples are included for
+that reason - identification here relies on frequency/modulation/
+description only. This matches the project's own self-awareness
+discipline (never silently omit a limitation) applied to content, not
+just hardware/capability state.
+
+**Deliberately excluded:** anything resembling actual SigIDWiki
+content (specific per-signal waterfall crops, audio recordings,
+wording lifted from that site). Every fact here is either already-
+established radio theory (frequency bands, modulation behavior - same
+register as the guides added earlier this session) or well-known
+amateur/SWL operating knowledge, not a transcription of any single
+source.
+
+**Testing:** `php -l` clean, JSON valid (8 entries). Rendered
+`radio/index.php` directly - confirmed the section, a specific entry
+(CW), the SigIDWiki transparency note, and APRS all render correctly.
+`tools/build_search_index.py` updated (new loop for signal-
+identification.json) and re-run - 112 entries, up from 104. Full
+five-suite regression: 206 assertions, 0 failures (unaffected by
+design - static reference content).
+
+**Not yet built:** waterfall/spectrum imagery and audio examples for
+each signal - explicitly deferred pending a genuinely redistributable
+source (candidate: NTIA/FCC spectrum-allocation charts for a
+*frequency-allocation* visual, distinct from per-signal waterfall
+crops, which remain unsourced). See `docs/IMPLEMENTATION-ROADMAP.md`
+§3b.
+
 ## Original-Source Document Library: First Three Documents (roadmap item 6)
 
 **Decision date:** 2026-09-02. New addendum to the Deep Offline

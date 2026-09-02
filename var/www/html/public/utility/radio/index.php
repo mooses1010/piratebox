@@ -23,6 +23,7 @@ function radio_load_json(string $path): array
 $services = radio_load_json($DATA_DIR . '/services.json');
 $modulation = radio_load_json($DATA_DIR . '/modulation.json');
 $guides = radio_load_json($DATA_DIR . '/guides.json');
+$sigid = radio_load_json($DATA_DIR . '/signal-identification.json');
 $sources = radio_load_json($DATA_DIR . '/sources.json');
 
 // Group services into display sections. Keys are the "group" used for the
@@ -138,6 +139,7 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
                     <button type="button" class="radio-chip" data-group="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></button>
                 <?php endforeach; ?>
                 <button type="button" class="radio-chip" data-group="modulation">Modulation</button>
+                <button type="button" class="radio-chip" data-group="sigid">Signal Identification</button>
                 <button type="button" class="radio-chip" data-group="guides">Guides</button>
             </div>
         </div>
@@ -221,6 +223,33 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
                                     <p><strong>Where it's used:</strong> <?= htmlspecialchars($m['when_used']) ?></p>
                                 <?php endif; ?>
                                 <p class="radio-entry-source"><?= radio_source_line($sources, $m['source_id'] ?? null, null, $m['confidence'] ?? null, $m['source_note'] ?? null) ?></p>
+                            </div>
+                        </details>
+                    <?php endforeach; ?>
+                </section>
+            <?php endif; ?>
+
+            <?php if (!empty($sigid)): ?>
+                <section class="radio-group" data-group-section="sigid">
+                    <h2 class="radio-group-heading">Signal Identification</h2>
+                    <p class="muted">PirateBox's own compact identification aid - not a copy of any external signal-ID database. (Signal Identification Wiki was investigated as a source for this section; its own content policy states signal recordings/images are user-submitted with no redistribution license, so nothing was copied from it - see docs/OPERATIONAL-DECISIONS.md. No waterfall images or audio samples are included here for the same reason; identification relies on frequency area, modulation, and a plain-language description of what to listen for.)</p>
+                    <?php foreach ($sigid as $s): ?>
+                        <?php $search = radio_search_blob([$s['name'], $s['category'] ?? '', $s['frequency_area'] ?? '', 'signal identification', 'sigid']); ?>
+                        <details class="radio-entry" id="<?= htmlspecialchars($s['id']) ?>" data-group="sigid" data-search="<?= $search ?>">
+                            <summary>
+                                <span class="radio-entry-name"><?= htmlspecialchars($s['name']) ?></span>
+                                <span class="radio-entry-mode-badge"><?= htmlspecialchars($s['modulation'] ?? '') ?></span>
+                            </summary>
+                            <div class="radio-entry-detail">
+                                <?php if (!empty($s['frequency_area'])): ?><p><strong>Typical frequency area:</strong> <?= htmlspecialchars($s['frequency_area']) ?></p><?php endif; ?>
+                                <?php if (!empty($s['bandwidth'])): ?><p><strong>Bandwidth:</strong> <?= htmlspecialchars($s['bandwidth']) ?></p><?php endif; ?>
+                                <?php if (!empty($s['identifying_characteristics'])): ?><p><strong>How to recognize it:</strong> <?= htmlspecialchars($s['identifying_characteristics']) ?></p><?php endif; ?>
+                                <?php if (!empty($s['related'])): ?>
+                                    <p><strong>Related:</strong>
+                                        <?php foreach ($s['related'] as $i => $relId): ?><?= $i > 0 ? ', ' : '' ?><a href="#<?= htmlspecialchars($relId) ?>"><?= htmlspecialchars($relId) ?></a><?php endforeach; ?>
+                                    </p>
+                                <?php endif; ?>
+                                <p class="radio-entry-source"><?= radio_source_line($sources, $s['source_id'] ?? null, null, $s['confidence'] ?? null, $s['source_note'] ?? null) ?></p>
                             </div>
                         </details>
                     <?php endforeach; ?>

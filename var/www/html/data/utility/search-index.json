@@ -617,6 +617,102 @@
     ]
   },
   {
+    "title": "CW (Morse Code)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#sigid-cw-morse",
+    "snippet": "A single steady tone switching on and off in short (dit) and long (dah) bursts - unmistakable once heard. Often sounds musical/rhythmic from a skilled operator.",
+    "keywords": [
+      "voice-substitute",
+      "signal identification",
+      "sigid"
+    ]
+  },
+  {
+    "title": "SSB Voice (Single Sideband)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#sigid-ssb-voice",
+    "snippet": "If tuned slightly off-frequency, voice sounds high-pitched, garbled, or 'Donald Duck'-like - this is the single most reliable SSB identifier. Correctly tuned, i",
+    "keywords": [
+      "voice",
+      "signal identification",
+      "sigid"
+    ]
+  },
+  {
+    "title": "AM Voice / Broadcast",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#sigid-am-voice",
+    "snippet": "Full, natural-sounding voice/music with no 'quieting' effect - background static fades in/out smoothly rather than snapping open/closed like FM squelch. On airb",
+    "keywords": [
+      "voice",
+      "signal identification",
+      "sigid"
+    ]
+  },
+  {
+    "title": "NFM Voice (Narrowband FM)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#sigid-nfm-voice",
+    "snippet": "Clean, quiet audio when a signal is present; squelch snaps fully open/closed rather than fading gradually the way AM/SSB static does. Weak signals often 'pop' o",
+    "keywords": [
+      "voice",
+      "signal identification",
+      "sigid"
+    ]
+  },
+  {
+    "title": "NOAA SAME / EAS Digital Alert Burst",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#sigid-noaa-same",
+    "snippet": "A distinctive harsh, buzzing warble lasting a few seconds, immediately before a spoken weather alert - this is the Specific Area Message Encoding (SAME) header ",
+    "keywords": [
+      "digital-alert",
+      "signal identification",
+      "sigid"
+    ]
+  },
+  {
+    "title": "DTMF (Touch-Tone)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#sigid-dtmf",
+    "snippet": "The familiar telephone keypad tones - a short burst of one or more distinct two-tone beeps. On amateur/business radio, usually heard briefly at the start of a t",
+    "keywords": [
+      "signaling",
+      "signal identification",
+      "sigid"
+    ]
+  },
+  {
+    "title": "RTTY (Radioteletype)",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#sigid-rtty",
+    "snippet": "A steady two-tone warbling/trilling sound at a constant rhythm - distinctly more mechanical and continuous than CW's dit-dah pattern. Sounds a little like an ol",
+    "keywords": [
+      "digital-data",
+      "signal identification",
+      "sigid"
+    ]
+  },
+  {
+    "title": "Packet / APRS Burst",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#sigid-packet-aprs",
+    "snippet": "A brief (roughly 1 second), harsh, buzzing burst - often described as sounding like a short 'brrrt' or a modem handshake fragment. Position/status data (APRS) o",
+    "keywords": [
+      "digital-data",
+      "signal identification",
+      "sigid"
+    ]
+  },
+  {
     "title": "Thunderstorms & Lightning",
     "section": "emergency",
     "section_label": "Emergency / Outage Reference",
