@@ -1,0 +1,19 @@
+# Narrow, auditable NOPASSWD grant for the PirateBox physical button
+# daemon (piratebox_button_daemon.py) - see docs/OPERATIONAL-DECISIONS.md
+# ("Stage 29 Implementation: Physical Shutdown Button") for the full
+# rationale.
+#
+# Deliberately a SEPARATE file from etc/sudoers.d/piratebox-claude - that
+# grant belongs to a different actor entirely (this project's own deploy/
+# mode-switch automation), not a locally-running hardware daemon, per
+# Stage 29's own design note (docs/PHYSICAL-CONTROL-UX-DESIGN.md §3)
+# that this must not widen an unrelated trust boundary.
+#
+# Exactly one command, no arguments to vary, granted to the dedicated,
+# unprivileged piratebox-gpio system user - not moose, not www-data.
+#
+# Install with:
+#   sudo visudo -cf etc/sudoers.d/piratebox-button   # validate syntax first
+#   sudo install -m 0440 -o root -g root etc/sudoers.d/piratebox-button /etc/sudoers.d/piratebox-button
+
+piratebox-gpio ALL=(root) NOPASSWD: /usr/bin/systemctl poweroff

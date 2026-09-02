@@ -1,10 +1,18 @@
 # Hardware Integration Design (Stage 11)
 
-**Status: DESIGN ONLY. Nothing in this document is implemented.** No GPIO
-access, no I2C/OLED code, no button handling exists on this Pi as of this
-writing. This is the plan to follow **only when the ordered hardware
-physically arrives and the operator explicitly says to build it** - per
-instruction, this stage produces the design, not the implementation.
+**Status: DESIGN ONLY for everything except one button.** No I2C/OLED
+code exists on this Pi, and the toggle switch and four of the five
+momentary buttons remain unwired. **The exception: GPIO25/physical pin
+22 (the "hold-for-safe-shutdown" button) has been physically wired,
+electrically bring-up tested, and has a working persistent
+implementation** - see `docs/PHYSICAL-CONTROL-UX-DESIGN.md` §2/§3 and
+the "Stage 29 Implementation: Physical Shutdown Button" entry in
+`docs/OPERATIONAL-DECISIONS.md` for the full story, and the
+authoritative wiring map in §2 below for current status of every pin.
+Everything else in this document remains the plan to follow **only
+when that hardware physically arrives and the operator explicitly says
+to build it** - per instruction, this stage produced the design, not
+the implementation, for the rest.
 
 Hardware this design targets (ordered, not yet connected as of 2026-09-01):
 - MTS-101 SPST maintained ON/OFF toggle switch
@@ -42,28 +50,37 @@ what's *actually* enabled on this specific Pi, not generic assumptions:
 
 ---
 
-## 2. Proposed GPIO pin assignments
+## 2. GPIO pin assignments - the authoritative PirateBox wiring map
 
-**Tentative, not wired, not soldered - adjust freely before any physical
-build.** Chosen from the Pi 3B+'s general-purpose pins with no special
-boot/hardware function, avoiding everything in the "never use" list above.
+**This table is the one place to check both the physical-pin-to-BCM
+mapping and current real-world status for every assigned PirateBox
+control pin.** Everything except GPIO25's row is still tentative/not
+wired - adjust freely before any physical build. Chosen from the Pi
+3B+'s general-purpose pins with no special boot/hardware function,
+avoiding everything in the "never use" list above.
 
-| Function | GPIO (BCM) | Physical pin | Notes |
-|---|---|---|---|
-| Normal/Emergency toggle | GPIO17 | 11 | Input, internal pull-up, switch to GND |
-| OLED SDA | GPIO2 | 3 | Fixed I2C1 function, not reassignable |
-| OLED SCL | GPIO3 | 5 | Fixed I2C1 function, not reassignable |
-| Momentary button 1 | GPIO22 | 15 | Function TBD (see §4) |
-| Momentary button 2 | GPIO23 | 16 | Function TBD |
-| Momentary button 3 | GPIO24 | 18 | Function TBD |
-| Momentary button 4 | GPIO27 | 13 | Function TBD |
-| Momentary button 5 | GPIO25 | 22 | Function TBD - candidate for hold-to-shutdown (see §4) |
+| Function | GPIO (BCM) | Physical pin | Status | Notes |
+|---|---|---|---|---|
+| Normal/Emergency toggle | GPIO17 | 11 | Not wired | Input, internal pull-up, switch to GND |
+| OLED SDA | GPIO2 | 3 | Not wired | Fixed I2C1 function, not reassignable - reserved, do not use for anything else |
+| OLED SCL | GPIO3 | 5 | Not wired | Fixed I2C1 function, not reassignable - reserved, do not use for anything else |
+| Momentary button 1 | GPIO22 | 15 | Not wired | Cycle page (Stage 29 §2) |
+| Momentary button 2 | GPIO23 | 16 | Not wired | Wake display (Stage 29 §2) |
+| Momentary button 3 | GPIO24 | 18 | Not wired | Reserved, unassigned (Stage 29 §2) |
+| Momentary button 4 | GPIO27 | 13 | Not wired | Reserved, unassigned (Stage 29 §2) |
+| **Momentary button 5** | **GPIO25** | **22** | **WIRED, VERIFIED, IMPLEMENTED** | Hold-for-safe-shutdown (Stage 29 §3). Other leg on **physical pin 9 (GND)**. Electrical bring-up: idle HIGH, pressed LOW, clean debounce, 4.0s hold-trigger confirmed exact and non-repeating. Persistent `systemd` service: `piratebox-button.service` / `piratebox_button_daemon.py`. See `docs/OPERATIONAL-DECISIONS.md`. |
 
 All buttons: input, internal pull-up, normally-open switch to GND (button
 press = pin reads LOW) - identical electrical pattern to the toggle
 switch, just five more of them. This keeps the wiring concept uniform:
 every switch/button on this device is "GPIO input, internal pull-up,
-other leg to GND," no external resistors needed anywhere.
+other leg to GND," no external resistors needed anywhere. **Note found
+during GPIO25's bring-up, worth remembering for the rest:** the Pi's
+own hostname/HAT-EEPROM pins aside, it's easy to accidentally wire both
+switch legs to GND (physically adjacent pins can look alike at a
+glance) - always verify the *specific* physical pin each lead lands on
+against this table before assuming a connection is correct, not just
+that "one side reads GND-ish."
 
 ---
 

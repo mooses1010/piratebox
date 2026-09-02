@@ -1,11 +1,15 @@
 # Physical Control UX Design (Stage 29)
 
-**Status: DESIGN ONLY. Nothing in this document is implemented.** Same
-hard boundary as Stage 11 (`docs/HARDWARE-INTEGRATION-DESIGN.md`), which
-this stage extends rather than redoes: no GPIO access, no I2C/OLED code,
-no button handling exists on this Pi. This document only becomes
-buildable once the ordered hardware physically arrives and the operator
-explicitly says to build it.
+**Status: DESIGN ONLY for the OLED page state machine (§1) and the
+still-unassigned buttons (§2).** No I2C/OLED code exists on this Pi.
+**§3's hold-for-safe-shutdown flow has been implemented and physically
+verified** on GPIO25/physical pin 22 - the exact design below (4.0s
+hold, no re-fire, no action on early release) matches what's actually
+running. See `docs/OPERATIONAL-DECISIONS.md` ("Stage 29 Implementation:
+Physical Shutdown Button") for the bring-up test results and the
+running service, and `docs/HARDWARE-INTEGRATION-DESIGN.md` §2 for the
+authoritative wiring map. Everything else in this document remains the
+plan to follow once the OLED and remaining buttons physically arrive.
 
 **Relationship to Stage 11:** Stage 11 designed the *electrical* layer
 (pin assignments, debounce mechanism, package needs) and deliberately
@@ -120,6 +124,22 @@ express "start a timer on press, cancel it on early release, act if the
 timer completes" without needing a custom polling loop, confirmed
 against `gpiozero`'s documented API shape (not yet tested against real
 hardware, since none exists in this environment).
+
+**Implemented and physically verified** (`piratebox_button_daemon.py`,
+`piratebox-button.service`): steps 1, 3, 4, and 5 above are real and
+confirmed on hardware - a short press does nothing, an early release
+aborts silently, a continuous 4.0-second hold triggers exactly once
+with no re-fire, and `sudo systemctl poweroff` is gated behind its own
+dedicated `etc/sudoers.d/piratebox-button` grant exactly as specified.
+**Step 2's specific "1s grace + 3-count visual countdown" does not
+exist yet** - that's OLED-display output, and no OLED is wired yet;
+today the button is functionally a flat 4.0-second hold-time trigger
+with no interim visual feedback of any kind. When the OLED is built,
+step 2 can be added as a purely additional display behavior without
+changing the underlying hold-detection logic at all - the daemon
+already correctly implements "start on press, abort on early release,
+fire once at 4.0s," which is the only part that actually gates the
+shutdown.
 
 ## 4. Display power behavior
 

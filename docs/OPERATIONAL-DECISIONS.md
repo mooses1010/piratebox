@@ -6,6 +6,115 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Stage 29 Implementation: Physical Shutdown Button (GPIO25)
+
+**Decision date:** 2026-09-02. The first piece of Stage 11/29's
+hardware design (`docs/HARDWARE-INTEGRATION-DESIGN.md`,
+`docs/PHYSICAL-CONTROL-UX-DESIGN.md`) to move from design-only to
+physically real. A 12mm normally-open momentary push button has been
+connected to this Pi 3 B+ and brought up carefully, in stages, per
+explicit instruction: read-only discovery first, safe electrical
+testing before any persistent code, persistent-service testing in
+dry-run before any real action, and the real shutdown action gated
+behind its own explicit final step.
+
+**Wiring mix-up caught before it mattered:** the button was initially
+connected to physical pins 6 and 9 - **both GND**. Software-side
+scanning (a `gpiomon`-based sweep of every header pin not already
+reserved by I2C/UART/HAT-EEPROM) correctly found nothing, because there
+was genuinely no GPIO in the circuit at all - the switch was just
+shorting two ground points together. No electrical risk occurred either
+way; this was caught by manual physical-pin inspection (a labelled 40-
+pin header diagram) once automated scanning legitimately found nothing
+to report, exactly the fallback the discovery process was designed to
+reach.
+
+**Bring-up test, GPIO25/physical pin 22 (other leg on physical pin 9,
+GND), performed interactively before any persistent code existed:**
+- Idle state: confirmed HIGH (internal pull-up, switch open).
+- Pressed state: confirmed LOW (pulled to GND).
+- Debounce: clean across roughly 20 taps in two separate test runs -
+  zero bounce artifacts at 20ms software debounce.
+- Short vs. long press: taps measured 0.08-0.56s, deliberate holds
+  1.0-1.5s, and a 4.0-second hold threshold fired **exactly once**,
+  precisely at 4.0s, with no re-fire during an extended 7.27s hold.
+- Zero conflicts found with I2C (GPIO2/3, reserved for the not-yet-
+  arrived OLED), UART (GPIO14/15, actively serving the serial console),
+  or the existing dual-fan/heatsink setup (no fan-control overlay,
+  service, or kernel module exists anywhere on this system - the fans
+  are almost certainly wired to the header's fixed power pins, not any
+  GPIO).
+- One real bug found and fixed during this bring-up, unrelated to the
+  hardware itself: the first Python test script's `print()` output was
+  invisible until process exit, because Python fully buffers stdout
+  when redirected to a file rather than a terminal. Every press had
+  actually been detected correctly the whole time; fixed with explicit
+  line buffering.
+
+**Architecture - matches the project's existing privileged-helper
+pattern exactly, not a new one:**
+- `piratebox_button_daemon.py` (repo root, deployed to
+  `/usr/local/bin`, root-owned/moose-unwritable - same anti-tampering
+  property as `piratebox_deploy.sh`) - a `gpiozero`-based daemon,
+  event-driven (kernel GPIO line-event notification via the `lgpio` pin
+  factory, not a polling loop), watching only GPIO25.
+- Runs as a **new dedicated, unprivileged system user
+  (`piratebox-gpio`)** - no login shell, no home directory, member only
+  of the `gpio` group - never `www-data`, never root, and deliberately
+  not `moose` either (keeping this daemon's blast radius smaller than
+  the interactive operator account's).
+- `etc/sudoers.d/piratebox-button` - a **separate** narrow NOPASSWD
+  grant (`piratebox-gpio ALL=(root) NOPASSWD: /usr/bin/systemctl
+  poweroff`, no arguments to vary) - deliberately not added to
+  `etc/sudoers.d/piratebox-claude`, which is a different actor's trust
+  boundary (this session's deploy/mode-switch automation), per Stage
+  29 §3's own explicit instruction.
+- `etc/systemd/system/piratebox-button.service` - continuous (not
+  timer-triggered like `piratebox-status`/`piratebox-backup`, since it
+  must react the instant a press happens), `Restart=on-failure`.
+  Deliberately does **not** set `NoNewPrivileges=yes` - the one
+  hardening flag that would block this daemon's single legitimate
+  escalation path - documented explicitly in the unit file as an
+  understood exception, not an oversight.
+- `setup_piratebox_button.sh` - one-time installer mirroring
+  `setup_claude_automation.sh`'s exact pattern (create user, install
+  daemon, validate + install sudoers with `visudo -cf` first, install +
+  enable the systemd unit).
+
+**Fails safely by design, not just by accident:**
+- A short press has **no code path to anything** - not logged, not
+  acted on, nothing.
+- The real `poweroff` call is gated behind an explicit opt-in
+  (`PIRATEBOX_BUTTON_ENABLE_SHUTDOWN=1`, set only in the systemd unit
+  once the persistent service is verified end-to-end) - **absent by
+  default**, so a misconfiguration can only ever fail toward inaction,
+  never toward an unwanted shutdown.
+- `sudo -n` (non-interactive) - if the sudoers grant is ever missing or
+  broken, this fails immediately with a clear log line instead of
+  hanging.
+- No per-event data is written anywhere - not to a JSON store, not a
+  log line for ordinary presses, nothing resembling the connection-
+  statistics or Travel Mode data files. The only write this daemon ever
+  produces is the one, rare, significant "long press detected" log
+  line, captured by journald the same way every other systemd service's
+  output already is.
+- Orthogonal to Travel Mode, connection statistics, and every other
+  PirateBox function - this daemon reads nothing from and writes
+  nothing to any PirateBox data store, touches no web app code, and
+  makes no networking/nginx/hostapd/dnsmasq change of any kind.
+
+**Standalone dry-run test, before any systemd install:** ran the daemon
+script directly (unbuffered) with `PIRATEBOX_BUTTON_ENABLE_SHUTDOWN`
+unset - confirmed a quick tap produced **zero** output, and a
+deliberate 4+ second hold produced exactly one "LONG PRESS DETECTED -
+would request shutdown (no action taken...)" log line, with no `sudo`
+call attempted.
+
+**What is deliberately not touched:** the OLED page state machine
+(Stage 29 §1) and the four other momentary buttons (GPIO17 toggle,
+GPIO22/23/24/27) remain exactly as designed and completely unwired -
+this stage implements only the one button that's physically present.
+
 ## Post-Stage-32: Travel Mode - Privacy-Preserving Local Information Suppression
 
 **Decision date:** 2026-09-01. A third small, deliberate post-roadmap

@@ -1,0 +1,49 @@
+[Unit]
+Description=PirateBox physical button daemon (GPIO25 hold-for-shutdown)
+# See piratebox_button_daemon.py for exactly what this does and why.
+# Runs continuously (event-driven, not polling - see the script's own
+# header) rather than on a timer like piratebox-status/piratebox-backup,
+# since it must react to a press the moment it happens.
+After=multi-user.target
+
+[Service]
+Type=simple
+User=piratebox-gpio
+Group=gpio
+ExecStart=/usr/local/bin/piratebox_button_daemon.py
+Restart=on-failure
+RestartSec=5
+
+# SAFE BY DEFAULT: real shutdown is NOT enabled by this base unit. A
+# 4-second hold only logs what it would have done until an operator
+# deliberately adds PIRATEBOX_BUTTON_ENABLE_SHUTDOWN=1 here (or in a
+# drop-in override) after verifying the persistent service end to end -
+# see docs/OPERATIONAL-DECISIONS.md for the staged bring-up this
+# followed.
+#Environment=PIRATEBOX_BUTTON_ENABLE_SHUTDOWN=1
+
+# Deliberately NOT NoNewPrivileges=yes - this daemon's one legitimate
+# job requires escalating via `sudo -n systemctl poweroff` (see
+# etc/sudoers.d/piratebox-button), and that hardening flag would block
+# exactly that. Every other standard hardening directive below still
+# applies; this is the one, understood, load-bearing exception, not an
+# oversight.
+ProtectHome=yes
+ProtectSystem=strict
+PrivateTmp=yes
+# gpiozero's lgpio pin factory writes a small notification-pipe file
+# (".lgd-nfy*") into its own working directory - with no WorkingDirectory
+# set, systemd defaults to "/", which ProtectSystem=strict makes
+# read-only, so every pin factory failed in turn and gpiozero fell back
+# to a broken experimental one ("Could not claim GPIO25: [Errno 22]
+# Invalid argument" - found running this for the first time). Fixed by
+# pointing the working directory at this service's own private, tmpfs-
+# backed /tmp (PrivateTmp=yes above) - writable, and RAM-only, so this
+# still produces zero SD card writes.
+WorkingDirectory=/tmp
+# This daemon touches no PirateBox data at all (see the script's own
+# header - no per-event file, no JSON store), so it needs no other
+# writable paths under ProtectSystem=strict.
+
+[Install]
+WantedBy=multi-user.target
