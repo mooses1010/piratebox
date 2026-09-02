@@ -242,6 +242,12 @@ for title, url, snippet, keywords in [
     ("Subnet Calculator", "/utility/fieldtools/subnet/",
      "IPv4 network/broadcast address, usable host range, and prefix to/from netmask.",
      ["subnet calculator", "cidr calculator", "ip calculator", "network address", "broadcast address", "netmask", "subnet mask calculator"]),
+    ("Frequency / Wavelength Calculator", "/utility/fieldtools/wavelength/",
+     "Free-space wavelength from a frequency, plus half-wave and quarter-wave antenna reference lengths.",
+     ["frequency", "wavelength", "frequency to wavelength", "antenna length", "half wave", "quarter wave", "hf vhf uhf calculator"]),
+    ("Ohm's Law Solver", "/utility/fieldtools/ohmslaw/",
+     "Enter any two of voltage, current, resistance, or power to solve for the other two.",
+     ["ohms law", "ohm's law calculator", "voltage current resistance power", "electrical calculator", "watts law"]),
 ]:
     index.append(entry(title, "fieldtools", "Field Tools", url, snippet, keywords))
 

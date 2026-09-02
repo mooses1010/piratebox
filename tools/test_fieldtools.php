@@ -17,6 +17,8 @@ require_once __DIR__ . '/../var/www/html/includes/fieldtools_convert.php';
 require_once __DIR__ . '/../var/www/html/includes/fieldtools_time.php';
 require_once __DIR__ . '/../var/www/html/includes/morse.php';
 require_once __DIR__ . '/../var/www/html/includes/subnet_calc.php';
+require_once __DIR__ . '/../var/www/html/includes/freq_wavelength.php';
+require_once __DIR__ . '/../var/www/html/includes/ohms_law.php';
 
 $failures = [];
 $passCount = 0;
@@ -331,6 +333,70 @@ ft_assert_null('Subnet: leading-zero octet rejected as ambiguous', piratebox_par
 ft_assert_eq('Subnet: prefix/mask round-trip - /24', piratebox_parse_prefix_or_mask('255.255.255.0'), 24);
 ft_assert_eq('Subnet: prefix/mask round-trip - /0', piratebox_parse_prefix_or_mask('0.0.0.0'), 0);
 ft_assert_eq('Subnet: prefix/mask round-trip - /32', piratebox_parse_prefix_or_mask('255.255.255.255'), 32);
+
+// --- Frequency / wavelength calculator ----------------------------------
+
+$info = piratebox_wavelength_info('300', 'MHz');
+ft_assert_eq('Wavelength: 300 MHz -> band UHF (guide text: UHF is 300 MHz-3 GHz)', $info['band'], 'UHF');
+ft_assert_eq('Wavelength: 300 MHz wavelength (m)', $info['wavelength_m'], '0.9993');
+ft_assert_eq('Wavelength: 300 MHz half-wave (m)', $info['half_wave_m'], '0.4997');
+ft_assert_eq('Wavelength: 300 MHz quarter-wave (m)', $info['quarter_wave_m'], '0.2498');
+
+$info = piratebox_wavelength_info('1', 'MHz');
+ft_assert_eq('Wavelength: 1 MHz wavelength (m)', $info['wavelength_m'], '299.8');
+ft_assert_eq('Wavelength: 1 MHz -> band MF', $info['band'], 'MF');
+
+$mhzInfo = piratebox_wavelength_info('1', 'MHz');
+$khzInfo = piratebox_wavelength_info('1000', 'kHz');
+ft_assert_eq('Wavelength: 1 MHz and 1000 kHz agree on Hz', $mhzInfo['frequency_hz'], $khzInfo['frequency_hz']);
+
+ft_assert_eq('Wavelength: 146 MHz -> band VHF (2m ham band)', piratebox_wavelength_info('146', 'MHz')['band'], 'VHF');
+ft_assert_eq('Wavelength: 7.1 MHz -> band HF (40m ham band)', piratebox_wavelength_info('7.1', 'MHz')['band'], 'HF');
+ft_assert_eq('Wavelength: 446 MHz -> band UHF', piratebox_wavelength_info('446', 'MHz')['band'], 'UHF');
+
+$info = piratebox_wavelength_info('0', 'MHz');
+ft_assert_true('Wavelength: zero frequency rejected with error', isset($info['error']));
+
+$info = piratebox_wavelength_info('-5', 'MHz');
+ft_assert_true('Wavelength: negative frequency rejected with error', isset($info['error']));
+
+$info = piratebox_wavelength_info('abc', 'MHz');
+ft_assert_true('Wavelength: non-numeric frequency rejected with error', isset($info['error']));
+
+$info = piratebox_wavelength_info('100', 'furlongs-per-fortnight');
+ft_assert_true('Wavelength: unrecognized unit rejected with error', isset($info['error']));
+
+// --- Ohm's Law / power solver --------------------------------------------
+
+$r = piratebox_ohms_law_solve('12', '2', null, null);
+ft_assert_close("Ohm's Law: V=12 I=2 -> R", $r['resistance'], 6.0);
+ft_assert_close("Ohm's Law: V=12 I=2 -> P", $r['power'], 24.0);
+
+$r = piratebox_ohms_law_solve('120', null, '60', null);
+ft_assert_close("Ohm's Law: V=120 R=60 -> I", $r['current'], 2.0);
+ft_assert_close("Ohm's Law: V=120 R=60 -> P", $r['power'], 240.0);
+
+$r = piratebox_ohms_law_solve(null, '2', '10', null);
+ft_assert_close("Ohm's Law: I=2 R=10 -> V", $r['voltage'], 20.0);
+ft_assert_close("Ohm's Law: I=2 R=10 -> P", $r['power'], 40.0);
+
+$r = piratebox_ohms_law_solve(null, null, '4', '100');
+ft_assert_close("Ohm's Law: R=4 P=100 -> V", $r['voltage'], 20.0);
+ft_assert_close("Ohm's Law: R=4 P=100 -> I", $r['current'], 5.0);
+
+$r = piratebox_ohms_law_solve('10', null, null, '100');
+ft_assert_close("Ohm's Law: V=10 P=100 -> I", $r['current'], 10.0);
+ft_assert_close("Ohm's Law: V=10 P=100 -> R", $r['resistance'], 1.0);
+
+$r = piratebox_ohms_law_solve(null, '5', null, '100');
+ft_assert_close("Ohm's Law: I=5 P=100 -> V", $r['voltage'], 20.0);
+ft_assert_close("Ohm's Law: I=5 P=100 -> R", $r['resistance'], 4.0);
+
+ft_assert_true("Ohm's Law: only one value given is an error", isset(piratebox_ohms_law_solve('12', null, null, null)['error']));
+ft_assert_true("Ohm's Law: all four values given is an error", isset(piratebox_ohms_law_solve('12', '2', '6', '24')['error']));
+ft_assert_true("Ohm's Law: negative resistance is an error", isset(piratebox_ohms_law_solve('12', null, '-6', null)['error']));
+ft_assert_true("Ohm's Law: non-numeric input is an error", isset(piratebox_ohms_law_solve('twelve', '2', null, null)['error']));
+ft_assert_true("Ohm's Law: I=0 with nonzero V is an error (open circuit, unsolvable for R/P)", isset(piratebox_ohms_law_solve('12', '0', null, null)['error']));
 
 // --- Summary ---------------------------------------------------------------
 

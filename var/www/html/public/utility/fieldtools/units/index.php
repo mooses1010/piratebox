@@ -267,7 +267,7 @@ $distExamples = [
                     </tbody>
                 </table>
             </div>
-            <p class="muted">V = volts, I = current in amps, R = resistance in ohms, P = power in watts. Any two known values give the other two.</p>
+            <p class="muted">V = volts, I = current in amps, R = resistance in ohms, P = power in watts. Any two known values give the other two - use the <a href="/utility/fieldtools/ohmslaw/">Ohm's Law Solver</a> to compute them instead of doing it by hand.</p>
 
             <p><strong>Common copper wire gauge (AWG) reference</strong></p>
             <div class="table-wrapper">

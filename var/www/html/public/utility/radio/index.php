@@ -307,6 +307,9 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
                                 <?php if ($g['id'] === 'morse-code-reference'): ?>
                                     <p><a href="/utility/fieldtools/morse/">Convert text &harr; Morse code</a> - an offline converter covering the letters/digits above plus common standard punctuation.</p>
                                 <?php endif; ?>
+                                <?php if (in_array($g['id'], ['hf-vhf-uhf-explained', 'antenna-basics'], true)): ?>
+                                    <p><a href="/utility/fieldtools/wavelength/">Calculate frequency &harr; wavelength</a> - free-space wavelength plus half/quarter-wave antenna reference lengths, using these exact band definitions.</p>
+                                <?php endif; ?>
                                 <?php if ($g['id'] === 'antenna-basics'): ?>
                                     <div class="radio-spectrum-wrap">
                                         <?php require __DIR__ . '/antenna-types.svg.php'; ?>

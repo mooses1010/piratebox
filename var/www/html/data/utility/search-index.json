@@ -2305,6 +2305,36 @@
     ]
   },
   {
+    "title": "Frequency / Wavelength Calculator",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/wavelength/",
+    "snippet": "Free-space wavelength from a frequency, plus half-wave and quarter-wave antenna reference lengths.",
+    "keywords": [
+      "frequency",
+      "wavelength",
+      "frequency to wavelength",
+      "antenna length",
+      "half wave",
+      "quarter wave",
+      "hf vhf uhf calculator"
+    ]
+  },
+  {
+    "title": "Ohm's Law Solver",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/ohmslaw/",
+    "snippet": "Enter any two of voltage, current, resistance, or power to solve for the other two.",
+    "keywords": [
+      "ohms law",
+      "ohm's law calculator",
+      "voltage current resistance power",
+      "electrical calculator",
+      "watts law"
+    ]
+  },
+  {
     "title": "About This PirateBox",
     "section": "about",
     "section_label": "About This PirateBox",
