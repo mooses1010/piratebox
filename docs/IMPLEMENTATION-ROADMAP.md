@@ -83,7 +83,7 @@ just because it was mentioned most recently.
 
 | Category | Depth (entries) | Beginner use | Advanced use | Visual coverage | Provenance | Geo scope | Gap found |
 |---|---|---|---|---|---|---|---|
-| Radio Reference | 25 services + 6 modulation + **13 guides** (was 6) | Good - `<details>` accordion, plain-language guides, search/filter | Good after this increment - propagation/antenna/dB/SDR/simplex-repeater/polarization/connectors/phonetic/Morse all now present | 1 SVG spectrum chart (pre-existing); connector ID is a **table, not a diagram** | Per-entry `source_id` -> `sources.json` (FCC/ARRL/NOAA/ITU), `confidence` field on every entry | National (US band plans) + universal (propagation physics, phonetic/Morse standards) | **Closed this increment**: dB/dBm, SDR, simplex/repeater, polarization, connectors, phonetic alphabet, Morse code. **Still open**: connector/antenna-type diagrams (image, not table) |
+| Radio Reference | 25 services + 6 modulation + **13 guides** (was 6) | Good - `<details>` accordion, plain-language guides, search/filter | Good after this increment - propagation/antenna/dB/SDR/simplex-repeater/polarization/connectors/phonetic/Morse all now present | 2 SVG diagrams (spectrum chart, pre-existing; **connector profile comparison, built 2026-09-02, in repo pending merge/deploy**, `connectors.svg.php`, PirateBox-authored schematic) | Per-entry `source_id` -> `sources.json` (FCC/ARRL/NOAA/ITU), `confidence` field on every entry | National (US band plans) + universal (propagation physics, phonetic/Morse standards) | **Closed this increment (prior)**: dB/dBm, SDR, simplex/repeater, polarization, connectors, phonetic alphabet, Morse code. **Closed 2026-09-02**: connector-type diagram. **Still open**: antenna-type diagrams (dipole/vertical/Yagi silhouettes) |
 | Emergency/Outage Reference | 21 topics | Good - already covers water storage, food safety, sanitation, shelter-in-place, power/generator/CO safety, evacuation | Moderate - practical guidance depth, not deep technical reference | None | Ready.gov/FEMA/CDC/NOAA/NFPA per-entry sourcing (Stage 3) | National | Already much broader/deeper than a first glance at "21 topics" suggests - **no action needed**, confirmed via full read, not assumed thin |
 | First Aid Reference | 16 topics | Good - Red Cross "Check Call Care" framing, plain language | Shallow by design - deliberately conservative, not a clinical reference (correct for a liability-aware, non-professional-audience page) | **None - the one category where a diagram (CPR hand position, recovery position, Heimlich) would help most** | Red Cross/CDC per-entry sourcing (Stage 4) | National/universal | Visual gap real but **deliberately not rushed**: medical diagrams need verified redistribution rights from an authoritative source (Red Cross material is often not freely redistributable) - flagged as next action, not attempted from memory |
 | Maps &amp; Location Reference | 2 maps (world + US, 2026-09-02) + 5 coordinate/GPS entries; local/regional catalog empty by design | Good - "at a glance" world/US maps, GPS/coordinate basics | Moderate - Universal+National layers now real; no Regional/State layer, no UTM/MGRS visual, no map-symbols reference | 2 SVG maps (world, US w/ AK+HI insets) | Natural Earth (public domain), USGS/NOAA/gps.gov | **Universal+National now real** (was Universal-only). Regional/State and Special-Purpose layers still absent | see updated next actions below |
@@ -104,8 +104,11 @@ the audit above, feeding directly into implementation - not left as
 prose):
 1. ~~National-scope map (US)~~ - **done 2026-09-02**, see §3 above
    (`us-reference-map`, `tools/build_us_reference_map.py`).
-2. **Cloud-identification visual reference** - genuinely useful, small,
-   sourceable from NOAA/NWS public-domain material.
+2. ~~Cloud-identification visual reference~~ - **done 2026-09-02**
+   (recognized during this reconciliation: already fulfilled by the
+   NOAA/NASA Sky Watcher Cloud Chart acquired in §3b below, cross-linked
+   from both Emergency and Radio's severe-weather guide - this row was
+   stale, not a new gap).
 3. ~~Electrical/electronics quick reference~~ - **done 2026-09-02**
    (Ohm's Law + AWG ampacity tables, added to the existing Field Tools
    Units page - see OPERATIONAL-DECISIONS.md "Electrical Quick
@@ -116,8 +119,21 @@ prose):
    finding an authoritatively-sourced, redistributable diagram set
    first (Red Cross material is often not freely redistributable) -
    do not attempt from model memory for anything medical.
-5. **Connector/antenna-type diagrams for Radio** - upgrade the existing
-   text table to an actual diagram once a sourcing approach is chosen.
+5. ~~Connector diagram for Radio~~ - **built and tested 2026-09-02,
+   IMPLEMENTED IN REPO, NOT YET DEPLOYED** (`connectors.svg.php`, an
+   original PirateBox-authored schematic profile comparison of the 5
+   connector types already in the Feed Lines & Connectors guide's table
+   - no sourcing/licensing question, same basis as the existing spectrum
+   chart; well-formed SVG confirmed, PHP lint clean, page smoke-tested
+   locally, all 206 unit tests still pass). Built on an isolated
+   worktree branch (`worktree-continue-deep-library`) per this session's
+   background-job policy, which does not permit merging into `main` or
+   pushing from here - **needs an interactive/operator session to merge
+   this branch into `main` and run the normal dry-run-then-real deploy**
+   before it goes live and this row can be marked deployed/verified.
+   **Antenna-type diagrams** (dipole/vertical/Yagi silhouettes) remain a
+   separate, not-yet-built
+   gap.
 6. **Regional/State map layer** - genuinely useful next Maps increment
    (the pipeline now trivially extends to a single state via the same
    Admin 1 dataset already fetched), but the *which state(s)* question
@@ -155,11 +171,11 @@ rejected per source (not assumed uniformly):**
 | CDC | Same basis, verified against CDC's own copyright guidance | **IMPLEMENTED+DEPLOYED+LIVE-VERIFIED** - "Make Water Safe During an Emergency" retained, cross-linked to the Water Storage topic |
 | FEMA | Same basis, verified against FEMA's own policy; Ready Campaign publications explicitly free to redistribute | **IMPLEMENTED+DEPLOYED+LIVE-VERIFIED** - Family Emergency Communication Plan retained, cross-linked to that topic |
 | EPA | Same basis, verified against EPA's own copyright-policy framework (not on the original candidate list - found while researching US Forest Service wildfire material, which EPA co-publishes) | **IMPLEMENTED+DEPLOYED+LIVE-VERIFIED** - "Reduce Your Smoke Exposure" retained, cross-linked to the Wildfire & Smoke topic |
-| USDA (FSIS) | Same PD basis expected (not yet confirmed - blocked before reaching the license question) | **LICENSING BLOCKED** *(access, not license)* - candidate URL (severe-storms food-safety brochure) returned HTTP 403 (Akamai bot protection); worth retrying via a different path or leaving for the operator to fetch manually |
+| USDA (FSIS) | Same PD basis expected (not yet confirmed - blocked before reaching the license question) | **LICENSING BLOCKED** *(access, not license)* - candidate URL (severe-storms food-safety brochure) returned HTTP 403 (Akamai bot protection); **retried 2026-09-02, still HTTP 403** - the block is durable, not transient; leaving for the operator to fetch manually (a human browser session, not automated fetch, is likely what the bot protection is actually gating) |
 | US Forest Service | Same PD basis expected | **SUPERSEDED BY BETTER SOURCE** - EPA's wildfire-smoke factsheet (co-developed with USFS) already fills this specific gap; no separate USFS document pursued |
 | FCC | Already the citation basis for existing Radio content (Part 97/95/73) | **NOT USEFUL ENOUGH** *(for now)* - no additional FCC document identified as filling a gap beyond what's already cited; revisit if a specific need appears |
 | SigIDWiki | Investigated directly (its own General Disclaimer): signal recordings/images are user-submitted "as is," explicitly "not under any licenses," users retain "sole responsibility for... intellectual property ownership" | **LICENSING BLOCKED** - no redistribution grant exists. Original non-SigIDWiki-derived signal-ID framework built instead (§3b/OPERATIONAL-DECISIONS.md) |
-| ARRL | Not yet investigated per-publication (membership organization, not a blanket PD source) | **VERIFIED SOURCE, QUEUED** - verify per-publication before bundling anything; use as research reference only until then |
+| ARRL | Not yet investigated per-publication (membership organization, not a blanket PD source) | **LICENSING BLOCKED for the band-chart candidate specifically** - checked 2026-09-02: ARRL's own Frequency/Band Chart PDFs (`arrl.org/files/file/Regulatory/Band%20Chart/...`) are marked "Copyright (C) ARRL, All Rights Reserved," commercially sold via the ARRL Store - not a blanket-PD source and not redistributable as retained originals. Not re-litigated for every possible ARRL publication (a different, explicitly-licensed one could still exist), but the specific band-plan-chart candidate this project would actually want is closed. Continue using ARRL only as a citation (`source_id`), never as a retained original |
 
 **Acquired so far** (`/utility/library/`, 6 documents total, ~8.4MB) -
 see `docs/OPERATIONAL-DECISIONS.md` "Original-Source Document Library:

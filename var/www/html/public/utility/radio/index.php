@@ -297,6 +297,12 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
                                         </table>
                                     </div>
                                 <?php endif; ?>
+                                <?php if ($g['id'] === 'feedlines-and-connectors'): ?>
+                                    <div class="radio-spectrum-wrap">
+                                        <?php require __DIR__ . '/connectors.svg.php'; ?>
+                                    </div>
+                                    <p class="radio-spectrum-caption">Schematic side profiles for quick visual comparison - not to scale, and not a substitute for physically checking thread size before buying an adapter. PirateBox-authored diagram, not copied from any manufacturer or third-party image.</p>
+                                <?php endif; ?>
                                 <?php
                                 // Metadata-driven Document Library cross-link, checked per-guide
                                 // (not page-level) - a catalog entry names this exact guide's URL
