@@ -10,8 +10,21 @@
 # docs/OPERATIONAL-DECISIONS.md for the full rationale. Do not re-add a
 # cron entry for this script without updating that document.
 #
-# WARNING: running this script deletes ALL uploaded files and ALL chat/
-# logbook history immediately and irreversibly. There is no undo.
+# WARNING: running this script deletes ALL uploaded files and ALL
+# chat/logbook/bulletin/recovery-message history immediately and
+# irreversibly. There is no undo.
+#
+# Gap closed 2026-09-02 (roadmap reconciliation - flagged in Stage 25,
+# repeated in Stage 32's own end-of-batch checklist, never actually
+# fixed until now): this script's own header and README.md both always
+# described its scope as "wipe everything" / "all uploads + all
+# chat/[logbook] history," but bulletin.json and recovery-messages.json
+# were never actually included below - an operator running this
+# expecting a true "wipe everything" would have found those two stores
+# silently untouched. Both admin/index.php's individual clear_bulletin/
+# purge_recovery_all actions already covered them (this was never a
+# case of no cleanup mechanism existing at all) - only this specific
+# "wipe everything at once" script had the gap.
 
 # The directory to clean
 TARGET_DIR="/var/www/html"
@@ -27,6 +40,12 @@ if [ -d "$TARGET_DIR" ]; then
 
     # Remove chat messages json file (-f: it may not exist yet on a fresh install)
     rm -f "${TARGET_DIR:?}"/data/chat.json
+
+    # Remove bulletin board posts (-f: may not exist yet - Stage 22)
+    rm -f "${TARGET_DIR:?}"/data/bulletin.json
+
+    # Remove found-device recovery messages (-f: may not exist yet - Stage 16)
+    rm -f "${TARGET_DIR:?}"/data/recovery-messages.json
 
     # Set ownership to www-data user and group
     chown www-data:www-data "$TARGET_DIR"

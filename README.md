@@ -207,7 +207,7 @@ reasoning.
 
 A script `purge_uploads.sh` is installed to `/usr/local/bin/purge_uploads.sh`
 as a **manual** utility if you ever want to wipe everything (all uploads +
-all chat/logbook history) yourself:
+all chat/logbook/bulletin/recovery-message history) yourself:
 ```bash
 sudo /usr/local/bin/purge_uploads.sh
 ```

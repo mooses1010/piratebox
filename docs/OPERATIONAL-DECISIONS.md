@@ -6,6 +6,49 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## purge_uploads.sh Completeness Gap Closed (roadmap item 1)
+
+**Decision date:** 2026-09-02. First roadmap-driven implementation
+increment after reconciliation. `docs/IMPLEMENTATION-ROADMAP.md` §1
+flagged that `purge_uploads.sh` never actually removed
+`data/bulletin.json` or `data/recovery-messages.json`, despite its own
+header and README.md both describing its scope as "wipe everything" -
+found in Stage 25, repeated in Stage 32's checklist, never fixed.
+
+**Fixed:** two more `rm -f` lines added, matching the existing
+chat.json/messages.json lines' exact style (same `-f` tolerance for a
+fresh install where the file doesn't exist yet). `README.md`'s
+description updated to match ("all chat/logbook/bulletin/recovery-
+message history," not just the first two). A comment block explains
+what changed and why, so a future reader doesn't wonder whether this
+was deliberate.
+
+**Testing:** `bash -n` clean. Functional test against an isolated
+scratch directory (never `/var/www/html`): seeded `chat.json`,
+`messages.json`, `bulletin.json`, `recovery-messages.json` (all `[]`)
+plus a `device-id.json` that must survive (out of scope - device
+identity isn't "uploads/community content") and one uploaded file.
+Ran a copy of the script with `TARGET_DIR` redirected at the scratch
+dir: all four JSON stores and the uploaded file were removed;
+`device-id.json` was correctly left untouched. `chown` failed
+harmlessly in the test (not running as root there) - real root-owned
+production runs via `sudo` don't hit that.
+
+**Not yet live** - this is a root-owned script installed via a plain
+`cp`/`chmod +x` (`installer_pi_zero_trixie.sh`), outside this
+project's narrow sudo automation (same class of gap as every other
+root-owned-file install this project has hit). New pending step,
+batched rather than stopping the run for it:
+
+```
+sudo cp /home/moose/piratebox/purge_uploads.sh /usr/local/bin/purge_uploads.sh
+sudo chmod +x /usr/local/bin/purge_uploads.sh
+```
+
+**Roadmap updated:** `docs/IMPLEMENTATION-ROADMAP.md` §1's
+`purge_uploads.sh` row moves from "PARTIALLY IMPLEMENTED" to
+"IMPLEMENTED IN REPO, NOT DEPLOYED" pending the step above.
+
 ## Roadmap Reconciliation
 
 **Decision date:** 2026-09-02. Operator correction of process: across

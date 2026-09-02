@@ -46,7 +46,7 @@ design doc is):
 | Found Device / Recovery messages | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stage 16; `purge_recovery_one`/`_all` admin actions exist | none | OPERATIONAL-DECISIONS.md Stage 16 |
 | Help / About / "What can I do here?" | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stage 13/14; live-verified this session | none | OPERATIONAL-DECISIONS.md Stage 13/14 |
 | Normal/Emergency Mode | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Emergency Mode foundation commit; `set_piratebox_mode.sh`; currently Normal | none | OPERATIONAL-DECISIONS.md "Emergency Mode" |
-| **purge_uploads.sh doesn't purge bulletin.json/recovery-messages.json** | **PARTIALLY IMPLEMENTED - real gap, not stale** | Confirmed live 2026-09-02: script only removes `chat.json`/`messages.json`; `recovery-messages.json` exists live (645B) and would survive a "wipe everything" run. Flagged in Stage 25, repeated in Stage 32's own checklist (item 7), never fixed - genuinely fell out, not deliberately left | **Actionable now** - add the two missing files/locks to the script | Stage 25/32 entries |
+| purge_uploads.sh doesn't purge bulletin.json/recovery-messages.json | **IMPLEMENTED IN REPO, NOT DEPLOYED** | Fixed 2026-09-02 (`rm -f` for both added, README updated, tested against an isolated scratch dir - all four stores removed, `device-id.json` correctly untouched). Root-owned script installed via plain `cp`, outside sudo automation | **Pending operator step** (batched): `sudo cp purge_uploads.sh /usr/local/bin/purge_uploads.sh && sudo chmod +x /usr/local/bin/purge_uploads.sh` | OPERATIONAL-DECISIONS.md "purge_uploads.sh Completeness Gap Closed" |
 
 ## 2. Admin / maintenance / backup
 
@@ -157,7 +157,9 @@ except one item:** `purge_uploads.sh`'s incomplete file list (missing
 `bulletin.json`/`recovery-messages.json`) - flagged in Stage 25,
 repeated verbatim in Stage 32's own end-of-batch checklist as item 7,
 and never actually fixed across three later sessions' worth of work.
-Genuinely forgotten, not deliberately deferred - see §1 above.
+Genuinely forgotten, not deliberately deferred. **Fixed in repo the
+same day this reconciliation happened** - see §1 above; pending only
+the operator's install step.
 
 **Two doc-drift cases found and fixed this session** (documented as
 unimplemented when the code already existed): graceful self-diagnosis
