@@ -6,6 +6,61 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Reference Library Navigation Coherence Fixes (implementation-focused audit, increment 3)
+
+**Decision date:** 2026-09-02. Continuing the same audit
+("coherent Reference Library navigation" was one of its explicit
+categories), checking whether the two things increments 1-2 actually
+shipped (the World Reference Map; the storage self-diagnosis fix) were
+reflected everywhere a reader would reasonably expect them to be, not
+just at the one place each was built.
+
+**Found and fixed, all text-only, no logic changes:**
+- `public/utility/index.php`'s Maps card still described the section as
+  "Coordinates, GPS basics, and a local/regional map catalog" - didn't
+  mention the World Reference Map at all, understating what's actually
+  there now. Updated.
+- `README.md`'s Maps &amp; Location Reference bullet still said "an
+  empty, ready-to-use map catalog framework... No map data ships by
+  default" - flatly wrong now (a real map does ship by default).
+  Reworded to distinguish the *local/regional* catalog (still correctly
+  empty by design) from the World Reference Map (ships, always
+  available).
+- `README.md`'s Search bullet had a stale hardcoded "83 indexed items"
+  from an earlier stage - the live search page itself was never wrong
+  (`count($index)`, computed, not hardcoded), only this static doc
+  text was. Updated to the real current count (92) with a note that the
+  live page's own count is the one to trust going forward, not this
+  number.
+- `docs/FIELD-TOOLS-DESIGN.md`'s status banner still said "not yet
+  deployed to the live site as of this writing," left over from before
+  that deploy happened - Field Tools has been live for multiple
+  sessions now (including this session's own earlier `/utility/
+  fieldtools/time/` checks). Corrected to "IMPLEMENTED and deployed
+  live."
+
+**Also audited and deliberately left alone:** `docs/FIELD-TOOLS-
+DESIGN.md` §10's "What's deferred" list (UTM/MGRS conversion,
+persisted NTP-sync timestamp, `date.timezone` fix, export-bundle
+integration) - each already carries its own explicit reasoning for
+staying out (UTM/MGRS: "genuinely more complex map-projection math, not
+a good fit for 'avoid turning this into an enormous scientific-
+calculator project'" - a deliberate, already-reasoned scope boundary,
+not a mere oversight; `date.timezone`: a system-level `php.ini` change
+outside this project's narrow sudo automation, not software-only;
+NTP-sync persistence: deliberately not built, see §4; export-bundle
+integration: "worth revisiting if operators ask for it," not something
+already approved in principle). None of these are the kind of gap this
+audit is for - re-litigating an already-reasoned "no" is not the same
+as finishing an already-planned "yes."
+
+**Testing:** `php -l` clean on the one changed PHP file (text-only
+change, a card description string). Markdown fence balance checked on
+`docs/FIELD-TOOLS-DESIGN.md` (even). No test suite covers static page
+text, so the existing 181-assertion regression suite is unaffected by
+design, not skipped - re-run anyway as part of this increment's own
+verification and still 181/181.
+
 ## Storage Self-Diagnosis Gap Closed + Doc-Drift Fixes (implementation-focused audit, increment 2)
 
 **Decision date:** 2026-09-02. Continuing the same implementation-

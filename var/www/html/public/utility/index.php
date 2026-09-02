@@ -42,7 +42,7 @@ session_start();
         <a class="utility-card" href="/utility/maps/">
             <span class="utility-card-icon" aria-hidden="true">🗺️</span>
             <span class="utility-card-title">Maps</span>
-            <span class="utility-card-desc">Coordinates, GPS basics, and a local/regional map catalog</span>
+            <span class="utility-card-desc">A world reference map, coordinates/GPS basics, and a local/regional map catalog</span>
         </a>
         <a class="utility-card" href="/utility/local/">
             <span class="utility-card-icon" aria-hidden="true">📍</span>

@@ -1,10 +1,10 @@
 # Field Tools / Offline Reference Instruments Design (Post-Stage-32)
 
-**Status: IMPLEMENTED.** Live under `/utility/fieldtools/` (not yet
-deployed to the live site as of this writing - see
-`docs/OPERATIONAL-DECISIONS.md`, "Field Tools / Offline Reference
-Instruments," for deploy status). This document is the durable design
-record; that entry is a summary pointing here.
+**Status: IMPLEMENTED and deployed live.** Live under
+`/utility/fieldtools/` - see `docs/OPERATIONAL-DECISIONS.md`, "Field
+Tools / Offline Reference Instruments," for the original deploy record
+and its later `open_basedir` time-source fix. This document is the
+durable design record; those entries are summaries pointing here.
 
 ## 1. Why this exists
 
