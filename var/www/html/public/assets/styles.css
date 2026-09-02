@@ -731,6 +731,24 @@ img,
     color: #ffb347;
 }
 
+/* World Reference Map - the SVG itself uses light map colors
+   (ocean/land) regardless of site theme, same as any printed map would;
+   framed in a light card so it reads cleanly against the dark page. */
+.world-map-frame {
+    background: #f4f1e8;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin: 0.75rem 0;
+    text-align: center;
+}
+
+.world-map-frame img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}
+
 .qr-row {
     display: flex;
     flex-wrap: wrap;

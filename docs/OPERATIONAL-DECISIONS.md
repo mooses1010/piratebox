@@ -6,6 +6,106 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## World Reference Map: CANDIDATE -> INSTALLED (implementation-focused audit, increment 1)
+
+**Decision date:** 2026-09-02. Explicit operator correction of emphasis:
+several capabilities existed only as design docs/registry entries/
+CANDIDATE rather than deployed features, and the instruction was to
+implement already-planned, hardware-independent, decision-independent
+items rather than document them again. The World Reference Map was
+given as the flagship example. Recovered state first (clean tree at
+`e335077`, matching the Logbook-rename checkpoint) before starting.
+
+**Why this was CANDIDATE, and why that no longer applied:**
+`docs/REFERENCE-CONTENT-DESIGN.md` §5 previously deferred this because
+this Pi's own visitor-facing network has no general WAN path by design.
+That's still true - but it's a fact about the Pi's isolated AP, not
+about every environment this project's own tooling runs in. Checked
+rather than assumed: this session's own execution environment (this
+same Pi, but via its separate `eth0` management uplink - confirmed live
+with `ip route`/`curl`, distinct from the `wlan0` visitor AP this
+project keeps isolated on purpose) has ordinary outbound access. Used it
+for exactly one thing - fetching a well-defined, small, public-domain
+data file once - not as an ongoing dependency.
+
+**Source, verified before use, not assumed:** Natural Earth's 1:110m
+Admin 0 Countries dataset. Fetched
+`https://www.naturalearthdata.com/about/terms-of-use/` directly this
+session and confirmed: "All versions of Natural Earth raster + vector
+map data found on this website are in the public domain... No
+permission is needed to use Natural Earth. Crediting the authors is
+unnecessary." The GeoJSON itself was pulled from
+`github.com/nvkelso/natural-earth-vector` (a Natural Earth core
+contributor's own mirror - its README independently corroborates the
+public-domain claim), 838KB, 177 country features, real coordinate
+data - not fabricated, not a placeholder.
+
+**Built:** `tools/build_world_reference_map.py` - equirectangular
+projection (x=lon, y=-lat), stdlib `json` + arithmetic only, no new
+package dependency (matplotlib/cartopy/geopandas were deliberately not
+reached for - this project doesn't install packages without explicit
+approval, and didn't need to here). Produces
+`public/utility/maps/files/world-reference-map.svg` (~183KB, single
+self-contained file, no external references, one `<path>` per country
+ring with even-odd fill for holes/enclaves, a light 30-degree
+graticule, an embedded attribution caption). **Verified after
+generation rather than assumed correct:** parsed back as well-formed
+XML; five geographically-spread countries' rendered bounding boxes
+(Australia/USA/Brazil/Russia including its antimeridian span/Japan)
+were checked against their real-world lon/lat ranges and matched
+exactly.
+
+**Wired into the Reference Library, not left as a standalone file:**
+`public/utility/maps/index.php` gained a new, always-visible "World
+Reference Map" section - deliberately placed *outside* the existing
+`$travelMode ? [] : ...` gate that already suppresses the operator's
+own region-specific map catalog, per the explicit requirement that this
+stay available regardless of Travel Mode or whether Local Information
+is configured (verified live both ways, see Testing below). New search
+chip (`data-group="worldmap"`), new small descriptor
+(`data/utility/maps/world-reference-map.json`, one entry - reuses the
+exact same generic array-count pattern every other reference pack
+already uses, no special-casing added), a new `natural-earth-110m`
+entry in `data/utility/maps/sources.json` following the project's
+existing per-source citation convention, and a `tools/
+build_search_index.py` block so it's findable via Global Search too
+(deliberately not `regional=True`, unlike the operator catalog's search
+entries, so Travel Mode doesn't hide it from search either).
+`data/reference-packs.json`'s `world-reference-map` row lost its
+`state_override: "candidate"` and now flows through
+`piratebox_get_reference_packs()`'s normal live-check path exactly like
+every other pack - state is computed from the real shipped file, not
+hand-set.
+
+**Testing:** `php -l` clean; `tools/build_search_index.py` re-run
+(92 entries, new World Reference Map entry confirmed present and not
+`regional`). Functional testing against an isolated scratch copy of the
+site (own temp dir, own `php -S` instance): page loads 200; the new
+section renders with the correct image, caption, and source citation;
+the SVG itself serves as `image/svg+xml` at the expected size; toggling
+`data/travel-mode.json` between `false` and `true` confirmed the World
+Map section stays visible in both states while the operator catalog
+correctly switches to its existing "hidden while Travel Mode is active"
+message in the `true` case; `/utility/about/`'s live self-awareness
+table correctly shows `World Reference Map: INSTALLED (1)` - computed,
+not hand-set. `tools/test_reference_packs.php` updated (the old
+hardcoded "CANDIDATE" assertions were now testing something no longer
+true) to assert `INSTALLED`/scope/real entry_count instead, **plus a
+new synthetic-fixture test added so the `state_override="candidate"`
+code path itself stays covered** even though no real pack exercises it
+any more - it's still a real, reachable branch for a genuinely
+unsourceable future candidate. Full four-suite regression: 171
+assertions, 0 failures (was 168; +3 net in `test_reference_packs.php`).
+All scratch test artifacts removed after testing - no live/community
+data touched.
+
+**Disposition:** `data/reference-packs.json`'s `world-reference-map`
+entry moves from CANDIDATE to a real, sourced, licensed INSTALLED pack.
+See `docs/REFERENCE-CONTENT-DESIGN.md` §5 (rewritten to describe what
+now actually exists, including the general lesson for future
+candidates) and `docs/CHECKPOINTS.md` for the deploy/live-verification
+record.
+
 ## Guestbook Reframed as "Logbook" (terminology, not a rebuild)
 
 **Decision date:** 2026-09-02. Raised outside this session and handed in

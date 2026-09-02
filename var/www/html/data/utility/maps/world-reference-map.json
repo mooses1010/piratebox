@@ -1,0 +1,12 @@
+[
+  {
+    "id": "world-reference-map",
+    "title": "World Reference Map",
+    "file": "world-reference-map.svg",
+    "format": "SVG",
+    "summary": "Static offline world map - country borders, equirectangular projection.",
+    "description": "A single self-contained SVG world map (country borders, 30-degree lat/lon graticule) - works fully offline, scales cleanly on phone or desktop, no map-tile server or JavaScript mapping library involved. Universal scope: useful anywhere, not tied to this box's location, and shown regardless of Travel Mode or whether Local Information has been configured for this box.",
+    "source_id": "natural-earth-110m",
+    "keywords": ["world map", "global map", "atlas", "countries", "country borders", "continents", "reference map"]
+  }
+]

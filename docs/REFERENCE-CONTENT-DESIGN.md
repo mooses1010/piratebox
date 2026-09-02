@@ -95,34 +95,49 @@ gigabytes of data that ages quickly. This project's existing content
 - none of it needs updating on any predictable schedule. Any future
 addition should be held to the same bar.
 
-## 5. Why no new map/geographic content was added now
+## 5. World Reference Map - built 2026-09-02, no longer CANDIDATE
 
-**Deliberately deferred, not forgotten - `world-reference-map` is
-recorded as CANDIDATE in `data/reference-packs.json`, not silently
-dropped.** Two real constraints, checked rather than assumed:
+Originally deferred here as CANDIDATE for a real, checked reason: this
+Pi's own visitor-facing network has no general WAN path by design, and
+this project's sourcing discipline (every reference entry cites a real,
+cross-checked source - `sources.json`/per-entry `source_id`,
+`confidence`, retrieval date) rules out bundling a map "because it's
+probably fine" without one.
 
-- **No verified WAN/Internet path from this device.** PirateBox is an
-  isolated access point by design (`docs/RTC-TIME-READINESS-DESIGN.md`
-  already established this for the NTP-sync question; the same fact
-  applies here) - there is no reliable way to fetch cartographic data
-  from here.
-- **This project's own sourcing discipline applies to new content the
-  same as old.** Every existing reference entry cites a real,
-  cross-checked source (`sources.json`/per-entry `source_id`,
-  `confidence`, retrieval date). Bundling a map "because it's probably
-  fine" without a real, checked source and clear redistribution rights
-  would violate that discipline, not extend it.
+**That constraint was about this device's own network path, not about
+every environment this project's tooling ever runs in.** Revisited
+during an implementation-focused audit: Claude Code's own development
+environment (distinct from the Pi's isolated visitor AP) has ordinary
+outbound network access. Investigating that path rather than declaring
+the feature permanently blocked found a genuinely solid source -
+**Natural Earth's 1:110m Admin 0 Countries dataset, explicitly public
+domain** ("No permission is needed to use Natural Earth. Crediting the
+authors is unnecessary." - naturalearthdata.com Terms of Use, verified
+directly this session) - fetched once from that environment, not from
+the Pi, and not at any point during normal PirateBox operation.
 
-**Static maps remain the right target format when this is eventually
-done** - a slippy-tile server or map engine is not needed; a
-well-chosen raster/SVG/PDF world or regional reference map, sourced and
-licensed properly (public domain / permissively licensed / clearly
-redistributable - never bundled merely because something is
-downloadable), would be a genuinely valuable, low-complexity addition.
-Not built now because it cannot be sourced responsibly from this
-environment in this session - a real gap to revisit with either
-operator-provided files or a future session with a verified path to
-properly licensed data, not a permanent decision against it.
+**What was built:** `tools/build_world_reference_map.py` projects the
+public-domain country-boundary coordinates (plain equirectangular - no
+new library dependency, just `json` + arithmetic) into a single
+self-contained SVG - `public/utility/maps/files/world-reference-map.svg`
+(~180KB). Verified after generation, not just assumed correct: parsed
+back as well-formed XML, and five geographically-spread countries'
+rendered bounding boxes were checked against their real lon/lat ranges
+and matched. Static, exactly as this section originally called for - no
+slippy-tile engine, no map-server dependency, no live WAN reliance of
+any kind after the one-time fetch. Lives in the Maps &amp; Location
+Reference page's own always-visible "World Reference Map" section
+(`public/utility/maps/index.php`) - deliberately outside the Travel-
+Mode-gated operator map catalog, since this is universal content, not
+regional. Full provenance: `data/utility/maps/sources.json`'s
+`natural-earth-110m` entry; full account of the sourcing/verification
+work: `docs/OPERATIONAL-DECISIONS.md`.
+
+**The general lesson stands for future candidates too:** "no WAN path"
+should be checked against the tooling environment actually available at
+implementation time, not assumed to mean "unsourceable forever" - but
+the sourcing discipline itself (real, checked, properly licensed
+sources only) is unchanged and was not relaxed to get this done.
 
 ## 6. Graceful content availability
 
@@ -131,7 +146,7 @@ content table already shows exactly this shape today -
 
 ```
 Universal   Navigation & Coordinates   INSTALLED (5)
-Universal   World Reference Map        CANDIDATE
+Universal   World Reference Map        INSTALLED (1)
 National    Radio Reference            INSTALLED (25)
 National    Emergency/Outage Reference INSTALLED (21)
 National    First Aid Reference        INSTALLED (16)

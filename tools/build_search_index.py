@@ -107,6 +107,15 @@ for i, m in enumerate(load("maps", "catalog.json")):
         m.get("description", ""), m.get("tags"),
         regional=True,
     ))
+# World Reference Map: universal scope, NOT regional=True - unlike the
+# operator map catalog above, this ships with PirateBox itself and must
+# stay findable (and shown) during Travel Mode too.
+for m in load("maps", "world-reference-map.json"):
+    index.append(entry(
+        m.get("title", "World Reference Map"), "maps", "Maps & Location Reference",
+        f"/utility/maps/#{m.get('id', 'world-reference-map')}",
+        m.get("summary", ""), m.get("keywords"),
+    ))
 
 # --- Local Information ------------------------------------------------
 local_info = load("local", "info.json")

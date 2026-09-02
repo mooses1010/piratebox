@@ -38,6 +38,14 @@ function ref_load_json(string $path): array
 $reference = ref_load_json($DATA_DIR . '/reference.json');
 $catalog = $travelMode ? [] : ref_load_json($DATA_DIR . '/catalog.json');
 $sources = ref_load_json($DATA_DIR . '/sources.json');
+// World Reference Map (universal scope): unlike the operator map catalog
+// above, this ships with PirateBox itself and is never region-specific,
+// so it is NOT gated behind $travelMode - see docs/REFERENCE-CONTENT-
+// DESIGN.md and docs/OPERATIONAL-DECISIONS.md for why this stays visible
+// regardless of Travel Mode or whether Local Information is configured.
+$worldMap = ref_load_json($DATA_DIR . '/world-reference-map.json')[0] ?? null;
+$worldMapFileExists = $worldMap !== null
+    && is_file(__DIR__ . '/files/' . basename($worldMap['file'] ?? ''));
 
 function ref_search_blob(array $fields): string
 {
@@ -91,13 +99,14 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
         <h1>Maps &amp; Location Reference</h1>
         <p class="utility-breadcrumb"><a href="/utility/">&larr; Utility Library</a></p>
 
-        <p>Coordinate/GPS/navigation basics below work offline right now. The map catalog is a ready-to-use framework for local/regional/evacuation/topographic maps - empty until real maps for this box's area are deliberately added.</p>
+        <p>Coordinate/GPS/navigation basics and a world reference map below work offline right now, everywhere. The map catalog is a ready-to-use framework for local/regional/evacuation/topographic maps - empty until real maps for this box's area are deliberately added.</p>
 
         <div class="radio-search-bar">
-            <input type="text" id="radioSearch" placeholder="Search: coordinates, gps, compass, utm..." aria-label="Search maps and location reference">
+            <input type="text" id="radioSearch" placeholder="Search: coordinates, gps, compass, utm, world map..." aria-label="Search maps and location reference">
             <div class="radio-chip-row" id="radioChips" role="group" aria-label="Filter by category">
                 <button type="button" class="radio-chip active" data-group="all">All</button>
                 <button type="button" class="radio-chip" data-group="reference">Reference</button>
+                <button type="button" class="radio-chip" data-group="worldmap">World Map</button>
                 <button type="button" class="radio-chip" data-group="catalog">Map Catalog</button>
             </div>
         </div>
@@ -130,6 +139,29 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                         </div>
                     </details>
                 <?php endforeach; ?>
+            </section>
+
+            <section class="radio-group" data-group-section="worldmap">
+                <h2 class="radio-group-heading">World Reference Map</h2>
+                <?php if ($worldMap !== null && $worldMapFileExists): ?>
+                    <?php $search = ref_search_blob([$worldMap['title'] ?? '', $worldMap['summary'] ?? '', $worldMap['keywords'] ?? [], 'worldmap']); ?>
+                    <details class="radio-entry" id="<?= htmlspecialchars($worldMap['id']) ?>" data-group="worldmap" data-search="<?= $search ?>" open>
+                        <summary>
+                            <span class="radio-entry-name"><?= htmlspecialchars($worldMap['title']) ?></span>
+                            <span class="radio-entry-mode-badge"><?= htmlspecialchars($worldMap['format'] ?? 'map') ?></span>
+                        </summary>
+                        <div class="radio-entry-detail">
+                            <?php if (!empty($worldMap['description'])): ?><p><?= htmlspecialchars($worldMap['description']) ?></p><?php endif; ?>
+                            <div class="world-map-frame">
+                                <img src="/utility/maps/files/<?= rawurlencode($worldMap['file']) ?>" alt="World reference map - country borders, equirectangular projection" loading="lazy">
+                            </div>
+                            <p><a href="/utility/maps/files/<?= rawurlencode($worldMap['file']) ?>" target="_blank" rel="noopener">Open full-size in a new tab</a></p>
+                            <p class="radio-entry-source"><?= ref_source_line($sources, $worldMap['source_id'] ?? null, null, null, null) ?></p>
+                        </div>
+                    </details>
+                <?php else: ?>
+                    <p class="empty-state">World map file not found on this install.</p>
+                <?php endif; ?>
             </section>
 
             <section class="radio-group" data-group-section="catalog">

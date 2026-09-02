@@ -74,11 +74,10 @@
     "id": "world-reference-map",
     "title": "World Reference Map",
     "scope": "universal",
-    "section": "maps-catalog",
-    "url": null,
-    "data_file": null,
-    "license": null,
-    "state_override": "candidate",
-    "note": "A curated, small, durable world/country reference map would be genuinely valuable here (docs/ARCHITECTURE.md's 'small + durable + high value' principle) - deferred, not built: this device has no verified WAN/Internet path to source and properly license/attribute cartographic data, and this project's existing content (see every other pack above) always cites a real, checked source rather than bundling anything of unverified origin. See docs/CAPABILITY-REGISTRY.md."
+    "section": "maps",
+    "url": "/utility/maps/#world-reference-map",
+    "data_file": "utility/maps/world-reference-map.json",
+    "license": "Public domain (Natural Earth, naturalearthdata.com)",
+    "note": "A static offline world map (country borders, equirectangular projection, SVG) built from Natural Earth's public-domain 1:110m country data. Sourced from Claude Code's own development environment (which has outbound network access) since this Pi itself has no general WAN path by design; no live WAN dependency after installation. Shown regardless of Travel Mode or whether Local Information is configured. See docs/OPERATIONAL-DECISIONS.md and tools/build_world_reference_map.py for the full provenance/regeneration record."
   }
 ]

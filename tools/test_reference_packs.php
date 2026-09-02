@@ -82,9 +82,16 @@ foreach ($packs as $p) { $byId[$p['id']] = $p; }
 rp_assert_eq('navigation-universal is INSTALLED (real, sourced content exists)', $byId['navigation-universal']['state'] ?? null, 'INSTALLED');
 rp_assert_eq('navigation-universal scope is universal', $byId['navigation-universal']['scope'] ?? null, 'universal');
 rp_assert_eq('local-reference is NOT_CONFIGURED by design (Stage 6)', $byId['local-reference']['state'] ?? null, 'NOT_CONFIGURED');
-rp_assert_eq('world-reference-map is CANDIDATE (no WAN access to source it)', $byId['world-reference-map']['state'] ?? null, 'CANDIDATE');
+// world-reference-map shipped 2026-09-02 (static SVG built from public-
+// domain Natural Earth data, sourced from Claude Code's own development
+// environment rather than the Pi's own WAN-less connection - see
+// docs/OPERATIONAL-DECISIONS.md) - state now reflects the real,
+// live-checked file the same way every other pack does, not a
+// hand-set override.
 rp_assert_eq('world-reference-map key exists', array_key_exists('world-reference-map', $byId), true);
-rp_assert_eq('world-reference-map has no fabricated entry count', $byId['world-reference-map']['entry_count'], null);
+rp_assert_eq('world-reference-map is INSTALLED (real static asset now shipped)', $byId['world-reference-map']['state'] ?? null, 'INSTALLED');
+rp_assert_eq('world-reference-map scope is universal', $byId['world-reference-map']['scope'] ?? null, 'universal');
+rp_assert_eq('world-reference-map entry_count reflects its one-entry descriptor, not fabricated', $byId['world-reference-map']['entry_count'] ?? null, 1);
 
 $validStates = ['INSTALLED', 'NOT_CONFIGURED', 'CANDIDATE', 'UNKNOWN'];
 $allValid = true;
@@ -99,6 +106,26 @@ foreach ($packs as $p) {
     if (!in_array($p['scope'], $validScopes, true)) $allScopesValid = false;
 }
 rp_assert_eq('Every pack scope is from the Universal->Live hierarchy', $allScopesValid, true);
+
+// --- piratebox_get_reference_packs(): state_override='candidate' branch ---
+// No real pack uses this branch any more (world-reference-map shipped
+// 2026-09-02), but the code path itself is still real and reachable for
+// a genuinely-not-yet-sourceable future pack, so it stays covered here
+// with a synthetic fixture rather than only via a real pack's data.
+// Same sandbox trick as above (a fresh includes/+data/ pair so __DIR__
+// . '/../data/reference-packs.json' resolves inside it, not the repo).
+mkdir($tmpDir . '/candidate-sandbox/includes', 0777, true);
+mkdir($tmpDir . '/candidate-sandbox/data', 0777, true);
+copy(__DIR__ . '/../var/www/html/includes/reference_packs.php', $tmpDir . '/candidate-sandbox/includes/reference_packs.php');
+file_put_contents($tmpDir . '/candidate-sandbox/data/reference-packs.json', json_encode([[
+    'id' => 'synthetic-candidate', 'title' => 'Synthetic Candidate', 'scope' => 'universal',
+    'url' => null, 'data_file' => null, 'license' => null, 'state_override' => 'candidate', 'note' => 'test fixture',
+]]));
+$candidateCode = 'require "' . $tmpDir . '/candidate-sandbox/includes/reference_packs.php"; echo json_encode(piratebox_get_reference_packs());';
+$candidateOut = shell_exec(PHP_BINARY . ' -r ' . escapeshellarg($candidateCode));
+$candidatePacks = json_decode((string) $candidateOut, true);
+rp_assert_eq('state_override=candidate -> state CANDIDATE', $candidatePacks[0]['state'] ?? null, 'CANDIDATE');
+rp_assert_eq('state_override=candidate -> entry_count stays null (never fabricated)', array_key_exists('entry_count', $candidatePacks[0] ?? []) ? $candidatePacks[0]['entry_count'] : 'MISSING', null);
 
 // cleanup
 function rp_rrmdir(string $dir): void

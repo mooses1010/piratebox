@@ -34,5 +34,12 @@
     "url": null,
     "retrieved": "2026-09-01",
     "note": "Widely-taught map-and-compass navigation concepts, not tied to one specific regulatory citation."
+  },
+  "natural-earth-110m": {
+    "name": "Natural Earth 1:110m Admin 0 Countries",
+    "publisher": "Natural Earth (naturalearthdata.com)",
+    "url": "https://www.naturalearthdata.com/about/terms-of-use/",
+    "retrieved": "2026-09-02",
+    "note": "Public domain (\"No permission is needed to use Natural Earth. Crediting the authors is unnecessary.\" - naturalearthdata.com Terms of Use, verified this session). GeoJSON fetched from the community mirror github.com/nvkelso/natural-earth-vector (raw file: geojson/ne_110m_admin_0_countries.geojson) and rendered to a static equirectangular SVG by tools/build_world_reference_map.py - see that script's header for the exact regeneration steps and docs/OPERATIONAL-DECISIONS.md for the full account of how this was sourced and verified."
   }
 }
