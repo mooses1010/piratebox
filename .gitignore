@@ -1,5 +1,6 @@
 var/www/html/data/messages.json
 var/www/html/data/chat.json
+var/www/html/data/chat.json.lock
 var/www/html/data/recovery-messages.json
 var/www/html/data/recovery-messages.json.lock
 var/www/html/data/mode-transitions.log

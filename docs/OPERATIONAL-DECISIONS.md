@@ -6,6 +6,86 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## VERSION Honesty Marker
+
+**Decision date:** 2026-09-02. Found while validating the new
+`CLAUDE.md` recovery entrypoint's "does live match this checkout"
+check (see `docs/CHECKPOINTS.md` and `CLAUDE.md` §1/§1a): live
+`includes/VERSION` read `e90e099` (the canonical-URL checkpoint
+commit) - noticeably older than `main`'s tip, and older than Travel
+Mode's own commit (`a6f5143`).
+
+**Verified this was a stale stamp, not stale content:** a full
+checksum-based repo-vs-live comparison (`rsync --dry-run --checksum`,
+the exact exclude list `piratebox_deploy.sh` itself uses) showed every
+deployed file byte-identical to the repo, `includes/travel_mode.php`
+included. The live application was current; only the version string
+was wrong.
+
+**Root cause, reconstructed from `git reflog` and file mtimes:** Travel
+Mode was built in `worktree-travel-mode` and, per this project's normal
+practice, its files were already present in `main`'s own working tree
+before the branch was formally merged. A real deploy ran at 23:41:12
+that evening - correctly syncing that already-present content live,
+and correctly reading `git rev-parse HEAD` at that exact instant, which
+was still `e90e099` because `git merge worktree-travel-mode` didn't
+land until 23:45:14 (`git reflog`). Nothing since (GPIO25, this
+recovery-infrastructure work) has touched `var/www/html`, so nothing
+has re-triggered the stamp - expected, not a bug, given what `VERSION`
+is defined to mean (see below).
+
+**What this is:** a real, reproducible timing hazard, not a one-off.
+`VERSION` means "the commit `HEAD` pointed to, in this checkout, at the
+instant the last real deploy's `git rev-parse` ran" - accurate only
+when the working tree and `HEAD` agree at that moment. This project's
+own worktree-then-merge-afterward development pattern can make that
+false, and it will recur any time a real deploy happens to run inside
+that window again.
+
+**Fix - workflow note, not a rewrite:** `piratebox_deploy.sh`'s header
+now states the expected order explicitly: merge the tested
+worktree/branch into `main` before running a real deploy for it, not
+after. Not a hard gate - a deliberate out-of-order deploy for recovery/
+debugging is still fine to run - just the documented normal case.
+
+**Fix - VERSION honesty marker (`piratebox_deploy.sh`):** every real
+deploy now also checks whether the deploy source itself
+(`var/www/html/`, not the whole repo) differs from the `HEAD` it's
+about to stamp - `git status --porcelain` scoped to `.` from inside
+that directory, so unrelated dirty files elsewhere (README, docs, an
+unrelated in-progress branch) never taint it, and gitignored live-data/
+generated runtime artifacts (chat/messages/bulletin JSON, `VERSION`
+itself, `public/utility/exports/`, etc.) are excluded the same way they
+always were - no second exclude list to maintain. Clean source still
+stamps the plain `<commit>  (deployed <timestamp>)` line; a source with
+tracked or untracked deployable changes beyond that commit gets an
+appended `(source had changes beyond this commit)`. Deliberately does
+**not** guess at a "real" commit, auto-commit anything, or block the
+deploy - an honest provenance marker, not a new deployment gate.
+**Found and fixed in the same pass:** `.gitignore` was missing
+`var/www/html/data/chat.json.lock`, even though
+`piratebox_deploy.sh`'s own rsync excludes already named it - left
+alone, that gap would have made the new honesty check false-positive
+the moment that lock file happened to exist untracked.
+
+**Tested against an isolated local clone (never the live site):** the
+patched script's real (non-dry-run) VERSION-stamping logic, run
+end-to-end, confirmed clean-source → clean line; a tracked edit under
+`var/www/html/` → the qualified line; an edit outside `var/www/html/`
+(README) → still the clean line; an untracked `chat.json.lock` under
+`var/www/html/data/` → clean line once the `.gitignore` gap above was
+closed (and confirmed it *would* have false-positived before that
+fix). `bash -n` clean. Dry-run's non-mutating behavior is structurally
+unchanged - the new logic lives entirely inside the same
+`if [ "${#DRYRUN[@]}" -eq 0 ]` block the original stamp already used.
+
+**Left untouched, deliberately:** live `/var/www/html` and its
+`VERSION` file - this was a diagnosis-and-mechanism fix, not a live
+deploy. Live `VERSION` still reads `e90e099` as of this entry; it will
+correct itself the next time an actual web-tree change gets deployed,
+now with the added honesty marker if that ever happens out of order
+again.
+
 ## Stage 29 Implementation: Physical Shutdown Button (GPIO25)
 
 **Decision date:** 2026-09-02. The first piece of Stage 11/29's

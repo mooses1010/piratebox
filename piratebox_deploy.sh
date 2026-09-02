@@ -38,6 +38,20 @@
 #     sensitive static export over ones that were already quarantined
 #     (see includes/travel_mode.php and docs/TRAVEL-MODE-DESIGN.md).
 #
+# EXPECTED WORKFLOW for worktree-based feature development: merge the
+# tested worktree/branch into main BEFORE running a real (non-dry-run)
+# deploy for it, not after. A real deploy stamps VERSION from whatever
+# HEAD this checkout has *at that instant* - if it runs while the
+# working tree already has a feature's files on disk but main's branch
+# hasn't been fast-forwarded to include that feature's commit yet,
+# VERSION ends up describing a commit older than what was actually just
+# deployed. This isn't a hard gate (a deliberate out-of-order deploy for
+# recovery/debugging is still fine to run) - it's the normal-case
+# ordering that keeps VERSION meaningful. See docs/OPERATIONAL-
+# DECISIONS.md ("VERSION Honesty Marker") for the real incident this
+# came from and the honesty-marker fallback below for when it happens
+# anyway.
+#
 # Run via: sudo /usr/local/bin/piratebox_deploy.sh [--dry-run]
 
 set -euo pipefail
@@ -88,8 +102,29 @@ if [ "${#DRYRUN[@]}" -eq 0 ]; then
     # actual HEAD. Best-effort, same as the installer's own version
     # stamp: never fails the deploy itself if git isn't usable here for
     # some reason (e.g. a non-git deployment of this repo).
+    #
+    # Honesty marker (found needed 2026-09-02, see docs/OPERATIONAL-
+    # DECISIONS.md "VERSION Honesty Marker"): HEAD only actually
+    # describes what's being deployed if this exact directory tree is
+    # what HEAD says it is. Check the DEPLOY SOURCE ITSELF (var/www/html,
+    # not the whole repo) for anything HEAD doesn't account for -
+    # tracked edits or untracked deployable files - via a plain `git
+    # status` scoped to "." (this directory, since $SRC is where this
+    # runs). Deliberately NOT a repo-wide check: unrelated dirty files
+    # elsewhere (README, docs, an in-progress unrelated branch) say
+    # nothing about what this deploy is actually shipping and must never
+    # taint this stamp. Live-writable data/generated runtime artifacts
+    # under var/www/html (chat.json, VERSION itself, exports/, etc.) are
+    # gitignored, so `git status` already never surfaces them - no
+    # separate exclude list to keep in sync with the rsync one above.
+    # Never guesses a "real" commit and never blocks the deploy - just
+    # says plainly when the hash isn't the whole story.
     if COMMIT=$(git -C "${SRC%/}" rev-parse HEAD 2>/dev/null); then
-        echo "$COMMIT  (deployed $(date '+%Y-%m-%d %H:%M:%S %Z'))" > "${DST}includes/VERSION"
+        VERSION_LINE="$COMMIT  (deployed $(date '+%Y-%m-%d %H:%M:%S %Z'))"
+        if [ -n "$(git -C "${SRC%/}" status --porcelain -- . 2>/dev/null)" ]; then
+            VERSION_LINE="$VERSION_LINE  (source had changes beyond this commit)"
+        fi
+        echo "$VERSION_LINE" > "${DST}includes/VERSION"
         chown www-data:www-data "${DST}includes/VERSION"
     fi
 

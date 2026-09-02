@@ -74,6 +74,16 @@ repo and their live path (both are on this same filesystem, no sudo
 needed to read either side) before telling the operator something is
 or isn't deployed.
 
+`VERSION` means "the `HEAD` this checkout had at the last real web
+deploy" — evidence about what's live, not proof. A deploy that ran
+against a working tree already populated from a worktree branch, just
+before that branch was formally merged into `main`, can leave it
+naming a commit older than the content actually deployed (confirmed
+case: `docs/OPERATIONAL-DECISIONS.md` → "VERSION Honesty Marker"). A
+`(source had changes beyond this commit)` suffix on `VERSION` is that
+same situation flagged by the deploy script itself, live — not an
+error by itself, just a prompt to do the same file-level check.
+
 ## 2. Critical rules — non-negotiable **[piratebox]**
 
 - **Never `git push` to `origin` unless explicitly asked.** This repo
