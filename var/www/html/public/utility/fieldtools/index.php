@@ -51,9 +51,14 @@ session_start();
                 <span class="utility-card-title">Coordinates</span>
                 <span class="utility-card-desc">Decimal degrees &harr; degrees/minutes/seconds converter</span>
             </a>
+            <a class="utility-card" href="/utility/fieldtools/morse/">
+                <span class="utility-card-icon" aria-hidden="true">&#183;&#8212;</span>
+                <span class="utility-card-title">Morse Code Converter</span>
+                <span class="utility-card-desc">Text &harr; Morse code, entirely offline, works without JavaScript</span>
+            </a>
         </div>
 
-        <p class="muted">Looking for what latitude/longitude actually mean, or coordinate formats like UTM/MGRS? See <a href="/utility/maps/">Maps &amp; Location Reference</a> - this section's Coordinates tool is the calculator; that page is the explanation.</p>
+        <p class="muted">Looking for what latitude/longitude actually mean, or coordinate formats like UTM/MGRS? See <a href="/utility/maps/">Maps &amp; Location Reference</a> - this section's Coordinates tool is the calculator; that page is the explanation. Likewise, the Morse Code Converter's calculator lives here; the full character table and history are on <a href="/utility/radio/#morse-code-reference">Radio Reference</a>.</p>
     </div>
 
     <?php require_once __DIR__ . '/../../../includes/footer.php'; ?>

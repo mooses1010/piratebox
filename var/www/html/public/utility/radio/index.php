@@ -304,6 +304,9 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
                                     </div>
                                     <p class="radio-spectrum-caption">Schematic side profiles for quick visual comparison - not to scale, and not a substitute for physically checking thread size before buying an adapter. PirateBox-authored diagram, not copied from any manufacturer or third-party image.</p>
                                 <?php endif; ?>
+                                <?php if ($g['id'] === 'morse-code-reference'): ?>
+                                    <p><a href="/utility/fieldtools/morse/">Convert text &harr; Morse code</a> - an offline converter covering the letters/digits above plus common standard punctuation.</p>
+                                <?php endif; ?>
                                 <?php if ($g['id'] === 'antenna-basics'): ?>
                                     <div class="radio-spectrum-wrap">
                                         <?php require __DIR__ . '/antenna-types.svg.php'; ?>

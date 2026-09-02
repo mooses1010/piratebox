@@ -236,6 +236,9 @@ for title, url, snippet, keywords in [
     ("Coordinate Converter", "/utility/fieldtools/coordinates/",
      "Decimal degrees to/from degrees-minutes-seconds (DMS).",
      ["coordinates", "gps", "latitude", "longitude", "dms", "decimal degrees"]),
+    ("Morse Code Converter", "/utility/fieldtools/morse/",
+     "Text to/from International Morse Code, entirely offline, works without JavaScript.",
+     ["morse", "morse code", "translate morse", "text to morse", "morse translator", "cw", "sos"]),
 ]:
     index.append(entry(title, "fieldtools", "Field Tools", url, snippet, keywords))
 

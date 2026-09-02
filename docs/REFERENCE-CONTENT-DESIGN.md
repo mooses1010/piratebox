@@ -276,7 +276,60 @@ separate glossary-only search box.
 terms are actually defined, computed live like every other pack -
 never a hardcoded claim.
 
-## 9. What's deliberately not done
+## 9. Reference -> Tool (formalized 2026-09-02)
+
+**Principle:** the library so far answers "what is this?" A reference
+entry that names a deterministic, well-defined operation (convert
+text to Morse, solve Ohm's Law, work out a subnet) can go one step
+further and let the visitor actually *do* that operation offline,
+right there. The progression is:
+
+```
+WHAT IS IT?  ->  UNDERSTAND IT  ->  REFERENCE IT  ->  USE IT
+(glossary)       (guide/topic)      (table/chart)      (tool)
+```
+
+**This is not license to build a junk drawer of novelty
+encoders/calculators.** The bar for adding a tool is the same bar
+every other addition to this library already uses: *would someone
+offline plausibly be glad it was here?* A subnet calculator clears
+that bar for anyone doing field networking setup; a base64 encoder
+clears it only if a concrete, recurring offline need for one actually
+shows up - "technically possible to implement" is not sufficient
+justification by itself.
+
+**Requirements for any tool built under this principle:**
+- Entirely offline, deterministic, local - no network/API call of any
+  kind, ever (this is a stricter bar than "no *external* API" - not
+  even a same-origin AJAX round trip to a server-side endpoint is
+  needed when the computation is this cheap; see the implementation
+  note below).
+- **Core functionality works with JavaScript off** - a real server-
+  rendered POST-and-redisplay path, not a JS-only widget with a
+  "doesn't work without JavaScript" notice. JavaScript may *enhance*
+  the same page (instant client-side conversion without a page
+  reload), but the underlying logic must not fork into two
+  independently-maintained implementations that can silently drift -
+  see the shared-data-emission pattern used by the Morse converter
+  (§ below in each tool's own page comment) for how this project
+  avoids that.
+- Graceful malformed input: never a crash/500, always a legible
+  explanation of what was and wasn't understood - "silently invent a
+  mapping" is explicitly disallowed; an unrecognized token is
+  preserved/flagged, never guessed at.
+- No duplication of an existing Field Tools calculator's job - a new
+  tool either fills a genuinely new gap or it doesn't get built.
+- Nothing entered into a tool is logged, stored in `$_SESSION`, or
+  written to any PirateBox data file - computed and displayed for
+  that one request only, same privacy posture as the rest of this
+  device.
+- Placed and linked the same way every other cross-reference in this
+  library already works: the relevant guide/reference page links to
+  the tool, the tool links back to the deeper reference/glossary term,
+  search picks it up via the same metadata-driven indexing as
+  everything else - no new discovery mechanism invented per tool.
+
+## 10. What's deliberately not done
 
 - No new map images/geographic data bundled (§5).
 - No package-manager-style pack install/remove mechanism (§3).

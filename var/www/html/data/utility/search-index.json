@@ -2273,6 +2273,22 @@
     ]
   },
   {
+    "title": "Morse Code Converter",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/morse/",
+    "snippet": "Text to/from International Morse Code, entirely offline, works without JavaScript.",
+    "keywords": [
+      "morse",
+      "morse code",
+      "translate morse",
+      "text to morse",
+      "morse translator",
+      "cw",
+      "sos"
+    ]
+  },
+  {
     "title": "About This PirateBox",
     "section": "about",
     "section_label": "About This PirateBox",

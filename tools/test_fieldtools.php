@@ -15,6 +15,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../var/www/html/includes/fieldtools_convert.php';
 require_once __DIR__ . '/../var/www/html/includes/fieldtools_time.php';
+require_once __DIR__ . '/../var/www/html/includes/morse.php';
 
 $failures = [];
 $passCount = 0;
@@ -252,6 +253,42 @@ $shape = ft_time_source_shape(false, ['rtc_detected' => true, 'ntp_synchronized'
 ft_assert_eq('Shape: fresh + present block -> available', $shape['available'], true);
 ft_assert_eq('Shape: rtc_detected true passes through', $shape['rtc_detected'], true);
 ft_assert_eq('Shape: ntp_synchronized false passes through (not null)', $shape['ntp_synchronized'], false);
+
+// --- Morse code converter ----------------------------------------------
+
+$r = piratebox_text_to_morse('PIRATEBOX');
+ft_assert_eq('Morse: PIRATEBOX text->morse', $r['output'], '.--. .. .-. .- - . -... --- -..-');
+ft_assert_eq('Morse: PIRATEBOX has no unknown chars', count($r['unknown']), 0);
+
+$r = piratebox_text_to_morse('sos');
+ft_assert_eq('Morse: lowercase input treated case-insensitively', $r['output'], '... --- ...');
+
+$r = piratebox_text_to_morse('HI THERE');
+ft_assert_eq('Morse: word break uses " / "', $r['output'], '.... .. / - .... . .-. .');
+
+$r = piratebox_text_to_morse('CQ DX?');
+ft_assert_eq('Morse: standard punctuation (?) maps correctly', $r['output'], '-.-. --.- / -.. -..- ..--..');
+
+$r = piratebox_text_to_morse('AB#C');
+ft_assert_eq('Morse: unmapped char preserved bracketed inline', $r['output'], '.- -... {#} -.-.');
+ft_assert_eq('Morse: unmapped char listed once in unknown[]', $r['unknown'], ['#']);
+
+$r = piratebox_morse_to_text('... --- ...');
+ft_assert_eq('Morse: ... --- ... -> SOS', $r['output'], 'SOS');
+ft_assert_eq('Morse: SOS has no unknown tokens', count($r['unknown']), 0);
+
+$r = piratebox_morse_to_text('.--. .. .-. .- - . -... --- -..-');
+ft_assert_eq('Morse: full PIRATEBOX round-trips morse->text', $r['output'], 'PIRATEBOX');
+
+$r = piratebox_morse_to_text('.... .. / - .... . .-. .');
+ft_assert_eq('Morse: "/" word separator understood', $r['output'], 'HI THERE');
+
+$r = piratebox_morse_to_text('.... ..   - .... . .-. .');
+ft_assert_eq('Morse: 2+ spaces also understood as word break', $r['output'], 'HI THERE');
+
+$r = piratebox_morse_to_text('... zzz ---');
+ft_assert_eq('Morse: unknown token preserved bracketed literally', $r['output'], 'S[zzz]O');
+ft_assert_eq('Morse: unknown token listed in unknown[]', $r['unknown'], ['zzz']);
 
 // --- Summary ---------------------------------------------------------------
 
