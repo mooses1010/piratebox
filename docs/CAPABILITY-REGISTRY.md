@@ -70,6 +70,9 @@ it is.**
 | Undervoltage / power-quality monitoring (software, `vcgencmd`) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | UPS/battery hardware | Operational | CANDIDATE (requirements only) | Integrated (if adopted) |
 | RTC (DS3231) | Operational | PLANNED (chip chosen, not purchased) | Integrated (planned) |
+| Self-awareness / capability-state model (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
+| About This PirateBox page (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
+| Physical transport lock | Operational | CANDIDATE (design only, no hardware/mechanism chosen) | Integrated (if adopted) |
 | `fake-hwclock` (software time fallback) | Operational | CANDIDATE | n/a (software) |
 | Field Tools (time/date, unit conversion, coordinates) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | I2C multiplexer (PCA9548A/TCA9548A) | Operational/infrastructure | CANDIDATE | Integrated (if adopted) |
@@ -327,6 +330,63 @@ it is.**
   package-install approval this project's standing rule requires be
   explicit and separate).
 - **Core dependency:** No.
+
+### Self-awareness / capability-state model (software)
+
+- **Purpose:** a single, tested, truthful answer to "what does this
+  device have, and is it working" - `docs/ARCHITECTURE.md` §6/§10 moved
+  from principle to implementation.
+- **Layer:** Operational.
+- **State:** INSTALLED, CURRENT SCOPE - `includes/capability_state.php`
+  (`piratebox_get_capability_state()`/`piratebox_get_operational_
+  state()`), covering the 12 capabilities in this registry that have a
+  live or config-based signal today. Tested:
+  `tools/test_capability_state.php` (23 deterministic assertions on the
+  pure classification functions - null/missing-data/stale/degraded
+  cases, not just the happy path).
+- **Core dependency:** No - reads through the exact same channels every
+  other page already uses (`includes/metrics.php`'s
+  `piratebox_get_helper_status()`, `includes/fieldtools_time.php`), no
+  new hardware/filesystem access, no new `open_basedir` exposure.
+- **UI exposure:** public layer-level summary (`/utility/about/`);
+  full per-capability detail behind the existing admin password
+  (`admin/index.php`, "Capabilities & Health").
+- **Notes:** deliberately does not enumerate every Optional/Field
+  candidate individually in code - one honest "0 installed, see the
+  registry" summary entry instead, avoiding a second copy of this whole
+  document living in PHP.
+
+### About This PirateBox page (software)
+
+- **Purpose:** first real step toward `docs/ARCHITECTURE.md` §17's
+  self-describing-device goal.
+- **Layer:** Operational.
+- **State:** INSTALLED, CURRENT SCOPE - `/utility/about/`, public,
+  reads `includes/capability_state.php`. Deliberately excludes anything
+  the existing public Stats page (`/utility/status/`) already treats as
+  operator-only (power/undervoltage detail, per-capability breakdown) -
+  follows that page's existing exposure boundary rather than setting a
+  new one.
+- **Core dependency:** No.
+- **Notes:** does not yet cover wiring assignments, the ownership/
+  recovery concept, or maintenance/repair information - see
+  `docs/ARCHITECTURE.md` §17 for what remains future work.
+
+### Physical transport lock
+
+- **Purpose:** make the physical control panel inert while carried
+  (backpack/transport) - `docs/PHYSICAL-CONTROL-UX-DESIGN.md` §4.2.
+- **Layer:** Operational.
+- **State:** CANDIDATE - design concept only. No lock switch/mechanism
+  purchased; the enclosure/panel isn't finalized. Reported honestly as
+  `NOT_INSTALLED` by `includes/capability_state.php` today, not a
+  fabricated `LOCKED`/`ENABLED` state.
+- **Core dependency:** No - and must remain No by design once built
+  (`docs/PHYSICAL-CONTROL-UX-DESIGN.md` §4.2).
+- **Notes/unknowns:** exact mechanism (dedicated switch, gesture, or
+  combination) not decided; whether GPIO25 shutdown stays available
+  while locked is explicitly flagged as unresolved
+  (`docs/PHYSICAL-CONTROL-UX-DESIGN.md` §4.4).
 
 ### Field Tools (time/date, unit conversion, coordinates)
 

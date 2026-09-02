@@ -57,6 +57,7 @@ $sectionLabels = [
     'local'     => 'Local Information',
     'library'   => 'Document Library',
     'fieldtools' => 'Field Tools',
+    'about'     => 'About This PirateBox',
 ];
 
 function ref_search_blob(array $fields): string

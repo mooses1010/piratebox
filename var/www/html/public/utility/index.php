@@ -54,6 +54,11 @@ session_start();
             <span class="utility-card-title">Field Tools</span>
             <span class="utility-card-desc">Time/date, unit conversion &amp; coordinate calculators for offline field use</span>
         </a>
+        <a class="utility-card" href="/utility/about/">
+            <span class="utility-card-icon" aria-hidden="true">ℹ️</span>
+            <span class="utility-card-title">About This PirateBox</span>
+            <span class="utility-card-desc">What this device is, what's installed, and its current health</span>
+        </a>
         <a class="utility-card" href="/utility/library/">
             <span class="utility-card-icon" aria-hidden="true">📚</span>
             <span class="utility-card-title">Library</span>

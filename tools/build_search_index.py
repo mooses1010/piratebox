@@ -186,6 +186,13 @@ for title, url, snippet, keywords in [
 ]:
     index.append(entry(title, "fieldtools", "Field Tools", url, snippet, keywords))
 
+# --- About This PirateBox (self-description) --------------------------
+index.append(entry(
+    "About This PirateBox", "about", "About This PirateBox", "/utility/about/",
+    "What this device is, what's installed, and its current health - the same public-safe status the Stats page already shows, organized around self-description.",
+    ["about", "self-description", "capabilities", "what is this", "device info"],
+))
+
 with open(OUT_PATH, "w", encoding="utf-8") as f:
     json.dump(index, f, indent=2, ensure_ascii=False)
     f.write("\n")

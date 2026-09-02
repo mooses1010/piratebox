@@ -388,9 +388,24 @@ its currently useful environment.
 > CURRENTLY USE, WHAT IT IS EXPOSING, WHAT IS DEGRADED, AND WHAT IT
 > DOES NOT KNOW.**
 
-The device should eventually be able to answer (**future goal - the
-questions below are the target shape of a future self-description
-surface, not a description of anything built now**):
+**Partially real as of 2026-09-02:** `includes/capability_state.php`
+(`piratebox_get_capability_state()`/`piratebox_get_operational_state()`)
+is a single, tested, shared module answering "what do I have" and "what
+am I doing" honestly - reused by the public `/utility/about/` page and
+by `admin/index.php`'s "Capabilities & Health" section (progressive
+disclosure in practice: the public page shows layer-level counts only,
+the password-gated admin page shows the full per-capability
+breakdown). It uses exactly this document's state vocabulary
+(NOT_INSTALLED/AVAILABLE/DEGRADED/UNAVAILABLE/UNKNOWN) and never
+fabricates a healthy state - see `docs/CAPABILITY-REGISTRY.md` for
+what it currently covers. What's still aspirational: the fuller
+question set below, "what can I use right now" for companion devices
+that don't exist yet, and any OLED-based self-description (no OLED is
+wired).
+
+The device should eventually be able to answer (**future goal beyond
+what's built above - the questions below are the target shape of a
+fuller future self-description surface**):
 
 - **What am I?** Hardware platform, software/version, current
   configuration/profile, storage.
@@ -688,14 +703,20 @@ afterthought.
 
 If this physical box outlives its current creator/operator, a
 legitimate future owner should be able to understand it **from the box
-itself.** A future "About This PirateBox" / "Tell me about yourself"
-facility could eventually explain: what PirateBox is, hardware
-platform, storage, radios, installed capabilities, optional/absent
-capabilities, current health, privacy/exposure state, physical
-controls, safe shutdown, maintenance information, wiring assignments,
-the local source repository, documentation, the ownership/recovery
-concept (§14-16), replaceable hardware roles, and known degraded
-capabilities. Illustrative, not implemented:
+itself.** **A first, real version of this now exists:**
+`/utility/about/` (public) explains what PirateBox is, current Core
+health, storage, and a layer-level capability summary; `admin/
+index.php`'s "Capabilities & Health" section (password-gated, same
+boundary as the rest of that page) adds the full per-capability
+breakdown. Neither yet covers wiring assignments, the ownership/
+recovery concept, or maintenance/repair information - those remain
+future work, reachable today only by reading this repository's own
+docs directly, not from a page. A fuller future "Tell me about
+yourself" facility could eventually also explain: radios, physical
+controls, safe shutdown, wiring assignments, the local source
+repository, the ownership/recovery concept (§14-16), replaceable
+hardware roles, and known degraded capabilities in one place.
+Illustrative target (not fully built):
 
 ```
 ABOUT THIS PIRATEBOX

@@ -6,6 +6,89 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Self-Awareness Implementation + Physical Transport/Input Safety Design
+
+**Decision date:** 2026-09-02. First increment of the autonomous
+implementation phase (operator authorized continuing across related
+tasks without per-step confirmation - see this session's own
+instructions). Recovered state first (clean tree at `3b6a252`, live
+hardware/services matched `docs/CAPABILITY-REGISTRY.md` exactly, no
+drift) before starting.
+
+**Built: `includes/capability_state.php`** - `docs/ARCHITECTURE.md`
+§6/§10 moved from principle to implementation. One shared, tested
+module (`piratebox_get_capability_state()`/
+`piratebox_get_operational_state()`) covering 12 capabilities across
+all three layers, using that document's exact state vocabulary
+(NOT_INSTALLED/AVAILABLE/DEGRADED/UNAVAILABLE/UNKNOWN) and never
+fabricating a healthy state - reads exclusively through existing
+channels (`piratebox_get_helper_status()`, `piratebox_get_time_source_
+status()`), no new hardware/filesystem access. The trickiest
+classification decisions (service-pair up/down, power/undervoltage,
+RTC presence) were factored into small pure functions
+(`piratebox_classify_*`) specifically so they're unit-testable without
+faking `/run/piratebox/status.json` - `tools/test_capability_state.php`
+(new, 23 deterministic assertions: null/missing fields, stale helper,
+degraded vs. unavailable vs. unknown, a structural smoke test of the
+live function, and a sanity check that `core_dependency=true` never
+appears outside `layer=core`).
+
+**Built: `/utility/about/`** (public) and `admin/index.php`'s new
+"Capabilities & Health" section (password-gated, same nginx Basic Auth
+boundary as the rest of that page) - progressive disclosure in
+practice, not just principle: the public page shows layer-level
+counts and Core status only; the admin section shows the full
+per-capability table including power/undervoltage detail. **Exposure
+boundary was not invented here** - the public page was built to match
+what `/utility/status/` already treats as public-safe (storage, device
+ID, service up/down) and deliberately excludes what that page already
+keeps operator-only (undervoltage specifics), confirmed by reading that
+page's actual code before writing the new one, not assumed.
+
+**Physical input/transport safety - design formalized, no code
+changed, per operator instruction added mid-run:**
+`docs/PHYSICAL-CONTROL-UX-DESIGN.md` gained a new §4 covering
+accidental-input resistance, a Transport Lock concept (`PHYSICAL
+CONTROLS: ENABLED/LOCKED/DEGRADED/INPUT FAULT/UNKNOWN`, design only, no
+hardware chosen), invalid/contradictory-input handling (suppress, never
+guess intent), GPIO17 mode-change validation principles (ahead of that
+switch's physical install), and self-awareness integration. **§4.1 is a
+real code review, not just design prose:** `piratebox_button_daemon.py`
+was read in full and checked against every accidental-input-resistance
+goal - 50ms debounce, a 4.0s continuous-hold requirement with zero code
+path for any short press, `hold_repeat=False` (fires once even on an
+indefinitely stuck-low pin), and a fail-toward-inaction shutdown gate.
+**Conclusion: no change needed** - the commissioned GPIO25 control
+already satisfies this model by construction; a demonstrated deficiency
+would be required to change it, and none was found. One question is
+explicitly left open rather than defaulted: whether GPIO25 shutdown
+should remain available while a future Transport Lock is engaged -
+flagged in the doc (§4.4) for whenever a lock mechanism is actually
+designed, not answered now.
+
+**Capability registry reconciled, not just extended:** added the
+self-awareness module, the About page, and the Transport Lock concept
+as new entries (two INSTALLED/CURRENT SCOPE - real, tested code; one
+CANDIDATE - design only, honestly not promoted to PLANNED or OWNED).
+
+**Testing:** `php -l` clean on every new/changed PHP file; both test
+suites passing (`test_fieldtools.php` 86/86 unaffected,
+`test_capability_state.php` 23/23 new); every new/changed page rendered
+via `php -S` against this device's real live `/run/piratebox/status.
+json` - confirmed the admin Capabilities table honestly shows today's
+two real open findings as DEGRADED (undervoltage-now, and time
+confidence with no RTC installed), not a fabricated AVAILABLE; zero PHP
+warnings anywhere; external-reference grep clean; search index
+regenerated (91 entries, +1 for the About page, no `regional` flag);
+markdown structure verified in both changed design docs (heading
+sequences, table column counts, code fences).
+
+**Scope preserved:** no networking/GPIO/system config changed (the
+button-daemon review was read-only), no packages installed, no
+community data touched, no fabricated hardware state anywhere
+(transport lock and every unwired button/toggle still read
+NOT_INSTALLED, not guessed).
+
 ## Device Memory / Unattended-Operation Design
 
 **Decision date:** 2026-09-02. Documentation-only follow-on to the

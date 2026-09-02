@@ -45,7 +45,7 @@ another page. Four pages, cycling in a fixed order, matching Stage 11
 
 - **Status page**: mode (NORMAL/EMERGENCY), SSID, client count - the
   single most-wanted glance-info, so it's the page shown on wake and
-  after an idle timeout returns here (see §4).
+  after an idle timeout returns here (see §5).
 - **Time page** *(new)*: local time, UTC, date, weekday/day-of-year, and
   system uptime - a compact view of exactly what
   `includes/fieldtools_time.php`'s `piratebox_fieldtools_now_snapshot()`
@@ -102,7 +102,7 @@ one of them.
 | Button (Stage 11 pin) | Proposed function | Reasoning |
 |---|---|---|
 | GPIO22 | **Cycle page** (short press) | Matches §1's page order; the most-used control gets the most GPIO-conventional "first" button. |
-| GPIO23 | **Wake display** (short press) | If the OLED dims/sleeps to save power (see §4), this is the "wake it up" button - separate from cycle so a sleepy display doesn't eat a cycle press meant for after it's already awake. |
+| GPIO23 | **Wake display** (short press) | If the OLED dims/sleeps to save power (see §5), this is the "wake it up" button - separate from cycle so a sleepy display doesn't eat a cycle press meant for after it's already awake. |
 | GPIO24 | *Reserved, unassigned* | Stage 11 listed 5 buttons against a 3-page display with no confirmed "select/action" need yet (every page here is read-only info, nothing to select into) - assigning a function to every button that doesn't need one yet would be inventing UX to fill hardware, backwards from designing UX first. Left open for a genuinely new need (e.g. a future admin-adjacent action) rather than assigned now. |
 | GPIO27 | *Reserved, unassigned* | Same reasoning as GPIO24. |
 | GPIO25 | **Hold-for-safe-shutdown** (see §3) | Matches Stage 11's own tentative placement note (nearest a panel edge in most enclosure concepts) - kept as proposed, not re-litigated. |
@@ -177,7 +177,189 @@ already correctly implements "start on press, abort on early release,
 fire once at 4.0s," which is the only part that actually gates the
 shutdown.
 
-## 4. Display power behavior
+## 4. Transport / input safety
+
+**Added 2026-09-02, following from a real property of this device: it
+is meant to be carried, thrown in a backpack, bumped, and left
+unattended (`docs/DEVICE-MEMORY-DESIGN.md` §9's "unattended operation
+is normal").** External buttons/switches must not assume every
+electrical transition is deliberate operator intent. This section
+formalizes that as an explicit input-safety model, extending §2's
+"don't invent a function for a button that doesn't have one" caution to
+"don't invent operator *intent* from a raw signal either."
+
+### 4.1 Review of the existing GPIO25 implementation - no change made
+
+**Reviewed against this model before writing anything new, per
+instruction not to touch a commissioned control without a concrete
+demonstrated deficiency.** `piratebox_button_daemon.py` already
+satisfies every accidental-input-resistance goal below, by construction,
+not by accident:
+
+- **Debounce:** `bounce_time=0.05` (50ms), electrically bring-up tested
+  clean across ~20 taps in two separate runs (`docs/OPERATIONAL-
+  DECISIONS.md`, "Stage 29 Implementation").
+- **Stable-state/hold-threshold requirement:** the only action this
+  daemon can take requires **4.0 continuous seconds** of held-low state
+  - a single bump, a mashed/rapid sequence of taps, or a brief snag
+  cannot reach it. A short press has **zero code path to anything** -
+  `when_pressed`/`when_released` are deliberately not wired at all, only
+  `when_held`. This is the *same* debounce/hold-threshold mechanism
+  doing double duty as both "detect a deliberate hold" and "reject
+  accidental input," not a second, independent mechanism layered on top
+  - kept intentionally simple per this section's own "don't add hidden
+  timing complexity unnecessarily."
+- **Stuck-active / retrigger prevention:** `hold_repeat=False` - even
+  an indefinitely stuck-low pin (e.g. genuinely trapped under something
+  in a bag) fires the shutdown request **exactly once**, never
+  repeatedly, confirmed live to 7.27s with no re-fire (Stage 29 bring-up
+  testing).
+- **Fail-safe default:** the real `poweroff` call is gated behind an
+  explicit opt-in env var, `sudo -n` fails immediately rather than
+  hanging if misconfigured, and any exception is logged without a
+  crash-loop retry - every failure mode points toward inaction, per
+  `docs/ARCHITECTURE.md` §2's "optional capability failure must
+  degrade, not disable" (the shutdown button is Core, per that
+  document's §2, but the same fail-toward-inaction discipline applies).
+
+**Conclusion: no code change to `piratebox_button_daemon.py` or its
+systemd unit.** A genuinely sustained (4+ second) hold from backpack
+compression could still trigger a real shutdown - this is an inherent
+tradeoff of a physical hold-to-shutdown control that the original
+design (§3) already reasoned through explicitly ("long enough that
+bumping the button by accident... is very unlikely to reach it, short
+enough that a deliberate hold doesn't feel broken"), not a newly
+discovered gap. If real-world experience ever demonstrates this
+tradeoff is wrong in practice, that's a concrete deficiency to revisit
+then - not guessed at now.
+
+### 4.2 Panel/transport-lock concept (design only - no lock hardware exists)
+
+A future **Transport Lock** - a deliberate way to make the physical
+control panel inert while carried - is desirable but **not chosen or
+built**: no dedicated lock switch is purchased (see
+`docs/CAPABILITY-REGISTRY.md`), and the enclosure/panel itself isn't
+finalized (§6). Conceptual states, for a future implementation:
+
+```
+PHYSICAL CONTROLS: ENABLED | LOCKED | DEGRADED | INPUT FAULT | UNKNOWN
+```
+
+Constraints for whenever this is built, regardless of the eventual
+mechanism (dedicated maintained switch, a deliberate button gesture, or
+a combination - **not decided now**):
+
+- When **LOCKED**, ordinary noncritical external controls (page-cycle,
+  display-wake) must not trigger actions; the OLED may remain quiet/
+  asleep.
+- Safety monitoring must continue regardless of lock state.
+- **Critical protective behavior must never be disabled merely because
+  the panel is locked** - this includes GPIO25 shutdown; see §4.4 below
+  for why that specific question is flagged rather than answered here.
+- The lock itself must introduce no Core dependency
+  (`docs/ARCHITECTURE.md` §2) - Core (AP/site) is already fully
+  independent of every physical control, lock included.
+- **Public Wi-Fi users must never be able to remotely override a
+  physical transport lock.** A physical safety state stays
+  physical-input-authoritative, not web-request-overridable - no
+  network path to this state is proposed anywhere in this document.
+
+### 4.3 Invalid / contradictory input
+
+PirateBox should recognize when physical input doesn't represent a
+valid command, rather than guessing at operator intent. Examples this
+model must eventually cover: mutually contradictory maintained-switch
+readings, implausibly rapid transitions, multiple unrelated buttons
+mashed together, a button stuck active for an unreasonable period, an
+unstable switch state, or input repeated far beyond plausible
+deliberate use. In every such case: **suppress the ambiguous action,
+never guess.** Prefer a deterministic, honest status over a story:
+
+```
+Physical controls: DEGRADED
+Reason: contradictory input state
+Ambiguous actions suppressed
+Core services unaffected
+```
+
+**Not** "device is being stepped on" or "inside a backpack" - represent
+what was observed (a contradictory/unstable electrical state), never a
+narrative about why, matching `docs/ARCHITECTURE.md` §10's "prefer
+honest UNKNOWN over confidently inventing" applied to physical input
+specifically.
+
+### 4.4 Mode changes (GPIO17, not yet wired) - open design question
+
+For the planned Normal/Emergency maintained toggle (GPIO17): a single
+electrical edge must not be treated as sufficient proof of intended
+mode. A future implementation should require a **stable, validated
+input state** (appropriate debounce/settling, not a raw instantaneous
+read) before acting, and if the state is genuinely ambiguous or
+unavailable, must not flap between modes - it should hold the last
+known valid state (mirroring `piratebox_get_mode()`'s existing
+fail-safe-to-Normal behavior for a missing/corrupt state file - see
+`includes/mode.php`) and expose the degraded physical-control condition
+to the operator rather than silently guessing. **No code changes were
+made for GPIO17** - the switch is not physically wired
+(`docs/HARDWARE-INTEGRATION-DESIGN.md` §2), and per that document's own
+rule, function/behavior for unwired hardware is designed, not
+implemented, ahead of the physical build.
+
+**Explicitly flagged, not answered here:** whether the GPIO25 shutdown
+control should remain available while a future Transport Lock is
+engaged. This is exactly the kind of fork §4.2 warns "critical
+protective behavior must never be disabled" about, but *how* a lock
+mechanism and a safety-critical control interact is a real design
+decision this document does not have enough information to make yet
+(it depends on the lock mechanism eventually chosen, per §4.2 - "not
+decided now"). **When a Transport Lock implementation is actually
+designed, this specific question must be resolved explicitly, not
+defaulted silently** - flagged here so it's not missed later.
+
+### 4.5 Self-awareness integration
+
+Physical control health belongs in the same self-awareness model as
+everything else (`docs/ARCHITECTURE.md` §10, `includes/
+capability_state.php`). Illustrative target shape, matching that
+module's existing state vocabulary (not a new one invented here):
+
+```
+Panel: NOT_INSTALLED (no multi-button panel exists yet - only the
+       single-purpose GPIO25 shutdown control is wired)
+Shutdown button: AVAILABLE
+Mode switch: NOT_INSTALLED
+Transport lock: NOT_INSTALLED
+```
+
+or, once real panel hardware exists and something goes wrong:
+
+```
+Panel: DEGRADED
+Input fault: GPIO17 unstable
+Last valid mode: Normal
+Core impact: none
+```
+
+**Bounded history, not raw transition logging:** if this is ever
+extended into Device Memory (`docs/DEVICE-MEMORY-DESIGN.md`), only
+*meaningful* events belong there - "panel entered degraded state,"
+"stuck input detected," "ambiguous mode change suppressed" - never
+every raw button transition. This is the same Operational-History-not-
+raw-stream discipline `docs/DEVICE-MEMORY-DESIGN.md` §4-6 already
+establishes generally, applied here specifically.
+
+### 4.6 Physical design considerations (for when enclosure work begins)
+
+Not decided or built now - recorded so it isn't lost before the
+enclosure is designed: recessed or guarded switches, switch placement
+and button spacing chosen to resist accidental bag-contact, mechanically
+protected controls, whether a locking/keyed/recessed control is
+actually worth its complexity, and the existing physical-modularity
+goals (`docs/ARCHITECTURE.md` §4 - detachable/labeled harnesses,
+documented connectors, service loops) applying to the control panel
+specifically, not just sensor wiring generally.
+
+## 5. Display power behavior
 
 **Proposed: dim (not fully off) after 60 seconds idle, wake instantly on
 any button press** (the dedicated wake button from §2, or any other -
@@ -193,7 +375,7 @@ later if Stage 12's eventual power-budget numbers say the display's
 power draw actually matters to runway - not decided against permanently,
 just not the default absent that data.
 
-## 5. What is deliberately still not decided
+## 6. What is deliberately still not decided
 
 - **GPIO24/GPIO27's eventual function**, if any - see §2's reasoning.
 - **Exact enclosure-driven button placement** - Stage 11 already
@@ -204,12 +386,27 @@ just not the default absent that data.
   drafted for a daemon that doesn't exist yet to name.
 - **Power-draw-driven display sleep policy** - depends on Stage 12
   numbers not yet available.
+- **The Transport Lock's actual mechanism** (§4.2) - dedicated switch,
+  gesture, or combination; not chosen, since no lock hardware exists and
+  the panel/enclosure isn't finalized.
+- **Whether GPIO25 shutdown remains available while a future Transport
+  Lock is engaged** (§4.4) - explicitly flagged as needing a real
+  decision once a lock mechanism is actually designed, not defaulted
+  silently now.
+- **The contradictory/unstable-input detection mechanism itself** (§4.3)
+  - the *principle* (suppress, don't guess) is decided; no state
+  machine or code implements it yet, since it has no consumer until
+  GPIO17/a multi-button panel exists.
 
-## 6. Testing performed
+## 7. Testing performed
 
-None against hardware (none exists). This is a pure UX/interaction
-design pass, reasoned from Stage 11's already-verified electrical
-design and this project's existing, already-tested data sources
-(`includes/metrics.php`, `piratebox_get_mode()`) - no new live
-verification was possible or needed for a document with no executable
-change.
+None against new hardware (none exists beyond GPIO25, already covered
+by Stage 29's own bring-up testing). This remains primarily a UX/
+interaction design pass. **2026-09-02 addition:** §4.1's review of the
+existing `piratebox_button_daemon.py` against the new transport/input-
+safety model *was* performed against real, already-shipped code (not
+just reasoned about in the abstract) - read in full, checked against
+each accidental-input-resistance goal individually, concluding no
+change was needed. That is itself a form of testing (a targeted code
+review against a new requirement set), even though no new executable
+change resulted.

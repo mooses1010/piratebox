@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../includes/helpers.php';
 require_once __DIR__ . '/../../includes/metrics.php';
 require_once __DIR__ . '/../../includes/content_profile.php';
 require_once __DIR__ . '/../../includes/travel_mode.php';
+require_once __DIR__ . '/../../includes/capability_state.php';
 
 // PirateBox admin/status page - Phase 4.
 //
@@ -285,6 +286,13 @@ $contentProfile = piratebox_get_content_profile();
 // Post-Stage-32: Travel Mode current state, for the toggle UI below.
 $travelModeActive = piratebox_get_travel_mode();
 
+// Self-awareness (docs/ARCHITECTURE.md §6/§10): one shared, tested
+// capability-state model - see includes/capability_state.php's own
+// header for why this reads through piratebox_get_helper_status()
+// rather than any new direct hardware access.
+$capabilities = piratebox_get_capability_state();
+$operationalState = piratebox_get_operational_state();
+
 // Post-Stage-32: connection statistics - see piratebox_get_connection_stats()
 // for the full privacy design (aggregate integer counts only, never a
 // MAC/IP/hostname). null when the helper snapshot itself is stale.
@@ -384,6 +392,40 @@ $connStats = piratebox_get_connection_stats();
     <p style="text-align:center;" class="muted">
         <?= $versionLine !== null ? 'Version: ' . htmlspecialchars($versionLine) : 'Version: unknown (no includes/VERSION file - see README)' ?>
     </p>
+
+    <h2 class="admin-section-heading">Capabilities &amp; health <span class="section-tag">read-only</span></h2>
+    <p class="muted" style="text-align:center;">docs/ARCHITECTURE.md's Core/Operational/Optional model, made concrete - <?= (int) piratebox_capability_summary_counts($capabilities)['AVAILABLE'] ?> available, <?= (int) piratebox_capability_summary_counts($capabilities)['NOT_INSTALLED'] ?> not installed. Mode: <?= htmlspecialchars(ucfirst($operationalState['mode'])) ?>, Travel Mode: <?= $operationalState['travel_mode'] ? 'on' : 'off' ?>.</p>
+    <div class="table-wrapper">
+        <table>
+            <thead><tr><th>Layer</th><th>Capability</th><th>State</th><th>Notes</th></tr></thead>
+            <tbody>
+                <?php foreach (['core' => 'Core', 'operational' => 'Operational', 'optional' => 'Optional/Field'] as $layerKey => $layerLabel): ?>
+                    <?php foreach ($capabilities as $c): if ($c['layer'] !== $layerKey) continue; ?>
+                        <tr>
+                            <td><?= $layerLabel ?></td>
+                            <td><?= htmlspecialchars($c['label']) ?></td>
+                            <td class="<?= $c['state'] === 'AVAILABLE' ? 'status-ok' : (in_array($c['state'], ['DEGRADED', 'UNAVAILABLE'], true) ? 'status-bad' : '') ?>">
+                                <?= htmlspecialchars($c['state']) ?><?= !empty($c['stale']) ? ' (stale)' : '' ?>
+                            </td>
+                            <td class="muted">
+                                <?php if (isset($c['detail']) && is_array($c['detail'])): ?>
+                                    <?php
+                                    $bits = [];
+                                    foreach ($c['detail'] as $k => $v) {
+                                        if ($v === null) continue;
+                                        $bits[] = $k . '=' . (is_bool($v) ? ($v ? 'true' : 'false') : (is_scalar($v) ? (string) $v : json_encode($v)));
+                                    }
+                                    echo htmlspecialchars(implode(', ', $bits));
+                                    ?>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+    <p class="muted" style="text-align:center;">"Core dependency" (not shown per-row - see docs/ARCHITECTURE.md §2) is <code>true</code> only for the three Core rows above; every Operational/Optional row failing degrades only itself.</p>
 
     <h2 class="admin-section-heading">Recovery messages <span class="section-tag">local only</span></h2>
     <p class="muted" style="text-align:center;">Stage 16 - separate from Chat/Guestbook. Never transmitted over the Internet.</p>

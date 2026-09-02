@@ -1224,5 +1224,19 @@
       "dms",
       "decimal degrees"
     ]
+  },
+  {
+    "title": "About This PirateBox",
+    "section": "about",
+    "section_label": "About This PirateBox",
+    "url": "/utility/about/",
+    "snippet": "What this device is, what's installed, and its current health - the same public-safe status the Stats page already shows, organized around self-description.",
+    "keywords": [
+      "about",
+      "self-description",
+      "capabilities",
+      "what is this",
+      "device info"
+    ]
   }
 ]
