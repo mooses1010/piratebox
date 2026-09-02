@@ -240,3 +240,13 @@ clean, `VERSION` stamped to `d92a416` matching `HEAD` exactly. Live
 zero failed units; no new nginx/PHP errors since deploy. Search index
 rebuilt to 99 entries. Full five-suite regression: 202/202.
 
+| Deep field library, increment 2: United States Reference Map (`us-reference-map.svg` - 50 states + DC, CONUS + Alaska/Hawaii insets; new "national" scope reference pack) | `7efe098` | `~/piratebox-backups/us-map-pre-20260902-094742/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `7efe098` matching `HEAD` exactly. Live:
+`us-reference-map.svg` serves as `image/svg+xml` at the expected size;
+Maps page shows the new section; `/utility/about/` shows `United
+States Reference Map: INSTALLED (1)`, computed live; zero failed
+units; no new nginx/PHP errors since deploy. Full five-suite
+regression: 206/206.
+
