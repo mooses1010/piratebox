@@ -47,6 +47,14 @@ cs_assert_eq('Helper available but field null (malformed data) -> AVAILABLE (nev
 cs_assert_eq('Helper unavailable -> UNAVAILABLE, not a guessed AVAILABLE', piratebox_classify_power(false, false), 'UNAVAILABLE');
 cs_assert_eq('Helper unavailable, even if last-known value was bad -> still UNAVAILABLE, not DEGRADED', piratebox_classify_power(false, true), 'UNAVAILABLE');
 
+// --- piratebox_classify_admin_panel: unconfigured is DEGRADED (secure default), not UNAVAILABLE ---
+
+cs_assert_eq('Helper available, admin password configured -> AVAILABLE', piratebox_classify_admin_panel(true, true), 'AVAILABLE');
+cs_assert_eq('Helper available, not yet configured -> DEGRADED (intentional secure default, not a fault)', piratebox_classify_admin_panel(true, false), 'DEGRADED');
+cs_assert_eq('Helper available, field null (malformed data) -> DEGRADED, not fabricated AVAILABLE', piratebox_classify_admin_panel(true, null), 'DEGRADED');
+cs_assert_eq('Helper unavailable -> UNKNOWN regardless of last-known value', piratebox_classify_admin_panel(false, true), 'UNKNOWN');
+cs_assert_eq('Helper unavailable, field null too -> still UNKNOWN', piratebox_classify_admin_panel(false, null), 'UNKNOWN');
+
 // --- piratebox_classify_rtc: not-installed vs unknown, never fabricated healthy ---
 
 cs_assert_eq('Time source available, RTC detected -> AVAILABLE', piratebox_classify_rtc(true, true), 'AVAILABLE');

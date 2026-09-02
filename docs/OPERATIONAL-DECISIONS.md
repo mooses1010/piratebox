@@ -6,6 +6,107 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Admin Panel Auth Readiness (discoverability, not a mechanism change)
+
+**Decision date:** 2026-09-02. The operator tried `/admin/`, hit nginx's
+HTTP Basic Auth prompt, and had no credentials to enter. Investigation
+(audited before changing anything, per instruction) found the
+underlying mechanism was already fully correct on every dimension that
+matters:
+
+- `setup_admin_password.sh` already exists, already documented
+  prominently in `README.md`, and is already printed at the end of
+  `installer_pi_zero_trixie.sh`'s own install output.
+- It uses `openssl passwd -apr1` (already installed) - **no
+  apache2-utils/htpasswd dependency needed**, so nothing to install.
+- Interactive-only: prompts for username/password twice (no echo),
+  refuses an empty password, never writes plaintext anywhere, never
+  touches git.
+- `piratebox_deploy.sh` already explicitly excludes
+  `.piratebox_admin_htpasswd` from its rsync (line 93) - a deploy can
+  never overwrite an operator-set password.
+- `installer_pi_zero_trixie.sh` only `touch`es the file `if [ ! -f ... ]`
+  - a reinstall cannot erase existing credentials, only an empty file
+  gets created fresh. `chown`/`chmod` are reapplied unconditionally
+  (harmless - ownership/permissions, not content).
+- Permissions confirmed correct by the operator's own investigation:
+  `root:www-data`, `0640` - group-readable by `www-data` (the file's
+  purpose), unreadable by anyone else, unwritable by the web server.
+
+**Nothing above needed fixing.** The actual gap was pure
+rediscoverability: an operator who set this up once, then forgot the
+command months later, had no way to relearn it short of re-reading
+`README.md`. Addressed:
+
+1. **`piratebox_status_helper.sh`** (root-run, outside PHP-FPM's
+   `open_basedir` for the same reason `rtc_detected`/
+   `fake_hwclock_installed` already are - see that script's own
+   comment) now publishes `admin_auth.configured` (a boolean, nothing
+   else - never a username, hash, or file path) to `status.json`.
+2. **`includes/capability_state.php`** gained a new `admin_panel`
+   capability (`piratebox_classify_admin_panel()`, unit-tested):
+   `AVAILABLE` if configured, **`DEGRADED` (not `UNAVAILABLE`) if not -
+   this is the intentional secure default, not a fault**, `UNKNOWN` if
+   the status helper itself is stale/unavailable.
+3. **`/utility/about/` (public)** - already only ever shows aggregate
+   per-layer counts ("N of M working"), never per-capability labels,
+   so this integrates without ever stating "admin panel: not
+   configured" to a public visitor by name. Its existing admin-mention
+   paragraph was reworded to state plainly that nothing on that page
+   reveals whether a password has been set.
+4. **`/admin/` (already-authenticated view)** - `piratebox_diagnose_
+   capability()` gained an `admin_panel` message with the exact setup/
+   reset command, for an operator who's already in and wants a
+   reminder for next time (rotating the password, adding a note for a
+   successor operator, etc.) - not reachable by definition before the
+   first password exists, so this doesn't solve the *first-time* case.
+5. **`help.php` (public, unauthenticated - the actual fix for the
+   first-time case)** - added an "Admin" bullet to the existing "Using
+   PirateBox" list: what `/admin/` is, that it's locked until the
+   operator sets a password, and that `README.md` in this device's own
+   source repository explains how - reachable by anyone including a
+   first-time operator who forgot, without printing the literal `sudo`
+   command on a page any Wi-Fi guest can load.
+
+**No new authentication system.** Nginx Basic Auth is unchanged;
+`setup_admin_password.sh` is unchanged. This is a self-description +
+documentation-discoverability fix, not a mechanism change.
+
+**Operator action still required, unavailable to fix here (interactive
+sudo):** the actual first password/username has to be set by the
+operator themselves - Claude Code must never see or handle the
+plaintext. Run **exactly this**, once, on the device (or over SSH):
+
+```
+sudo /usr/local/bin/setup_admin_password.sh
+```
+
+It will prompt for a username (default `admin`) and a password (typed
+twice, never echoed), then reload nginx automatically. Re-run the same
+command at any time to change the password later - there is no
+separate "reset" command because setting a new one *is* the reset.
+
+**A second, unrelated operator step is also needed** for the new
+`admin_panel` self-description above to actually take effect:
+`piratebox_status_helper.sh` is a root-installed script outside the
+normal `piratebox_deploy.sh` web-content sync (like
+`setup_admin_password.sh`, it lives at `/usr/local/bin/` and isn't in
+this session's narrow sudo grants), so the repo's updated copy needs
+manually reinstalling once:
+
+```
+sudo cp piratebox_status_helper.sh /usr/local/bin/piratebox_status_helper.sh
+sudo chmod +x /usr/local/bin/piratebox_status_helper.sh
+```
+
+No service restart needed - `piratebox-status.timer` re-invokes the
+script fresh on its next poll (well under a minute). Until this step
+runs, `status.json` simply won't have the new `admin_auth` block yet -
+`admin_panel` capability then correctly reports `DEGRADED` (helper
+fresh, field absent - the same "don't fabricate AVAILABLE" treatment
+every other capability here already gives a missing field), not a
+wrong answer, just not yet the *newly precise* one.
+
 ## AWG Ampacity Table Reviewed Against an Authoritative Source (roadmap item 10)
 
 **Decision date:** 2026-09-02. Explicit instruction: the existing

@@ -92,6 +92,7 @@ $piratebox_device_id = piratebox_get_device_id();
             <li><strong>Logbook</strong> - a visitor logbook: sign your name/handle, leave a short note, or just mark that you were here. Stays for later visitors to read.</li>
             <li><strong>Bulletin Board</strong> - post announcements, local info, or requests/offers of help, sorted by category. See <a href="/bulletin.php">Bulletin Board</a>.</li>
             <li><strong>Utility</strong> - an offline reference library: radio, emergency/outage guidance, first aid, maps, local information, manuals, and search - all built into this device, no Internet needed. See <a href="/utility/">Utility Library</a>.</li>
+            <li><strong>Admin</strong> - a maintenance page for the device operator (storage/health at a glance, and a few narrow clear-data actions). Locked by a password until the operator sets one - not something a visitor can do. <strong>If you're the operator and don't have a password yet:</strong> this device's own project documentation (README.md, in its source repository) explains how to set one from the device itself - there's no default to guess.</li>
         </ul>
     </section>
 

@@ -81,7 +81,7 @@ $scopeLabels = ['universal' => 'Universal', 'national' => 'National', 'regional'
         </div>
 
         <div class="help-note">
-            <p><strong>What this page shows:</strong> device-level facts only - the same information the public <a href="/utility/status/">Status</a> page already shows, organized around "what is this and is it working," not new information. It records no visitor identity or activity. An operator with the admin password sees a fuller capability/health breakdown at <code>/admin/</code> - that page requires the same password it always has; nothing about this page changes that boundary.</p>
+            <p><strong>What this page shows:</strong> device-level facts only - the same information the public <a href="/utility/status/">Status</a> page already shows, organized around "what is this and is it working," not new information. It records no visitor identity or activity. An operator with the admin password sees a fuller capability/health breakdown at <code>/admin/</code> - that page is password-protected and stays that way until the device owner sets a password (see <a href="/help.php">Help</a>); nothing about this page changes that boundary or reveals whether one has been set.</p>
         </div>
 
         <h2>What this PirateBox has</h2>

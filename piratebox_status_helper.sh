@@ -312,6 +312,20 @@ if [ -f /run/systemd/timesync/synchronized ]; then ntp_synchronized=true; fi
 fake_hwclock_installed=false
 if [ -f /etc/fake-hwclock.data ]; then fake_hwclock_installed=true; fi
 
+# --- Admin panel auth readiness ---
+# /etc/nginx/.piratebox_admin_htpasswd is outside PHP-FPM's open_basedir
+# for the same reason as the block above - it's root:www-data 0640, so
+# www-data COULD read it (group permission), but it isn't in the
+# open_basedir allowlist, so a direct PHP read is blocked regardless.
+# This runs as root with no such restriction, so it does the read here.
+# Only a boolean (configured or not) is ever published - never the
+# file's content, never a username, never anything password-related.
+# See includes/capability_state.php's 'admin_panel' entry and
+# setup_admin_password.sh (the one place this file is ever written).
+ADMIN_HTPASSWD_FILE="/etc/nginx/.piratebox_admin_htpasswd"
+admin_auth_configured=false
+if [ -s "$ADMIN_HTPASSWD_FILE" ]; then admin_auth_configured=true; fi
+
 cat > "$TMP_FILE" <<EOF
 {
   "generated_at": $(date +%s),
@@ -336,6 +350,9 @@ cat > "$TMP_FILE" <<EOF
     "rtc_detected": $rtc_detected,
     "ntp_synchronized": $ntp_synchronized,
     "fake_hwclock_installed": $fake_hwclock_installed
+  },
+  "admin_auth": {
+    "configured": $admin_auth_configured
   }
 }
 EOF

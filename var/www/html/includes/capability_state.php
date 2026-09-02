@@ -69,6 +69,20 @@ if (!function_exists('piratebox_classify_power')) {
     }
 }
 
+if (!function_exists('piratebox_classify_admin_panel')) {
+    /**
+     * Pure, directly testable - see piratebox_classify_service_pair().
+     * DEGRADED (not UNAVAILABLE) when unconfigured: an empty htpasswd
+     * file is the intentional secure default (locked to everyone), not
+     * a failure - see setup_admin_password.sh.
+     */
+    function piratebox_classify_admin_panel(bool $helperAvailable, ?bool $configured): string
+    {
+        if (!$helperAvailable) return 'UNKNOWN';
+        return $configured === true ? 'AVAILABLE' : 'DEGRADED';
+    }
+}
+
 if (!function_exists('piratebox_classify_storage')) {
     /**
      * Pure, directly testable - see piratebox_classify_service_pair().
@@ -248,6 +262,25 @@ if (!function_exists('piratebox_get_capability_state')) {
             'stale' => $helperStale,
         ];
 
+        // Admin panel auth readiness - 2026-09-02, added alongside a
+        // documented setup-discoverability pass (see docs/OPERATIONAL-
+        // DECISIONS.md "Admin Panel Auth Readiness"). The underlying
+        // htpasswd file is deliberately outside PHP-FPM's open_basedir
+        // (same boundary as time_source below), so this reads
+        // piratebox_status_helper.sh's own root-run check instead of
+        // touching the file directly - see that script's own comment.
+        // Only ever a boolean; never a username, hash, or file path.
+        $adminAuth = $helperAvailable ? ($status['admin_auth'] ?? null) : null;
+        $adminConfigured = is_array($adminAuth) ? (bool) ($adminAuth['configured'] ?? false) : null;
+        $capabilities['admin_panel'] = [
+            'layer' => 'operational',
+            'core_dependency' => false,
+            'label' => 'Admin panel authentication',
+            'state' => piratebox_classify_admin_panel($helperAvailable, $adminConfigured),
+            'stale' => $helperStale,
+            'detail' => $helperAvailable ? ['configured' => $adminConfigured] : null,
+        ];
+
         $capabilities['shutdown_button'] = [
             'layer' => 'core', // safety primitive - docs/ARCHITECTURE.md §2
             'core_dependency' => true,
@@ -402,6 +435,10 @@ if (!function_exists('piratebox_diagnose_capability')) {
             'storage' => [
                 'DEGRADED' => 'Free storage space is low (within 2x the reserved minimum - the same threshold the home page\'s own storage warning already uses). New uploads/messages/posts may soon be rejected to protect the device from filling completely. Suggested check: free up space, or see the admin maintenance page.',
                 'UNKNOWN' => 'Free/total space could not be read - storage health cannot currently be confirmed.',
+            ],
+            'admin_panel' => [
+                'DEGRADED' => 'No admin password has been set yet - this is the secure default, not a fault (/admin/ rejects every login attempt until one exists). To set one: sudo /usr/local/bin/setup_admin_password.sh (see README.md). Re-run the same command any time to change it.',
+                'UNKNOWN' => 'Status helper snapshot unavailable - admin panel readiness cannot currently be confirmed (this does not affect whether /admin/ itself is reachable).',
             ],
         ];
 
