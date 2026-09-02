@@ -223,3 +223,12 @@ sudo cp /home/moose/piratebox/purge_uploads.sh /usr/local/bin/purge_uploads.sh
 sudo chmod +x /usr/local/bin/purge_uploads.sh
 ```
 
+| Roadmap item 2: Physical wiring self-description (`data/gpio-wiring.json`, `includes/hardware_wiring.php`, new admin "Physical wiring" section - `docs/ARCHITECTURE.md` §17's named gap) | `008dd17` | `~/piratebox-backups/wiring-selfdesc-pre-20260902-080134/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `008dd17` matching `HEAD` exactly. Live:
+admin page still correctly gated (401, no crash); wiring data file
+reads correctly via the deployed tree (8 rows, shutdown button
+correctly shows wired); zero failed units; no new nginx/PHP errors
+since deploy. Full five-suite regression: 202 assertions, 0 failures.
+
