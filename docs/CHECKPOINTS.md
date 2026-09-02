@@ -394,3 +394,25 @@ index confirms "Subnet Calculator" present. `tools/
 check_library_catalog.py` clean (8/8). Zero failed units. Full
 five-suite regression: 242/242.
 
+| Deep field library, increments 20-23: Frequency/Wavelength Calculator, Ohm's Law Solver, Coordinate Converter no-JS retrofit, Checksum/Hash Calculator, global/non-US balance audit + World Electrical Power Standards | `b70c5ed` | *(none taken under the usual `~/piratebox-backups/` naming - built across 5 commits on an isolated worktree branch by a background session; the operator fast-forward merged `worktree-deep-library-continue5` into `main` (`d943d6e` -> `b70c5ed`) and ran the deploy directly, reapplying the Travel Mode quarantine with mode OFF. `d943d6e` above remains the most recent backed-up rollback point)* |
+
+**Deployed and live-verified 2026-09-02 (merged from a worktree
+branch, deploy run by the operator; verified in this follow-up
+recovery pass):** `main`/HEAD confirmed at `b70c5ed`, tree clean. Live
+`includes/VERSION` stamped to `b70c5ed`, matching `HEAD`. Every
+changed file (`freq_wavelength.php`, `ohms_law.php`,
+`checksum_tool.php`, coordinates page, units page, search-index.json)
+confirmed byte-identical between repo and live tree. Live-verified
+over real HTTP with raw curl POST (no JS involved): Frequency/
+Wavelength (146 MHz -> 2.053 m, correctly banded VHF); Ohm's Law
+(V=12, I=2 -> R=6 &#8486;, P=24 W); Coordinate Converter's new no-JS
+path (40.6892,-74.0445 -> 40&deg;41'21.12" N, 74&deg;2'40.20" W);
+Checksum tool's text panel (SHA-256/MD5 of "abc" match known test
+vectors) and its path-traversal rejection (`../../../../etc/passwd`
+correctly refused); World Electrical Power Standards table present on
+the Units page. Search index confirms all four tool names present
+(166 entries). `travel-mode.json` confirmed `{"travel_mode": false}`,
+consistent with the operator's report. `tools/
+check_library_catalog.py` clean (8/8). Zero failed units. Full
+five-suite regression: 282/282.
+
