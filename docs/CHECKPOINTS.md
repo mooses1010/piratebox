@@ -297,3 +297,11 @@ shows all three inside their correct topics; `/utility/about/` shows
 no new nginx/PHP errors since deploy. Full five-suite regression:
 206/206.
 
+| AWG ampacity table reviewed against an authoritative source (no numbers changed - already correctly using the conservative NEC breaker-sizing convention; caveat text sharpened) | `56040f1` | `~/piratebox-backups/awg-review-pre-20260902-102513/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `56040f1` matching `HEAD` exactly. Live
+`/utility/fieldtools/units/` confirmed the new precise caveat text
+present; zero failed units; no new nginx/PHP errors since deploy. Full
+five-suite regression: 206/206.
+
