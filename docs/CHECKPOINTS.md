@@ -259,3 +259,13 @@ NEC caution text present; zero failed units; no new nginx/PHP errors
 since deploy. Search index at 101 entries. Full five-suite regression:
 206/206 (unaffected by design - static content, no new calc logic).
 
+| Deep field library, increment 4: Original-Source Document Library (USGS Topo Map Symbols, NIST SP432 Time/Frequency, NOAA/NASA Cloud Chart - 6.4MB, each individually verified public domain) | `c64c71b` | `~/piratebox-backups/doc-library-pre-20260902-100205/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `c64c71b` matching `HEAD` exactly. Live:
+all three PDFs serve as `application/pdf` at their exact byte sizes;
+Document Library page shows all three; `/utility/about/` shows
+`Document Library: INSTALLED (3)`, computed live; zero failed units;
+no new nginx/PHP errors since deploy. `tools/check_library_catalog.py`
+clean (3/3 agree). Full five-suite regression: 206/206.
+
