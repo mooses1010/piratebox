@@ -112,8 +112,15 @@ if (!function_exists('piratebox_get_capability_state')) {
             'stale' => $helperStale,
         ];
 
-        $diskTotal = @disk_total_space(__DIR__ . '/../..');
-        $diskFree = @disk_free_space(__DIR__ . '/../..');
+        // NOTE: this file lives in includes/ (one level below var/www/html/),
+        // not public/admin/ or public/utility/status/ (two/three levels
+        // below) - only one '..' is needed to reach the webroot, which is
+        // the actual open_basedir boundary (etc/php/8.4/fpm/php.ini). An
+        // extra '..' here would resolve one directory too high and be
+        // silently blocked - found live, not assumed; see docs/
+        // OPERATIONAL-DECISIONS.md for the class of bug this matches.
+        $diskTotal = @disk_total_space(__DIR__ . '/..');
+        $diskFree = @disk_free_space(__DIR__ . '/..');
         $capabilities['storage'] = [
             'layer' => 'core',
             'core_dependency' => true,

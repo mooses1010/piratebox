@@ -96,6 +96,20 @@ foreach ($caps as $c) {
 }
 cs_assert_eq('core_dependency=true only ever appears on layer=core entries', $coreConsistent, true);
 
+// Regression test for a real bug found live: capability_state.php's
+// disk_total_space()/disk_free_space() path must resolve to exactly the
+// webroot (var/www/html) - one level too many silently resolves outside
+// PHP-FPM's open_basedir (etc/php/8.4/fpm/php.ini) and fails invisibly
+// under `@`. A plain CLI run (this test) has no open_basedir, so it
+// can't reproduce the failure directly - it instead pins the path math
+// itself, which is what actually broke.
+cs_assert_eq(
+    'storage capability path resolves to the actual webroot (open_basedir boundary)',
+    realpath(__DIR__ . '/../var/www/html/includes/..'),
+    realpath(__DIR__ . '/../var/www/html')
+);
+cs_assert_eq('storage state reads real values against this environment (no open_basedir here)', $caps['storage']['state'], 'AVAILABLE');
+
 echo "Capability state tests: $passCount passed, " . count($failures) . " failed.\n";
 if ($failures) {
     echo "\nFAILURES:\n";
