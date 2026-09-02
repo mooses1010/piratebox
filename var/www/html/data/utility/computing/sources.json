@@ -1,0 +1,23 @@
+{
+  "ietf-rfc1918": {
+    "name": "RFC 1918 (Address Allocation for Private Internets) and related reserved-range RFCs (3927, 5735/6890)",
+    "publisher": "IETF (Internet Engineering Task Force)",
+    "url": "https://datatracker.ietf.org/doc/html/rfc1918",
+    "retrieved": "2026-09-02",
+    "note": "Long-stable, widely-known internet standard reference - written from general technical knowledge of these RFCs' contents rather than a fresh fetch, since the private/reserved IP ranges they define have not changed in decades."
+  },
+  "iana-port-registry": {
+    "name": "Service Name and Transport Protocol Port Number Registry",
+    "publisher": "IANA (Internet Assigned Numbers Authority)",
+    "url": "https://www.iana.org/assignments/service-names-port-numbers/",
+    "retrieved": "2026-09-02",
+    "note": "The authoritative registry for port number assignments; this page cites only the small set of long-stable, extremely well-known ports (HTTP/HTTPS/SSH/DNS/DHCP/etc.), not an attempt to reproduce the full registry."
+  },
+  "general-networking-education": {
+    "name": "General computer networking/computing technical education",
+    "publisher": null,
+    "url": null,
+    "retrieved": "2026-09-02",
+    "note": "Widely-taught networking/computing concepts (Wi-Fi terminology, Ethernet/cabling, USB/serial, checksums/hashes, text encoding) not tied to one specific regulatory citation - the same pattern already used elsewhere in this project (e.g. Maps' general-nav-education, Radio's general-rf-education)."
+  }
+}

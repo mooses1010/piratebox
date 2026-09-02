@@ -1,4 +1,11 @@
 {
+  "faa-icao-ground-signals": {
+    "name": "Ground-to-Air Emergency Signal Code (FAA Aeronautical Information Manual / ICAO Annex 12 search-and-rescue signal standard)",
+    "publisher": "FAA / ICAO (international civil aviation standard)",
+    "url": "https://www.faa.gov/air_traffic/publications/atpubs/aim_html/",
+    "retrieved": "2026-09-02",
+    "note": "A publicly documented, internationally standardized visual signal code (not proprietary to any one organization) reproduced from general knowledge of the widely-published standard, cross-checked against multiple secondary summaries this session rather than the primary AIM/Annex 12 text directly."
+  },
   "ready-gov-power": {
     "name": "Power Outages - Ready.gov",
     "publisher": "FEMA / Ready.gov",

@@ -41,6 +41,17 @@
     "note": "American Red Cross / CDC sourced overview guidance."
   },
   {
+    "id": "computing-universal",
+    "title": "Computing & Networking Reference",
+    "scope": "universal",
+    "section": "computing",
+    "url": "/utility/computing/",
+    "data_file": "utility/computing/reference.json",
+    "sources_file": "utility/computing/sources.json",
+    "license": "Public standards/PirateBox-authored (IETF RFCs, IANA port registry) - see per-entry sources in data file",
+    "note": "IP addressing, DNS/DHCP, ports, Wi-Fi terminology, Ethernet/cabling, USB/serial, checksums/hashes, text encoding - concepts behind computer networking in general, not tied to this device's own location or configuration."
+  },
+  {
     "id": "local-reference",
     "title": "Local Information",
     "scope": "local",

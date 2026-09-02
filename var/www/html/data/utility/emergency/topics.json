@@ -483,5 +483,30 @@
     "secondary_source_id": null,
     "confidence": "high",
     "source_note": null
+  },
+  {
+    "id": "ground-to-air-signals",
+    "category": "planning",
+    "title": "Ground-to-Air Emergency Signals",
+    "summary": "Six standardized symbols any search-and-rescue aircrew worldwide is trained to recognize - useful when radio and phones are both out.",
+    "quick_actions": [
+      "Build symbols at least 8 feet (2.4 m) across, in an open area visible from above, using any high-contrast material: rocks, logs, tarps, clothing, or footprints stamped into snow or sand.",
+      "V = Require assistance. X = Require MEDICAL assistance (this one takes priority with rescue teams). N = No/Negative. Y = Yes/Affirmative.",
+      "F = Require food and water. An arrow shape points rescuers toward the direction you're proceeding.",
+      "Straight lines and sharp angles read as deliberate/human-made from the air far better than anything curved or irregular - that contrast against natural terrain is what actually gets noticed."
+    ],
+    "more_info": "This is a real, internationally standardized code (part of the FAA/ICAO search-and-rescue signal set) - not a PirateBox invention, and not the same thing as Morse SOS (see the Radio page), which is an audio/light signal rather than a ground panel. Both are worth knowing since they work in different situations.",
+    "keywords": [
+      "ground to air signals",
+      "search and rescue",
+      "sar signals",
+      "distress signal",
+      "signaling",
+      "rescue"
+    ],
+    "source_id": "faa-icao-ground-signals",
+    "secondary_source_id": null,
+    "confidence": "medium",
+    "source_note": "Symbol meanings cross-checked against multiple secondary summaries of the published FAA/ICAO standard rather than the primary AIM/Annex 12 text directly - confidence set to medium on that basis, though the core 6 symbols shown are consistently reported across sources."
   }
 ]

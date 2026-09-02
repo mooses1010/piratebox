@@ -1004,6 +1004,21 @@
     ]
   },
   {
+    "title": "Ground-to-Air Emergency Signals",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#ground-to-air-signals",
+    "snippet": "Six standardized symbols any search-and-rescue aircrew worldwide is trained to recognize - useful when radio and phones are both out.",
+    "keywords": [
+      "ground to air signals",
+      "search and rescue",
+      "sar signals",
+      "distress signal",
+      "signaling",
+      "rescue"
+    ]
+  },
+  {
     "title": "Get Professional Help - Check, Call, Care",
     "section": "firstaid",
     "section_label": "First Aid Reference",
@@ -1212,6 +1227,153 @@
       "first-aid kit",
       "supplies",
       "checklist"
+    ]
+  },
+  {
+    "title": "IPv4 Addressing Basics",
+    "section": "computing",
+    "section_label": "Computing & Networking Reference",
+    "url": "/utility/computing/#ip-addressing-basics",
+    "snippet": "An IPv4 address is four numbers (0-255) separated by dots - every device on a network needs one to be reached.",
+    "keywords": [
+      "ip address",
+      "ipv4",
+      "ipv6",
+      "subnet",
+      "cidr",
+      "networking basics"
+    ]
+  },
+  {
+    "title": "Private IP Address Ranges & Loopback",
+    "section": "computing",
+    "section_label": "Computing & Networking Reference",
+    "url": "/utility/computing/#private-ip-ranges",
+    "snippet": "Certain address ranges are reserved for private networks and never routed on the public internet.",
+    "keywords": [
+      "private ip",
+      "rfc 1918",
+      "loopback",
+      "localhost",
+      "apipa",
+      "link-local"
+    ]
+  },
+  {
+    "title": "CIDR Prefix <-> Subnet Mask Reference",
+    "section": "computing",
+    "section_label": "Computing & Networking Reference",
+    "url": "/utility/computing/#cidr-subnet-mask-reference",
+    "snippet": "A /24 and a 255.255.255.0 subnet mask are two ways of writing the exact same thing.",
+    "keywords": [
+      "cidr",
+      "subnet mask",
+      "prefix length",
+      "subnetting"
+    ]
+  },
+  {
+    "title": "DNS & DHCP: What They Actually Do",
+    "section": "computing",
+    "section_label": "Computing & Networking Reference",
+    "url": "/utility/computing/#dns-dhcp-basics",
+    "snippet": "DNS translates names to addresses; DHCP hands out addresses automatically - two different jobs, often confused.",
+    "keywords": [
+      "dns",
+      "dhcp",
+      "domain name system",
+      "dnsmasq"
+    ]
+  },
+  {
+    "title": "Common Ports & Protocols",
+    "section": "computing",
+    "section_label": "Computing & Networking Reference",
+    "url": "/utility/computing/#common-ports-protocols",
+    "snippet": "A port number identifies which specific service on a device a connection is meant for.",
+    "keywords": [
+      "ports",
+      "protocols",
+      "ssh",
+      "http",
+      "https",
+      "dns port",
+      "networking"
+    ]
+  },
+  {
+    "title": "Wi-Fi Terminology",
+    "section": "computing",
+    "section_label": "Computing & Networking Reference",
+    "url": "/utility/computing/#wifi-terminology",
+    "snippet": "SSID, band, and security-standard terms explained plainly.",
+    "keywords": [
+      "wifi",
+      "ssid",
+      "wpa2",
+      "wpa3",
+      "2.4ghz",
+      "5ghz",
+      "dbm"
+    ]
+  },
+  {
+    "title": "Ethernet & Cabling Basics",
+    "section": "computing",
+    "section_label": "Computing & Networking Reference",
+    "url": "/utility/computing/#ethernet-cabling-basics",
+    "snippet": "RJ45 connectors, cable categories, and why 'crossover cable' advice is mostly obsolete now.",
+    "keywords": [
+      "ethernet",
+      "rj45",
+      "cat5e",
+      "cat6",
+      "crossover cable",
+      "link light"
+    ]
+  },
+  {
+    "title": "USB & Serial Basics",
+    "section": "computing",
+    "section_label": "Computing & Networking Reference",
+    "url": "/utility/computing/#usb-serial-basics",
+    "snippet": "USB-C is a connector shape, not a speed - and serial devices need both ends to agree on a baud rate.",
+    "keywords": [
+      "usb",
+      "usb-c",
+      "serial",
+      "rs-232",
+      "uart",
+      "baud rate"
+    ]
+  },
+  {
+    "title": "Checksums & Hashes: Verifying File Integrity",
+    "section": "computing",
+    "section_label": "Computing & Networking Reference",
+    "url": "/utility/computing/#checksums-hashes",
+    "snippet": "A hash is a fixed-length fingerprint of a file's contents - useful for catching corruption or tampering.",
+    "keywords": [
+      "checksum",
+      "hash",
+      "md5",
+      "sha-1",
+      "sha-256",
+      "file integrity"
+    ]
+  },
+  {
+    "title": "Text Encoding: ASCII, UTF-8 & Unicode",
+    "section": "computing",
+    "section_label": "Computing & Networking Reference",
+    "url": "/utility/computing/#text-encoding-basics",
+    "snippet": "Garbled text on screen is usually a wrong encoding guess, not corrupted data.",
+    "keywords": [
+      "ascii",
+      "utf-8",
+      "unicode",
+      "text encoding",
+      "mojibake"
     ]
   },
   {

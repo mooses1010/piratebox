@@ -148,6 +148,12 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php endif; ?>
+                                <?php if ($t['id'] === 'ground-to-air-signals'): ?>
+                                    <div class="radio-spectrum-wrap">
+                                        <?php require __DIR__ . '/ground-to-air-signals.svg.php'; ?>
+                                    </div>
+                                    <p class="radio-spectrum-caption">Standardized ICAO/FAA ground-to-air visual signal code, publicly documented and internationally recognized (not owned by any single organization) - build each symbol at least 8 feet across from any available material (rocks, logs, tarps, footprints in snow/sand) so it reads clearly from the air. PirateBox-authored diagram of this public standard.</p>
+                                <?php endif; ?>
                                 <?php if (!empty($t['more_info'])): ?>
                                     <p><?= htmlspecialchars($t['more_info']) ?></p>
                                 <?php endif; ?>

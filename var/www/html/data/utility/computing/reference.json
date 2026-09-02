@@ -1,0 +1,211 @@
+[
+  {
+    "id": "ip-addressing-basics",
+    "category": "reference",
+    "title": "IPv4 Addressing Basics",
+    "summary": "An IPv4 address is four numbers (0-255) separated by dots - every device on a network needs one to be reached.",
+    "quick_actions": [
+      "An IPv4 address (e.g. 192.168.1.42) is four 8-bit numbers (0-255 each, called octets) separated by dots.",
+      "A subnet mask (e.g. 255.255.255.0) or CIDR prefix (e.g. /24) marks which part of the address is the network and which part is the specific device (host) - see the CIDR/subnet reference below.",
+      "Two devices can only talk directly, without a router in between, if they're on the same subnet.",
+      "IPv6 addresses are longer (128-bit, written in hex groups like 2001:0db8::1) - they exist because the pool of possible IPv4 addresses ran out."
+    ],
+    "more_info": "This PirateBox's own visitor Wi-Fi network hands out addresses in a private range (see Private IP Ranges below) via its own DHCP server - the same mechanism any home router uses.",
+    "keywords": ["ip address", "ipv4", "ipv6", "subnet", "cidr", "networking basics"],
+    "source_id": "general-networking-education",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "private-ip-ranges",
+    "category": "reference",
+    "title": "Private IP Address Ranges & Loopback",
+    "summary": "Certain address ranges are reserved for private networks and never routed on the public internet.",
+    "quick_actions": [
+      "192.168.0.0/16 is the range most home routers and access points (including this one) use.",
+      "10.0.0.0/8 and 172.16.0.0/12 are the other two private ranges - more common on larger/enterprise networks.",
+      "169.254.0.0/16 (link-local/APIPA) is auto-assigned when a device expects DHCP but gets no response - seeing an address in this range usually means something's misconfigured, not that networking is working normally.",
+      "127.0.0.0/8 (loopback, 'localhost') always refers to the device itself and never touches physical network hardware."
+    ],
+    "table_caption": "Reserved IPv4 ranges",
+    "table": [
+      {"range": "10.0.0.0/8", "name": "Private (large)", "typical_use": "Large private/enterprise networks"},
+      {"range": "172.16.0.0/12", "name": "Private (medium)", "typical_use": "Medium networks, some routers/APs"},
+      {"range": "192.168.0.0/16", "name": "Private (small)", "typical_use": "Home/small networks - most home routers"},
+      {"range": "169.254.0.0/16", "name": "Link-local (APIPA)", "typical_use": "Auto-assigned when DHCP fails - a sign of a problem"},
+      {"range": "127.0.0.0/8", "name": "Loopback", "typical_use": "'localhost' - the device talking to itself"}
+    ],
+    "more_info": "These ranges are permanently reserved by IETF standard and never appear as a real address on the public internet - seeing one in your own device's network settings is normal, not a sign of a misconfigured public-facing address.",
+    "keywords": ["private ip", "rfc 1918", "loopback", "localhost", "apipa", "link-local"],
+    "source_id": "ietf-rfc1918",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "cidr-subnet-mask-reference",
+    "category": "reference",
+    "title": "CIDR Prefix <-> Subnet Mask Reference",
+    "summary": "A /24 and a 255.255.255.0 subnet mask are two ways of writing the exact same thing.",
+    "quick_actions": [
+      "The CIDR number after the slash (e.g. /24) is how many bits, counting from the left, belong to the network portion of the address.",
+      "A smaller number after the slash means a BIGGER network (more possible host addresses); a bigger number means a SMALLER network - this trips people up constantly.",
+      "Usable host addresses = 2^(32 minus the prefix) minus 2 (one address is reserved for the network itself, one for the broadcast address)."
+    ],
+    "table_caption": "Common CIDR prefixes and their subnet masks",
+    "table": [
+      {"cidr": "/8", "subnet_mask": "255.0.0.0", "usable_hosts": "~16.7 million"},
+      {"cidr": "/16", "subnet_mask": "255.255.0.0", "usable_hosts": "65,534"},
+      {"cidr": "/24", "subnet_mask": "255.255.255.0", "usable_hosts": "254"},
+      {"cidr": "/25", "subnet_mask": "255.255.255.128", "usable_hosts": "126"},
+      {"cidr": "/26", "subnet_mask": "255.255.255.192", "usable_hosts": "62"},
+      {"cidr": "/27", "subnet_mask": "255.255.255.224", "usable_hosts": "30"},
+      {"cidr": "/28", "subnet_mask": "255.255.255.240", "usable_hosts": "14"},
+      {"cidr": "/29", "subnet_mask": "255.255.255.248", "usable_hosts": "6"},
+      {"cidr": "/30", "subnet_mask": "255.255.255.252", "usable_hosts": "2"}
+    ],
+    "more_info": "/31 and /32 are deliberately left off this table - they're special cases (point-to-point links and single-host routes) that don't follow the same 'usable hosts' arithmetic as the ranges above, and including a wrong-looking number for them would be more confusing than helpful.",
+    "keywords": ["cidr", "subnet mask", "prefix length", "subnetting"],
+    "source_id": "ietf-rfc1918",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "dns-dhcp-basics",
+    "category": "reference",
+    "title": "DNS & DHCP: What They Actually Do",
+    "summary": "DNS translates names to addresses; DHCP hands out addresses automatically - two different jobs, often confused.",
+    "quick_actions": [
+      "DNS (Domain Name System) translates a domain name (example.com) into an IP address - it's a lookup service, nothing more.",
+      "DHCP (Dynamic Host Configuration Protocol) automatically hands a joining device an IP address, subnet mask, gateway, and DNS server - without it, every device would need those typed in manually.",
+      "This PirateBox's own dnsmasq process serves both roles at once for its visitor Wi-Fi network - a single lightweight program providing both DNS and DHCP is common on small routers/APs.",
+      "If DNS is down but you already know a server's raw IP address, you can often still reach it directly - a DNS failure doesn't necessarily mean the underlying network is down."
+    ],
+    "more_info": null,
+    "keywords": ["dns", "dhcp", "domain name system", "dnsmasq"],
+    "source_id": "general-networking-education",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "common-ports-protocols",
+    "category": "reference",
+    "title": "Common Ports & Protocols",
+    "summary": "A port number identifies which specific service on a device a connection is meant for.",
+    "quick_actions": [
+      "An IP address gets a connection to the right device; a port number gets it to the right program/service on that device.",
+      "Ports 0-1023 are 'well-known' ports traditionally reserved for standard services - the ones below are the most likely to matter day-to-day."
+    ],
+    "table_caption": "Frequently-encountered ports",
+    "table": [
+      {"port": "22", "protocol": "SSH", "typical_use": "Encrypted remote login/administration"},
+      {"port": "25 / 587", "protocol": "SMTP", "typical_use": "Sending email (587 is the modern submission port)"},
+      {"port": "53", "protocol": "DNS", "typical_use": "Domain name lookups"},
+      {"port": "67 / 68", "protocol": "DHCP", "typical_use": "Automatic address assignment (server / client)"},
+      {"port": "80", "protocol": "HTTP", "typical_use": "Unencrypted web traffic"},
+      {"port": "123", "protocol": "NTP", "typical_use": "Time synchronization"},
+      {"port": "443", "protocol": "HTTPS", "typical_use": "Encrypted web traffic"},
+      {"port": "3389", "protocol": "RDP", "typical_use": "Windows Remote Desktop"},
+      {"port": "8080", "protocol": "HTTP (alternate)", "typical_use": "Common for local dev servers/proxies"}
+    ],
+    "more_info": "Telnet (port 23) is deliberately left off as a 'use this' entry - it sends everything, including passwords, unencrypted, and has been superseded by SSH for essentially every use case.",
+    "keywords": ["ports", "protocols", "ssh", "http", "https", "dns port", "networking"],
+    "source_id": "iana-port-registry",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "wifi-terminology",
+    "category": "reference",
+    "title": "Wi-Fi Terminology",
+    "summary": "SSID, band, and security-standard terms explained plainly.",
+    "quick_actions": [
+      "SSID is the network's name, exactly as it shows up in a device's Wi-Fi list.",
+      "2.4 GHz travels farther and penetrates walls better but is slower and more congested; 5 GHz is faster with less interference but has shorter range.",
+      "WPA2 and WPA3 are the current security/encryption standards - WEP and the original WPA are obsolete and insecure; avoid them if a device still offers them.",
+      "Signal strength is commonly shown in dBm - see Radio Reference's Decibels (dB/dBm) guide for what that number actually means. Roughly: -50 dBm is strong, -80 dBm or weaker is marginal."
+    ],
+    "more_info": null,
+    "keywords": ["wifi", "ssid", "wpa2", "wpa3", "2.4ghz", "5ghz", "dbm"],
+    "source_id": "general-networking-education",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "ethernet-cabling-basics",
+    "category": "reference",
+    "title": "Ethernet & Cabling Basics",
+    "summary": "RJ45 connectors, cable categories, and why 'crossover cable' advice is mostly obsolete now.",
+    "quick_actions": [
+      "RJ45 is the standard 8-pin connector used on virtually all Ethernet cables.",
+      "Cat5e supports up to 1 Gbps; Cat6 supports up to 10 Gbps over shorter runs - the category is usually printed right on the cable jacket.",
+      "Modern network ports auto-negotiate speed/duplex and auto-correct straight-through vs. crossover wiring (Auto-MDI-X) - needing a special 'crossover cable' is largely obsolete on hardware from the last 15+ years.",
+      "A solid link light confirms a physical connection exists - it does not by itself confirm the network or internet is actually working beyond that cable."
+    ],
+    "more_info": null,
+    "keywords": ["ethernet", "rj45", "cat5e", "cat6", "crossover cable", "link light"],
+    "source_id": "general-networking-education",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "usb-serial-basics",
+    "category": "reference",
+    "title": "USB & Serial Basics",
+    "summary": "USB-C is a connector shape, not a speed - and serial devices need both ends to agree on a baud rate.",
+    "quick_actions": [
+      "USB 2.0 tops out around 480 Mbps; USB 3.x ranges 5-20 Gbps depending on generation; USB4 reaches up to 40 Gbps - the connector shape (including USB-C) doesn't by itself guarantee any particular speed.",
+      "Serial (RS-232/UART) connections use a 'baud rate' (e.g. 9600, 115200) - both ends must agree on the same rate or the data reads as garbage characters.",
+      "9600 and 115200 are the two baud rates most likely to work if you don't already know a specific device's rate.",
+      "A USB-to-serial adapter is the common way to get a serial console port on a modern computer, since most no longer have a built-in one."
+    ],
+    "more_info": null,
+    "keywords": ["usb", "usb-c", "serial", "rs-232", "uart", "baud rate"],
+    "source_id": "general-networking-education",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "checksums-hashes",
+    "category": "reference",
+    "title": "Checksums & Hashes: Verifying File Integrity",
+    "summary": "A hash is a fixed-length fingerprint of a file's contents - useful for catching corruption or tampering.",
+    "quick_actions": [
+      "A checksum/hash is a short, fixed-length fingerprint calculated from a file's contents - change even one bit of the file and the fingerprint changes completely.",
+      "Comparing a downloaded file's hash to the one published by its source confirms the download wasn't corrupted or altered in transit - it does NOT by itself prove the source is trustworthy.",
+      "MD5 and SHA-1 are fast but no longer considered secure against deliberate tampering (practical collisions exist) - still fine for catching accidental corruption, not for security-critical verification.",
+      "SHA-256 (part of the SHA-2 family) is the current common standard where security actually matters."
+    ],
+    "more_info": null,
+    "keywords": ["checksum", "hash", "md5", "sha-1", "sha-256", "file integrity"],
+    "source_id": "general-networking-education",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "text-encoding-basics",
+    "category": "reference",
+    "title": "Text Encoding: ASCII, UTF-8 & Unicode",
+    "summary": "Garbled text on screen is usually a wrong encoding guess, not corrupted data.",
+    "quick_actions": [
+      "ASCII covers only 128 characters (basic English letters/digits/punctuation) - it cannot represent accented letters, most non-English scripts, or emoji.",
+      "Unicode is a standard that assigns a unique number to essentially every character in every writing system in current or historical use.",
+      "UTF-8 is the dominant way to actually store/transmit Unicode text as bytes - it's backward-compatible with plain ASCII (every valid ASCII file is already valid UTF-8), a major reason for its near-universal adoption.",
+      "Garbled/mismatched symbols on screen ('mojibake') usually mean the text is being read with the wrong encoding assumption, not that the underlying data is actually corrupted."
+    ],
+    "more_info": null,
+    "keywords": ["ascii", "utf-8", "unicode", "text encoding", "mojibake"],
+    "source_id": "general-networking-education",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  }
+]

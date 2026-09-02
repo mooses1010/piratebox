@@ -54,6 +54,7 @@ $sectionLabels = [
     'emergency' => 'Emergency / Outage Reference',
     'firstaid'  => 'First Aid Reference',
     'maps'      => 'Maps & Location Reference',
+    'computing' => 'Computing & Networking Reference',
     'local'     => 'Local Information',
     'library'   => 'Document Library',
     'fieldtools' => 'Field Tools',

@@ -101,6 +101,14 @@ for t in load("firstaid", "topics.json"):
         t.get("summary", ""), t.get("keywords"),
     ))
 
+# --- Computing / Networking -------------------------------------------------
+for t in load("computing", "reference.json"):
+    index.append(entry(
+        t.get("title", ""), "computing", "Computing & Networking Reference",
+        f"/utility/computing/#{t.get('id', '')}",
+        t.get("summary", ""), t.get("keywords"),
+    ))
+
 # --- Maps -----------------------------------------------------------------
 for t in load("maps", "reference.json"):
     index.append(entry(
