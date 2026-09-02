@@ -83,7 +83,7 @@ just because it was mentioned most recently.
 
 | Category | Depth (entries) | Beginner use | Advanced use | Visual coverage | Provenance | Geo scope | Gap found |
 |---|---|---|---|---|---|---|---|
-| Radio Reference | 25 services + 6 modulation + **13 guides** (was 6) | Good - `<details>` accordion, plain-language guides, search/filter | Good after this increment - propagation/antenna/dB/SDR/simplex-repeater/polarization/connectors/phonetic/Morse all now present | 2 SVG diagrams (spectrum chart, pre-existing; **connector profile comparison, built 2026-09-02, in repo pending merge/deploy**, `connectors.svg.php`, PirateBox-authored schematic) | Per-entry `source_id` -> `sources.json` (FCC/ARRL/NOAA/ITU), `confidence` field on every entry | National (US band plans) + universal (propagation physics, phonetic/Morse standards) | **Closed this increment (prior)**: dB/dBm, SDR, simplex/repeater, polarization, connectors, phonetic alphabet, Morse code. **Closed 2026-09-02**: connector-type diagram. **Still open**: antenna-type diagrams (dipole/vertical/Yagi silhouettes) |
+| Radio Reference | 25 services + 6 modulation + **13 guides** (was 6) | Good - `<details>` accordion, plain-language guides, search/filter | Good after this increment - propagation/antenna/dB/SDR/simplex-repeater/polarization/connectors/phonetic/Morse all now present | 2 SVG diagrams (spectrum chart, pre-existing; **connector profile comparison, deployed and live-verified 2026-09-02**, `connectors.svg.php`, PirateBox-authored schematic) | Per-entry `source_id` -> `sources.json` (FCC/ARRL/NOAA/ITU), `confidence` field on every entry | National (US band plans) + universal (propagation physics, phonetic/Morse standards) | **Closed this increment (prior)**: dB/dBm, SDR, simplex/repeater, polarization, connectors, phonetic alphabet, Morse code. **Closed 2026-09-02**: connector-type diagram. **Still open**: antenna-type diagrams (dipole/vertical/Yagi silhouettes) |
 | Emergency/Outage Reference | 21 topics | Good - already covers water storage, food safety, sanitation, shelter-in-place, power/generator/CO safety, evacuation | Moderate - practical guidance depth, not deep technical reference | None | Ready.gov/FEMA/CDC/NOAA/NFPA per-entry sourcing (Stage 3) | National | Already much broader/deeper than a first glance at "21 topics" suggests - **no action needed**, confirmed via full read, not assumed thin |
 | First Aid Reference | 16 topics | Good - Red Cross "Check Call Care" framing, plain language | Shallow by design - deliberately conservative, not a clinical reference (correct for a liability-aware, non-professional-audience page) | **None - the one category where a diagram (CPR hand position, recovery position, Heimlich) would help most** | Red Cross/CDC per-entry sourcing (Stage 4) | National/universal | Visual gap real but **deliberately not rushed**: medical diagrams need verified redistribution rights from an authoritative source (Red Cross material is often not freely redistributable) - flagged as next action, not attempted from memory |
 | Maps &amp; Location Reference | 2 maps (world + US, 2026-09-02) + 5 coordinate/GPS entries; local/regional catalog empty by design | Good - "at a glance" world/US maps, GPS/coordinate basics | Moderate - Universal+National layers now real; no Regional/State layer, no UTM/MGRS visual, no map-symbols reference | 2 SVG maps (world, US w/ AK+HI insets) | Natural Earth (public domain), USGS/NOAA/gps.gov | **Universal+National now real** (was Universal-only). Regional/State and Special-Purpose layers still absent | see updated next actions below |
@@ -119,18 +119,20 @@ prose):
    finding an authoritatively-sourced, redistributable diagram set
    first (Red Cross material is often not freely redistributable) -
    do not attempt from model memory for anything medical.
-5. ~~Connector diagram for Radio~~ - **built and tested 2026-09-02,
-   IMPLEMENTED IN REPO, NOT YET DEPLOYED** (`connectors.svg.php`, an
-   original PirateBox-authored schematic profile comparison of the 5
-   connector types already in the Feed Lines & Connectors guide's table
-   - no sourcing/licensing question, same basis as the existing spectrum
-   chart; well-formed SVG confirmed, PHP lint clean, page smoke-tested
-   locally, all 206 unit tests still pass). Built on an isolated
-   worktree branch (`worktree-continue-deep-library`) per this session's
-   background-job policy, which does not permit merging into `main` or
-   pushing from here - **needs an interactive/operator session to merge
-   this branch into `main` and run the normal dry-run-then-real deploy**
-   before it goes live and this row can be marked deployed/verified.
+5. ~~Connector diagram for Radio~~ - **done 2026-09-02, IMPLEMENTED +
+   DEPLOYED + LIVE-VERIFIED** (`connectors.svg.php`, an original
+   PirateBox-authored schematic profile comparison of the 5 connector
+   types already in the Feed Lines & Connectors guide's table - no
+   sourcing/licensing question, same basis as the existing spectrum
+   chart). Built on an isolated worktree branch
+   (`worktree-continue-deep-library`) by a background session per its
+   own policy against merging/deploying from there; the operator merged
+   it into `main` (pure fast-forward to `e9bc4d3`) and ran the deploy.
+   Live-verified in a follow-up recovery pass: `VERSION` matches `HEAD`
+   exactly, both changed files byte-identical to the live tree,
+   `/utility/radio/` (200) shows the diagram inline, zero failed units,
+   no new nginx/PHP errors, full 206/206 regression - see
+   `docs/CHECKPOINTS.md`.
    **Antenna-type diagrams** (dipole/vertical/Yagi silhouettes) remain a
    separate, not-yet-built
    gap.

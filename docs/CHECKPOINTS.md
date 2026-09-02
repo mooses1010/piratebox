@@ -305,3 +305,23 @@ clean, `VERSION` stamped to `56040f1` matching `HEAD` exactly. Live
 present; zero failed units; no new nginx/PHP errors since deploy. Full
 five-suite regression: 206/206.
 
+| Deep field library, increment 11: Radio connector diagram (`connectors.svg.php` - original PirateBox-authored schematic comparing the 5 connector types already in the Feed Lines & Connectors guide's table; closes roadmap item 5's connector half) | `e9bc4d3` | *(none taken under the usual `~/piratebox-backups/` naming - built on an isolated worktree branch by a background session per its own policy against merging/deploying from there; the operator merged `worktree-continue-deep-library` into `main` and ran the deploy directly. `56040f1`/`27b7db1` above remains the most recent backed-up rollback point; the merge was a pure fast-forward, so rolling back to `27b7db1` is still a clean `git checkout` if ever needed)* |
+
+**Deployed and live-verified 2026-09-02 (merged from a worktree branch,
+deploy run by the operator; verified in this follow-up recovery
+pass):** `main` confirmed fast-forwarded to `e9bc4d3`
+(`git merge-base --is-ancestor e9bc4d3 HEAD` true, `HEAD` equals
+`e9bc4d3` exactly, tree clean). Live `includes/VERSION` stamped to
+`e9bc4d3`, matching `HEAD`. Both changed files
+(`public/utility/radio/connectors.svg.php`,
+`public/utility/radio/index.php`) confirmed byte-identical between the
+repo and the live `/var/www/html` tree. Live `/utility/radio/` (200)
+contains the new diagram markup and the Feed Lines & Connectors guide;
+`connectors.svg.php` requested directly also returns 200 with valid
+`<svg>` markup (served as `text/html` since it's a `require`-included
+partial, not a standalone asset - identical behavior to the
+pre-existing `spectrum.svg.php`, not a regression). Zero failed units;
+nginx error log's last entry predates this deploy (pre-existing,
+already-documented `open_basedir` warning from `fieldtools_time.php`,
+unrelated). Full five-suite regression: 206/206.
+
