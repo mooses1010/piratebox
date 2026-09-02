@@ -59,6 +59,15 @@ useful. **This is a way to prevent feature bloat, not justify it** - see
 both of which exist specifically to keep that promise honest as
 capabilities are added.
 
+**Unattended operation is part of this identity, not an edge case:**
+PirateBox may sit untouched for months, travel in a backpack without
+being taken out, or run unattended for days, then be reviewed long
+afterward - it should tolerate being ignored and still be understandable
+when the operator returns. See `docs/DEVICE-MEMORY-DESIGN.md` §9 for the
+full principle and its implications for future health/status, retention,
+and self-diagnosis work; §12/§13 below cover the memory/history model
+this implies.
+
 ## 2. Three architectural layers
 
 Every capability this project has, is building, or might someday add
@@ -302,6 +311,14 @@ discard coordinates after the necessary determination where practical,
 keep manual Travel Mode authoritative over any automatic guess, and
 introduce no cloud dependency.
 
+**GNSS history must remain a separate question from GNSS availability**
+- knowing the current position, using GNSS for UTC, and using GNSS for
+local Travel/Home detection must never silently imply route logging.
+Exact route capture is its own explicit, sensitive capability, opt-in
+only. See `docs/DEVICE-MEMORY-DESIGN.md` §8 for the full treatment,
+including how a future Field Session concept could scope route capture
+to a single deliberate trip rather than an always-on trail.
+
 ## 8. Physical / operational privacy
 
 Privacy is not only about stored data. PirateBox may eventually
@@ -397,6 +414,14 @@ surface, not a description of anything built now**):
   source, hardware roles, replacement information, known caveats.
 - **What don't I know?**
 
+**Self-awareness with memory** extends this list with history-aware
+questions - what happened, what changed, what was important, what has
+the operator already reviewed, what history exists, what history was
+*intentionally* not collected, what history is sensitive - covered in
+full in `docs/DEVICE-MEMORY-DESIGN.md` §10, which also covers §12's
+current-state-awareness principle in depth. This is deterministic
+device/state/history awareness, not an attempt at artificial memory.
+
 That last question matters as much as any other. PirateBox must
 distinguish, for example:
 
@@ -463,7 +488,7 @@ semantics, not implementation - a future capability-state store (see
 `docs/CAPABILITY-REGISTRY.md`'s own note on this) can adopt these
 categories when it's actually built.
 
-## 12. Current-state awareness, not surveillance
+## 12. Current-state awareness, not surveillance - and enough memory to be useful
 
 > **PREFER CURRENT-STATE AWARENESS OVER HISTORICAL SURVEILLANCE.**
 
@@ -479,6 +504,19 @@ currently available" without permanently logging every device that's
 ever appeared; "external AP failed and fallback is active" without
 automatically maintaining months of forensic telemetry.
 
+This principle was never actually a prohibition on remembering
+*anything* - the connection-statistics feature above already retains
+*some* history (hourly counts), just a purposeful, bounded, low-
+sensitivity kind. Refined explicitly, following from PirateBox's normal
+unattended lifecycle (§1, §9 below):
+
+> **RETAIN ENOUGH HISTORY FOR THE OPERATOR TO UNDERSTAND WHAT HAPPENED
+> WHILE PIRATEBOX WAS UNATTENDED, BUT MAKE RETENTION PURPOSEFUL,
+> BOUNDED, PRIVACY-CLASSIFIED, AND APPROPRIATE TO THE CAPABILITY.**
+
+> **PIRATEBOX SHOULD BE ABLE TO SUMMARIZE THE PERIOD SINCE THE OPERATOR
+> LAST REVIEWED IT.**
+
 Some limited history is genuinely useful for maintenance - temperature
 maximum, undervoltage events, storage warnings, capability failures,
 restart/recovery events. **But history should be deliberate.** For any
@@ -491,6 +529,15 @@ future retained telemetry, define explicitly:
 
 exactly the four questions the connection-statistics design already
 answers for its own data. Apply the same discipline to anything new.
+
+**Full model, not repeated here:** `docs/DEVICE-MEMORY-DESIGN.md` works
+through this in detail - the operator "since last review" concept,
+Operational History vs. Sensitive Observation History (the key
+distinction a future retention decision must classify against),
+retention-class semantics, aggregation-over-raw-samples, the optional
+Field Session concept, and how this interacts with §16's ownership-
+transfer question. **None of it is implemented** - no logging,
+database, or review mechanism exists on this device today.
 
 ## 13. Graceful self-diagnosis
 
@@ -621,6 +668,18 @@ actually sensitive, which are genuinely public-safe to carry forward)
 before any behavior is chosen. This document records the principle,
 not the procedure.
 
+**This now explicitly includes unattended-operation history** (§12,
+`docs/DEVICE-MEMORY-DESIGN.md` §13) - a future transfer must not
+automatically expose a previous operator's sensitive historical
+captures (a GNSS route, say) merely because ownership changed hands.
+Generic operational history (boot events, uptime, thermal warnings) may
+be reasonable to preserve; Sensitive Observation History
+(`docs/DEVICE-MEMORY-DESIGN.md` §4) should default toward the same
+reset treatment as the credentials/configuration listed above. **Not
+decided here either** - flagged so the eventual transfer design
+accounts for history/retention classes from the start, not as an
+afterthought.
+
 ## 17. Self-describing / inheritable device
 
 > **THE DEVICE SHOULD BE SELF-DESCRIBING ENOUGH THAT A LEGITIMATE
@@ -715,6 +774,10 @@ open questions for future design work, not gaps to silently fill now.
   future option, not decided.
 - The naming collision between Stage 16's "Recovery" and this
   document's "Recovery/Claim" (§14) - flagged, not resolved.
+- The "since last review" mechanism, Field Session UX, any specific
+  retention duration/sampling rate, and history's exact role in
+  ownership transfer - all §12/§16, detailed in
+  `docs/DEVICE-MEMORY-DESIGN.md` §14.
 
 ## 21. Cross-references
 
@@ -731,6 +794,8 @@ open questions for future design work, not gaps to silently fill now.
   degraded state):** `docs/FIELD-TOOLS-DESIGN.md`.
 - **Travel Mode (today's real example of §6/§7's exposure
   discipline):** `docs/TRAVEL-MODE-DESIGN.md`.
+- **Unattended-operation memory/history model in full** (§9/§12's
+  detailed companion): `docs/DEVICE-MEMORY-DESIGN.md`.
 - **Found Device / "Recovery Messages" (distinct from §14's
   "Recovery/Claim" - see that section's explicit note):**
   `docs/OPERATIONAL-DECISIONS.md`, "Stage 16."

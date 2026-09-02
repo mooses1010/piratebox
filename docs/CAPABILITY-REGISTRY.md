@@ -264,6 +264,11 @@ it is.**
   unresolved caveat about that specific power source**, not something
   this document resolves. No UPS/power hardware decision has been made
   because of it.
+- **Retention:** currently reports live/current state only, no
+  persisted undervoltage-event history. A future "undervoltage events
+  since last review" count (`docs/DEVICE-MEMORY-DESIGN.md` §3's
+  illustrative summary) would be Operational History (§4 there) - low
+  sensitivity, summary-class, not designed/built now.
 
 ### UPS / battery hardware
 
@@ -364,6 +369,10 @@ it is.**
 - **UI exposure:** none today (no hardware). Future exposure states
   (Private/Approximate/Public) are conceptual only - `docs/
   ARCHITECTURE.md` §7.
+- **Retention:** position availability and position *history* are
+  separate questions - route capture would be Sensitive Capture class,
+  opt-in only, never a side effect of using GNSS for time or a Home/
+  Travel check. Full treatment: `docs/DEVICE-MEMORY-DESIGN.md` §8.
 
 ### Environmental sensing (temperature/humidity, beyond CPU temp)
 

@@ -6,6 +6,88 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Device Memory / Unattended-Operation Design
+
+**Decision date:** 2026-09-02. Documentation-only follow-on to the
+architecture formalization below - **no runtime, system, network,
+GPIO, or web behavior changed; nothing deployed.** Formalizes how
+PirateBox should eventually remember what happened while unattended
+(powered occasionally, carried in a backpack for a trip, run for days
+without the operator looking, reviewed weeks or months later) - an
+extension of the self-awareness model, explicitly not a rejection of
+its existing privacy principles.
+
+**New: `docs/DEVICE-MEMORY-DESIGN.md`** - the dedicated design doc,
+created (rather than folding everything into `docs/ARCHITECTURE.md`
+directly) because the material is substantial enough to warrant the
+same treatment `docs/FIELD-TOOLS-DESIGN.md`/`docs/TRAVEL-MODE-DESIGN.md`
+already get: a refined history principle ("retain enough history... but
+make retention purposeful, bounded, privacy-classified, and appropriate
+to the capability" + "PirateBox should be able to summarize the period
+since the operator last reviewed it" - both explicitly *extending*, not
+replacing, the existing "prefer current-state awareness over historical
+surveillance" rule); the operator "since last review" concept; the
+Operational History vs. Sensitive Observation History distinction;
+retention-class semantics (Current Only / Event History / Summary
+History / Explicit Capture / Sensitive Capture) with the seven
+questions any future retained datum should answer; aggregation-over-
+raw-samples; the optional (never required) Field Session concept;
+reinforced GNSS-history/GNSS-availability separation; "unattended
+operation is normal" as identity, with its implications named for
+future health/status/retention/time-confidence/self-diagnosis work;
+self-awareness extended with history-aware questions; a reinforced
+privacy boundary plus the new symmetric retention principle
+("information is retained because there is a deliberate operational
+purpose... not merely because PirateBox was capable of observing it");
+storage/durability considerations (deferring to the *existing*
+authoritative Stage 24/25 discipline, not inventing a new one); and the
+open ownership-transfer interaction question.
+
+**Grounded in real precedent, not invented from scratch:** the entire
+model generalizes the already-shipped connection-statistics feature
+("Post-Stage-32: Privacy-Preserving Connection Statistics," below) -
+its `{hour_start, count, peak}` retention pattern is cited throughout
+as the concrete example of Summary History and Current-Only classes
+already working correctly in production.
+
+**`docs/ARCHITECTURE.md` changed** (concise principle-level touches +
+pointers, not duplication, per instruction): §1 gains a short
+"unattended operation is part of this identity" paragraph; §7 (GNSS)
+gains a short reinforcement that GNSS history is a separate question
+from GNSS availability; §10 (self-awareness) gains a pointer to the new
+history-aware questions; §12 is refined in place with the two new
+principles above and a pointer to the full model rather than repeating
+it; §16 (ownership transfer) gains an explicit note that historical
+data privacy classes are now part of that still-undecided question;
+§20/§21 updated accordingly.
+
+**`docs/CAPABILITY-REGISTRY.md` changed minimally, only where a
+capability-specific implication genuinely belongs** (per instruction
+not to bloat every entry): the GNSS receiver entry gains a one-line
+retention note; the undervoltage/power-quality monitoring entry (the
+one capability that already has real, live status data this model
+could someday extend) gains a one-line note connecting it to the
+Operational History class. No other entry touched.
+
+**`CLAUDE.md` changed minimally:** one new routing-table row pointing
+to `docs/DEVICE-MEMORY-DESIGN.md`. No philosophy added to `CLAUDE.md`
+itself.
+
+**Explicitly not done, per instruction:** no logging mechanism,
+database, retention job, review-boundary UI, Field Session handling, or
+GNSS capture was implemented. Every forward-looking claim in the new
+document is marked "not implemented"/"conceptual only," reviewed
+specifically for accidental implementation claims before committing.
+
+**Testing:** prose documents - no `php -l`/`bash -n` applies. Verified
+markdown structure (heading sequences sequential with no gaps in both
+`docs/ARCHITECTURE.md` and the new document; code fences balanced) and
+re-grepped for present-tense implementation language before committing;
+every match found was meta-commentary about the documents themselves.
+No live deployment - touches no `var/www/html` content, so no backup/
+checkpoint snapshot was needed (same "docs-only stage" pattern as the
+architecture-formalization entry below).
+
 ## Architecture / Philosophy Formalization: Core-Operational-Optional, Privacy, Ownership, Self-Awareness
 
 **Decision date:** 2026-09-02. Documentation/architecture-only - **no
