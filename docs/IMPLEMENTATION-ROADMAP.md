@@ -63,15 +63,60 @@ design doc is):
 
 | Feature | Status | Evidence | Next action | Docs |
 |---|---|---|---|---|
-| Radio / Emergency / First Aid reference (national) | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stages 2-4; INSTALLED per `/utility/about/`'s live reference-pack table | none | Stages 2-4 |
+| Radio / Emergency / First Aid reference (national) | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stages 2-4; INSTALLED per `/utility/about/`'s live reference-pack table. **Radio depth-expanded 2026-09-02** (roadmap item 3, see §3a below) | see §3a for the systematic audit and next actions | Stages 2-4, OPERATIONAL-DECISIONS.md "Deep Offline Reference Library: Radio Depth Expansion" |
 | Navigation & Coordinates (universal) | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stage 5 | none | Stage 5 |
 | **World Reference Map (universal)** | **IMPLEMENTED+DEPLOYED+LIVE-VERIFIED** | Was CANDIDATE for "no WAN path" - that blocker was about the Pi's isolated visitor AP, not this session's own `eth0` management uplink (confirmed live). Sourced Natural Earth public-domain data, built `world-reference-map.svg`, wired into `/utility/maps/` always-visible (Travel-Mode-immune), verified live 2026-09-02 (`1db5fab`) | none | REFERENCE-CONTENT-DESIGN.md §5, OPERATIONAL-DECISIONS.md "World Reference Map" |
 | Local Information | BLOCKED BY OPERATOR DATA | Stage 6/17; deliberately ships near-empty; framework complete, no code needed once data provided | operator supplies region/hospital/shelter/repeater data | Stage 6/17 |
 | Document Library | BLOCKED BY OPERATOR DATA | Stage 7; empty by design until operator adds documents | operator adds files | Stage 7 |
 | Local/Regional Map Catalog | BLOCKED BY OPERATOR DATA | Stage 5; ready-to-use, empty by design | operator adds local map files | Stage 5, REFERENCE-CONTENT-DESIGN.md |
-| Global Offline Search | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stage 8/18; 92 indexed items as of 2026-09-02 (was 83 - now includes the World Map) | none | Stage 8/18 |
+| Global Offline Search | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stage 8/18; 99 indexed items as of 2026-09-02 (was 83 at last full audit, 92 after the World Map, 99 after Radio's depth expansion) | none | Stage 8/18 |
 | "Take This With You" export/download | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stage 19; live-verified this session (200) | Field Tools calculators deliberately not bundled (§10 FIELD-TOOLS-DESIGN.md) - "worth revisiting if operators ask," not approved | Stage 19 |
 | Manifest ("What's on this PirateBox?") | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stage 20 | none | Stage 20 |
+
+### 3a. Deep Field Library content audit (2026-09-02)
+
+**Guiding test:** would finding this PirateBox during a prolonged
+infrastructure/communications failure be genuinely valuable, without
+indiscriminately mirroring the Internet? Audited per-category before
+picking where to expand, per instruction not to overbuild one subject
+just because it was mentioned most recently.
+
+| Category | Depth (entries) | Beginner use | Advanced use | Visual coverage | Provenance | Geo scope | Gap found |
+|---|---|---|---|---|---|---|---|
+| Radio Reference | 25 services + 6 modulation + **13 guides** (was 6) | Good - `<details>` accordion, plain-language guides, search/filter | Good after this increment - propagation/antenna/dB/SDR/simplex-repeater/polarization/connectors/phonetic/Morse all now present | 1 SVG spectrum chart (pre-existing); connector ID is a **table, not a diagram** | Per-entry `source_id` -> `sources.json` (FCC/ARRL/NOAA/ITU), `confidence` field on every entry | National (US band plans) + universal (propagation physics, phonetic/Morse standards) | **Closed this increment**: dB/dBm, SDR, simplex/repeater, polarization, connectors, phonetic alphabet, Morse code. **Still open**: connector/antenna-type diagrams (image, not table) |
+| Emergency/Outage Reference | 21 topics | Good - already covers water storage, food safety, sanitation, shelter-in-place, power/generator/CO safety, evacuation | Moderate - practical guidance depth, not deep technical reference | None | Ready.gov/FEMA/CDC/NOAA/NFPA per-entry sourcing (Stage 3) | National | Already much broader/deeper than a first glance at "21 topics" suggests - **no action needed**, confirmed via full read, not assumed thin |
+| First Aid Reference | 16 topics | Good - Red Cross "Check Call Care" framing, plain language | Shallow by design - deliberately conservative, not a clinical reference (correct for a liability-aware, non-professional-audience page) | **None - the one category where a diagram (CPR hand position, recovery position, Heimlich) would help most** | Red Cross/CDC per-entry sourcing (Stage 4) | National/universal | Visual gap real but **deliberately not rushed**: medical diagrams need verified redistribution rights from an authoritative source (Red Cross material is often not freely redistributable) - flagged as next action, not attempted from memory |
+| Maps &amp; Location Reference | 1 world map + 5 coordinate/GPS entries; local/regional catalog empty by design | Good - "at a glance" world map, GPS/coordinate basics | Thin - no national/regional map layer, no UTM/MGRS visual, no map-symbols reference | 1 world map SVG (2026-09-02) | Natural Earth (public domain), USGS/NOAA/gps.gov | **Universal only** - National/Regional/State layers named in the request are genuinely absent | **Highest-value remaining gap** - see next action below |
+| Local Information | Empty except 2 universal numbers | N/A until configured | N/A | None | Operator-provided | Local | Correctly BLOCKED BY OPERATOR DATA, not a content gap |
+| Document Library | Empty | N/A | N/A | N/A | Operator-provided | Local | Correctly BLOCKED BY OPERATOR DATA |
+| Field Tools | 3 tool pages (time/units/coordinates) | Good | Good for what's in scope | None (calculators, not reference material) | N/A (interactive tools) | Universal | UTM/MGRS conversion deliberately out of scope (already re-audited, see §4) |
+
+**New categories evaluated, not added (reasoned no, not silently skipped):**
+- **Water/sanitation/shelter/food safety** - already substantially covered inside Emergency/Outage Reference (Water Storage & Boil-Water Advisories, Food Safety During an Outage, Sanitation Without Running Water, Shelter-in-Place vs. Evacuating). Adding a separate category would duplicate, not fill a gap.
+- **Weather/environment** - storm-specific topics (thunderstorms, tornadoes, extreme heat/cold) already covered in Emergency Reference; a **cloud-identification visual chart** is a genuine, distinct, still-open gap (see below).
+- **Computing/networking** - evaluated and rejected: doesn't fit this device's field/emergency-reference mission the way radio/first-aid/navigation do; PirateBox *is* the networking demonstration, not a subject it needs to teach.
+- **Electrical/electronics reference** (Ohm's law, wire gauge/ampacity, common symbols) - genuinely absent, moderate field-repair value, not yet built - candidate for a future increment.
+- **Knots/rigging/basic repair** - genuinely absent, field-useful, not yet built - candidate for a future increment, lower priority than Maps.
+- **Signaling reference** (ground-to-air visual signals, distress signals) - Morse SOS now covered (this increment); a dedicated visual ground-to-air signal chart remains a genuine, small, not-yet-built gap.
+
+**Next actions, in priority order** (highest user-visible value per
+the audit above, feeding directly into implementation - not left as
+prose):
+1. **National-scope map (US)** - reuse the exact Natural Earth pipeline
+   already proven for the World Map (`tools/build_world_reference_map.py`
+   is directly adaptable to `ne_110m_admin_1_states_provinces.geojson`
+   filtered to the US). Fills the single largest gap this audit found.
+2. **Cloud-identification visual reference** - genuinely useful, small,
+   sourceable from NOAA/NWS public-domain material.
+3. **Electrical/electronics quick reference** (Ohm's law, wire gauge
+   table, common symbols) - moderate value, no safety-critical
+   procedures, software/content-only.
+4. **First-aid visual diagrams** - real gap, but explicitly gated on
+   finding an authoritatively-sourced, redistributable diagram set
+   first (Red Cross material is often not freely redistributable) -
+   do not attempt from model memory for anything medical.
+5. **Connector/antenna-type diagrams for Radio** - upgrade the existing
+   text table to an actual diagram once a sourcing approach is chosen.
 
 ## 4. Field Tools
 

@@ -6,6 +6,71 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Deep Offline Reference Library: Radio Depth Expansion (roadmap item 3)
+
+**Decision date:** 2026-09-02. First increment of a new major
+direction: grow the Reference/Utility Library into a genuinely
+substantial offline field library, guided by the test "someone finds
+this PirateBox during a prolonged infrastructure/communications
+failure - is finding it genuinely valuable?" Content audit done first
+(recorded in `docs/IMPLEMENTATION-ROADMAP.md`'s new "Reference Library
+content audit" section) before picking where to start.
+
+**Audit finding that changed the plan:** Radio Reference turned out
+already substantially deeper than a first look at entry counts
+suggested - 25 services, 6 modulation types, and 6 already-well-written
+guides (RF spectrum overview, HF/VHF/UHF, HF propagation, antenna
+basics, receiver tips, emergency monitoring), plus an existing SVG
+spectrum-chart visual (`spectrum.svg.php`) and a working `<details>`-
+based progressive-disclosure pattern (summary = at-a-glance, expanded =
+full explanation + source citation) already matching the requested
+"at a glance / learn / technical reference" shape. **The real gap was
+narrower and more specific than "Radio needs more depth" in general:**
+seven concrete topics named in the request were genuinely absent -
+dB/dBm, SDR concepts, simplex/repeater, polarization, feed lines/
+connector identification, the NATO phonetic alphabet, and Morse code.
+
+**Built:** seven new entries in `data/utility/radio/guides.json`,
+reusing the exact existing guide schema/rendering (no new page
+structure) plus one small additive extension: guides can now optionally
+carry a `table`/`table_caption` (reusing the identical union-of-keys
+table renderer `services.channels` already used, just applied to
+guides too) - used for the connector-identification, phonetic-
+alphabet, and Morse-code entries, since those are genuinely
+tabular reference material, not prose. `radio/index.php` updated
+accordingly (one small additive block, same pattern as the existing
+channels table).
+
+**Provenance:** the NATO phonetic alphabet and International Morse
+Code are both fixed ITU/ICAO standards, not judgment calls or
+generated procedures - transcribed directly (not "generated from
+memory" in the risky sense the project's own sourcing discipline
+warns about; these are unambiguous, universally-fixed lookup tables,
+same register as transcribing a known physical constant). The dB/dBm,
+SDR, simplex/repeater, polarization, and connector guides are
+conceptual/educational content in the same register and citing the
+same `general-rf-education`/`itu-r-v431` source ids the existing six
+guides already use - no safety-critical transmission procedures were
+added, and the page's existing receive-focused/license-required-to-
+transmit framing is unchanged.
+
+**Testing:** `php -l` clean. Rendered the actual repo `radio/index.php`
+directly (GET-only structural check) - confirmed all seven new guides
+render, the phonetic-alphabet table shows Alfa through Zulu, the Morse
+table shows the SOS prosign correctly. `tools/build_search_index.py`
+re-run (99 entries, was 92 - 44 of the 99 are now Radio section
+entries). Full five-suite regression: 202 assertions, 0 failures
+(unaffected by design - no suite covers static reference content, as
+before).
+
+**Not yet built from this same audit** (recorded in the roadmap, not
+lost): visual connector-identification diagrams (currently a text
+table, not an image - a genuine future improvement but requires
+sourcing/creating an actual diagram, not rushed into this increment);
+antenna-type/radio-band visual diagrams beyond the existing spectrum
+chart. See `docs/IMPLEMENTATION-ROADMAP.md` for the full audit and
+next actions across every other Reference Library category.
+
 ## Physical Wiring Self-Description (roadmap item 2)
 
 **Decision date:** 2026-09-02. Second roadmap-driven implementation

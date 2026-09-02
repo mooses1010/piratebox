@@ -238,6 +238,35 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
                             </summary>
                             <div class="radio-entry-detail">
                                 <p><?= htmlspecialchars($g['body']) ?></p>
+                                <?php if (!empty($g['table'])): ?>
+                                    <?php if (!empty($g['table_caption'])): ?><p><strong><?= htmlspecialchars($g['table_caption']) ?></strong></p><?php endif; ?>
+                                    <div class="table-wrapper">
+                                        <table class="radio-channel-table">
+                                            <?php
+                                            // Same union-of-keys approach as the services/channels table
+                                            // above - a guide's table rows aren't required to share
+                                            // identical keys (e.g. the phonetic-alphabet table has no
+                                            // "notes" column, the connector table does).
+                                            $gCols = [];
+                                            foreach ($g['table'] as $row) {
+                                                foreach (array_keys($row) as $k) {
+                                                    if (!in_array($k, $gCols, true)) $gCols[] = $k;
+                                                }
+                                            }
+                                            ?>
+                                            <thead>
+                                                <tr><?php foreach ($gCols as $c): ?><th><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $c))) ?></th><?php endforeach; ?></tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($g['table'] as $row): ?>
+                                                    <tr>
+                                                        <?php foreach ($gCols as $c): ?><td><?= htmlspecialchars((string) ($row[$c] ?? '')) ?></td><?php endforeach; ?>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <?php endif; ?>
                                 <p class="radio-entry-source"><?= radio_source_line($sources, $g['source_id'] ?? null, null, $g['confidence'] ?? null, $g['source_note'] ?? null) ?></p>
                             </div>
                         </details>

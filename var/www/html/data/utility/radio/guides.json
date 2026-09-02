@@ -77,5 +77,148 @@
     ],
     "confidence": "high",
     "source_id": "general-rf-education"
+  },
+  {
+    "id": "decibels-db-dbm",
+    "title": "Decibels (dB / dBm) - Signal Strength Concepts",
+    "body": "A decibel (dB) is a ratio, not an absolute amount - it compares two power levels on a logarithmic scale. +3 dB means roughly double the power; +10 dB means 10x the power; -3 dB means roughly half. dBm is an absolute unit built on the same scale: 0 dBm = 1 milliwatt, so +30 dBm = 1 watt, +40 dBm = 10 watts, and -100 dBm (a typical weak-signal receiver noise floor) is an extremely small fraction of a milliwatt. A receiver's signal-strength meter (often labeled S-units, S1-S9, then '+10/+20/+40 dB over S9' beyond that) is really just a coarse dB scale in disguise. The practical takeaway: doubling a radio's transmit power only gains about 3 dB - a genuinely modest, often barely-noticeable improvement - while a better antenna or feed line can easily gain far more than that for free.",
+    "keywords": [
+      "db",
+      "dbm",
+      "decibel",
+      "signal strength",
+      "s-units",
+      "s meter"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "sdr-basics",
+    "title": "Software-Defined Radio (SDR) Basics",
+    "body": "A traditional radio does its filtering/demodulation in dedicated analog hardware built for one job. An SDR instead digitizes a chunk of raw spectrum as early as possible and does the rest - filtering, demodulation, decoding - in software, which is what makes a single device like a wideband receiver able to tune AM, FM, SSB, and digital modes across a huge frequency range without swapping hardware. The tradeoff is that an SDR's usable range at any instant is limited by its 'bandwidth' (how much spectrum it can digitize at once, distinct from the tuning range it can reach) and by its analog-to-digital converter's dynamic range (how well it handles a very strong nearby signal without swamping a weak one next to it - 'overload'). A 'waterfall' display is simply a visual history of that digitized spectrum over time, which is why SDR-based receivers are so good at showing activity across a whole band at a glance rather than one frequency at a time.",
+    "keywords": [
+      "sdr",
+      "software defined radio",
+      "waterfall",
+      "bandwidth",
+      "overload"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "simplex-vs-repeater",
+    "title": "Simplex vs. Repeater Operation",
+    "body": "Simplex means two stations talk directly to each other on one shared frequency - simple, but range is limited to whatever the two stations can reach directly (line-of-sight on VHF/UHF). A repeater instead listens on one frequency and instantly retransmits on a second frequency from a high, well-placed location (a hilltop or tall tower), so two low-power handheld radios that could never hear each other directly can both reach the repeater and therefore each other - dramatically extending practical range. This is why amateur 2m/70cm repeater listings always show two frequencies (input/output, often called the 'offset') rather than one, and why FRS/GMRS/MURS listings on this page are simplex-only (repeaters are a licensed-amateur/GMRS-specific concept, not available on unlicensed FRS/MURS). A repeater also usually requires a sub-audible tone (CTCSS) or digital code to activate ('open') it, which keeps it from responding to unrelated noise or distant repeaters sharing the same frequency pair.",
+    "keywords": [
+      "simplex",
+      "repeater",
+      "offset",
+      "ctcss",
+      "tone squelch",
+      "duplex"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "antenna-polarization",
+    "title": "Antenna Polarization",
+    "body": "Polarization describes the orientation of a radio wave's electric field, and it's set by the physical orientation of the transmitting antenna - vertical (antenna standing straight up), horizontal (antenna lying flat), or circular (rotating, common for satellite/GPS work). Matching polarization between transmitter and receiver matters: a mismatch (vertical talking to horizontal) can weaken a signal by 20 dB or more, which is often the difference between a clear copy and hearing nothing at all. Convention, not physics, decides which is used where: VHF/UHF FM (repeaters, GMRS, FRS, most handhelds) is vertical by near-universal convention; broadcast FM/TV and many fixed point-to-point/amateur weak-signal links are horizontal; airband and most marine VHF are vertical. A handheld radio's antenna is vertical whenever the radio is held upright, which is exactly why it is - this alone is a large part of why matching a base or mobile antenna's orientation to what you're trying to hear noticeably improves reception.",
+    "keywords": [
+      "polarization",
+      "vertical",
+      "horizontal",
+      "circular polarization",
+      "cross polarization"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education"
+  },
+  {
+    "id": "feedlines-and-connectors",
+    "title": "Feed Lines & Common Connectors",
+    "body": "The cable between a radio and its antenna (the 'feed line', almost always coax at these frequencies) loses some signal as heat over its length - loss increases with cable length, frequency, and cheaper/thinner cable, which is why a long run to an outdoor antenna benefits from thicker, lower-loss coax (e.g. RG-8/LMR-400 family) rather than thin RG-58, especially at VHF/UHF where loss per foot is much higher than at HF. Every connector in the path is also a potential loss/reflection point, so fewer adapters/barrel connectors in the chain is generally better. The table below covers the connector types most likely to be encountered on receive-focused gear - identifying one correctly avoids buying the wrong adapter.",
+    "keywords": [
+      "feed line",
+      "coax",
+      "coaxial cable",
+      "connector",
+      "connectors",
+      "bnc",
+      "sma",
+      "pl-259",
+      "so-239",
+      "n-type",
+      "adapter"
+    ],
+    "confidence": "high",
+    "source_id": "general-rf-education",
+    "table_caption": "Common RF connectors",
+    "table": [
+      {"connector": "BNC", "coupling": "Bayonet (push + quarter-turn)", "typical_use": "Handhelds, test equipment, older ham gear", "notes": "Quick to connect/disconnect; good to a few GHz"},
+      {"connector": "SMA / RP-SMA", "coupling": "Small threaded", "typical_use": "Handhelds, SDR dongles, Wi-Fi/ham HT antennas", "notes": "RP-SMA ('reverse polarity') swaps pin/socket vs. standard SMA - common cause of 'wrong' adapters"},
+      {"connector": "PL-259 / SO-239 (\"UHF\" connector)", "coupling": "Large threaded", "typical_use": "HF and mobile amateur gear", "notes": "Despite the name, not ideal above ~300 MHz - not a true constant-impedance design"},
+      {"connector": "N-type", "coupling": "Threaded, weatherproof", "typical_use": "Base stations, repeaters, outdoor runs", "notes": "Good performance well into the GHz range"},
+      {"connector": "F-type", "coupling": "Threaded (often push-on)", "typical_use": "TV/cable equipment, some broadcast-band SDR gear", "notes": "Common on consumer coax, not typically used for ham transmit gear"}
+    ]
+  },
+  {
+    "id": "nato-phonetic-alphabet",
+    "title": "NATO Phonetic Alphabet",
+    "body": "The standard spelling alphabet used internationally on radio and telephone to make letters unambiguous over a noisy channel (e.g. 'B' and 'D' sound alike, but 'Bravo' and 'Delta' don't). Officially the ICAO/NATO phonetic alphabet, but effectively universal across amateur, aviation, marine, and public-safety radio worldwide - one of the few things every radio service agrees on. For digits, the plain number names are normally used, though aviation/military contexts sometimes use 'niner' for 9 and 'fife' for 5 specifically to avoid confusion with similar-sounding words over a poor connection.",
+    "keywords": [
+      "phonetic alphabet",
+      "nato alphabet",
+      "spelling alphabet",
+      "alpha bravo charlie",
+      "icao alphabet"
+    ],
+    "confidence": "high",
+    "source_id": "itu-r-v431",
+    "table_caption": "Letter -> spoken word",
+    "table": [
+      {"letter": "A", "word": "Alfa"}, {"letter": "B", "word": "Bravo"}, {"letter": "C", "word": "Charlie"},
+      {"letter": "D", "word": "Delta"}, {"letter": "E", "word": "Echo"}, {"letter": "F", "word": "Foxtrot"},
+      {"letter": "G", "word": "Golf"}, {"letter": "H", "word": "Hotel"}, {"letter": "I", "word": "India"},
+      {"letter": "J", "word": "Juliett"}, {"letter": "K", "word": "Kilo"}, {"letter": "L", "word": "Lima"},
+      {"letter": "M", "word": "Mike"}, {"letter": "N", "word": "November"}, {"letter": "O", "word": "Oscar"},
+      {"letter": "P", "word": "Papa"}, {"letter": "Q", "word": "Quebec"}, {"letter": "R", "word": "Romeo"},
+      {"letter": "S", "word": "Sierra"}, {"letter": "T", "word": "Tango"}, {"letter": "U", "word": "Uniform"},
+      {"letter": "V", "word": "Victor"}, {"letter": "W", "word": "Whiskey"}, {"letter": "X", "word": "X-ray"},
+      {"letter": "Y", "word": "Yankee"}, {"letter": "Z", "word": "Zulu"}
+    ]
+  },
+  {
+    "id": "morse-code-reference",
+    "title": "Morse Code Reference",
+    "body": "International Morse Code - a series of short ('dit') and long ('dah', roughly 3x a dit's length) tones representing letters and digits. Still used today on amateur CW (Continuous Wave) sub-bands (see the CW entry under Modulation Types) because a Morse signal needs far less bandwidth and can be copied through noise/weak-signal conditions that would make voice unreadable. SOS (... --- ...) remains recognizable worldwide as a distress signal even to those with no other Morse knowledge, and is unusual among prosigns for being sent as one unbroken string rather than as three separate letters.",
+    "keywords": [
+      "morse code",
+      "cw",
+      "sos",
+      "dit dah",
+      "prosign"
+    ],
+    "confidence": "high",
+    "source_id": "itu-r-v431",
+    "table_caption": "Character -> Morse code",
+    "table": [
+      {"char": "A", "code": ".-"}, {"char": "B", "code": "-..."}, {"char": "C", "code": "-.-."},
+      {"char": "D", "code": "-.."}, {"char": "E", "code": "."}, {"char": "F", "code": "..-."},
+      {"char": "G", "code": "--."}, {"char": "H", "code": "...."}, {"char": "I", "code": ".."},
+      {"char": "J", "code": ".---"}, {"char": "K", "code": "-.-"}, {"char": "L", "code": ".-.."},
+      {"char": "M", "code": "--"}, {"char": "N", "code": "-."}, {"char": "O", "code": "---"},
+      {"char": "P", "code": ".--."}, {"char": "Q", "code": "--.-"}, {"char": "R", "code": ".-."},
+      {"char": "S", "code": "..."}, {"char": "T", "code": "-"}, {"char": "U", "code": "..-"},
+      {"char": "V", "code": "...-"}, {"char": "W", "code": ".--"}, {"char": "X", "code": "-..-"},
+      {"char": "Y", "code": "-.--"}, {"char": "Z", "code": "--.."},
+      {"char": "0", "code": "-----"}, {"char": "1", "code": ".----"}, {"char": "2", "code": "..---"},
+      {"char": "3", "code": "...--"}, {"char": "4", "code": "....-"}, {"char": "5", "code": "....."},
+      {"char": "6", "code": "-...."}, {"char": "7", "code": "--..."}, {"char": "8", "code": "---.."},
+      {"char": "9", "code": "----."},
+      {"char": "SOS (prosign)", "code": "...---..."}
+    ]
   }
 ]

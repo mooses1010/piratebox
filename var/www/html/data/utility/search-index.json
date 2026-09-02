@@ -511,6 +511,112 @@
     ]
   },
   {
+    "title": "Decibels (dB / dBm) - Signal Strength Concepts",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#decibels-db-dbm",
+    "snippet": "A decibel (dB) is a ratio, not an absolute amount - it compares two power levels on a logarithmic scale. +3 dB means roughly double the power; +10 dB means 10x ",
+    "keywords": [
+      "db",
+      "dbm",
+      "decibel",
+      "signal strength",
+      "s-units",
+      "s meter"
+    ]
+  },
+  {
+    "title": "Software-Defined Radio (SDR) Basics",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#sdr-basics",
+    "snippet": "A traditional radio does its filtering/demodulation in dedicated analog hardware built for one job. An SDR instead digitizes a chunk of raw spectrum as early as",
+    "keywords": [
+      "sdr",
+      "software defined radio",
+      "waterfall",
+      "bandwidth",
+      "overload"
+    ]
+  },
+  {
+    "title": "Simplex vs. Repeater Operation",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#simplex-vs-repeater",
+    "snippet": "Simplex means two stations talk directly to each other on one shared frequency - simple, but range is limited to whatever the two stations can reach directly (l",
+    "keywords": [
+      "simplex",
+      "repeater",
+      "offset",
+      "ctcss",
+      "tone squelch",
+      "duplex"
+    ]
+  },
+  {
+    "title": "Antenna Polarization",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#antenna-polarization",
+    "snippet": "Polarization describes the orientation of a radio wave's electric field, and it's set by the physical orientation of the transmitting antenna - vertical (antenn",
+    "keywords": [
+      "polarization",
+      "vertical",
+      "horizontal",
+      "circular polarization",
+      "cross polarization"
+    ]
+  },
+  {
+    "title": "Feed Lines & Common Connectors",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#feedlines-and-connectors",
+    "snippet": "The cable between a radio and its antenna (the 'feed line', almost always coax at these frequencies) loses some signal as heat over its length - loss increases ",
+    "keywords": [
+      "feed line",
+      "coax",
+      "coaxial cable",
+      "connector",
+      "connectors",
+      "bnc",
+      "sma",
+      "pl-259",
+      "so-239",
+      "n-type",
+      "adapter"
+    ]
+  },
+  {
+    "title": "NATO Phonetic Alphabet",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#nato-phonetic-alphabet",
+    "snippet": "The standard spelling alphabet used internationally on radio and telephone to make letters unambiguous over a noisy channel (e.g. 'B' and 'D' sound alike, but '",
+    "keywords": [
+      "phonetic alphabet",
+      "nato alphabet",
+      "spelling alphabet",
+      "alpha bravo charlie",
+      "icao alphabet"
+    ]
+  },
+  {
+    "title": "Morse Code Reference",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#morse-code-reference",
+    "snippet": "International Morse Code - a series of short ('dit') and long ('dah', roughly 3x a dit's length) tones representing letters and digits. Still used today on amat",
+    "keywords": [
+      "morse code",
+      "cw",
+      "sos",
+      "dit dah",
+      "prosign"
+    ]
+  },
+  {
     "title": "Thunderstorms & Lightning",
     "section": "emergency",
     "section_label": "Emergency / Outage Reference",
