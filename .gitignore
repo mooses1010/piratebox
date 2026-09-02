@@ -27,3 +27,10 @@ var/www/html/public/utility/exports/
 # via qrencode, not committed (see installer_pi_zero_trixie.sh).
 var/www/html/public/assets/qr-url.png
 var/www/html/public/assets/qr-wifi.png
+
+# Context-recovery infrastructure (see CLAUDE.md): an optional, transient,
+# per-checkout handoff note for interrupted work - never a source of truth
+# by itself (CLAUDE.md §5 explains how to correlate it against real state),
+# and deliberately never committed - durable state belongs in git/docs, not
+# here. Fine for this to not exist most of the time.
+/CURRENT-WORK.md
