@@ -508,5 +508,29 @@
     "secondary_source_id": null,
     "confidence": "medium",
     "source_note": "Symbol meanings cross-checked against multiple secondary summaries of the published FAA/ICAO standard rather than the primary AIM/Annex 12 text directly - confidence set to medium on that basis, though the core 6 symbols shown are consistently reported across sources."
+  },
+  {
+    "id": "ten-essentials",
+    "category": "planning",
+    "title": "Ten Essentials for Outdoor/Field Safety",
+    "summary": "A standard packing checklist that covers navigation, sun/weather protection, food/water, and emergency shelter for any outdoor trip.",
+    "quick_actions": [
+      "Navigation (map, compass, GPS), sun protection (sunglasses/sunscreen/hat), and extra clothing/layers.",
+      "Illumination (flashlight/headlamp), first-aid supplies, and fire-starting (matches/lighter).",
+      "A repair kit/tools (knife, duct tape, multi-tool), extra food, and water plus water-treatment supplies.",
+      "Emergency shelter (tent, space blanket, tarp, or bivy) - the item most often skipped on a day trip that then runs long."
+    ],
+    "more_info": "None of these require expensive gear - the point is covering all ten categories, not buying premium versions of each. A day hike that unexpectedly runs past dark or into bad weather is exactly the scenario this list is packed for.",
+    "keywords": [
+      "ten essentials",
+      "hiking checklist",
+      "outdoor safety",
+      "packing list",
+      "nps"
+    ],
+    "source_id": "nps-ten-essentials",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
   }
 ]

@@ -1,4 +1,11 @@
 {
+  "nps-ten-essentials": {
+    "name": "The Ten Essentials",
+    "publisher": "National Park Service (NPS)",
+    "url": "https://www.nps.gov/articles/10essentials.htm",
+    "retrieved": "2026-09-02",
+    "note": "NPS-authored safety guidance, public domain under 17 U.S.C. Sec. 105 (confirmed against NPS's own public-domain policy - material NPS creates and presents on its own site is public domain unless otherwise indicated, with the usual caveat for third-party-contributed content, which does not apply to this plain agency-authored article). Written originally for this entry rather than copied - see docs/REFERENCE-CONTENT-DESIGN.md's Tier 2 (PirateBox Reference Material) distinction."
+  },
   "faa-icao-ground-signals": {
     "name": "Ground-to-Air Emergency Signal Code (FAA Aeronautical Information Manual / ICAO Annex 12 search-and-rescue signal standard)",
     "publisher": "FAA / ICAO (international civil aviation standard)",
