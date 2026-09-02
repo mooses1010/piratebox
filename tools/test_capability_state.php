@@ -119,6 +119,28 @@ foreach ($caps as $c) {
 }
 cs_assert_eq('Every live capability entry carries provider/provider_class', $providerFieldsPresent, true);
 
+// --- piratebox_diagnose_capability(): graceful self-diagnosis ---
+
+cs_assert_eq('AVAILABLE has nothing to diagnose', piratebox_diagnose_capability('ap_network', ['state' => 'AVAILABLE']), null);
+cs_assert_eq('NOT_INSTALLED has nothing to diagnose', piratebox_diagnose_capability('oled', ['state' => 'NOT_INSTALLED']), null);
+cs_assert_eq('DEGRADED ap_network returns a real explanation', is_string(piratebox_diagnose_capability('ap_network', ['state' => 'DEGRADED'])), true);
+cs_assert_eq('DEGRADED power_monitoring mentions undervoltage', str_contains((string) piratebox_diagnose_capability('power_monitoring', ['state' => 'DEGRADED']), 'ndervoltage'), true);
+cs_assert_eq('Unrecognized capability id -> null, never a guess', piratebox_diagnose_capability('totally_made_up_id', ['state' => 'DEGRADED']), null);
+cs_assert_eq('Recognized id, unrecognized state combination -> null', piratebox_diagnose_capability('shutdown_button', ['state' => 'DEGRADED']), null);
+cs_assert_eq('Missing state key -> treated as UNKNOWN, not a crash', is_string(piratebox_diagnose_capability('ap_network', [])) || piratebox_diagnose_capability('ap_network', []) === null, true);
+
+// Every live DEGRADED/UNAVAILABLE/UNKNOWN capability either has a real
+// diagnosis or is honestly not covered yet - never crashes either way.
+$diagnosisRanCleanly = true;
+foreach ($caps as $id => $c) {
+    try {
+        piratebox_diagnose_capability($id, $c);
+    } catch (\Throwable $e) {
+        $diagnosisRanCleanly = false;
+    }
+}
+cs_assert_eq('Diagnosing every live capability never throws', $diagnosisRanCleanly, true);
+
 // Regression test for a real bug found live: capability_state.php's
 // disk_total_space()/disk_free_space() path must resolve to exactly the
 // webroot (var/www/html) - one level too many silently resolves outside

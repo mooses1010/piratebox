@@ -322,3 +322,56 @@ if (!function_exists('piratebox_capability_summary_counts')) {
         return $counts;
     }
 }
+
+if (!function_exists('piratebox_diagnose_capability')) {
+    /**
+     * Graceful self-diagnosis (docs/ARCHITECTURE.md §13) - a first real
+     * slice, not the full "explain any deterministic problem" goal.
+     * Pure and directly testable: given one capability's id and its
+     * current entry (as returned by piratebox_get_capability_state()),
+     * returns a short, deterministic explanation for a real problem, or
+     * null when there's nothing to explain (AVAILABLE/NOT_INSTALLED
+     * aren't problems). Deliberately NOT "AI diagnoses everything" - a
+     * fixed lookup keyed on exactly what this module already knows,
+     * matching §13's own worked examples. Capabilities not listed here
+     * simply return null for a bad state too - an unrecognized id/state
+     * combination is honestly "nothing to say," not a guess.
+     */
+    function piratebox_diagnose_capability(string $id, array $capability): ?string
+    {
+        $state = $capability['state'] ?? 'UNKNOWN';
+        if (!in_array($state, ['DEGRADED', 'UNAVAILABLE', 'UNKNOWN'], true)) {
+            return null; // AVAILABLE / NOT_INSTALLED - nothing wrong to explain
+        }
+
+        static $messages = [
+            'ap_network' => [
+                'DEGRADED' => 'One or both of hostapd/dnsmasq are not active. The AP or DHCP/DNS may be down for connecting clients. Suggested check: systemctl status hostapd dnsmasq.',
+                'UNKNOWN' => 'Status helper snapshot unavailable - AP health cannot currently be confirmed, though the AP itself may still be fine.',
+            ],
+            'web_app' => [
+                'DEGRADED' => 'One or both of nginx/php8.4-fpm are not active. The web app may be partly or fully unreachable. Suggested check: systemctl status nginx php8.4-fpm.',
+                'UNKNOWN' => 'Status helper snapshot unavailable - web app health cannot currently be confirmed.',
+            ],
+            'status_helper' => [
+                'UNAVAILABLE' => 'The root status helper has not reported recently (stale or missing snapshot). Everything that depends on it (power, connection stats) is temporarily unknown, not necessarily unhealthy. Suggested check: systemctl status piratebox-status.timer.',
+            ],
+            'power_monitoring' => [
+                'DEGRADED' => 'Undervoltage detected right now - a known power-supply-quality issue on this hardware, not something software can fix. Suggested check: power supply/cable, per README.',
+                'UNAVAILABLE' => 'Status helper snapshot unavailable - power quality cannot currently be confirmed.',
+            ],
+            'time_confidence' => [
+                'DEGRADED' => 'No hardware RTC and no confirmed recent time sync - displayed timestamps may be inaccurate after a cold boot with no network. Messages/logs still work correctly relative to each other within one boot.',
+                'UNKNOWN' => 'Time-source status unavailable - see /utility/fieldtools/time/ for detail.',
+            ],
+            'rtc' => [
+                'UNKNOWN' => 'Time-source status unavailable - RTC presence cannot currently be confirmed.',
+            ],
+            'connection_stats' => [
+                'UNAVAILABLE' => 'Status helper snapshot unavailable - connection statistics are temporarily not updating.',
+            ],
+        ];
+
+        return $messages[$id][$state] ?? null;
+    }
+}

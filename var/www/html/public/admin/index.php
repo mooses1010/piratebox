@@ -419,7 +419,8 @@ $connStats = piratebox_get_connection_stats();
             <thead><tr><th>Layer</th><th>Capability</th><th>State</th><th>Provider</th><th>Notes</th></tr></thead>
             <tbody>
                 <?php foreach (['core' => 'Core', 'operational' => 'Operational', 'optional' => 'Optional/Field'] as $layerKey => $layerLabel): ?>
-                    <?php foreach ($capabilities as $c): if ($c['layer'] !== $layerKey) continue; ?>
+                    <?php foreach ($capabilities as $capId => $c): if ($c['layer'] !== $layerKey) continue; ?>
+                        <?php $diagnosis = piratebox_diagnose_capability($capId, $c); ?>
                         <tr>
                             <td><?= $layerLabel ?></td>
                             <td><?= htmlspecialchars($c['label']) ?></td>
@@ -428,6 +429,9 @@ $connStats = piratebox_get_connection_stats();
                             </td>
                             <td class="muted"><?= $c['provider'] !== null ? htmlspecialchars($c['provider']) : '-' ?></td>
                             <td class="muted">
+                                <?php if ($diagnosis !== null): ?>
+                                    <span class="status-bad"><?= htmlspecialchars($diagnosis) ?></span><br>
+                                <?php endif; ?>
                                 <?php if (isset($c['detail']) && is_array($c['detail'])): ?>
                                     <?php
                                     $bits = [];

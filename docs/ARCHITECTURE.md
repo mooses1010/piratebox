@@ -632,9 +632,18 @@ OUTSIDE TEMPERATURE STALE
 Last reading from ENV-02 was 18 minutes ago.
 ```
 
-Nothing here is implemented. It's the target shape a future status/
-diagnostics surface should aim for, once enough of §10/§11's knowledge
-actually exists to derive it from.
+**A first real slice exists** (2026-09-02):
+`piratebox_diagnose_capability()` (`includes/capability_state.php`) - a
+fixed, deterministic lookup (capability id + state -> explanation),
+never a guess, returning `null` for anything not explicitly covered
+rather than inventing one. Covers today's real capabilities
+(AP/web-app service failures, power/undervoltage, time confidence,
+status-helper staleness) - not yet the fuller "expected device X,
+fallback Y, Core impact Z" shape the AWUS036ACM example above
+describes (that needs the ALFA to actually exist and be tested first).
+Surfaced in `admin/index.php`'s Capabilities table, confirmed live to
+correctly explain today's two real findings (undervoltage, no RTC)
+rather than just naming their state.
 
 ## 14. Trust is not binary
 

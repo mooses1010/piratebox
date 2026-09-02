@@ -342,10 +342,13 @@ it is.**
 - **State:** INSTALLED, CURRENT SCOPE - `includes/capability_state.php`
   (`piratebox_get_capability_state()`/`piratebox_get_operational_
   state()`), covering the 12 capabilities in this registry that have a
-  live or config-based signal today. Tested:
-  `tools/test_capability_state.php` (23 deterministic assertions on the
-  pure classification functions - null/missing-data/stale/degraded
-  cases, not just the happy path).
+  live or config-based signal today, each also carrying `provider`/
+  `provider_class` (`docs/ARCHITECTURE.md` §3) and, where recognized,
+  a `piratebox_diagnose_capability()` explanation (`docs/ARCHITECTURE.md`
+  §13 - graceful self-diagnosis, first slice). Tested:
+  `tools/test_capability_state.php` (40 deterministic assertions on the
+  pure classification/diagnosis functions - null/missing-data/stale/
+  degraded/unrecognized-id cases, not just the happy path).
 - **Core dependency:** No - reads through the exact same channels every
   other page already uses (`includes/metrics.php`'s
   `piratebox_get_helper_status()`, `includes/fieldtools_time.php`), no

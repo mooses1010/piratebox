@@ -6,6 +6,40 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Graceful Self-Diagnosis (First Slice)
+
+**Decision date:** 2026-09-02. Fourth increment of the autonomous
+implementation phase, continuing directly from `a44b40c`.
+
+**Built:** `piratebox_diagnose_capability()`
+(`includes/capability_state.php`) - `docs/ARCHITECTURE.md` §13's
+"explain deterministic problems using known state" goal, first real
+slice. A fixed, deterministic lookup keyed on capability id + state,
+covering today's actual capabilities (AP/web-app service failures,
+power/undervoltage, time confidence, status-helper staleness) -
+returns `null` for anything not explicitly covered rather than
+inventing an explanation, and `null` for `AVAILABLE`/`NOT_INSTALLED`
+(nothing wrong to explain). Surfaced in `admin/index.php`'s
+Capabilities table. Confirmed live: correctly explains today's two
+real findings (undervoltage detected, no hardware RTC) with the actual
+suggested-check text, not just their bare state.
+
+**Not the full future shape yet** - `docs/ARCHITECTURE.md` §13's
+AWUS036ACM example (expected device / fallback / Core impact) needs
+that hardware to actually exist and be tested first; this slice covers
+only capabilities with real state today.
+
+**Tests:** 8 new assertions in `tools/test_capability_state.php` (40
+total, was 32) - AVAILABLE/NOT_INSTALLED return null, a real DEGRADED
+message is returned and contains the expected content, an unrecognized
+capability id returns null rather than guessing, a recognized id with
+an uncovered state combination returns null, a missing `state` key
+doesn't crash, and diagnosing every live capability never throws.
+
+**Scope preserved:** no networking/GPIO/system config changed, no
+packages installed, no community data touched, no fabricated
+diagnosis for anything this module doesn't actually know about.
+
 ## "Since Last Review" Boundary
 
 **Decision date:** 2026-09-02. Third increment of the autonomous
