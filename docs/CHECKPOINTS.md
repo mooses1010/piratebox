@@ -123,3 +123,20 @@ requested mid-run (batched): installing the updated
 since `58ef5bb` - and now also `boot_events`/`undervoltage_daily`) to
 `/usr/local/bin/`. See `docs/OPERATIONAL-DECISIONS.md` for the full
 per-increment record.
+
+| Connection-Stats Persistence Bug Found + Fixed (systemd sandboxing - `etc/systemd/system/piratebox-status.service` gains `ReadWritePaths=/var/www/html/data`) | `cc19d89` | (no `~/piratebox-backups/` snapshot - no `var/www/html` changes; see `docs/OPERATIONAL-DECISIONS.md` for the full root-cause account) |
+
+**Operator step completed 2026-09-02 (partial):** the pending
+`piratebox_status_helper.sh` install above was run
+(`sudo install ... && sudo systemctl restart piratebox-status.timer`).
+Verified: installed copy byte-identical to repo source, `time_source`
+correctly live, no service regressions. **Verifying it also surfaced a
+real, more serious, pre-existing bug** - see the row directly above.
+**New pending step, not yet requested of the operator mid-run
+(batched):**
+
+```
+sudo install -m 0644 -o root -g root /home/moose/piratebox/etc/systemd/system/piratebox-status.service /etc/systemd/system/piratebox-status.service
+sudo systemctl daemon-reload
+sudo systemctl restart piratebox-status.timer
+```
