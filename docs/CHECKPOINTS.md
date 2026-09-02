@@ -212,3 +212,6 @@ clean, `VERSION` stamped to `bcd061e` matching `HEAD` exactly. Live
 Utility Library card text confirmed updated; zero failed units; no new
 nginx/PHP errors since deploy. Text-only change - regression suite
 unaffected by design, re-run anyway and still 181/181.
+
+| Roadmap reconciliation: `docs/IMPLEMENTATION-ROADMAP.md` created, historical intent recovered from 159 commits + 64 decision-log entries + live hardware state | `d4e6082` | (docs only, no site/system changes) |
+
