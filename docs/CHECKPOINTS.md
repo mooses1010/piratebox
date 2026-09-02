@@ -287,3 +287,13 @@ Library) confirmed showing their cross-link box; zero failed units; no
 new nginx/PHP errors since deploy. Full five-suite regression:
 206/206.
 
+| Deep field library, increment 7: CDC/FEMA/EPA documents (Make Water Safe During an Emergency, Family Emergency Communication Plan, Reduce Your Smoke Exposure - 6 docs / ~8.4MB total library) | `a613784` | `~/piratebox-backups/cdc-fema-epa-docs-pre-20260902-102250/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `a613784` matching `HEAD` exactly. Live:
+all three PDFs serve at exact byte sizes; Emergency Reference page
+shows all three inside their correct topics; `/utility/about/` shows
+`Document Library: INSTALLED (6)`, computed live; zero failed units;
+no new nginx/PHP errors since deploy. Full five-suite regression:
+206/206.
+
