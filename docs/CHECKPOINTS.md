@@ -140,3 +140,20 @@ sudo install -m 0644 -o root -g root /home/moose/piratebox/etc/systemd/system/pi
 sudo systemctl daemon-reload
 sudo systemctl restart piratebox-status.timer
 ```
+
+**Operator step completed 2026-09-02 (closed) - persistence fix
+live-verified:** the operator ran the command above; installed unit
+confirmed byte-identical to repo source. At the device's own next
+hourly boundary (its clock runs a few minutes behind wall-clock - no
+RTC, NTP unavailable by design on this offline device, an already-
+documented gap, not new), `data/connection-stats.json` appeared for
+the first time ever with a correct entry, zero journal errors on that
+run or any run since, zero failed units, all 168 test assertions still
+passing, no community data touched. `piratebox_get_connection_stats()`
+exercised against the live deployed tree confirms the admin/public
+read path renders it correctly. `data/device-history.json` itself
+still awaits its own first qualifying edge event (boot or undervoltage
+onset) to be independently confirmed - reasoned-fixed by the same
+change, not yet directly observed - see `docs/OPERATIONAL-DECISIONS.md`
+and `docs/DEVICE-MEMORY-DESIGN.md` §15 for the full account. No further
+operator step pending from this fix.

@@ -474,13 +474,24 @@ late.
   consequence, the pre-existing `data/connection-stats.json` - has been
   silently failing (`|| true`-wrapped, so it never crashed the unit,
   just never persisted). The fix (`etc/systemd/system/piratebox-
-  status.service` gains `ReadWritePaths=/var/www/html/data`) is
-  committed and `systemd-analyze verify`-clean, **not yet installed
-  live** - a new, separate pending step.
+  status.service` gains `ReadWritePaths=/var/www/html/data`) was
+  installed live by the operator and **confirmed working 2026-09-02**:
+  the next hourly rollover wrote `data/connection-stats.json`
+  successfully (zero journal errors, zero failed units) - see the
+  "Live verification" addendum on that same `OPERATIONAL-DECISIONS.md`
+  entry for the full account. **`data/device-history.json` itself is
+  reasoned-fixed but not yet independently observed writing** - it
+  shares the identical fix (same `ReadWritePaths=`, same write pattern)
+  as the now-confirmed connection-stats write, but its own trigger is a
+  boot or undervoltage-onset edge event, neither of which has occurred
+  since the fix was installed. Will be confirmed the next time either
+  happens (e.g. the next reboot) - not assumed working from the
+  connection-stats result alone.
 - **Read side:** `includes/device_memory.php`
   (`piratebox_get_device_memory()`) - live, tested
-  (`tools/test_device_memory.php`, 27 assertions), reports
-  `available: false` honestly until the step above happens.
+  (`tools/test_device_memory.php`, 27 assertions), still honestly
+  reports `available: false` until `data/device-history.json` actually
+  exists (correct - no fabricated data ahead of a real write).
 - **UI:** `admin/index.php`'s "Operational history" section (operator
   tier - raw event counts are more diagnostic than public-safe, per
   progressive disclosure).

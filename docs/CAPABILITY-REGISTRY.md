@@ -73,7 +73,7 @@ it is.**
 | Self-awareness / capability-state model (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | About This PirateBox page (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | Reference Pack model (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
-| Device Memory - bounded event history (software) | Operational | INSTALLED (write side pending live install - see docs/DEVICE-MEMORY-DESIGN.md §15) | Integrated (software) |
+| Device Memory - bounded event history (software) | Operational | INSTALLED (persistence fix live-verified 2026-09-02; device-history.json's own first write still awaits a boot/undervoltage edge - see docs/DEVICE-MEMORY-DESIGN.md §15) | Integrated (software) |
 | Physical transport lock | Operational | CANDIDATE (design only, no hardware/mechanism chosen) | Integrated (if adopted) |
 | `fake-hwclock` (software time fallback) | Operational | CANDIDATE | n/a (software) |
 | Field Tools (time/date, unit conversion, coordinates) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
@@ -399,21 +399,26 @@ it is.**
   MEMORY-DESIGN.md`.
 - **Layer:** Operational.
 - **State:** write side (`piratebox_status_helper.sh`) installed live
-  2026-09-02 (byte-identical, confirmed), but **currently blocked by a
-  separate systemd-sandboxing bug** found during that install's
-  verification - `piratebox-status.service`'s `ProtectSystem=strict`
-  has no write exception for `var/www/html/data/`, so every write there
-  (this feature's, and pre-existing connection-stats') silently fails.
-  Fix committed (`etc/systemd/system/piratebox-status.service` gains
-  `ReadWritePaths=/var/www/html/data`, `systemd-analyze verify`-clean),
-  **not yet installed live** - see `docs/OPERATIONAL-DECISIONS.md`,
-  "Connection-Stats Persistence Bug Found + Fixed," for the full
-  account and the exact pending command. Read side
+  2026-09-02 (byte-identical, confirmed). A separate systemd-sandboxing
+  bug found during that install's verification - `piratebox-status.
+  service`'s `ProtectSystem=strict` had no write exception for
+  `var/www/html/data/`, so every write there (this feature's, and
+  pre-existing connection-stats') silently failed - has been **fixed
+  and live-verified** (`ReadWritePaths=/var/www/html/data`, installed
+  by the operator, the next hourly connection-stats rollover wrote
+  successfully with zero journal errors): see `docs/OPERATIONAL-
+  DECISIONS.md`, "Connection-Stats Persistence Bug Found + Fixed," for
+  the full account. **This feature's own write (`data/device-history.
+  json`) shares that same fix but is reasoned-fixed, not yet
+  independently observed** - its trigger is a boot or undervoltage-
+  onset edge event, neither of which has recurred since the fix was
+  installed; confirmed the next time either happens. Read side
   (`includes/device_memory.php`, 27 test assertions) is live and
-  correctly reports `available: false` until the fix is installed and a
-  write actually succeeds. **"Since last review" boundary logic is
-  real and tested** (`data/review-boundary.json`, `mark_reviewed` admin
-  action) but has nothing to summarize yet for the same reason.
+  correctly reports `available: false` until that first write actually
+  succeeds - not fabricated ahead of it. **"Since last review" boundary
+  logic is real and tested** (`data/review-boundary.json`,
+  `mark_reviewed` admin action) but has nothing to summarize yet for
+  the same reason.
 - **Core dependency:** No.
 - **Privacy sensitivity:** low - boot timestamps and undervoltage-event
   counts only, both Operational History class, never raw per-second

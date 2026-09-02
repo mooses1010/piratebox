@@ -83,6 +83,49 @@ appearing) deferred until the operator installs the corrected unit -
 recorded as the next actionable item, not assumed successful in
 advance.
 
+**Live verification, confirmed 2026-09-02 07:00 (same day):** operator
+installed the corrected unit (`sudo install -m 0644 -o root -g root
+etc/systemd/system/piratebox-status.service /etc/systemd/system/
+piratebox-status.service && sudo systemctl daemon-reload && sudo
+systemctl restart piratebox-status.timer`), verified byte-identical to
+repo source. Watched for the device's own next hourly boundary rather
+than assuming wall-clock 07:00 applied - this Pi's clock is not
+NTP-synchronized (no RTC, NTP unavailable by design on this offline
+device, `fake-hwclock` not installed - the already-documented time-
+confidence gap, not a new finding) and was running a few minutes
+behind. At the device's own 07:00 rollover:
+
+- `data/connection-stats.json` appeared for the first time ever:
+  `{"hourly": [{"hour_start": 1788354000, "count": 2, "peak": 1}],
+  "updated_at": 1788357614}` - the persisted 24h history now writing
+  successfully.
+- `journalctl -u piratebox-status.service` for that run and every run
+  since the unit install: clean, zero errors (`Read-only`/`OSError`/
+  `Traceback` grep: no matches).
+- `piratebox_get_connection_stats()` (`includes/metrics.php`),
+  exercised against the live deployed tree (not the repo checkout - an
+  earlier same-session check against the repo path gave a misleading
+  empty-looking result purely from `__DIR__` resolving to the wrong
+  directory tree, caught and corrected before drawing any conclusion
+  from it): correctly merges the newly-persisted hour with the live
+  in-progress hour - `last_24h => 2, peak_24h => 1`, two hourly rows.
+- Zero failed units; `piratebox-status.timer` active; all 168
+  assertions across all four test suites still passing; no community
+  data file's mtime changed from this verification work.
+- `data/device-history.json` **still does not exist** - expected, not
+  a failure: that write only fires on a boot or undervoltage-onset
+  edge event (`docs/DEVICE-MEMORY-DESIGN.md`), and no such edge has
+  occurred since the fix was installed. The write path shares the
+  identical fix (same `ReadWritePaths=`, same directory, same
+  `python3 ... || true` pattern) as the now-confirmed connection-stats
+  write, so it is reasoned-fixed, but **its own first live write is
+  still independently unobserved** - do not describe it as directly
+  confirmed until an actual boot or undervoltage event produces one.
+
+**Disposition: closed.** The persistence bug is fixed and live-
+verified for connection-stats; the pending step this entry opened is
+resolved. See `docs/CHECKPOINTS.md` for the closing record.
+
 ## Graceful Self-Diagnosis (First Slice)
 
 **Decision date:** 2026-09-02. Fourth increment of the autonomous
@@ -1352,7 +1395,8 @@ silently blocked it every time. The live in-progress-hour counters
 feature received - including the live regression testing recorded
 above - only ever observed correct current-hour numbers and never
 caught the historical rollup failing. Full account, root cause, and
-fix: "Connection-Stats Persistence Bug Found + Fixed," below.
+fix: "Connection-Stats Persistence Bug Found + Fixed," above (this
+file is newest-first; that entry is the one at the top).
 
 ## Stage 32: Final Expansion Review / Wrap-Up (Stages 13-32 complete)
 
