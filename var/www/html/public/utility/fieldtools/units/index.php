@@ -261,6 +261,23 @@ $distExamples = [
                 </table>
             </div>
             <p class="muted">*Reviewed against NEC-style reference tables (2026-09-02): the 14/12/10 AWG figures above (15/20/30 A) match the NEC's standard branch-circuit overcurrent protection (breaker/fuse) sizing for those gauges - deliberately more conservative than a conductor's raw rated ampacity (NEC Table 310.16 rates 14 AWG up to ~25-36 A depending on insulation type, but code still caps its breaker at 15 A for safety margin). This table intentionally uses the more conservative, code-aligned numbers throughout, not the higher raw ratings. Still not a substitute for the actual NEC tables/a qualified electrician: real safe ampacity also depends on insulation rating, how many conductors are bundled together, ambient temperature, and run length (voltage drop) - especially at 12V/24V DC, where a longer run needs a thicker gauge than this table alone would suggest.</p>
+
+            <p><strong>Common Schematic Symbols</strong></p>
+            <div class="radio-spectrum-wrap">
+                <?php require __DIR__ . '/electrical-symbols.svg.php'; ?>
+            </div>
+            <p class="radio-spectrum-caption">Standard schematic symbols (IEC/ANSI-style conventions, not tied to any one manufacturer or textbook) - PirateBox-authored diagram.</p>
+
+            <p><strong>Multimeter &amp; Measurement Basics</strong></p>
+            <ul class="ref-quick-actions">
+                <li><strong>Continuity</strong> checks whether a path is electrically connected end-to-end (a beep/low reading) - useful for testing a fuse, switch, or cable without power applied to the circuit.</li>
+                <li><strong>DC voltage (V&#8390;)</strong> measures potential difference across two points (e.g. across a battery's terminals) - the meter is connected in parallel with what's being measured.</li>
+                <li><strong>Resistance (&#8486;)</strong> should only be measured on a de-energized, disconnected component - measuring resistance on a live/powered circuit gives a meaningless or misleading reading and can damage the meter.</li>
+                <li><strong>Current (A)</strong> is measured in series (in-line with the circuit, not across it) and uses a different meter jack on most multimeters - plugging into the wrong jack while measuring voltage is a common way to blow a meter's internal fuse.</li>
+            </ul>
+            <div class="help-note">
+                <p><strong>This is a conceptual orientation, not a procedure for working on live/mains circuits.</strong> A multimeter's CAT (overvoltage category) rating must match or exceed what it's being used on; household mains and anything beyond low-voltage DC/battery work carries real shock and arc-flash risk and is outside what this page teaches - that work is for a qualified electrician using proper safety equipment.</p>
+            </div>
         </div>
     </div>
 

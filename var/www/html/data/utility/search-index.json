@@ -617,6 +617,22 @@
     ]
   },
   {
+    "title": "Watch vs. Warning vs. Advisory: What NWS Alert Terms Mean",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#watch-vs-warning-terminology",
+    "snippet": "These three words carry specific, different meanings on NOAA Weather Radio and every other official alert channel - mixing them up changes what action is actual",
+    "keywords": [
+      "watch",
+      "warning",
+      "advisory",
+      "nws terminology",
+      "tornado watch",
+      "tornado warning",
+      "alert terminology"
+    ]
+  },
+  {
     "title": "CW (Morse Code)",
     "section": "radio",
     "section_label": "Radio Reference",
@@ -1520,6 +1536,66 @@
       "FEMA",
       "Ready",
       "gov"
+    ]
+  },
+  {
+    "title": "Food and Water Safety During Power Outages and Floods",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/#fda-food-water-safety-power-outage",
+    "snippet": "FDA consumer factsheet on keeping food and water safe during a power outage or flood - refrigerator/freezer safe-time thresholds, a food-safety decision guide (when to keep vs. discard), and water safety/treatment basics. A different USDA FSIS candidate on this same general topic was blocked by durable HTTP 403 bot protection; this FDA document independently covers the same subject and was confirmed directly accessible and public domain.",
+    "keywords": [
+      "food safety",
+      "power outage",
+      "refrigerator",
+      "freezer",
+      "flood",
+      "water safety",
+      "fda",
+      "U",
+      "S",
+      "Food",
+      "and",
+      "Drug",
+      "Administration",
+      "FDA"
+    ]
+  },
+  {
+    "title": "First Aid (FM 4-25.11 / NTRP 4-02.1 / AFMAN 44-163(I))",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/#dod-fm-4-25-11-first-aid",
+    "snippet": "The joint US military field manual on first aid - full step-by-step procedures with illustrations for airway/breathing/bleeding control, shock, fractures/splinting, burns, cold/heat injury, bites/stings, and evacuation/transport techniques. Addresses the visual-diagram gap the First Aid Reference page's own audit flagged (CPR hand position, recovery position, splinting, etc.) with an authoritative, fully redistributable original source, after Red Cross material was found not to be freely redistributable.",
+    "keywords": [
+      "first aid",
+      "cpr",
+      "bleeding control",
+      "splinting",
+      "shock",
+      "burns",
+      "recovery position",
+      "field manual",
+      "military first aid",
+      "Headquarters",
+      "Departments",
+      "of",
+      "the",
+      "Army",
+      "the",
+      "Navy",
+      "and",
+      "the",
+      "Air",
+      "Force",
+      "and",
+      "Commandant",
+      "Marine",
+      "Corps",
+      "joint",
+      "US",
+      "military",
+      "publication"
     ]
   },
   {

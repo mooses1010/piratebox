@@ -8,6 +8,8 @@ session_start();
 // Mode by design. Reuses the Stage 2/3 shared reference-list UI component
 // (see OPERATIONAL-DECISIONS.md).
 
+require_once __DIR__ . '/../../../includes/library_links.php';
+
 $DATA_DIR = __DIR__ . '/../../../data/utility/firstaid';
 
 function ref_load_json(string $path): array
@@ -34,6 +36,9 @@ foreach ($groupLabels as $key => $label) $groups[$key] = [];
 foreach ($topics as $t) {
     if (isset($groups[$t['category']])) $groups[$t['category']][] = $t;
 }
+
+// Cross-link to the Document Library - metadata-driven, see includes/library_links.php.
+$libraryLinksHtml = piratebox_render_library_links_html(piratebox_get_library_entries_for_page('/utility/firstaid/'));
 
 function ref_search_blob(array $fields): string
 {
@@ -90,6 +95,8 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
         <div class="help-note">
             <p><strong>This is not a substitute for professional medical care or hands-on first-aid training.</strong> It's a conservative, high-level overview sourced from the American Red Cross and CDC, meant to help in a moment when you can't look it up online. Call 911 (or your local emergency number) for anything life-threatening. Where a skill genuinely requires practice to do safely - most notably CPR - that's noted explicitly below.</p>
         </div>
+
+        <?= $libraryLinksHtml ?>
 
         <div class="radio-search-bar">
             <input type="text" id="radioSearch" placeholder="Search: bleeding, choking, burn, cpr, poison, allergic reaction..." aria-label="Search first aid reference">

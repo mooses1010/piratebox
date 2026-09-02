@@ -220,5 +220,21 @@
       {"char": "9", "code": "----."},
       {"char": "SOS (prosign)", "code": "...---..."}
     ]
+  },
+  {
+    "id": "watch-vs-warning-terminology",
+    "title": "Watch vs. Warning vs. Advisory: What NWS Alert Terms Mean",
+    "body": "These three words carry specific, different meanings on NOAA Weather Radio and every other official alert channel - mixing them up changes what action is actually appropriate. A WATCH means conditions are favorable for the hazard to develop - it has not happened yet, but be prepared and stay alert (e.g. a Tornado Watch covers a broad area/timeframe where tornadoes are possible). A WARNING means the hazard is occurring, imminent, or has a very high probability - take protective action now, not later (e.g. a Tornado Warning means one has been spotted or indicated by radar). An ADVISORY means a hazard is occurring or expected that is less severe than a warning-level event, but could still cause significant inconvenience or, if not respected, become dangerous. NOAA Weather Radio precedes most Watches and all Warnings with a 1050 Hz attention tone specifically so a receiver with an alert/mute feature can wake and play the follow-on message.",
+    "keywords": [
+      "watch",
+      "warning",
+      "advisory",
+      "nws terminology",
+      "tornado watch",
+      "tornado warning",
+      "alert terminology"
+    ],
+    "confidence": "high",
+    "source_id": "noaa-nwr"
   }
 ]

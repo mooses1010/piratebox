@@ -81,6 +81,39 @@
     ]
   },
   {
+    "id": "fda-food-water-safety-power-outage",
+    "title": "Food and Water Safety During Power Outages and Floods",
+    "category": "emergency-firstaid",
+    "description": "FDA consumer factsheet on keeping food and water safe during a power outage or flood - refrigerator/freezer safe-time thresholds, a food-safety decision guide (when to keep vs. discard), and water safety/treatment basics. A different USDA FSIS candidate on this same general topic was blocked by durable HTTP 403 bot protection; this FDA document independently covers the same subject and was confirmed directly accessible and public domain.",
+    "tags": ["food safety", "power outage", "refrigerator", "freezer", "flood", "water safety", "fda"],
+    "file": "fda-food-water-safety-power-outage.pdf",
+    "file_type": "pdf",
+    "file_size": "814 KB",
+    "source": "U.S. Food and Drug Administration (FDA)",
+    "date_version": "FDA consumer factsheet, revised 2023-01-31",
+    "provenance_notes": "Source: https://www.fda.gov/media/72124/download (from the FDA page 'Food and Water Safety During Power Outages and Floods') - retrieved 2026-09-02. FDA-authored consumer factsheet, work of the US federal government, public domain under 17 U.S.C. Sec. 105 (confirmed against FDA's own website policy: 'the contents of the FDA website...are not copyrighted. They are in the public domain and may be republished, reprinted and otherwise used freely by anyone without the need to obtain permission from FDA' - no third-party/licensed content indicated for this plain agency-authored factsheet).",
+    "related_pages": [
+      {"url": "/utility/emergency/#food-safety-outage", "label": "Emergency: Food Safety During an Outage"},
+      {"url": "/utility/emergency/#power-outage", "label": "Emergency: When the Power Goes Out"}
+    ]
+  },
+  {
+    "id": "dod-fm-4-25-11-first-aid",
+    "title": "First Aid (FM 4-25.11 / NTRP 4-02.1 / AFMAN 44-163(I))",
+    "category": "emergency-firstaid",
+    "description": "The joint US military field manual on first aid - full step-by-step procedures with illustrations for airway/breathing/bleeding control, shock, fractures/splinting, burns, cold/heat injury, bites/stings, and evacuation/transport techniques. Addresses the visual-diagram gap the First Aid Reference page's own audit flagged (CPR hand position, recovery position, splinting, etc.) with an authoritative, fully redistributable original source, after Red Cross material was found not to be freely redistributable.",
+    "tags": ["first aid", "cpr", "bleeding control", "splinting", "shock", "burns", "recovery position", "field manual", "military first aid"],
+    "file": "dod-fm-4-25-11-first-aid.pdf",
+    "file_type": "pdf",
+    "file_size": "2.5 MB",
+    "source": "Headquarters, Departments of the Army, the Navy, and the Air Force, and Commandant, Marine Corps (joint US military publication)",
+    "date_version": "FM 4-25.11 (FM 21-11), 23 December 2002, with Change 1 (15 July 2004)",
+    "provenance_notes": "Source: https://commons.wikimedia.org/wiki/File:FM_4-25.11_(FM_21-11)_First_Aid_(Change_1).pdf (direct file: upload.wikimedia.org/wikipedia/commons/0/01/FM_4-25.11_%28FM_21-11%29_First_Aid_%28Change_1%29.pdf) - retrieved 2026-09-02. A US Department of Defense work of the federal government, public domain under 17 U.S.C. Sec. 105 (Wikimedia Commons' file page tags it PD-USGov-Military-Army/Navy/Air Force/Marines; the manual's own cover states 'Approved for public release; distribution is unlimited'). Verified 227 pages, 2,621,944 bytes, matching Wikimedia Commons' listed file size exactly - not a truncated/partial copy.",
+    "related_pages": [
+      {"url": "/utility/firstaid/", "label": "First Aid Reference"}
+    ]
+  },
+  {
     "id": "epa-reduce-wildfire-smoke-exposure",
     "title": "Reduce Your Smoke Exposure (Wildfire Smoke Factsheet)",
     "category": "emergency-firstaid",
