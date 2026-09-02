@@ -742,6 +742,21 @@
     ]
   },
   {
+    "title": "Beaufort Wind Scale (Estimating Wind Speed by Eye)",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#beaufort-wind-scale",
+    "snippet": "Estimate wind speed just by watching smoke, leaves, trees, and flags - no instruments needed.",
+    "keywords": [
+      "beaufort scale",
+      "wind speed",
+      "estimate wind",
+      "wind force",
+      "gale",
+      "storm force"
+    ]
+  },
+  {
     "title": "Tornadoes",
     "section": "emergency",
     "section_label": "Emergency / Outage Reference",
@@ -1016,6 +1031,23 @@
       "distress signal",
       "signaling",
       "rescue"
+    ]
+  },
+  {
+    "title": "International Emergency Numbers",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#international-emergency-numbers",
+    "snippet": "911 is a North American convention, not a global one - know the local number before you need it.",
+    "keywords": [
+      "emergency number",
+      "911",
+      "112",
+      "999",
+      "000",
+      "international emergency",
+      "emergency phone number",
+      "sos call"
     ]
   },
   {
@@ -1578,6 +1610,34 @@
       "micro",
       "nano",
       "metric prefix"
+    ]
+  },
+  {
+    "title": "Beaufort Scale",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#beaufort-scale",
+    "snippet": "An international 0-12 scale for estimating wind speed just by observing its effects - no instruments needed.",
+    "keywords": [
+      "beaufort scale",
+      "wind speed",
+      "wind force",
+      "estimate wind"
+    ]
+  },
+  {
+    "title": "Watch vs. Warning",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#watch-vs-warning",
+    "snippet": "A watch means conditions are favorable for a hazard; a warning means it's happening or imminent - act now.",
+    "keywords": [
+      "watch",
+      "warning",
+      "advisory",
+      "tornado watch",
+      "tornado warning",
+      "nws terminology"
     ]
   },
   {

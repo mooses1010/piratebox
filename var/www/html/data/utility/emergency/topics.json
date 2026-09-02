@@ -23,6 +23,47 @@
     "source_note": null
   },
   {
+    "id": "beaufort-wind-scale",
+    "category": "hazards",
+    "title": "Beaufort Wind Scale (Estimating Wind Speed by Eye)",
+    "summary": "Estimate wind speed just by watching smoke, leaves, trees, and flags - no instruments needed.",
+    "quick_actions": [
+      "Force 0-2 (calm to light breeze, under 7 mph/6 knots): smoke drifts or rises mostly straight up, leaves rustle at most.",
+      "Force 4-5 (moderate to fresh breeze, 13-24 mph/11-21 knots): loose paper and dust lift, small trees begin to sway.",
+      "Force 7-8 (near gale to gale, 32-46 mph/28-40 knots): whole trees are in motion, walking against the wind takes real effort.",
+      "Force 10+ (storm and above, 55+ mph/48+ knots): widespread structural damage becomes likely - this is the range where you should already be sheltering, not still observing."
+    ],
+    "table_caption": "Beaufort scale (international standard, not US-specific)",
+    "table": [
+      {"force": "0 - Calm", "speed": "<1 mph / <1 kt", "observed_on_land": "Smoke rises vertically; calm"},
+      {"force": "1 - Light air", "speed": "1-3 mph / 1-3 kt", "observed_on_land": "Smoke drift shows wind direction; vanes still"},
+      {"force": "2 - Light breeze", "speed": "4-7 mph / 4-6 kt", "observed_on_land": "Wind felt on face; leaves rustle"},
+      {"force": "3 - Gentle breeze", "speed": "8-12 mph / 7-10 kt", "observed_on_land": "Leaves and small twigs in constant motion; light flags extend"},
+      {"force": "4 - Moderate breeze", "speed": "13-18 mph / 11-16 kt", "observed_on_land": "Dust and loose paper lift; small branches move"},
+      {"force": "5 - Fresh breeze", "speed": "19-24 mph / 17-21 kt", "observed_on_land": "Small trees in leaf begin to sway"},
+      {"force": "6 - Strong breeze", "speed": "25-31 mph / 22-27 kt", "observed_on_land": "Large branches move; wind whistles in wires"},
+      {"force": "7 - Near gale", "speed": "32-38 mph / 28-33 kt", "observed_on_land": "Whole trees in motion; walking against wind is hard"},
+      {"force": "8 - Gale", "speed": "39-46 mph / 34-40 kt", "observed_on_land": "Twigs break off trees; walking is difficult"},
+      {"force": "9 - Strong gale", "speed": "47-54 mph / 41-47 kt", "observed_on_land": "Structural damage to roofing/signs becomes possible"},
+      {"force": "10 - Storm", "speed": "55-63 mph / 48-55 kt", "observed_on_land": "Trees uprooted; considerable structural damage"},
+      {"force": "11 - Violent storm", "speed": "64-72 mph / 56-63 kt", "observed_on_land": "Widespread damage (rare inland)"},
+      {"force": "12 - Hurricane force", "speed": "73+ mph / 64+ kt", "observed_on_land": "Severe/extensive damage"}
+    ],
+    "more_info": "Developed by Francis Beaufort in 1805 and adopted internationally by the World Meteorological Organization - this is a global standard, not a US-specific scale, even though the specific table above is NOAA's own published presentation of it. Useful whenever an anemometer isn't available: matching what you actually see to a Force number gives a genuine, communicable wind-speed estimate.",
+    "keywords": [
+      "beaufort scale",
+      "wind speed",
+      "estimate wind",
+      "wind force",
+      "gale",
+      "storm force"
+    ],
+    "source_id": "noaa-beaufort-scale",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
     "id": "tornado",
     "category": "hazards",
     "title": "Tornadoes",
@@ -508,6 +549,46 @@
     "secondary_source_id": null,
     "confidence": "medium",
     "source_note": "Symbol meanings cross-checked against multiple secondary summaries of the published FAA/ICAO standard rather than the primary AIM/Annex 12 text directly - confidence set to medium on that basis, though the core 6 symbols shown are consistently reported across sources."
+  },
+  {
+    "id": "international-emergency-numbers",
+    "category": "planning",
+    "title": "International Emergency Numbers",
+    "summary": "911 is a North American convention, not a global one - know the local number before you need it.",
+    "quick_actions": [
+      "112 works throughout the European Union (alongside any older national number) and is also recognized in many other countries as a secondary/mobile emergency number.",
+      "Most GSM mobile phones will attempt to place a 112 (or sometimes 911) emergency call even when locked or with no SIM card inserted - a useful fallback, but not a guarantee on every device/network/country.",
+      "Some countries split services across separate numbers (e.g. Japan: 110 police, 119 fire/ambulance) rather than one combined number - check which service you actually need."
+    ],
+    "table_caption": "Representative primary emergency numbers by country/region (not exhaustive)",
+    "table": [
+      {"country_region": "United States, Canada, Mexico", "number": "911"},
+      {"country_region": "European Union (all member states)", "number": "112"},
+      {"country_region": "United Kingdom", "number": "999 (or 112)"},
+      {"country_region": "Australia", "number": "000"},
+      {"country_region": "New Zealand", "number": "111 (or 112)"},
+      {"country_region": "Japan", "number": "110 police / 119 fire &amp; ambulance"},
+      {"country_region": "China", "number": "110 police / 119 fire / 120 ambulance"},
+      {"country_region": "India", "number": "112"},
+      {"country_region": "Russia", "number": "112 (or 102)"},
+      {"country_region": "Brazil", "number": "190 police / 192 ambulance / 193 fire"},
+      {"country_region": "South Africa", "number": "10111 (or 112 from a mobile)"}
+    ],
+    "more_info": "This is a curated set of major/representative countries, not a complete list - always confirm the actual local number for wherever you are (a hotel, airport, or embassy can usually tell you immediately). The Local Information section of this PirateBox may also have this box's own local emergency numbers configured, if the operator has set that up.",
+    "keywords": [
+      "emergency number",
+      "911",
+      "112",
+      "999",
+      "000",
+      "international emergency",
+      "emergency phone number",
+      "sos call"
+    ],
+    "source_id": "intl-emergency-numbers",
+    "secondary_source_id": null,
+    "confidence": "medium",
+    "source_note": "A curated representative set cross-checked against multiple sources, not an attempt at a complete country-by-country list - confidence set to medium accordingly; always verify the actual local number for a specific destination."
   },
   {
     "id": "ten-essentials",

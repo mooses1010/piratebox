@@ -35,6 +35,7 @@ $categoryLabels = [
     'radio'      => 'Radio',
     'maps'       => 'Maps & Navigation',
     'electrical' => 'Electrical & Measurement',
+    'weather'    => 'Weather & Environment',
 ];
 
 function ref_search_blob(array $fields): string

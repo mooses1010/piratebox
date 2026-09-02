@@ -20,6 +20,13 @@
     "retrieved": "2026-09-02",
     "note": null
   },
+  "noaa-nwr": {
+    "name": "NOAA Weather Radio All Hazards / NWS terminology",
+    "publisher": "NOAA / National Weather Service",
+    "url": "https://www.weather.gov/",
+    "retrieved": "2026-09-02",
+    "note": "Same citation basis as Radio Reference's own Watch vs. Warning guide and Emergency Reference's Beaufort Wind Scale topic - see those pages for the fuller reference this glossary entry links to."
+  },
   "general-technical-education": {
     "name": "General radio/electrical/computing technical education",
     "publisher": null,

@@ -1,4 +1,18 @@
 {
+  "noaa-beaufort-scale": {
+    "name": "Beaufort Wind Scale",
+    "publisher": "NOAA / National Weather Service (Storm Prediction Center and Weather Prediction Center)",
+    "url": "https://www.spc.noaa.gov/faq/tornado/beaufort.html",
+    "retrieved": "2026-09-02",
+    "note": "NOAA/NWS-published reference table (a US federal agency's presentation of the international WMO-adopted Beaufort scale, not a US-specific standard itself - the scale is used worldwide). Public domain under 17 U.S.C. Sec. 105 as a plain agency-authored technical reference; figures cross-checked against NOAA's own published table rather than written from memory."
+  },
+  "intl-emergency-numbers": {
+    "name": "List of emergency telephone numbers (cross-checked against multiple country/carrier sources)",
+    "publisher": "Compiled from Wikipedia's List of emergency telephone numbers plus individual national police/telecom sources (e.g. New Zealand Police, GSM Association standards)",
+    "url": "https://en.wikipedia.org/wiki/List_of_emergency_telephone_numbers",
+    "retrieved": "2026-09-02",
+    "note": "A curated set of major/representative numbers, not a complete country-by-country list - written originally for this entry (PirateBox Reference Material, see docs/REFERENCE-CONTENT-DESIGN.md's tier model), not copied verbatim from any single source. GSM 112-without-SIM behavior specifically cross-checked against New Zealand Police's own FAQ on the topic, not assumed from general knowledge alone."
+  },
   "nps-ten-essentials": {
     "name": "The Ten Essentials",
     "publisher": "National Park Service (NPS)",

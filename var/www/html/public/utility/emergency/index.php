@@ -148,6 +148,31 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php endif; ?>
+                                <?php if (!empty($t['table'])): ?>
+                                    <?php if (!empty($t['table_caption'])): ?><p><strong><?= htmlspecialchars($t['table_caption']) ?></strong></p><?php endif; ?>
+                                    <div class="table-wrapper">
+                                        <table class="radio-channel-table">
+                                            <?php
+                                            $tCols = [];
+                                            foreach ($t['table'] as $row) {
+                                                foreach (array_keys($row) as $k) {
+                                                    if (!in_array($k, $tCols, true)) $tCols[] = $k;
+                                                }
+                                            }
+                                            ?>
+                                            <thead>
+                                                <tr><?php foreach ($tCols as $c): ?><th><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $c))) ?></th><?php endforeach; ?></tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php foreach ($t['table'] as $row): ?>
+                                                    <tr>
+                                                        <?php foreach ($tCols as $c): ?><td><?= htmlspecialchars((string) ($row[$c] ?? '')) ?></td><?php endforeach; ?>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <?php endif; ?>
                                 <?php if ($t['id'] === 'ground-to-air-signals'): ?>
                                     <div class="radio-spectrum-wrap">
                                         <?php require __DIR__ . '/ground-to-air-signals.svg.php'; ?>
