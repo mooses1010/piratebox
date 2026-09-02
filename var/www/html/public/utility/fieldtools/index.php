@@ -71,6 +71,11 @@ session_start();
                 <span class="utility-card-title">Ohm's Law Solver</span>
                 <span class="utility-card-desc">Enter any two of voltage/current/resistance/power to get the other two</span>
             </a>
+            <a class="utility-card" href="/utility/fieldtools/checksum/">
+                <span class="utility-card-icon" aria-hidden="true">🔒</span>
+                <span class="utility-card-title">Checksum / Hash Calculator</span>
+                <span class="utility-card-desc">Verify a file already on this PirateBox, or hash pasted text (SHA-256/MD5)</span>
+            </a>
         </div>
 
         <p class="muted">Looking for what latitude/longitude actually mean, or coordinate formats like UTM/MGRS? See <a href="/utility/maps/">Maps &amp; Location Reference</a> - this section's Coordinates tool is the calculator; that page is the explanation. Likewise: Morse's full table is on <a href="/utility/radio/#morse-code-reference">Radio Reference</a>; Subnet's explanation is on <a href="/utility/computing/#cidr-subnet-mask-reference">Computing &amp; Networking Reference</a>; Frequency/Wavelength's is on <a href="/utility/radio/#hf-vhf-uhf-explained">Radio Reference</a>; Ohm's Law's is on this section's own <a href="/utility/fieldtools/units/#ft-electrical-tool">Unit Conversion</a> page.</p>

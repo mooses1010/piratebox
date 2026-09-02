@@ -248,6 +248,9 @@ for title, url, snippet, keywords in [
     ("Ohm's Law Solver", "/utility/fieldtools/ohmslaw/",
      "Enter any two of voltage, current, resistance, or power to solve for the other two.",
      ["ohms law", "ohm's law calculator", "voltage current resistance power", "electrical calculator", "watts law"]),
+    ("Checksum / Hash Calculator", "/utility/fieldtools/checksum/",
+     "Verify a file already on this PirateBox, or hash pasted text (SHA-256/MD5).",
+     ["checksum", "hash calculator", "sha-256", "sha256", "md5", "file verification", "file integrity", "verify download"]),
 ]:
     index.append(entry(title, "fieldtools", "Field Tools", url, snippet, keywords))
 

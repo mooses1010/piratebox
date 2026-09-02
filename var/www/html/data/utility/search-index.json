@@ -2335,6 +2335,23 @@
     ]
   },
   {
+    "title": "Checksum / Hash Calculator",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/checksum/",
+    "snippet": "Verify a file already on this PirateBox, or hash pasted text (SHA-256/MD5).",
+    "keywords": [
+      "checksum",
+      "hash calculator",
+      "sha-256",
+      "sha256",
+      "md5",
+      "file verification",
+      "file integrity",
+      "verify download"
+    ]
+  },
+  {
     "title": "About This PirateBox",
     "section": "about",
     "section_label": "About This PirateBox",

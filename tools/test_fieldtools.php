@@ -19,6 +19,7 @@ require_once __DIR__ . '/../var/www/html/includes/morse.php';
 require_once __DIR__ . '/../var/www/html/includes/subnet_calc.php';
 require_once __DIR__ . '/../var/www/html/includes/freq_wavelength.php';
 require_once __DIR__ . '/../var/www/html/includes/ohms_law.php';
+require_once __DIR__ . '/../var/www/html/includes/checksum_tool.php';
 
 $failures = [];
 $passCount = 0;
@@ -397,6 +398,41 @@ ft_assert_true("Ohm's Law: all four values given is an error", isset(piratebox_o
 ft_assert_true("Ohm's Law: negative resistance is an error", isset(piratebox_ohms_law_solve('12', null, '-6', null)['error']));
 ft_assert_true("Ohm's Law: non-numeric input is an error", isset(piratebox_ohms_law_solve('twelve', '2', null, null)['error']));
 ft_assert_true("Ohm's Law: I=0 with nonzero V is an error (open circuit, unsolvable for R/P)", isset(piratebox_ohms_law_solve('12', '0', null, null)['error']));
+
+// --- Checksum / hash tool -------------------------------------------------
+
+$h = piratebox_hash_text('');
+ft_assert_eq('Checksum: SHA-256 of empty string (known test vector)', $h['sha256'], 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+$h = piratebox_hash_text('abc');
+ft_assert_eq('Checksum: SHA-256 of "abc" (known test vector)', $h['sha256'], 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+ft_assert_eq('Checksum: MD5 of "abc" (known test vector, legacy-only)', $h['md5'], '900150983cd24fb0d6963f7d28e17f72');
+
+$tmpDir = sys_get_temp_dir() . '/piratebox-checksum-test-' . bin2hex(random_bytes(6));
+mkdir($tmpDir);
+file_put_contents($tmpDir . '/sample.txt', 'abc');
+file_put_contents($tmpDir . '/.hidden-staging-file', 'should not appear');
+mkdir($tmpDir . '/a-subdirectory');
+
+$list = piratebox_list_uploaded_files($tmpDir);
+ft_assert_eq('Checksum: file listing includes the real file', $list, ['sample.txt']);
+
+$r = piratebox_hash_uploaded_file('sample.txt', $tmpDir);
+ft_assert_eq('Checksum: hashed existing file matches known SHA-256("abc")', $r['sha256'], 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+ft_assert_eq('Checksum: hashed existing file reports correct size', $r['size'], 3);
+
+$r = piratebox_hash_uploaded_file('../../../etc/passwd', $tmpDir);
+ft_assert_true('Checksum: path-traversal filename rejected, not resolved', isset($r['error']));
+
+$r = piratebox_hash_uploaded_file('.hidden-staging-file', $tmpDir);
+ft_assert_true('Checksum: dotfile not in the safe list, rejected even though it exists on disk', isset($r['error']));
+
+$r = piratebox_hash_uploaded_file('nonexistent-file.bin', $tmpDir);
+ft_assert_true('Checksum: nonexistent filename rejected with error, not a crash', isset($r['error']));
+
+unlink($tmpDir . '/sample.txt');
+unlink($tmpDir . '/.hidden-staging-file');
+rmdir($tmpDir . '/a-subdirectory');
+rmdir($tmpDir);
 
 // --- Summary ---------------------------------------------------------------
 
