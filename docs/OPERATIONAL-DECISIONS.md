@@ -145,6 +145,88 @@ Verified syntactically with `systemd-analyze verify` before rolling out.
 GPIO22/23/24/27) remain exactly as designed and completely unwired -
 this stage implements only the one button that's physically present.
 
+## Stage 29 Real-Hardware Confirmation: Physical Shutdown Button, Full Power Cycle
+
+**Decision date:** 2026-09-02, immediately after the implementation above.
+Everything in the "Stage 29 Implementation" entry was verified with the
+service *running* but had not yet been used to actually take the Pi down
+and bring it back up on its own. This entry records that end-to-end test,
+performed on the Pi moved to its **standalone wall-brick power supply**
+(not a shared/USB-hub source), plus the post-boot verification that
+followed.
+
+**The test:** held the physical button (GPIO25/physical pin 22) for
+~4 seconds. Result: the Pi shut down and the SSH session closed, exactly
+as designed - real `sudo systemctl poweroff`, triggered by a real 4-second
+hold, on real standalone power, with no dry-run flag involved. This is
+the first time this feature has taken the machine all the way down.
+
+**Post-boot verification, performed on this fresh boot:**
+
+- **Clean shutdown, confirmed:** current boot's kernel/journal log shows
+  no ext4 journal-recovery message (`recovering journal`, which ext4
+  prints specifically when replaying incomplete transactions from an
+  unclean unmount) - only the routine, always-normal `orphan cleanup on
+  readonly fs` line. The FAT32 boot partition's `systemd-fsck` run
+  reported a clean scan (`432 files, 135165/1032408 clusters`) with no
+  dirty-bit warning or corrections. No errors/corruption anywhere in
+  `dmesg` for this boot. (This machine has no persistent journald storage
+  or syslog - `/var/log/journal` doesn't exist and nothing else logs
+  reboot events across boots - so this is read from filesystem-integrity
+  evidence on the new boot rather than a log line from the old one; that
+  evidence is unambiguous either way, and here it says clean.)
+- **Button service, autostart + still armed:** `piratebox-button.service`
+  is `enabled` and came up on its own post-boot (`active (running)`,
+  started automatically ~49s after boot via `multi-user.target`, no
+  manual intervention). Its startup log line confirms
+  `PIRATEBOX_BUTTON_ENABLE_SHUTDOWN` survived the reboot inside the unit
+  file itself (it's baked into `etc/systemd/system/piratebox-button.service`,
+  not set by hand at a shell, so there was never really a way for it to
+  *not* survive) - "Real shutdown ENABLED" logged at start. Confirmed the
+  process still runs as the unprivileged `piratebox-gpio` user/`gpio`
+  group, not root.
+- **All PirateBox services/features healthy:** `nginx`, `php8.4-fpm`,
+  `hostapd`, `dnsmasq`, `piratebox-backup.timer`, `piratebox-status.timer`
+  all `active`; `systemctl --failed` shows zero failed units; the web app
+  answers `200 OK` on both `http://localhost/` and `http://piratebox/`;
+  the AP (`wlan0`, SSID `PirateBox`) is up.
+- **Undervoltage/throttling check on the new power source - a real
+  finding, not a clean bill of health:** `vcgencmd get_throttled` reads
+  `0x50005` (under-voltage-now, throttled-now, under-voltage-has-occurred,
+  and throttled-has-occurred bits all set), and `dmesg` shows one
+  `hwmon hwmon1: Undervoltage detected!` line ~20 seconds into this boot.
+  Rechecked three more times over the following ~35 seconds - the
+  "-now" bits stayed set throughout, not just a boot-time blip that
+  cleared. At the same time, measured rail voltages read essentially
+  nominal (`core` 1.2000V, `sdram_c` 1.2500V), the CPU governor
+  (`ondemand`) had all four cores back at the full 1400MHz (not
+  frequency-capped), and no USB reset/disconnect/over-current messages
+  appear in the journal - so whatever tripped the firmware's
+  undervoltage flag did not visibly degrade performance or destabilize
+  any attached USB device (including the Wi-Fi adapter) during this
+  check. This is exactly the failure mode `docs/POWER-UPS-DESIGN.md`
+  §2.1/§2.2 already treats as a known risk on this hardware family, and
+  this wall brick has now been directly observed producing a live
+  undervoltage flag on boot-up current draw. **Conclusion: this specific
+  wall brick is not confirmed adequate for sustained use** - it got the
+  Pi through boot and normal operation without an observed crash or
+  reset this time, but a firmware that's flagging live undervoltage on
+  every check during a low-load idle period is not a supply with real
+  headroom, and headroom is exactly what matters once the AP is under
+  real transmit load. Follow-up (not done as part of this test):
+  measure this brick's actual rated output current against the Pi 3B+
+  + attached Wi-Fi adapter's combined real-world draw, and treat it as
+  a candidate for replacement rather than as validated, per the
+  UPS/power-supply evaluation criteria already written up in
+  `docs/POWER-UPS-DESIGN.md`.
+
+**Net result:** the shutdown button's real-world behavior is fully
+confirmed - press, shutdown, power-cycle, clean reboot, service
+rearms itself with no manual step. The one open item this test
+surfaced is unrelated to the button feature itself: this particular
+wall brick's power headroom is now a documented open question, not an
+assumption.
+
 ## Post-Stage-32: Travel Mode - Privacy-Preserving Local Information Suppression
 
 **Decision date:** 2026-09-01. A third small, deliberate post-roadmap
