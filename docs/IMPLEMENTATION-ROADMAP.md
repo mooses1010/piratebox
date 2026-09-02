@@ -86,7 +86,7 @@ just because it was mentioned most recently.
 | Radio Reference | 25 services + 6 modulation + **13 guides** (was 6) | Good - `<details>` accordion, plain-language guides, search/filter | Good after this increment - propagation/antenna/dB/SDR/simplex-repeater/polarization/connectors/phonetic/Morse all now present | 1 SVG spectrum chart (pre-existing); connector ID is a **table, not a diagram** | Per-entry `source_id` -> `sources.json` (FCC/ARRL/NOAA/ITU), `confidence` field on every entry | National (US band plans) + universal (propagation physics, phonetic/Morse standards) | **Closed this increment**: dB/dBm, SDR, simplex/repeater, polarization, connectors, phonetic alphabet, Morse code. **Still open**: connector/antenna-type diagrams (image, not table) |
 | Emergency/Outage Reference | 21 topics | Good - already covers water storage, food safety, sanitation, shelter-in-place, power/generator/CO safety, evacuation | Moderate - practical guidance depth, not deep technical reference | None | Ready.gov/FEMA/CDC/NOAA/NFPA per-entry sourcing (Stage 3) | National | Already much broader/deeper than a first glance at "21 topics" suggests - **no action needed**, confirmed via full read, not assumed thin |
 | First Aid Reference | 16 topics | Good - Red Cross "Check Call Care" framing, plain language | Shallow by design - deliberately conservative, not a clinical reference (correct for a liability-aware, non-professional-audience page) | **None - the one category where a diagram (CPR hand position, recovery position, Heimlich) would help most** | Red Cross/CDC per-entry sourcing (Stage 4) | National/universal | Visual gap real but **deliberately not rushed**: medical diagrams need verified redistribution rights from an authoritative source (Red Cross material is often not freely redistributable) - flagged as next action, not attempted from memory |
-| Maps &amp; Location Reference | 1 world map + 5 coordinate/GPS entries; local/regional catalog empty by design | Good - "at a glance" world map, GPS/coordinate basics | Thin - no national/regional map layer, no UTM/MGRS visual, no map-symbols reference | 1 world map SVG (2026-09-02) | Natural Earth (public domain), USGS/NOAA/gps.gov | **Universal only** - National/Regional/State layers named in the request are genuinely absent | **Highest-value remaining gap** - see next action below |
+| Maps &amp; Location Reference | 2 maps (world + US, 2026-09-02) + 5 coordinate/GPS entries; local/regional catalog empty by design | Good - "at a glance" world/US maps, GPS/coordinate basics | Moderate - Universal+National layers now real; no Regional/State layer, no UTM/MGRS visual, no map-symbols reference | 2 SVG maps (world, US w/ AK+HI insets) | Natural Earth (public domain), USGS/NOAA/gps.gov | **Universal+National now real** (was Universal-only). Regional/State and Special-Purpose layers still absent | see updated next actions below |
 | Local Information | Empty except 2 universal numbers | N/A until configured | N/A | None | Operator-provided | Local | Correctly BLOCKED BY OPERATOR DATA, not a content gap |
 | Document Library | Empty | N/A | N/A | N/A | Operator-provided | Local | Correctly BLOCKED BY OPERATOR DATA |
 | Field Tools | 3 tool pages (time/units/coordinates) | Good | Good for what's in scope | None (calculators, not reference material) | N/A (interactive tools) | Universal | UTM/MGRS conversion deliberately out of scope (already re-audited, see §4) |
@@ -102,10 +102,8 @@ just because it was mentioned most recently.
 **Next actions, in priority order** (highest user-visible value per
 the audit above, feeding directly into implementation - not left as
 prose):
-1. **National-scope map (US)** - reuse the exact Natural Earth pipeline
-   already proven for the World Map (`tools/build_world_reference_map.py`
-   is directly adaptable to `ne_110m_admin_1_states_provinces.geojson`
-   filtered to the US). Fills the single largest gap this audit found.
+1. ~~National-scope map (US)~~ - **done 2026-09-02**, see §3 above
+   (`us-reference-map`, `tools/build_us_reference_map.py`).
 2. **Cloud-identification visual reference** - genuinely useful, small,
    sourceable from NOAA/NWS public-domain material.
 3. **Electrical/electronics quick reference** (Ohm's law, wire gauge
@@ -117,6 +115,16 @@ prose):
    do not attempt from model memory for anything medical.
 5. **Connector/antenna-type diagrams for Radio** - upgrade the existing
    text table to an actual diagram once a sourcing approach is chosen.
+6. **Regional/State map layer** - genuinely useful next Maps increment
+   (the pipeline now trivially extends to a single state via the same
+   Admin 1 dataset already fetched), but the *which state(s)* question
+   is an operator scope decision (this device has no configured "home"
+   region), not a sourcing blocker - action: ask the operator which
+   state(s), if any, should get a dedicated regional pack, rather than
+   guessing.
+7. **Special-purpose maps** (UTM/MGRS visual grid reference, map
+   symbols legend, time-zone reference) - genuinely useful, not yet
+   built, no blocker beyond effort - candidate for a future increment.
 
 ## 4. Field Tools
 

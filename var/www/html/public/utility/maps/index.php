@@ -47,6 +47,16 @@ $worldMap = ref_load_json($DATA_DIR . '/world-reference-map.json')[0] ?? null;
 $worldMapFileExists = $worldMap !== null
     && is_file(__DIR__ . '/files/' . basename($worldMap['file'] ?? ''));
 
+// United States Reference Map (national scope): same reasoning as the
+// World Reference Map above - ships with PirateBox, not region-
+// specific to this box's own location, stays visible in Travel Mode
+// (per the request's own instruction that universal/national public
+// reference material remains available in Travel Mode - only truly
+// local/operator-private information is suppressed).
+$usMap = ref_load_json($DATA_DIR . '/us-reference-map.json')[0] ?? null;
+$usMapFileExists = $usMap !== null
+    && is_file(__DIR__ . '/files/' . basename($usMap['file'] ?? ''));
+
 function ref_search_blob(array $fields): string
 {
     $parts = [];
@@ -99,14 +109,15 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
         <h1>Maps &amp; Location Reference</h1>
         <p class="utility-breadcrumb"><a href="/utility/">&larr; Utility Library</a></p>
 
-        <p>Coordinate/GPS/navigation basics and a world reference map below work offline right now, everywhere. The map catalog is a ready-to-use framework for local/regional/evacuation/topographic maps - empty until real maps for this box's area are deliberately added.</p>
+        <p>Coordinate/GPS/navigation basics, a world reference map, and a United States reference map below all work offline right now, everywhere. The map catalog is a ready-to-use framework for local/regional/evacuation/topographic maps - empty until real maps for this box's area are deliberately added.</p>
 
         <div class="radio-search-bar">
-            <input type="text" id="radioSearch" placeholder="Search: coordinates, gps, compass, utm, world map..." aria-label="Search maps and location reference">
+            <input type="text" id="radioSearch" placeholder="Search: coordinates, gps, compass, utm, world map, us map, states..." aria-label="Search maps and location reference">
             <div class="radio-chip-row" id="radioChips" role="group" aria-label="Filter by category">
                 <button type="button" class="radio-chip active" data-group="all">All</button>
                 <button type="button" class="radio-chip" data-group="reference">Reference</button>
                 <button type="button" class="radio-chip" data-group="worldmap">World Map</button>
+                <button type="button" class="radio-chip" data-group="usmap">US Map</button>
                 <button type="button" class="radio-chip" data-group="catalog">Map Catalog</button>
             </div>
         </div>
@@ -161,6 +172,29 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                     </details>
                 <?php else: ?>
                     <p class="empty-state">World map file not found on this install.</p>
+                <?php endif; ?>
+            </section>
+
+            <section class="radio-group" data-group-section="usmap">
+                <h2 class="radio-group-heading">United States Reference Map</h2>
+                <?php if ($usMap !== null && $usMapFileExists): ?>
+                    <?php $search = ref_search_blob([$usMap['title'] ?? '', $usMap['summary'] ?? '', $usMap['keywords'] ?? [], 'usmap']); ?>
+                    <details class="radio-entry" id="<?= htmlspecialchars($usMap['id']) ?>" data-group="usmap" data-search="<?= $search ?>">
+                        <summary>
+                            <span class="radio-entry-name"><?= htmlspecialchars($usMap['title']) ?></span>
+                            <span class="radio-entry-mode-badge"><?= htmlspecialchars($usMap['format'] ?? 'map') ?></span>
+                        </summary>
+                        <div class="radio-entry-detail">
+                            <?php if (!empty($usMap['description'])): ?><p><?= htmlspecialchars($usMap['description']) ?></p><?php endif; ?>
+                            <div class="world-map-frame">
+                                <img src="/utility/maps/files/<?= rawurlencode($usMap['file']) ?>" alt="United States reference map - state borders, continental US plus Alaska/Hawaii insets" loading="lazy">
+                            </div>
+                            <p><a href="/utility/maps/files/<?= rawurlencode($usMap['file']) ?>" target="_blank" rel="noopener">Open full-size in a new tab</a></p>
+                            <p class="radio-entry-source"><?= ref_source_line($sources, $usMap['source_id'] ?? null, null, null, null) ?></p>
+                        </div>
+                    </details>
+                <?php else: ?>
+                    <p class="empty-state">US map file not found on this install.</p>
                 <?php endif; ?>
             </section>
 

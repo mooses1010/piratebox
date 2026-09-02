@@ -93,6 +93,13 @@ rp_assert_eq('world-reference-map is INSTALLED (real static asset now shipped)',
 rp_assert_eq('world-reference-map scope is universal', $byId['world-reference-map']['scope'] ?? null, 'universal');
 rp_assert_eq('world-reference-map entry_count reflects its one-entry descriptor, not fabricated', $byId['world-reference-map']['entry_count'] ?? null, 1);
 
+// us-reference-map shipped 2026-09-02 (same pipeline, one admin level
+// down - National scope, not Universal).
+rp_assert_eq('us-reference-map key exists', array_key_exists('us-reference-map', $byId), true);
+rp_assert_eq('us-reference-map is INSTALLED', $byId['us-reference-map']['state'] ?? null, 'INSTALLED');
+rp_assert_eq('us-reference-map scope is national, not universal', $byId['us-reference-map']['scope'] ?? null, 'national');
+rp_assert_eq('us-reference-map entry_count reflects its one-entry descriptor', $byId['us-reference-map']['entry_count'] ?? null, 1);
+
 $validStates = ['INSTALLED', 'NOT_CONFIGURED', 'CANDIDATE', 'UNKNOWN'];
 $allValid = true;
 foreach ($packs as $p) {

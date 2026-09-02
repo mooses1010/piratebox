@@ -6,6 +6,65 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Deep Offline Reference Library: United States Reference Map (roadmap item 4)
+
+**Decision date:** 2026-09-02. Second content increment, following the
+audit's own priority order (`docs/IMPLEMENTATION-ROADMAP.md` §3a): "the
+single largest gap this audit found" was Maps having only a Universal
+layer - no National/Regional/State layer existed at all, despite the
+World Reference Map's own note explicitly saying "not the end of the
+Maps feature."
+
+**Built:** `tools/build_us_reference_map.py` - the same proven pipeline
+as the World Map (Natural Earth public domain, equirectangular
+projection, stdlib-only), one administrative level down: Admin 1
+States/Provinces, filtered to `iso_a2=="US"` (51 features - 50 states +
+DC, all present, none silently dropped). **Three-panel layout**
+(continental US as the main panel, Alaska and Hawaii as independently-
+scaled insets - the standard convention for US reference maps, since
+both are far outside the continental bounding box and would otherwise
+force the whole map absurdly wide) rather than a simplified CONUS-only
+map that quietly excluded two states. Output:
+`public/utility/maps/files/us-reference-map.svg` (~44KB).
+
+**Verified after generation:** parsed back as well-formed XML; Texas/
+California/Florida/Maine's rendered bounding boxes checked against
+their real lon/lat ranges within the CONUS panel's own projection math
+and matched exactly; confirmed all 51 features present, correctly
+split 49 (CONUS+DC) / 1 (Alaska) / 1 (Hawaii) across panels.
+
+**Wired into the Reference Library exactly like the World Map:** new
+always-visible "United States Reference Map" section on `/utility/
+maps/` (new `usmap` search chip), a `data/utility/maps/
+us-reference-map.json` descriptor (same one-entry-array pattern, no
+special-casing), a new `natural-earth-110m-admin1` source citation,
+indexed in Global Search (not `regional`, so Travel Mode doesn't hide
+it - **per the explicit instruction that national public reference
+material stays available in Travel Mode**, unlike the local/regional
+operator map catalog). `data/reference-packs.json` gained a
+`us-reference-map` row, `scope: "national"` (distinct from the World
+Map's `"universal"` scope - the hierarchy now has two real rungs, not
+one).
+
+**Testing:** `php -l` clean. Rendered `maps/index.php` directly -
+confirmed the new section, the SVG file, Alaska's presence, and the
+source citation name all render correctly. `piratebox_get_reference_
+packs()` confirmed live: `us-reference-map` -> `INSTALLED`, scope
+`national`, `entry_count: 1` - computed, not hand-set.
+`tools/test_reference_packs.php` gained 4 new assertions (key exists,
+INSTALLED, scope is national not universal, entry_count not
+fabricated). Full five-suite regression: 206 assertions, 0 failures
+(was 202, +4 new).
+
+**Disposition:** the Maps hierarchy now has two real rungs (Universal,
+National) instead of one. Regional/State (e.g. a Texas-specific pack)
+and Special-Purpose (UTM/MGRS visual, map symbols) layers remain
+correctly unbuilt - Regional/State needs an operator scope decision
+(which state(s) actually matter for this box), not a sourcing blocker;
+Special-Purpose is recorded as a future increment, not lost. See
+`docs/IMPLEMENTATION-ROADMAP.md` §3a for the full updated priority
+list.
+
 ## Deep Offline Reference Library: Radio Depth Expansion (roadmap item 3)
 
 **Decision date:** 2026-09-02. First increment of a new major

@@ -79,5 +79,15 @@
     "data_file": "utility/maps/world-reference-map.json",
     "license": "Public domain (Natural Earth, naturalearthdata.com)",
     "note": "A static offline world map (country borders, equirectangular projection, SVG) built from Natural Earth's public-domain 1:110m country data. Sourced from Claude Code's own development environment (which has outbound network access) since this Pi itself has no general WAN path by design; no live WAN dependency after installation. Shown regardless of Travel Mode or whether Local Information is configured. See docs/OPERATIONAL-DECISIONS.md and tools/build_world_reference_map.py for the full provenance/regeneration record."
+  },
+  {
+    "id": "us-reference-map",
+    "title": "United States Reference Map",
+    "scope": "national",
+    "section": "maps",
+    "url": "/utility/maps/#us-reference-map",
+    "data_file": "utility/maps/us-reference-map.json",
+    "license": "Public domain (Natural Earth, naturalearthdata.com)",
+    "note": "A static offline US map (all 50 states + DC, three panels: continental US plus Alaska/Hawaii insets) built from the same Natural Earth public-domain dataset family as the World Reference Map, one administrative level down. Same sourcing path (Claude Code's own development environment, one-time fetch, no ongoing WAN dependency). Shown regardless of Travel Mode. See tools/build_us_reference_map.py for the full provenance/regeneration record."
   }
 ]

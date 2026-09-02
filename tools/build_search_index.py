@@ -116,6 +116,14 @@ for m in load("maps", "world-reference-map.json"):
         f"/utility/maps/#{m.get('id', 'world-reference-map')}",
         m.get("summary", ""), m.get("keywords"),
     ))
+# United States Reference Map: national scope, also NOT regional=True -
+# same reasoning as the World Reference Map above.
+for m in load("maps", "us-reference-map.json"):
+    index.append(entry(
+        m.get("title", "United States Reference Map"), "maps", "Maps & Location Reference",
+        f"/utility/maps/#{m.get('id', 'us-reference-map')}",
+        m.get("summary", ""), m.get("keywords"),
+    ))
 
 # --- Local Information ------------------------------------------------
 local_info = load("local", "info.json")

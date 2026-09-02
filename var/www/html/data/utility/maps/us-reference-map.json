@@ -1,0 +1,12 @@
+[
+  {
+    "id": "us-reference-map",
+    "title": "United States Reference Map",
+    "file": "us-reference-map.svg",
+    "format": "SVG",
+    "summary": "Static offline US map - state borders, CONUS + Alaska/Hawaii insets.",
+    "description": "A single self-contained SVG US map (all 50 states + DC, three panels: continental US plus Alaska and Hawaii insets, each independently scaled) - works fully offline, no map-tile server or JavaScript mapping library involved. National scope: US-wide reference, not tied to any one region of this box, shown regardless of Travel Mode.",
+    "source_id": "natural-earth-110m-admin1",
+    "keywords": ["united states map", "us map", "state map", "states", "national map", "alaska", "hawaii", "continental united states", "conus"]
+  }
+]
