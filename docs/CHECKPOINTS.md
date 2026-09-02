@@ -217,11 +217,10 @@ unaffected by design, re-run anyway and still 181/181.
 
 | Roadmap item 1: `purge_uploads.sh` now removes `bulletin.json`/`recovery-messages.json` too (gap open since Stage 25/32, never fixed until now) | `1708cfd` | (no `~/piratebox-backups/` snapshot needed - not a `var/www/html` change) |
 
-**New pending operator step, batched:**
-```
-sudo cp /home/moose/piratebox/purge_uploads.sh /usr/local/bin/purge_uploads.sh
-sudo chmod +x /usr/local/bin/purge_uploads.sh
-```
+**Operator step completed 2026-09-02 (closed):** the install command
+above was run. Verified: `diff /home/moose/piratebox/purge_uploads.sh
+/usr/local/bin/purge_uploads.sh` byte-identical, executable
+(`-rwxr-xr-x`), root-owned. No further step pending from this fix.
 
 | Roadmap item 2: Physical wiring self-description (`data/gpio-wiring.json`, `includes/hardware_wiring.php`, new admin "Physical wiring" section - `docs/ARCHITECTURE.md` §17's named gap) | `008dd17` | `~/piratebox-backups/wiring-selfdesc-pre-20260902-080134/` |
 
