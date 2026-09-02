@@ -6,6 +6,110 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Architecture / Philosophy Formalization: Core-Operational-Optional, Privacy, Ownership, Self-Awareness
+
+**Decision date:** 2026-09-02. Documentation/architecture-only - **no
+runtime, system, network, GPIO, or web behavior changed.** Two new
+durable documents formalize this project's long-term direction, per
+explicit operator request to establish design principles *before*
+implementing any of what they describe:
+
+- **`docs/ARCHITECTURE.md`** (new) - project identity as a "field
+  utility node"; the Core/Operational/Optional layering and its
+  governing rule ("optional capability failure must degrade, not
+  disable"); the Integrated/Attachable/Network-Companion/Operator-
+  Device classification for external equipment; physical-modularity
+  goals (no hard commitment to a design, just principles + a
+  before-you-add-hardware checklist); privacy-first-not-exposure-
+  incapable philosophy, with GNSS position/time separation as the
+  concrete worked example; physical/operational discretion (Normal/
+  Attention/Warning/Critical); progressive UI disclosure (Public/
+  Operator/Advanced/Diagnostics); the self-awareness model ("what am I/
+  what do I have/..."); fact-vs-configuration-vs-inference-vs-intent
+  semantics; current-state-awareness-over-surveillance (explicitly
+  generalizing the existing connection-statistics design); graceful
+  self-diagnosis as a future goal; the four-level trust model (Access/
+  Operation/Ownership/Recovery-Claim); transferable-ownership and
+  data-aware-transfer principles; the self-describing/inheritable-
+  device goal; and "no final PirateBox" project-management philosophy.
+- **`docs/CAPABILITY-REGISTRY.md`** (new) - the concrete inventory
+  companion: every capability from today's real hardware (Pi 3B+,
+  built-in `wlan0`, the GPIO25 button) through owned-but-not-yet-wired
+  hardware (OLED, toggle switch, remaining buttons, the ALFA
+  AWUS036ACM/ARS-N19) to pure candidates (GNSS, environmental/air-
+  quality/motion/proximity/sound/lightning/radiation sensing, SDR, ham
+  radio, ESP32/companion nodes), each state reconciled against existing
+  docs or a live check, not assumed.
+
+**Reconciliation, not a rewrite - findings from actually checking
+first:**
+- The ALFA AWUS036ACM and its antenna are **ordered/incoming, not
+  arrived, not tested** - confirmed both from `docs/OPERATIONAL-
+  DECISIONS.md`'s own existing "Wi-Fi adapter notes" entry and a live
+  `lsusb` (only the earlier-rejected TP-Link TL-WN722N is physically
+  attached today). The production AP remains `wlan0`, unchanged.
+- The ALFA ARS-N19 antenna was not previously recorded in any doc in
+  this repo - recorded now on the operator's own statement, explicitly
+  flagged in `docs/CAPABILITY-REGISTRY.md` as newly-recorded rather
+  than independently confirmed (antennas don't enumerate on USB).
+- The DS3231 RTC is **planned (a specific, repeatedly-named candidate
+  part), not purchased** - `docs/RTC-TIME-READINESS-DESIGN.md`
+  originally listed it as one example among standard I2C RTC breakouts;
+  later docs (`docs/FIELD-TOOLS-DESIGN.md`, `docs/PHYSICAL-CONTROL-UX-
+  DESIGN.md`) treat it as *the* intended part. Neither ever claims it
+  was bought - `docs/CAPABILITY-REGISTRY.md` preserves that distinction
+  explicitly rather than promoting "planned" to "owned."
+- GNSS, environmental/air-quality/light/motion/proximity/sound/
+  lightning/radiation sensing, SDR, and companion-node ideas have
+  **zero prior mention anywhere in this repo** - confirmed by grep
+  before writing anything, so nothing here overwrites an existing
+  decision; this is genuinely new ground, recorded as CANDIDATE only.
+
+**Naming collision found and flagged, not silently resolved:** the new
+"Recovery/Claim" concept (administrative-authority transfer when the
+device legitimately changes owners - `docs/ARCHITECTURE.md` §14-16) is
+**not** the same thing as Stage 16's existing, already-shipped "Found
+Device" / "Recovery Messages" concept (a lost device inviting whoever
+finds it to message the *current* owner back - never touches
+administrative authority). Both can coexist, but future work naming
+either concept should keep the terms distinct - noted as an open item
+in `docs/ARCHITECTURE.md` §20 rather than renamed now.
+
+**Confirmed compatible with, not contradicting, existing decisions**
+(checked, not assumed): the canonical `http://piratebox/` URL and its
+no-HTTPS-MITM stance; the documented Android captive-portal limitation;
+privacy-preserving aggregate connection statistics (the direct
+precedent §12's "current-state awareness, not surveillance" principle
+generalizes); Travel Mode's manual-authority/privacy-safe-by-default
+design (the direct precedent §6-7's exposure philosophy generalizes);
+Normal/Emergency Mode's presentation-only scope (already never implies
+"publish everything" - confirmed, not newly imposed); current GPIO
+reservations; the GPIO25 shutdown button implementation; the Wi-Fi
+migration's deliberate testing-first discipline; RTC/`fake-hwclock`
+decisions; the open undervoltage caveat (left open, not resolved here);
+deployment/`VERSION` provenance rules; `CLAUDE.md`'s recovery
+architecture (routing table extended, not restructured); and Field
+Tools' design (cited throughout as the concrete, already-shipped
+example of several of these principles in practice).
+
+**Explicitly not done, per instruction:** no service, hardware support,
+device discovery, authentication, ownership recovery mechanism, GNSS
+behavior, companion protocol, UI feature, GPIO behavior, package, or
+deployment was implemented. Every mechanism-level question in the new
+documents (ownership-claim sequence, data-reset behavior, Quiet/Stealth
+triggers, the self-description page, a capability-state schema, the
+PCA9548A decision) is explicitly recorded as undecided future work, not
+guessed at.
+
+**Testing:** `docs/ARCHITECTURE.md`/`docs/CAPABILITY-REGISTRY.md` are
+prose - no `php -l`/`bash -n` applies. Reviewed the full diff before
+committing specifically for accidental claims of implemented
+functionality; every forward-looking section carries an explicit "not
+implemented"/"conceptual only" marker. No live deployment - this
+touches no `var/www/html` content, so no backup/checkpoint snapshot was
+needed (matching the existing "docs-only stage" pattern in
+`docs/CHECKPOINTS.md`, e.g. Stage 11/12).
+
 ## Field Tools / Offline Reference Instruments
 
 **Decision date:** 2026-09-02. A new, self-contained public section -

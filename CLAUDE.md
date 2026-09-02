@@ -129,6 +129,8 @@ error by itself, just a prompt to do the same file-level check.
 
 | Subsystem | Authoritative source |
 |---|---|
+| Long-term architecture, layering, privacy/trust/ownership philosophy, self-awareness model | `docs/ARCHITECTURE.md` |
+| Concrete capability inventory (installed/owned/planned/candidate/deferred/rejected) | `docs/CAPABILITY-REGISTRY.md` |
 | GPIO/hardware wiring, current pin status | `docs/HARDWARE-INTEGRATION-DESIGN.md` §2 (the one live wiring map) |
 | Physical buttons / toggle / OLED UX design | `docs/PHYSICAL-CONTROL-UX-DESIGN.md` |
 | Power / UPS / undervoltage design | `docs/POWER-UPS-DESIGN.md`; live reading: `/run/piratebox/status.json`, `vcgencmd get_throttled` |
@@ -222,3 +224,12 @@ Raspberry Pi (nginx/PHP/hostapd/dnsmasq, no database). Full feature
 list and install instructions: `README.md`. Everything about *why*
 things are built the way they are lives in `docs/`, routed above —
 this file deliberately does not retell that content.
+
+Longer-term: this project is deliberately built as *today's affordable
+PirateBox inside tomorrow's architecture* — the current owner/hardware/
+scope is real but not permanent, and the project's layering (Core/
+Operational/Optional), privacy-exposure philosophy, self-awareness
+model, and ownership/inheritance goals are formalized in `docs/
+ARCHITECTURE.md`, with concrete capability state in `docs/CAPABILITY-
+REGISTRY.md` (both routed in §3 above). None of that changes what's
+actually running today — see those documents' own status banners.
