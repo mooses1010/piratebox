@@ -416,3 +416,21 @@ consistent with the operator's report. `tools/
 check_library_catalog.py` clean (8/8). Zero failed units. Full
 five-suite regression: 282/282.
 
+| Deep field library, increment 24: Beaufort Wind Scale, International Emergency Numbers, glossary Weather category | `188f7c5` | *(none taken under the usual `~/piratebox-backups/` naming - built on an isolated worktree branch by a background session; the operator fast-forward merged `worktree-deep-library-continue6` into `main` (`b70c5ed` -> `188f7c5`) and ran the deploy directly, reapplying the Travel Mode quarantine with mode OFF. `b70c5ed` above remains the most recent backed-up rollback point)* |
+
+**Deployed and live-verified 2026-09-02 (merged from a worktree
+branch, deploy run by the operator; verified in this follow-up
+recovery pass):** `main`/HEAD confirmed at `188f7c5`, tree clean. Live
+`includes/VERSION` stamped to `188f7c5`, matching `HEAD`. Every
+changed file confirmed byte-identical between repo and live tree.
+Live-verified over real HTTP: `/utility/emergency/` shows both new
+topics with their tables rendering correctly (Beaufort "0 - Calm"
+row, International Emergency Numbers' "European Union" row both
+present); `/utility/glossary/` shows the new Weather &amp; Environment
+category with both new terms; live search index confirmed at 170
+entries with both new topic titles present; `/utility/about/`
+correctly shows "Glossary: INSTALLED (28)", computed live.
+`travel-mode.json` confirmed `{"travel_mode": false}`. `tools/
+check_library_catalog.py` clean (8/8). Zero failed units. Full
+five-suite regression: 282/282.
+
