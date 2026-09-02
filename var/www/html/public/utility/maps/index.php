@@ -151,6 +151,46 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                                     <?php endforeach; ?>
                                 </ul>
                             <?php endif; ?>
+                            <?php if (!empty($t['table'])): ?>
+                                <?php if (!empty($t['table_caption'])): ?><p><strong><?= htmlspecialchars($t['table_caption']) ?></strong></p><?php endif; ?>
+                                <div class="table-wrapper">
+                                    <table class="radio-channel-table">
+                                        <?php
+                                        // Same union-of-keys approach as Radio's guide tables - a
+                                        // reference entry's table rows aren't required to share
+                                        // identical columns.
+                                        $tCols = [];
+                                        foreach ($t['table'] as $row) {
+                                            foreach (array_keys($row) as $k) {
+                                                if (!in_array($k, $tCols, true)) $tCols[] = $k;
+                                            }
+                                        }
+                                        ?>
+                                        <thead>
+                                            <tr><?php foreach ($tCols as $c): ?><th><?= htmlspecialchars(ucfirst(str_replace('_', ' ', $c))) ?></th><?php endforeach; ?></tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($t['table'] as $row): ?>
+                                                <tr>
+                                                    <?php foreach ($tCols as $c): ?><td><?= htmlspecialchars((string) ($row[$c] ?? '')) ?></td><?php endforeach; ?>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endif; ?>
+                            <?php if ($t['id'] === 'true-vs-magnetic-north'): ?>
+                                <div class="radio-spectrum-wrap">
+                                    <?php require __DIR__ . '/declination.svg.php'; ?>
+                                </div>
+                                <p class="radio-spectrum-caption">Schematic concept diagram - the declination angle shown is illustrative, not a live figure for any specific location. PirateBox-authored, not copied from any map margin or third-party image.</p>
+                            <?php endif; ?>
+                            <?php if ($t['id'] === 'coordinate-formats'): ?>
+                                <div class="radio-spectrum-wrap">
+                                    <?php require __DIR__ . '/utm-grid.svg.php'; ?>
+                                </div>
+                                <p class="radio-spectrum-caption">Simplified schematic of the UTM zone/grid concept - zone count, width, and square layout are illustrative, not a precise projection or a substitute for an actual UTM-gridded map. PirateBox-authored diagram.</p>
+                            <?php endif; ?>
                             <?php if (!empty($t['more_info'])): ?>
                                 <p><?= htmlspecialchars($t['more_info']) ?></p>
                             <?php endif; ?>

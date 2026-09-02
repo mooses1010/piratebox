@@ -83,10 +83,10 @@ just because it was mentioned most recently.
 
 | Category | Depth (entries) | Beginner use | Advanced use | Visual coverage | Provenance | Geo scope | Gap found |
 |---|---|---|---|---|---|---|---|
-| Radio Reference | 25 services + 6 modulation + **13 guides** (was 6) | Good - `<details>` accordion, plain-language guides, search/filter | Good after this increment - propagation/antenna/dB/SDR/simplex-repeater/polarization/connectors/phonetic/Morse all now present | 2 SVG diagrams (spectrum chart, pre-existing; **connector profile comparison, deployed and live-verified 2026-09-02**, `connectors.svg.php`, PirateBox-authored schematic) | Per-entry `source_id` -> `sources.json` (FCC/ARRL/NOAA/ITU), `confidence` field on every entry | National (US band plans) + universal (propagation physics, phonetic/Morse standards) | **Closed this increment (prior)**: dB/dBm, SDR, simplex/repeater, polarization, connectors, phonetic alphabet, Morse code. **Closed 2026-09-02**: connector-type diagram. **Still open**: antenna-type diagrams (dipole/vertical/Yagi silhouettes) |
+| Radio Reference | 25 services + 6 modulation + **13 guides** (was 6) | Good - `<details>` accordion, plain-language guides, search/filter | Good after this increment - propagation/antenna/dB/SDR/simplex-repeater/polarization/connectors/phonetic/Morse all now present | 3 SVG diagrams (spectrum chart, pre-existing; connector profile comparison, deployed/live-verified; **antenna-type comparison, built 2026-09-02**, `antenna-types.svg.php`, PirateBox-authored schematic - dipole/vertical/Yagi shapes plus a qualitative, explicitly-non-measured omni-vs-directional concept cue) | Per-entry `source_id` -> `sources.json` (FCC/ARRL/NOAA/ITU), `confidence` field on every entry | National (US band plans) + universal (propagation physics, phonetic/Morse standards) | **Closed**: dB/dBm, SDR, simplex/repeater, polarization, connectors, phonetic alphabet, Morse code, connector diagram, antenna diagram. Radio visual-reference gap from the original audit is now fully closed |
 | Emergency/Outage Reference | 21 topics | Good - already covers water storage, food safety, sanitation, shelter-in-place, power/generator/CO safety, evacuation | Moderate - practical guidance depth, not deep technical reference | None | Ready.gov/FEMA/CDC/NOAA/NFPA per-entry sourcing (Stage 3) | National | Already much broader/deeper than a first glance at "21 topics" suggests - **no action needed**, confirmed via full read, not assumed thin |
 | First Aid Reference | 16 topics | Good - Red Cross "Check Call Care" framing, plain language | Shallow by design - deliberately conservative, not a clinical reference (correct for a liability-aware, non-professional-audience page) | **None - the one category where a diagram (CPR hand position, recovery position, Heimlich) would help most** | Red Cross/CDC per-entry sourcing (Stage 4) | National/universal | Visual gap real but **deliberately not rushed**: medical diagrams need verified redistribution rights from an authoritative source (Red Cross material is often not freely redistributable) - flagged as next action, not attempted from memory |
-| Maps &amp; Location Reference | 2 maps (world + US, 2026-09-02) + 5 coordinate/GPS entries; local/regional catalog empty by design | Good - "at a glance" world/US maps, GPS/coordinate basics | Moderate - Universal+National layers now real; no Regional/State layer, no UTM/MGRS visual, no map-symbols reference | 2 SVG maps (world, US w/ AK+HI insets) | Natural Earth (public domain), USGS/NOAA/gps.gov | **Universal+National now real** (was Universal-only). Regional/State and Special-Purpose layers still absent | see updated next actions below |
+| Maps &amp; Location Reference | 2 maps (world + US) + **10 reference entries (was 5), built 2026-09-02**: added map scale, contour-line reading, true-vs-magnetic-north (+ diagram), US time zones (+ table), world UTC reference (+ table); local/regional catalog empty by design | Good - "at a glance" world/US maps, GPS/coordinate basics, now also scale/contour/timezone/declination | Good after this increment - UTM/MGRS now has both text (pre-existing) and a visual grid-concept diagram; declination now has a diagram; still no Regional/State layer | 4 SVG visuals (world map, US map, **declination concept diagram (`declination.svg.php`) and UTM/MGRS grid concept diagram (`utm-grid.svg.php`), both built 2026-09-02**) | Natural Earth (public domain), USGS/NOAA/gps.gov, **time.gov (NIST/USNO) and IANA tz database for the new time zone entries** | Universal+National real; Regional/State layer still absent (operator scope decision, not a sourcing blocker) | see updated next actions below |
 | Local Information | Empty except 2 universal numbers | N/A until configured | N/A | None | Operator-provided | Local | Correctly BLOCKED BY OPERATOR DATA, not a content gap |
 | Document Library | Empty | N/A | N/A | N/A | Operator-provided | Local | Correctly BLOCKED BY OPERATOR DATA |
 | Field Tools | 3 tool pages (time/units/coordinates) | Good | Good for what's in scope | None (calculators/tables, not diagrams) | N/A (interactive tools); **Electrical Quick Reference (2026-09-02) cites standard Ohm's Law + AWG ampacity figures, reviewed against NEC-style references 2026-09-02 - figures confirmed already correctly using the conservative code-aligned breaker-sizing convention, not raw conductor ampacity; caveat text sharpened to say so precisely** | Universal | UTM/MGRS conversion deliberately out of scope (already re-audited, see §4) |
@@ -133,21 +133,40 @@ prose):
    `/utility/radio/` (200) shows the diagram inline, zero failed units,
    no new nginx/PHP errors, full 206/206 regression - see
    `docs/CHECKPOINTS.md`.
-   **Antenna-type diagrams** (dipole/vertical/Yagi silhouettes) remain a
-   separate, not-yet-built
-   gap.
+   ~~Antenna-type diagrams~~ (dipole/vertical/Yagi) - **built 2026-09-02,
+   IMPLEMENTED IN REPO, NOT YET DEPLOYED** (`antenna-types.svg.php`,
+   wired into the existing "Antenna & Band Guidance" guide). Shows
+   physical shape and a plain-language, explicitly-qualitative
+   omnidirectional-vs-directional concept cue - deliberately NOT a
+   measured/plotted radiation pattern, captioned as such, per the
+   instruction not to make mathematically misleading pattern claims.
+   Roadmap item 5 (connector + antenna diagrams) is now fully closed in
+   the repo; deployment/live-verification still pending the same
+   background-session merge handoff as other items below.
 6. **Regional/State map layer** - genuinely useful next Maps increment
    (the pipeline now trivially extends to a single state via the same
    Admin 1 dataset already fetched), but the *which state(s)* question
    is an operator scope decision (this device has no configured "home"
    region), not a sourcing blocker - action: ask the operator which
    state(s), if any, should get a dedicated regional pack, rather than
-   guessing.
-7. **Special-purpose maps** (UTM/MGRS visual grid reference, time-zone
-   reference) - genuinely useful, not yet built. ~~Map symbols
-   legend~~ - **done 2026-09-02**, see §3b below (USGS Topographic Map
-   Symbols, retained as an original-source PDF rather than a
-   PirateBox-authored summary).
+   guessing. **Still open** - not touched this increment (correctly not
+   guessed at).
+7. ~~Special-purpose maps~~ (UTM/MGRS visual grid reference, time-zone
+   reference) - **built 2026-09-02, IMPLEMENTED IN REPO, NOT YET
+   DEPLOYED**. Five new `data/utility/maps/reference.json` entries: Map
+   Scale, Reading Contour Lines (cross-referencing the retained USGS
+   Topo Symbols document), True North vs. Magnetic North (with a new
+   `declination.svg.php` concept diagram), United States Time Zones
+   (full 9-zone table with the Arizona/Aleutian DST exceptions,
+   live-checked against time.gov on 2026-09-02 rather than written from
+   memory), and World Time Zones: UTC Reference Points (a clearly-
+   labeled selection, not a false claim of a complete world time zone
+   list). A new `utm-grid.svg.php` concept diagram was also added to the
+   existing Coordinate Formats entry. Maps page gained generic table-
+   rendering support (mirrors Radio's existing pattern) to support the
+   two new tables. ~~Map symbols legend~~ - **done 2026-09-02**, see §3b
+   below (USGS Topographic Map Symbols, retained as an original-source
+   PDF rather than a PirateBox-authored summary).
 
 ### 3b. Layer 4: Original-Source Document/Visual/Media Library (added 2026-09-02)
 

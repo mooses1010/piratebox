@@ -303,6 +303,12 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
                                     </div>
                                     <p class="radio-spectrum-caption">Schematic side profiles for quick visual comparison - not to scale, and not a substitute for physically checking thread size before buying an adapter. PirateBox-authored diagram, not copied from any manufacturer or third-party image.</p>
                                 <?php endif; ?>
+                                <?php if ($g['id'] === 'antenna-basics'): ?>
+                                    <div class="radio-spectrum-wrap">
+                                        <?php require __DIR__ . '/antenna-types.svg.php'; ?>
+                                    </div>
+                                    <p class="radio-spectrum-caption">Simplified schematic shapes and a directionality <em>concept</em> for quick visual comparison - not scaled, not a measured radiation-pattern plot, and not an engineering design. "Omnidirectional/directional" here means the broad practical distinction (aim it vs. don't), not a specific dB figure. PirateBox-authored diagram, not copied from any manufacturer or third-party image.</p>
+                                <?php endif; ?>
                                 <?php
                                 // Metadata-driven Document Library cross-link, checked per-guide
                                 // (not page-level) - a catalog entry names this exact guide's URL

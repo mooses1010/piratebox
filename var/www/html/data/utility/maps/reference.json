@@ -117,5 +117,155 @@
     "confidence": "high",
     "source_note": null,
     "secondary_source_id": null
+  },
+  {
+    "id": "map-scale-basics",
+    "category": "reference",
+    "title": "Map Scale",
+    "summary": "A representative fraction like 1:24,000 means 1 unit on the map equals 24,000 of the same unit on the ground.",
+    "quick_actions": [
+      "Representative fraction (e.g. 1:24,000): 1 inch on the map = 24,000 inches on the ground (about 2,000 feet, or roughly 0.38 miles).",
+      "A bar/graphic scale (a ruler-like line marked in real-world distances printed on the map) stays accurate even if the map is photocopied, scanned, or resized - a text fraction does not.",
+      "'Large scale' = more detail over a smaller area (e.g. 1:24,000 city/local map). 'Small scale' = less detail over a bigger area (e.g. 1:1,000,000 whole-country map) - counterintuitively, the bigger the second number, the smaller the scale.",
+      "USGS 7.5-minute topographic quadrangles (the standard detailed US topo series) are 1:24,000."
+    ],
+    "more_info": "Always prefer the printed bar scale over a remembered representative fraction when measuring distance on an actual paper map - if the map was ever resized (photocopied, printed at a different size, or is a screen capture), the text fraction is now wrong but a bar scale printed on the same page resizes right along with it.",
+    "keywords": [
+      "map scale",
+      "representative fraction",
+      "bar scale",
+      "large scale",
+      "small scale",
+      "quadrangle"
+    ],
+    "source_id": "usgs-topoview",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "reading-contour-lines",
+    "category": "reference",
+    "title": "Reading Contour Lines",
+    "summary": "Each contour line connects points of equal elevation - spacing and shape tell you the terrain's steepness and form.",
+    "quick_actions": [
+      "Each contour line connects points of equal elevation - walk exactly along one and you neither climb nor descend.",
+      "Lines close together = steep terrain. Lines spread far apart = gentle or flat terrain.",
+      "A closed loop by itself = a hilltop/high point. The same loop with short tick marks (hachures) pointing inward = a depression or sinkhole, not a hill - the hachures are the only thing that tells them apart.",
+      "Every 4th or 5th line is usually a heavier, labeled 'index contour.' Count the lighter lines between two index contours and multiply by the map's stated contour interval to read an exact elevation."
+    ],
+    "more_info": "This covers the core reading skill; the full official legend for every contour/elevation symbol variation (glaciers, cliffs, benchmarks, and more) is retained in full in the Document Library as an original USGS publication - see the cross-link below.",
+    "keywords": [
+      "contour lines",
+      "contour interval",
+      "topographic map",
+      "elevation",
+      "hachures",
+      "index contour",
+      "depression"
+    ],
+    "source_id": "usgs-topoview",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "true-vs-magnetic-north",
+    "category": "reference",
+    "title": "True North vs. Magnetic North",
+    "summary": "A map's grid points to true (geographic) north; a compass needle points to magnetic north - the angle between them is declination.",
+    "quick_actions": [
+      "True north points along the Earth's surface toward the geographic North Pole - this is what a map's grid lines and printed 'up' are drawn to.",
+      "Magnetic north is the direction a compass needle actually points, toward the wandering magnetic north pole - it is NOT the same point, and the difference is called magnetic declination.",
+      "Declination varies by location (it can be 0°, or over 15° in parts of the US) and drifts slowly over years, so a number memorized long ago can become noticeably wrong - check current declination for the actual area (ngdc.noaa.gov/geomag) when it matters.",
+      "USGS topographic maps print a small declination diagram in the margin showing the exact angle for that specific map's location and print date - use the map's own printed diagram over a memorized figure whenever one is available."
+    ],
+    "more_info": "To convert a compass (magnetic) bearing to a true bearing: add easterly declination, subtract westerly declination. Mnemonics for this exist ('east is least, west is best' and others) but are easy to misremember backwards - when it matters, work it out from the actual declination diagram rather than trusting a half-remembered rhyme.",
+    "keywords": [
+      "true north",
+      "magnetic north",
+      "declination",
+      "compass",
+      "bearing conversion"
+    ],
+    "source_id": "noaa-declination",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": "usgs-topoview"
+  },
+  {
+    "id": "us-time-zones",
+    "category": "reference",
+    "title": "United States Time Zones",
+    "summary": "9 official US time zones exist under the Uniform Time Act - not all of them observe daylight saving time.",
+    "quick_actions": [
+      "The Uniform Time Act establishes 9 official US time zones: Atlantic, Eastern, Central, Mountain, Pacific, Alaska, Hawaii-Aleutian, Samoa, and Chamorro.",
+      "Daylight saving time is NOT observed in: Arizona (except the Navajo Nation, which does observe it), Hawaii, American Samoa, Guam, the Northern Mariana Islands, Puerto Rico, and the US Virgin Islands.",
+      "Time zone boundaries follow a federal process (petitioned through the US Department of Transportation), not state lines - a handful of counties sit in a different zone than the rest of their state."
+    ],
+    "table_caption": "US time zones and standard-time UTC offsets",
+    "table": [
+      {"zone": "Eastern", "utc_standard": "UTC-5", "dst_observed": "Yes (most areas)", "example": "New York, Atlanta"},
+      {"zone": "Central", "utc_standard": "UTC-6", "dst_observed": "Yes (most areas)", "example": "Chicago, Dallas"},
+      {"zone": "Mountain", "utc_standard": "UTC-7", "dst_observed": "Yes (most areas)", "example": "Denver, Salt Lake City"},
+      {"zone": "Mountain (Arizona)", "utc_standard": "UTC-7", "dst_observed": "No (Navajo Nation excepted)", "example": "Phoenix"},
+      {"zone": "Pacific", "utc_standard": "UTC-8", "dst_observed": "Yes (most areas)", "example": "Los Angeles, Seattle"},
+      {"zone": "Alaska", "utc_standard": "UTC-9", "dst_observed": "Yes (most areas)", "example": "Anchorage"},
+      {"zone": "Hawaii-Aleutian (Aleutian Is.)", "utc_standard": "UTC-10", "dst_observed": "Yes (Aleutian Islands only)", "example": "Adak"},
+      {"zone": "Hawaii-Aleutian (Hawaii)", "utc_standard": "UTC-10", "dst_observed": "No", "example": "Honolulu"},
+      {"zone": "Atlantic", "utc_standard": "UTC-4", "dst_observed": "No", "example": "Puerto Rico, US Virgin Islands"},
+      {"zone": "Samoa", "utc_standard": "UTC-11", "dst_observed": "No", "example": "American Samoa"},
+      {"zone": "Chamorro", "utc_standard": "UTC+10", "dst_observed": "No", "example": "Guam, Northern Mariana Islands"}
+    ],
+    "more_info": "Live-checked against time.gov (the official NIST/US Naval Observatory time site) on 2026-09-02 rather than written from memory, specifically to confirm the Arizona and Aleutian Islands exceptions correctly.",
+    "keywords": [
+      "time zones",
+      "utc offset",
+      "daylight saving time",
+      "dst",
+      "arizona time",
+      "hawaii time",
+      "uniform time act"
+    ],
+    "source_id": "time-gov-nist-usno",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
+  },
+  {
+    "id": "world-utc-reference",
+    "category": "reference",
+    "title": "World Time Zones: UTC Reference Points",
+    "summary": "A selection of reference points across the UTC range - not a complete list of every zone.",
+    "quick_actions": [
+      "Time zones are expressed as an offset from UTC (Coordinated Universal Time, the modern successor to GMT) - UTC+0 at Greenwich, increasing eastward, decreasing westward.",
+      "Not every zone is a whole hour: India is UTC+5:30 and Nepal is UTC+5:45 - always check the minutes, not just the hour, for these.",
+      "The International Date Line (roughly, but not exactly, the 180° meridian) is where the calendar day changes - crossing it westward skips a day forward, crossing it eastward repeats a day."
+    ],
+    "table_caption": "Selected UTC reference points (not exhaustive - see IANA time zone database for a full list)",
+    "table": [
+      {"utc_offset": "UTC-8", "example_location": "Los Angeles, USA"},
+      {"utc_offset": "UTC-5", "example_location": "New York, USA / Bogota, Colombia"},
+      {"utc_offset": "UTC+0", "example_location": "London, UK (winter) / Accra, Ghana"},
+      {"utc_offset": "UTC+1", "example_location": "Paris, France / Berlin, Germany"},
+      {"utc_offset": "UTC+3", "example_location": "Moscow, Russia / Nairobi, Kenya"},
+      {"utc_offset": "UTC+5:30", "example_location": "New Delhi, India"},
+      {"utc_offset": "UTC+8", "example_location": "Beijing, China / Singapore"},
+      {"utc_offset": "UTC+9", "example_location": "Tokyo, Japan / Seoul, South Korea"},
+      {"utc_offset": "UTC+10", "example_location": "Sydney, Australia (winter)"},
+      {"utc_offset": "UTC+12", "example_location": "Auckland, New Zealand (winter)"}
+    ],
+    "more_info": "Deliberately a short set of well-known reference points rather than an attempted full world time zone list or map - a complete, accurate global time zone dataset is exactly what the IANA Time Zone Database already maintains as the standard reference; this table exists for quick offline orientation, not to duplicate that database.",
+    "keywords": [
+      "world time zones",
+      "utc",
+      "gmt",
+      "international date line",
+      "global time"
+    ],
+    "source_id": "iana-tz-database",
+    "confidence": "high",
+    "source_note": null,
+    "secondary_source_id": null
   }
 ]

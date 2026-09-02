@@ -42,6 +42,20 @@
     "retrieved": "2026-09-02",
     "note": "Public domain (\"No permission is needed to use Natural Earth. Crediting the authors is unnecessary.\" - naturalearthdata.com Terms of Use, verified this session). GeoJSON fetched from the community mirror github.com/nvkelso/natural-earth-vector (raw file: geojson/ne_110m_admin_0_countries.geojson) and rendered to a static equirectangular SVG by tools/build_world_reference_map.py - see that script's header for the exact regeneration steps and docs/OPERATIONAL-DECISIONS.md for the full account of how this was sourced and verified."
   },
+  "time-gov-nist-usno": {
+    "name": "Official U.S. Time (time.gov)",
+    "publisher": "NIST / U.S. Naval Observatory (jointly operated)",
+    "url": "https://www.time.gov/",
+    "retrieved": "2026-09-02",
+    "note": "Live-fetched 2026-09-02 to confirm the current official US time zone list and the Arizona/Aleutian Islands DST exceptions before writing this reference (not from memory). The underlying legal basis (9 official US time zones, DST exemptions) is the Uniform Time Act, administered by the US Department of Transportation - transportation.gov/regulations/time-act returned HTTP 403 (Akamai bot protection) on 2026-09-02 when checked directly, so time.gov is cited as the accessible authoritative confirmation of the same facts rather than re-attempting the blocked DOT URL."
+  },
+  "iana-tz-database": {
+    "name": "IANA Time Zone Database (tz database)",
+    "publisher": "Internet Assigned Numbers Authority / tz database contributors",
+    "url": "https://www.iana.org/time-zones",
+    "retrieved": "2026-09-02",
+    "note": "The de facto standard reference for global time zone/UTC offset data used by nearly all computing systems; public, freely reusable data. Cited here for general UTC-offset facts (including non-whole-hour offsets like UTC+5:30) written originally for this table, not copied from the database's own files."
+  },
   "natural-earth-110m-admin1": {
     "name": "Natural Earth 1:110m Admin 1 States/Provinces (filtered to US)",
     "publisher": "Natural Earth (naturalearthdata.com)",

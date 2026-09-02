@@ -1268,6 +1268,81 @@
     ]
   },
   {
+    "title": "Map Scale",
+    "section": "maps",
+    "section_label": "Maps & Location Reference",
+    "url": "/utility/maps/#map-scale-basics",
+    "snippet": "A representative fraction like 1:24,000 means 1 unit on the map equals 24,000 of the same unit on the ground.",
+    "keywords": [
+      "map scale",
+      "representative fraction",
+      "bar scale",
+      "large scale",
+      "small scale",
+      "quadrangle"
+    ]
+  },
+  {
+    "title": "Reading Contour Lines",
+    "section": "maps",
+    "section_label": "Maps & Location Reference",
+    "url": "/utility/maps/#reading-contour-lines",
+    "snippet": "Each contour line connects points of equal elevation - spacing and shape tell you the terrain's steepness and form.",
+    "keywords": [
+      "contour lines",
+      "contour interval",
+      "topographic map",
+      "elevation",
+      "hachures",
+      "index contour",
+      "depression"
+    ]
+  },
+  {
+    "title": "True North vs. Magnetic North",
+    "section": "maps",
+    "section_label": "Maps & Location Reference",
+    "url": "/utility/maps/#true-vs-magnetic-north",
+    "snippet": "A map's grid points to true (geographic) north; a compass needle points to magnetic north - the angle between them is declination.",
+    "keywords": [
+      "true north",
+      "magnetic north",
+      "declination",
+      "compass",
+      "bearing conversion"
+    ]
+  },
+  {
+    "title": "United States Time Zones",
+    "section": "maps",
+    "section_label": "Maps & Location Reference",
+    "url": "/utility/maps/#us-time-zones",
+    "snippet": "9 official US time zones exist under the Uniform Time Act - not all of them observe daylight saving time.",
+    "keywords": [
+      "time zones",
+      "utc offset",
+      "daylight saving time",
+      "dst",
+      "arizona time",
+      "hawaii time",
+      "uniform time act"
+    ]
+  },
+  {
+    "title": "World Time Zones: UTC Reference Points",
+    "section": "maps",
+    "section_label": "Maps & Location Reference",
+    "url": "/utility/maps/#world-utc-reference",
+    "snippet": "A selection of reference points across the UTC range - not a complete list of every zone.",
+    "keywords": [
+      "world time zones",
+      "utc",
+      "gmt",
+      "international date line",
+      "global time"
+    ]
+  },
+  {
     "title": "World Reference Map",
     "section": "maps",
     "section_label": "Maps & Location Reference",
