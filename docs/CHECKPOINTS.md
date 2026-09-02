@@ -157,3 +157,22 @@ onset) to be independently confirmed - reasoned-fixed by the same
 change, not yet directly observed - see `docs/OPERATIONAL-DECISIONS.md`
 and `docs/DEVICE-MEMORY-DESIGN.md` §15 for the full account. No further
 operator step pending from this fix.
+
+| Guestbook reframed as "Logbook" (terminology only - `messages.php` route/`data/messages.json`/field names/action IDs all unchanged; message field made optional) | `db06c6d` | `~/piratebox-backups/logbook-rename-pre-20260902-071428/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run previewed exactly
+the 14 intended `var/www/html` files (independently confirmed via an
+itemized `rsync --dry-run -i`, cross-checked against `git diff --stat`);
+real deploy ran clean, `VERSION` stamped to `db06c6d` matching `HEAD`
+exactly. Live: nav/home/Help/"What can I do here?"/admin all render
+"Logbook"; the three pre-existing real `data/messages.json` entries
+(`Stage1-Verify`, `EmergencyMode-Verify`, `Final-Regression`) still
+present and rendering completely unchanged - no migration, no data
+touched; zero failed units; no new nginx/PHP errors since deploy (one
+unrelated, already-known `open_basedir` warning in the error log
+predates this deploy by ~3.5 hours and had zero new occurrences after
+it - confirmed stale, not introduced here). The optional-message
+behavior and CSRF/blank-submission/ID-increment correctness were
+verified pre-deploy against an isolated scratch copy, not live data,
+per the no-testing-on-community-data rule - see
+`docs/OPERATIONAL-DECISIONS.md` for the full account.
