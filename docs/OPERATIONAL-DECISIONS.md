@@ -6,6 +6,31 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## AWG Ampacity Table Reviewed Against an Authoritative Source (roadmap item 10)
+
+**Decision date:** 2026-09-02. Explicit instruction: the existing
+electrical quick-reference's AWG table "should be reviewed against an
+authoritative source if that has not already been done." It hadn't -
+researched NEC-style ampacity references directly rather than assuming
+the earlier figures were fine.
+
+**Finding:** the table's 14/12/10 AWG figures (15/20/30 A) turn out to
+exactly match the NEC's standard branch-circuit overcurrent protection
+(breaker/fuse) sizing convention for those gauges - not a coincidence,
+and not wrong, but worth being precise about: NEC Table 310.16 rates a
+14 AWG conductor's raw ampacity considerably higher (roughly 25-36 A
+depending on insulation temperature rating), and code deliberately
+caps its breaker at 15 A anyway for safety margin. **The table was
+already using the more conservative, code-aligned numbers, not the
+higher raw ratings - no number changed.** Only the caveat text was
+rewritten to say this precisely (which specific NEC concept these
+figures approximate, and why raw-ampacity numbers are deliberately not
+shown), so a reader understands *why* these particular numbers rather
+than assuming they're an arbitrary simplification.
+
+**Testing:** `php -l` clean. Full five-suite regression: 206/206
+(unaffected by design - text-only change, no logic).
+
 ## Three More Original-Source Documents: CDC/FEMA/EPA (roadmap item 9)
 
 **Decision date:** 2026-09-02. Continuing source investigation with

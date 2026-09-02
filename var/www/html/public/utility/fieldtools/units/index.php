@@ -260,7 +260,7 @@ $distExamples = [
                     </tbody>
                 </table>
             </div>
-            <p class="muted">*Approximate figures for insulated copper conductor, short run, moderate ambient temperature - a widely-cited simplification of NEC-style ampacity tables, not a substitute for one. Longer runs need a thicker gauge than this table suggests to keep voltage drop acceptable, especially at 12V/24V DC.</p>
+            <p class="muted">*Reviewed against NEC-style reference tables (2026-09-02): the 14/12/10 AWG figures above (15/20/30 A) match the NEC's standard branch-circuit overcurrent protection (breaker/fuse) sizing for those gauges - deliberately more conservative than a conductor's raw rated ampacity (NEC Table 310.16 rates 14 AWG up to ~25-36 A depending on insulation type, but code still caps its breaker at 15 A for safety margin). This table intentionally uses the more conservative, code-aligned numbers throughout, not the higher raw ratings. Still not a substitute for the actual NEC tables/a qualified electrician: real safe ampacity also depends on insulation rating, how many conductors are bundled together, ambient temperature, and run length (voltage drop) - especially at 12V/24V DC, where a longer run needs a thicker gauge than this table alone would suggest.</p>
         </div>
     </div>
 
