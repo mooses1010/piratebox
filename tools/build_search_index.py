@@ -239,6 +239,9 @@ for title, url, snippet, keywords in [
     ("Morse Code Converter", "/utility/fieldtools/morse/",
      "Text to/from International Morse Code, entirely offline, works without JavaScript.",
      ["morse", "morse code", "translate morse", "text to morse", "morse translator", "cw", "sos"]),
+    ("Subnet Calculator", "/utility/fieldtools/subnet/",
+     "IPv4 network/broadcast address, usable host range, and prefix to/from netmask.",
+     ["subnet calculator", "cidr calculator", "ip calculator", "network address", "broadcast address", "netmask", "subnet mask calculator"]),
 ]:
     index.append(entry(title, "fieldtools", "Field Tools", url, snippet, keywords))
 

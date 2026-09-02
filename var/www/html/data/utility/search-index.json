@@ -2289,6 +2289,22 @@
     ]
   },
   {
+    "title": "Subnet Calculator",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/subnet/",
+    "snippet": "IPv4 network/broadcast address, usable host range, and prefix to/from netmask.",
+    "keywords": [
+      "subnet calculator",
+      "cidr calculator",
+      "ip calculator",
+      "network address",
+      "broadcast address",
+      "netmask",
+      "subnet mask calculator"
+    ]
+  },
+  {
     "title": "About This PirateBox",
     "section": "about",
     "section_label": "About This PirateBox",

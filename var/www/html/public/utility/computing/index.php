@@ -138,6 +138,9 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                                     </table>
                                 </div>
                             <?php endif; ?>
+                            <?php if (in_array($t['id'], ['cidr-subnet-mask-reference', 'private-ip-ranges', 'ip-addressing-basics'], true)): ?>
+                                <p><a href="/utility/fieldtools/subnet/">Calculate a subnet</a> - network/broadcast address, usable host range, and prefix &harr; netmask, using this exact reference.</p>
+                            <?php endif; ?>
                             <?php if (!empty($t['more_info'])): ?>
                                 <p><?= htmlspecialchars($t['more_info']) ?></p>
                             <?php endif; ?>

@@ -16,6 +16,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../var/www/html/includes/fieldtools_convert.php';
 require_once __DIR__ . '/../var/www/html/includes/fieldtools_time.php';
 require_once __DIR__ . '/../var/www/html/includes/morse.php';
+require_once __DIR__ . '/../var/www/html/includes/subnet_calc.php';
 
 $failures = [];
 $passCount = 0;
@@ -289,6 +290,47 @@ ft_assert_eq('Morse: 2+ spaces also understood as word break', $r['output'], 'HI
 $r = piratebox_morse_to_text('... zzz ---');
 ft_assert_eq('Morse: unknown token preserved bracketed literally', $r['output'], 'S[zzz]O');
 ft_assert_eq('Morse: unknown token listed in unknown[]', $r['unknown'], ['zzz']);
+
+// --- IPv4 subnet calculator --------------------------------------------
+
+$info = piratebox_subnet_info('192.168.1.10', '24');
+ft_assert_eq('Subnet: 192.168.1.10/24 network', $info['network'], '192.168.1.0');
+ft_assert_eq('Subnet: 192.168.1.10/24 broadcast', $info['broadcast'], '192.168.1.255');
+ft_assert_eq('Subnet: 192.168.1.10/24 netmask', $info['netmask'], '255.255.255.0');
+ft_assert_eq('Subnet: 192.168.1.10/24 first host', $info['first_host'], '192.168.1.1');
+ft_assert_eq('Subnet: 192.168.1.10/24 last host', $info['last_host'], '192.168.1.254');
+ft_assert_eq('Subnet: 192.168.1.10/24 usable hosts', $info['usable_hosts'], '254');
+
+$info2 = piratebox_subnet_info('10.0.0.5', '255.255.255.0');
+ft_assert_eq('Subnet: dotted netmask input treated same as /24', $info2['network'], '10.0.0.0');
+ft_assert_eq('Subnet: dotted netmask -> correct prefix', $info2['prefix'], 24);
+
+$info = piratebox_subnet_info('172.16.5.200', '20');
+ft_assert_eq('Subnet: 172.16.5.200/20 network', $info['network'], '172.16.0.0');
+ft_assert_eq('Subnet: 172.16.5.200/20 broadcast', $info['broadcast'], '172.16.15.255');
+ft_assert_eq('Subnet: 172.16.5.200/20 usable hosts', $info['usable_hosts'], '4,094');
+
+$info = piratebox_subnet_info('192.168.1.1', '31');
+ft_assert_eq('Subnet: /31 point-to-point has no broadcast', $info['broadcast'], null);
+ft_assert_eq('Subnet: /31 first host', $info['first_host'], '192.168.1.0');
+ft_assert_eq('Subnet: /31 last host', $info['last_host'], '192.168.1.1');
+
+$info = piratebox_subnet_info('192.168.1.1', '32');
+ft_assert_eq('Subnet: /32 is a single host', $info['usable_hosts'], '1 (a /32 identifies a single host, not a range)');
+
+$info = piratebox_subnet_info('999.1.1.1', '24');
+ft_assert_true('Subnet: out-of-range octet rejected with error, not a crash', isset($info['error']));
+
+$info = piratebox_subnet_info('192.168.1.1', '33');
+ft_assert_true('Subnet: out-of-range prefix rejected with error', isset($info['error']));
+
+$info = piratebox_subnet_info('192.168.1.1', '255.0.255.0');
+ft_assert_true('Subnet: non-contiguous mask rejected, not silently reinterpreted', isset($info['error']));
+
+ft_assert_null('Subnet: leading-zero octet rejected as ambiguous', piratebox_parse_ipv4('192.168.01.1'));
+ft_assert_eq('Subnet: prefix/mask round-trip - /24', piratebox_parse_prefix_or_mask('255.255.255.0'), 24);
+ft_assert_eq('Subnet: prefix/mask round-trip - /0', piratebox_parse_prefix_or_mask('0.0.0.0'), 0);
+ft_assert_eq('Subnet: prefix/mask round-trip - /32', piratebox_parse_prefix_or_mask('255.255.255.255'), 32);
 
 // --- Summary ---------------------------------------------------------------
 

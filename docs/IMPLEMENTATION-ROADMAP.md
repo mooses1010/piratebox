@@ -300,6 +300,34 @@ library documents are searchable by their source organization
 `tools/build_search_index.py` extracts source-name keywords generically
 for every library entry, not a one-off fix.
 
+### 3d. Reference -> Tool audit (2026-09-02)
+
+Per the new principle (`docs/REFERENCE-CONTENT-DESIGN.md` §9), audited
+the candidate deterministic tools named across the reference library,
+against the explicit bar: *would someone offline plausibly be glad it
+was here* - not "is this mathematically possible."
+
+| Candidate | Disposition | Reasoning |
+|---|---|---|
+| Morse text &harr; code | **Built** (`/utility/fieldtools/morse/`) | Real field/emergency-signaling use, existing reference already names the exact mapping needed, no ambiguity in scope |
+| IPv4 CIDR/subnet calculator | **Built** (`/utility/fieldtools/subnet/`) | Genuine field-networking task (this device's own AP configuration is a live example); prefix<->netmask and network/broadcast/host-range are one coherent tool, not three |
+| Ohm's Law solver (V/I/R/P) | **Deferred, not blocked** | The reference table already lets a user compute this by hand in one glance (4 formulas, 2 knowns needed); an interactive solver is a small future increment if requested, not urgent - the reference form already serves the need reasonably well |
+| Frequency &harr; wavelength | **Deferred, not blocked** | Real value for antenna work, but no existing reference page currently frames it as a "look this up" moment the way subnet/Morse did - candidate for a future increment once paired with the right reference context, not built speculatively |
+| dBm &harr; mW/W, dB power-ratio | **Deferred, not blocked** | Same reasoning - genuinely useful, not yet paired with a natural reference-page entry point |
+| Decimal &harr; hex &harr; binary | **Rejected for now** | Common general-computing utility, but no specific field/emergency use case identified beyond "it exists" - exactly the "junk drawer of novelty converters" the principle warns against; revisit only if a concrete need surfaces |
+| Bytes &harr; KiB/MiB/GiB | **Already covered** | Field Tools' existing Storage/data converter (`/utility/fieldtools/units/`) already does this - building a second one would be the explicit "no duplication" violation |
+| Base64 encode/decode | **Rejected** | No concrete offline field/emergency use case identified - a "technically possible" utility, not a "someone would be glad it's here" one |
+| Checksum/hash calculator | **Deferred, not blocked** | Genuinely useful (verifying a file transferred over this PirateBox's own file-sharing feature), but needs its own small design pass (which algorithms, file-upload vs. paste-text input) rather than being folded in as an afterthought - candidate for a focused future increment |
+| Decimal degrees &harr; DMS | **Already covered** | Field Tools' existing Coordinate Converter (`/utility/fieldtools/coordinates/`) already does exactly this |
+| Bearing/distance calculations | **Deferred, not blocked** | Technically sound (great-circle formulas are well-defined) but not yet paired with a clear reference-page entry point the way subnet/Morse were - candidate for a future Maps-adjacent increment |
+| UTM/MGRS conversion | **Still deliberately out of scope** | Re-affirms the existing FIELD-TOOLS-DESIGN.md §2 decision (avoid turning Field Tools into "an enormous scientific-calculator project") - not reversed by this audit |
+| Time-zone/UTC offset calculator | **Rejected as currently scoped** | This device's own time-confidence honesty model (RTC/NTP status) means a calculator implying trustworthy live time would contradict `docs/RTC-TIME-READINESS-DESIGN.md` - the existing Time & Date page's honest status display is the correct behavior, not a gap |
+
+Two tools built this increment (Morse, Subnet); the "Deferred, not
+blocked" rows are real candidates for a future increment, not silently
+dropped - each has a specific reason it wasn't built *now* rather than
+"not yet gotten to."
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |
