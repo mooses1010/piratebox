@@ -6,6 +6,76 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Storage Self-Diagnosis Gap Closed + Doc-Drift Fixes (implementation-focused audit, increment 2)
+
+**Decision date:** 2026-09-02. Continuing the same implementation-
+focused audit as increment 1 (World Reference Map). Two more of the
+audit's explicit categories - "self-awareness/operator capability
+presentation" and "graceful unavailable/degraded states" - turned up a
+real, small, safe gap while checking whether `piratebox_diagnose_
+capability()`'s coverage actually matched every capability this device
+can report a problem for today (it did, for every id except one).
+
+**Found:** the `storage` capability (`includes/capability_state.php`)
+only ever reported `AVAILABLE` or `UNKNOWN` - it never reflected
+genuinely low free space, even though this project already has a real,
+established "low storage" concept everywhere else (`upload.php`'s hard
+reject at `PIRATEBOX_MIN_FREE_BYTES`; the small-JSON-write guard at
+`PIRATEBOX_MIN_FREE_BYTES_SMALL_WRITE`; the home page's own "within 2x
+the reserve" warning banner). An admin looking at the Capabilities &amp;
+Health table with the disk nearly full would have seen a flat
+"AVAILABLE," not the warning the home page was already showing them
+one click away - an ungraceful, silently-inconsistent degraded state,
+exactly the audit category this was meant to catch.
+
+**Fixed:** new pure `piratebox_classify_storage(?int $freeBytes, ?int
+$totalBytes): string` - `UNKNOWN` on read failure (unchanged), `DEGRADED`
+below the exact same `PIRATEBOX_MIN_FREE_BYTES * 2` threshold the home
+page's warning already uses (deliberately reusing that number rather
+than inventing a second, differently-tuned opinion about the same
+disk), `AVAILABLE` otherwise. Wired into the existing `storage`
+capability block (one field changed, `state` now computed instead of a
+two-way ternary) and given a `piratebox_diagnose_capability()` entry for
+both `DEGRADED` and `UNKNOWN`, surfaced automatically by `admin/
+index.php`'s existing generic per-capability diagnosis loop - no
+template change needed there. Confirmed live against this device's real
+current numbers (114GB free of 123GB - genuinely `AVAILABLE`, diagnosis
+correctly `null`) rather than assumed safe.
+
+**Also fixed - two stale doc claims found during the same audit pass,
+corrected rather than left to mislead the next reader:**
+- `docs/ARCHITECTURE.md` §13 ("Graceful self-diagnosis") still called
+  `piratebox_diagnose_capability()` "a future design goal, not
+  implemented," even though it shipped in an earlier session (`docs/
+  OPERATIONAL-DECISIONS.md`, "Graceful Self-Diagnosis, First Slice").
+  Rewritten to describe what actually exists (coverage list, where it's
+  surfaced), keeping the illustrative hardware-dependent examples
+  (external Wi-Fi adapter, environmental sensor) clearly labeled as
+  illustrative rather than implying the whole section is aspirational.
+- `docs/DEVICE-MEMORY-DESIGN.md` §3 ("Since last review") said "no such
+  summary exists today" - also no longer true (`mark_reviewed`,
+  `piratebox_device_memory_since()`, admin page section, shipped the
+  same earlier session). Rewritten to say precisely what's real (the
+  Runtime/Power rows - boots and undervoltage events) versus what
+  remains illustrative (Networking/Environment/Location rows, which
+  stay aspirational because the underlying device state they'd
+  summarize doesn't exist yet either - no discrete connection-event log,
+  no environmental/GNSS hardware).
+
+**Testing:** `php -l` clean. `tools/test_capability_state.php` gained
+10 new assertions (the new classifier's null/boundary/above/below
+cases, using the real `PIRATEBOX_MIN_FREE_BYTES` constant rather than a
+hand-picked number so the test can never silently drift from the real
+threshold; both new diagnosis entries; confirms `AVAILABLE` still
+yields no diagnosis). Full four-suite regression: 181 assertions, 0
+failures (was 171). Markdown fence balance checked on both edited docs
+(even counts, no unclosed block). No community data touched - this
+increment is entirely code/docs/tests.
+
+**Disposition:** `storage` joins every other currently-live capability
+with real DEGRADED/UNKNOWN diagnosis coverage. See `docs/CHECKPOINTS.md`
+for the deploy/live-verification record.
+
 ## World Reference Map: CANDIDATE -> INSTALLED (implementation-focused audit, increment 1)
 
 **Decision date:** 2026-09-02. Explicit operator correction of emphasis:

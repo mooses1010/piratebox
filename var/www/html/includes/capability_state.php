@@ -41,6 +41,7 @@ require_once __DIR__ . '/fieldtools_time.php';
 require_once __DIR__ . '/mode.php';
 require_once __DIR__ . '/travel_mode.php';
 require_once __DIR__ . '/device_id.php';
+require_once __DIR__ . '/config.php';
 
 if (!function_exists('piratebox_classify_service_pair')) {
     /**
@@ -65,6 +66,31 @@ if (!function_exists('piratebox_classify_power')) {
     {
         if (!$helperAvailable) return 'UNAVAILABLE';
         return $undervoltageNow === true ? 'DEGRADED' : 'AVAILABLE';
+    }
+}
+
+if (!function_exists('piratebox_classify_storage')) {
+    /**
+     * Pure, directly testable - see piratebox_classify_service_pair().
+     * Found during an implementation-focused audit: the 'storage'
+     * capability previously only ever reported AVAILABLE or UNKNOWN
+     * (disk_free_space()/disk_total_space() failing) - it never reflected
+     * genuinely low free space, even though this project already has a
+     * real, established "low storage" concept elsewhere (upload.php's
+     * hard reject threshold, PIRATEBOX_MIN_FREE_BYTES; the small-JSON-
+     * write threshold, PIRATEBOX_MIN_FREE_BYTES_SMALL_WRITE; the home
+     * page's own "within 2x the reserve" warning banner). This reuses
+     * that exact same "2x the reserve" threshold - the same number the
+     * home page already shows a warning at - rather than inventing a new
+     * one, so a DEGRADED storage capability here means exactly what a
+     * visitor might already be seeing on the home page, not a second,
+     * differently-tuned opinion about the same disk.
+     */
+    function piratebox_classify_storage(?int $freeBytes, ?int $totalBytes): string
+    {
+        if ($freeBytes === null || $totalBytes === null) return 'UNKNOWN';
+        if (!defined('PIRATEBOX_MIN_FREE_BYTES')) return 'AVAILABLE'; // defensive only; config.php always defines this
+        return $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2) ? 'DEGRADED' : 'AVAILABLE';
     }
 }
 
@@ -153,7 +179,10 @@ if (!function_exists('piratebox_get_capability_state')) {
             'layer' => 'core',
             'core_dependency' => true,
             'label' => 'Storage',
-            'state' => ($diskTotal !== false && $diskFree !== false) ? 'AVAILABLE' : 'UNKNOWN',
+            'state' => piratebox_classify_storage(
+                $diskFree !== false ? (int) $diskFree : null,
+                $diskTotal !== false ? (int) $diskTotal : null
+            ),
             'detail' => [
                 'free_bytes' => $diskFree !== false ? (int) $diskFree : null,
                 'total_bytes' => $diskTotal !== false ? (int) $diskTotal : null,
@@ -369,6 +398,10 @@ if (!function_exists('piratebox_diagnose_capability')) {
             ],
             'connection_stats' => [
                 'UNAVAILABLE' => 'Status helper snapshot unavailable - connection statistics are temporarily not updating.',
+            ],
+            'storage' => [
+                'DEGRADED' => 'Free storage space is low (within 2x the reserved minimum - the same threshold the home page\'s own storage warning already uses). New uploads/messages/posts may soon be rejected to protect the device from filling completely. Suggested check: free up space, or see the admin maintenance page.',
+                'UNKNOWN' => 'Free/total space could not be read - storage health cannot currently be confirmed.',
             ],
         ];
 

@@ -73,12 +73,28 @@ camera's continuous recording.
 
 ## 3. "Since last review" as an operator concept
 
-A future operator review boundary: PirateBox may eventually know
-something like "last reviewed 43 days ago, 12 noteworthy events since."
-**Illustrative only - no such summary exists today:**
+**Implemented, not just designed, as of 2026-09-02** - `admin/
+index.php`'s "Operational history" section shows a real "Since last
+review" line ("last reviewed 43 days ago, N boot(s), M undervoltage
+event(s) since" - the exact shape this section originally described),
+backed by `data/review-boundary.json`, a non-destructive `mark_reviewed`
+admin action, and `piratebox_device_memory_since()` (pure, unit-tested -
+`tools/test_device_memory.php`). **Covers the Runtime and Power rows of
+the illustrative example below - boots and undervoltage events - not
+the Networking/Environment/Location rows**, which stay illustrative
+because the device state they'd summarize doesn't exist yet either
+(connection *events* aren't currently tracked as discrete Device Memory
+entries the way boots/undervoltage are - the existing connection-stats
+feature keeps hourly aggregate counts, not a discrete event log, a
+different shape - see §4; environment/location both remain CANDIDATE
+hardware, `docs/CAPABILITY-REGISTRY.md`). The
+box below is kept as originally written to show the fuller target
+shape, not because none of it is real:
 
 ```
-SINCE LAST REVIEW (conceptual example - not implemented)
+SINCE LAST REVIEW (conceptual example - Runtime/Power rows are real
+and live today; Networking/Environment/Location rows remain
+illustrative - see this section's own note above)
 
 Runtime
   powered on 3 times

@@ -54,6 +54,24 @@ cs_assert_eq('Time source available, no RTC -> NOT_INSTALLED (today\'s real stat
 cs_assert_eq('Time source unavailable -> UNKNOWN, not a guess either way', piratebox_classify_rtc(false, null), 'UNKNOWN');
 cs_assert_eq('Time source unavailable even with a stale true value -> still UNKNOWN', piratebox_classify_rtc(false, true), 'UNKNOWN');
 
+// --- piratebox_classify_storage: null/missing, boundary, reuses the
+// existing PIRATEBOX_MIN_FREE_BYTES*2 "warning" threshold (index.php's
+// own home-page storage warning uses the exact same number) ---
+
+cs_assert_eq('Free/total both null (disk_*_space() failed) -> UNKNOWN', piratebox_classify_storage(null, null), 'UNKNOWN');
+cs_assert_eq('Only free null -> UNKNOWN', piratebox_classify_storage(null, 100), 'UNKNOWN');
+cs_assert_eq('Only total null -> UNKNOWN', piratebox_classify_storage(50, null), 'UNKNOWN');
+cs_assert_eq('Plenty of free space -> AVAILABLE', piratebox_classify_storage(PIRATEBOX_MIN_FREE_BYTES * 10, PIRATEBOX_MIN_FREE_BYTES * 20), 'AVAILABLE');
+cs_assert_eq('Free space exactly at the 2x-reserve boundary -> AVAILABLE (boundary itself is not yet low)', piratebox_classify_storage(PIRATEBOX_MIN_FREE_BYTES * 2, PIRATEBOX_MIN_FREE_BYTES * 20), 'AVAILABLE');
+cs_assert_eq('Free space just below the 2x-reserve boundary -> DEGRADED', piratebox_classify_storage((PIRATEBOX_MIN_FREE_BYTES * 2) - 1, PIRATEBOX_MIN_FREE_BYTES * 20), 'DEGRADED');
+cs_assert_eq('Free space at/below the hard reject threshold -> DEGRADED too (not a separate tier - see the function\'s own comment)', piratebox_classify_storage(0, PIRATEBOX_MIN_FREE_BYTES * 20), 'DEGRADED');
+
+// --- piratebox_diagnose_capability: storage entries (new) ---
+
+cs_assert_eq('storage DEGRADED has a real diagnosis, not null', piratebox_diagnose_capability('storage', ['state' => 'DEGRADED']) !== null, true);
+cs_assert_eq('storage UNKNOWN has a real diagnosis, not null', piratebox_diagnose_capability('storage', ['state' => 'UNKNOWN']) !== null, true);
+cs_assert_eq('storage AVAILABLE has no diagnosis (nothing wrong to explain)', piratebox_diagnose_capability('storage', ['state' => 'AVAILABLE']), null);
+
 // --- piratebox_capability_summary_counts: structural / boundary cases ---
 
 $counts = piratebox_capability_summary_counts([]);

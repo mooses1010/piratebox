@@ -605,11 +605,23 @@ pending root-script install step.
 
 ## 13. Graceful self-diagnosis
 
-A future design goal, not implemented: PirateBox should eventually be
-able to explain deterministic problems using known system state - not
-"AI magically diagnoses everything," but a direct readout from explicit
-capability/dependency/state knowledge (§10/§11). Illustrative examples
-of the target shape:
+**Implemented, not just designed** - `piratebox_diagnose_capability()`
+(`includes/capability_state.php`), a fixed, deterministic lookup keyed
+on capability id + state: not "AI magically diagnoses everything," but
+a direct readout from explicit capability/dependency/state knowledge
+(§10/§11), exactly as originally envisioned here. Returns `null` for
+`AVAILABLE`/`NOT_INSTALLED` (nothing wrong to explain) and for any
+state it doesn't explicitly recognize - never an invented explanation.
+Surfaced in `admin/index.php`'s Capabilities &amp; Health table,
+generically (one lookup per capability row, no per-capability template
+code). Covers every capability id this device can actually report a
+problem for today: AP/web-app service failures, power/undervoltage,
+time confidence, status-helper staleness, and (added during a later
+audit pass) low storage. The illustrative examples below predate the
+real implementation and describe hardware this device doesn't have
+(external Wi-Fi adapter, environmental sensor) - kept as a sense of the
+target shape for capabilities not yet owned, not as a claim that these
+specific messages exist in code:
 
 ```
 DEGRADED: External Wi-Fi radio unavailable
@@ -621,16 +633,14 @@ Suggested check: USB connection/power.
 ```
 
 ```
-TIME CONFIDENCE LOW
-RTC unavailable at startup and no trusted time source has been
-acquired. Messages continue working, but displayed timestamps may be
-inaccurate.
-```
-
-```
 OUTSIDE TEMPERATURE STALE
 Last reading from ENV-02 was 18 minutes ago.
 ```
+
+The real, live equivalent of the "TIME CONFIDENCE LOW" example above
+already exists verbatim in code today (`piratebox_diagnose_capability()`'s
+`time_confidence` entry) - not illustrative, actually shown on
+`admin/index.php` whenever that state is true.
 
 **A first real slice exists** (2026-09-02):
 `piratebox_diagnose_capability()` (`includes/capability_state.php`) - a
