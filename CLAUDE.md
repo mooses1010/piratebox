@@ -129,6 +129,7 @@ error by itself, just a prompt to do the same file-level check.
 
 | Subsystem | Authoritative source |
 |---|---|
+| **What's actually done vs. planned, and what to work on next** | **`docs/IMPLEMENTATION-ROADMAP.md`** — the authoritative execution queue, reconciled from the full commit history + every design doc + live state (2026-09-02). Read this before assuming something is finished, before assuming something is still open, and before inventing a new plan from whatever prompt just arrived. Update its rows as work completes; a new prompt adds/updates rows here rather than displacing them. |
 | Long-term architecture, layering, privacy/trust/ownership philosophy, self-awareness model | `docs/ARCHITECTURE.md` |
 | Concrete capability inventory (installed/owned/planned/candidate/deferred/rejected) | `docs/CAPABILITY-REGISTRY.md` |
 | Unattended-operation memory/history model (retention classes, "since last review," Field Sessions) | `docs/DEVICE-MEMORY-DESIGN.md` |
@@ -169,6 +170,13 @@ whether something is actually finished, check independently (§1: git
 log, `CHECKPOINTS.md`, live system state) rather than trusting either
 the doc's prose tone or your own assumption about what "Stage 29"
 etc. implies.
+
+**The actual queue of open work lives in `docs/IMPLEMENTATION-
+ROADMAP.md`, not in this file's prose or in whatever prompt just
+arrived.** It was reconciled once (2026-09-02) against the full history
+below plus live state specifically so a new large prompt can't silently
+displace older still-valid requirements — update its rows as work
+progresses; don't regenerate a new roadmap from scratch each session.
 
 ## 5. Interrupted work: worktrees, sessions, and `CURRENT-WORK.md` **[generic]**
 

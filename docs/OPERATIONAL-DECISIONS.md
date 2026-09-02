@@ -6,6 +6,77 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Roadmap Reconciliation
+
+**Decision date:** 2026-09-02. Operator correction of process: across
+many large staged/master prompts, continuation prompts, and addenda
+over this project's history, a suspicion arose that later prompts may
+have displaced earlier valid execution queues rather than merging with
+them. Instructed to reconstruct historical intent from the repository
+itself before doing any more feature work, and to create a durable
+tracked roadmap so this can't happen again.
+
+**Recovered:** the full 159-commit history; every `## ` heading in this
+file (64 entries - the complete decision timeline, both the "Offline
+Utility Library - Stage 1-10" sub-track and the main "Stage 13-32"
+track, plus the pre-Stage-13 Phase 1-5 foundation and this year's
+autonomous-phase increments); `docs/CAPABILITY-REGISTRY.md`'s full
+hardware/software table; Stage 32's own "consolidated outstanding items
+for the operator" checklist (7 items - cross-checked one by one against
+current state: 4 already resolved by later sessions, 1 correctly still
+open pending operator data, 1 correctly still open pending an operator
+package-install decision, and **1 - `purge_uploads.sh`'s incomplete
+file list - found to have genuinely fallen out, never fixed despite
+being named twice**); live system state (`systemctl`, `lsusb`, `iw
+dev`, `gpioinfo`, `/dev/i2c*`) checked against every hardware-related
+CANDIDATE/OWNED-INCOMING claim rather than trusting the doc text
+alone.
+
+**Findings, per the specific distinctions requested:**
+- **One stale blocker overturned** (already handled this session,
+  cross-referenced here): the World Reference Map's CANDIDATE status
+  was based on "no WAN path," true for the Pi's isolated visitor AP but
+  not for this session's own management uplink - checked live, not
+  assumed, before building it.
+- **Two doc-drift cases** (documentation claiming something
+  unimplemented when it already existed - also already handled this
+  session): graceful self-diagnosis (`ARCHITECTURE.md` §13) and "Since
+  last review" (`DEVICE-MEMORY-DESIGN.md` §3).
+- **One genuinely fallen-out item, newly found:** `purge_uploads.sh`
+  doesn't remove `data/bulletin.json` or `data/recovery-messages.json`
+  - flagged in Stage 25, repeated verbatim in Stage 32's checklist item
+  7, never fixed across three later sessions. Not deliberately
+  deferred - simply never circled back to. Scheduled as the next
+  increment.
+- **Every hardware-gated item checked live, not assumed:** ALFA
+  AWUS036ACM confirmed NOT present (`lsusb`/`iw dev` show only the
+  already-rejected TP-Link on `wlan0`'s companion `phy#1`); GPIO17/
+  toggle/buttons/OLED confirmed NOT wired (`gpioinfo` shows GPIO17 as
+  unclaimed `input`, no `/dev/i2c*` device node exists at all - I2C
+  isn't even enabled, not merely uncoded). All CANDIDATE/OWNED-INCOMING
+  hardware classifications in `CAPABILITY-REGISTRY.md` confirmed
+  accurate, not stale.
+- **Ownership/trust/transfer (`ARCHITECTURE.md` §14-17):** confirmed
+  still deliberately principle-only, "None of these is chosen or
+  implemented" - a genuine security/identity decision, correctly left
+  to the operator, not re-litigated.
+
+**Built:** `docs/IMPLEMENTATION-ROADMAP.md` - the new authoritative
+execution queue. Structured as compact per-area tables (not prose),
+one row per meaningful capability, each carrying status (from an
+explicit 11-value vocabulary distinguishing "documented" from
+"implemented" from "deployed" from "live-verified"), evidence,
+blocker, next action, and a doc pointer - links to detail rather than
+duplicating it. `CLAUDE.md` updated in two places: a new top-priority
+routing-table row, and a note in §4 (the "history is not a to-do list"
+section) directing future sessions to update this roadmap's rows
+rather than regenerate a new plan from whichever prompt arrived most
+recently.
+
+**Disposition:** reconciliation complete. Resuming implementation
+against the roadmap's actionable rows, starting with the
+`purge_uploads.sh` gap.
+
 ## Reference Library Navigation Coherence Fixes (implementation-focused audit, increment 3)
 
 **Decision date:** 2026-09-02. Continuing the same audit
