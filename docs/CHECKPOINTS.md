@@ -231,3 +231,12 @@ reads correctly via the deployed tree (8 rows, shutdown button
 correctly shows wired); zero failed units; no new nginx/PHP errors
 since deploy. Full five-suite regression: 202 assertions, 0 failures.
 
+| Deep field library, increment 1: Radio depth expansion (7 new guides - dB/dBm, SDR, simplex/repeater, polarization, connectors, phonetic alphabet, Morse code; content audit in `docs/IMPLEMENTATION-ROADMAP.md` §3a) | `d92a416` | `~/piratebox-backups/radio-depth-pre-20260902-094039/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `d92a416` matching `HEAD` exactly. Live
+`/utility/radio/` confirmed 200 with the three new table-based guides
+(Feed Lines, NATO Phonetic Alphabet, Morse Code Reference) present;
+zero failed units; no new nginx/PHP errors since deploy. Search index
+rebuilt to 99 entries. Full five-suite regression: 202/202.
+
