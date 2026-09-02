@@ -1,0 +1,30 @@
+{
+  "ietf-rfc1918": {
+    "name": "RFC 1918 (Address Allocation for Private Internets) and general IETF networking standards",
+    "publisher": "IETF (Internet Engineering Task Force)",
+    "url": "https://datatracker.ietf.org/doc/html/rfc1918",
+    "retrieved": "2026-09-02",
+    "note": "Same citation as Computing & Networking Reference's own subnet/CIDR entries - see /utility/computing/ for the fuller reference this glossary entry links to."
+  },
+  "usgs-topoview": {
+    "name": "USGS topoView Help Guide / general USGS cartography reference",
+    "publisher": "U.S. Geological Survey",
+    "url": "https://ngmdb.usgs.gov/topoview/help/",
+    "retrieved": "2026-09-02",
+    "note": "Same citation as Maps & Location Reference's own coordinate-format entries."
+  },
+  "noaa-declination": {
+    "name": "NOAA National Centers for Environmental Information - Magnetic Declination",
+    "publisher": "NOAA/NCEI",
+    "url": "https://www.ngdc.noaa.gov/geomag",
+    "retrieved": "2026-09-02",
+    "note": null
+  },
+  "general-technical-education": {
+    "name": "General radio/electrical/computing technical education",
+    "publisher": null,
+    "url": null,
+    "retrieved": "2026-09-02",
+    "note": "Widely-taught engineering/technical concepts not tied to one specific regulatory citation - same pattern already used elsewhere in this project (Radio's general-rf-education, Maps' general-nav-education, Computing's general-networking-education). Each glossary entry using this source links onward to the fuller subject-page reference, which carries its own more specific citation where one exists."
+  }
+}

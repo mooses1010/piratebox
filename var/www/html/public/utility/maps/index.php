@@ -116,6 +116,7 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
         <p class="utility-breadcrumb"><a href="/utility/">&larr; Utility Library</a></p>
 
         <p>Coordinate/GPS/navigation basics, a world reference map, and a United States reference map below all work offline right now, everywhere. The map catalog is a ready-to-use framework for local/regional/evacuation/topographic maps - empty until real maps for this box's area are deliberately added.</p>
+        <p class="muted">Unfamiliar term (declination, datum, UTM)? See the <a href="/utility/glossary/">Glossary</a>.</p>
 
         <?= $libraryLinksHtml ?>
 

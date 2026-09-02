@@ -145,7 +145,7 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
             <h2>Also on this network</h2>
             <div class="hero-actions">
                 <a href="/messages.php">Logbook</a>
-                <a href="/help.php">Help / About this network</a>
+                <a href="/help.php">Help / About This PirateBox</a>
                 <a href="/utility/">Full Utility Library</a>
             </div>
         </section>

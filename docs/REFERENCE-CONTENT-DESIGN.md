@@ -162,7 +162,121 @@ specifically - nothing here changes that boundary; Universal/National
 material was already unaffected by Travel Mode (it reveals nothing
 about the operator's home region) and remains so.
 
-## 7. What's deliberately not done
+## 7. Four content tiers (formalized 2026-09-02)
+
+The Deep Field Library's growth (radio/maps/first-aid/emergency/
+computing reference pages, retained original documents, PirateBox-
+authored diagrams) makes an implicit distinction worth stating
+explicitly, so future work classifies new material consistently
+instead of re-deriving the question each time:
+
+1. **Original Source Material** - authoritative documents/assets
+   retained verbatim (`/utility/library/`, `catalog.json`). Never
+   edited/summarized in place; the point is that it's the real thing,
+   with full provenance (e.g. DoD FM 4-25.11, NIST SP 432).
+2. **PirateBox Reference Material** - concise definitions,
+   explanations, tables, and reference cards *built from* verified
+   sources, but not the source documents themselves (e.g. the AWG
+   ampacity table, the US Time Zones table, every `reference.json`/
+   `topics.json`/`guides.json` entry across the subject pages). Written
+   originally, not mechanically copied prose, even when the underlying
+   facts come from an authoritative source - a concise sourced
+   explanation beats a pasted paragraph.
+3. **PirateBox Original Material** - diagrams/explanations with no
+   external source at all, because none was needed: the connector,
+   antenna, declination, UTM/MGRS, electrical-symbol, and ground-to-
+   air-signal SVGs are original schematics of generic/standardized
+   forms (a resistor symbol, a compass bearing) - authored directly,
+   same basis as writing an explanation, not a licensing question.
+4. **External Copyrighted Reference** - material investigated and
+   found useful for citation/research but not confirmed redistributable
+   (ARRL band charts, Red Cross first-aid material). Cited by name
+   (`source_id` -> `sources.json`) where it informed a Tier 2 entry's
+   accuracy; never retained as a Tier 1 document, never mechanically
+   reproduced as Tier 2 prose.
+
+**Verification discipline stays per-item, not per-organization**: a
+".gov" domain does not make every asset on it public domain (co-
+authored/third-party content is the recurring exception - see NOAA's
+non-federal-co-author caveat, §3b of `docs/IMPLEMENTATION-ROADMAP.md`)
+and a government or standards body's *specific* publication still
+needs its own license check even when the same organization's other
+work is already confirmed clear (the ARRL band-chart-specifically
+finding is the concrete example on record).
+
+**Where a term fits which tier isn't always obvious in advance** - the
+test is: would a reasonable person mind PirateBox writing its own
+short explanation of this, sourced honestly? If yes (a specific
+copyrighted diagram, a proprietary chart), it's Tier 4, cite-only. If
+no (a standard's defined term, a physical law, a generic technical
+concept), a Tier 2/3 PirateBox-authored explanation is both legally
+fine and usually more useful than a retained PDF page for it - see §8
+(Glossary) for where this tiering was first put into practice
+end-to-end.
+
+## 8. Glossary / terminology architecture (2026-09-02)
+
+**Problem:** the library now has enough depth that a beginner
+encountering "polarization," "CIDR," or "declination" mid-page has
+nowhere offline to ask "what does that mean?" without either (a)
+turning every subject page into a wall of inline hyperlinks/tooltips
+(rejected - clutters the exact beginner-first pages this is meant to
+help) or (b) re-explaining every term inline everywhere it's used
+(rejected - duplicates content across pages, goes stale independently
+in each place).
+
+**Design chosen:** one small, centralized, searchable glossary page
+(`/utility/glossary/`), built on the *exact same* reference-list
+pattern already proven across Radio/Maps/Emergency/First
+Aid/Computing (`<details>` accordion, `radioSearch`/`radioChips`,
+`ref_search_blob`/`ref_source_line` helpers) - no new UI pattern, no
+JavaScript beyond the same shared `scripts.js` filter/search behavior
+every other reference page already uses, works with JS entirely off
+(every entry is plain expandable HTML). No database: `data/utility/
+glossary/terms.json` (array, same shape discipline as every other
+reference data file) plus a sibling `sources.json`.
+
+**Per-entry shape**, deliberately close to the existing `reference.json`
+shape rather than inventing new field names for the same concepts:
+
+```
+{
+  "id": "cidr",
+  "title": "CIDR",                 // the term itself
+  "summary": "...",                // AT A GLANCE - one plain sentence
+  "quick_actions": ["..."],        // UNDERSTAND - 1-3 short points
+  "related_pages": [{"url","label"}], // TECHNICAL/RELATED - link(s) to
+                                       // the existing deeper reference,
+                                       // not a re-explanation
+  "keywords": ["cidr", "subnetting", "prefix length"], // aliases/abbreviations
+  "source_id": "...", "confidence": "..."
+}
+```
+
+`related_pages` intentionally reuses the exact field name/shape the
+Document Library's `catalog.json` already uses for its own subject-
+page cross-links - one convention for "this metadata names a page this
+belongs with," not two competing ones.
+
+**Deliberately NOT done:** no inline auto-linking of terms as they
+appear in Radio/Maps/etc. body text (the "wall of hyperlinks" this
+was designed to avoid), no tooltip/hover JavaScript, no full-text
+search into retained PDFs. The connection back from a subject page is
+one short, existing-pattern link (matching how Maps already points to
+the Coordinate Converter, or how a Document Library cross-link box
+works) - not scattered inline links.
+
+**Search:** glossary terms are indexed by `tools/build_search_index.py`
+exactly like every other reference entry - searching "DHCP" surfaces
+the glossary definition through the existing search architecture, no
+separate glossary-only search box.
+
+**Self-description:** registered as a `reference-packs.json` entry
+(`glossary-universal`) so `/utility/about/` truthfully reports how many
+terms are actually defined, computed live like every other pack -
+never a hardcoded claim.
+
+## 9. What's deliberately not done
 
 - No new map images/geographic data bundled (§5).
 - No package-manager-style pack install/remove mechanism (§3).

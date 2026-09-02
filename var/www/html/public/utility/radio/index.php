@@ -126,6 +126,7 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
         <p class="utility-breadcrumb"><a href="/utility/">&larr; Utility Library</a></p>
 
         <p>A fast, offline lookup for a wideband receiver (built with a Malahit DSP2-style receiver in mind). Search or filter below - everything on this page works with no Internet connection. <strong>This is receive-focused.</strong> Owning a receiver does not authorize transmitting anywhere on this page; each entry marks whether transmitting requires a license.</p>
+        <p class="muted">Unfamiliar term (polarization, SWR, simplex)? See the <a href="/utility/glossary/">Glossary</a>.</p>
 
         <div class="radio-spectrum-wrap">
             <?php require __DIR__ . '/spectrum.svg.php'; ?>

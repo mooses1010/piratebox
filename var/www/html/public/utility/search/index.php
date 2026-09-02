@@ -55,6 +55,7 @@ $sectionLabels = [
     'firstaid'  => 'First Aid Reference',
     'maps'      => 'Maps & Location Reference',
     'computing' => 'Computing & Networking Reference',
+    'glossary'  => 'Glossary',
     'local'     => 'Local Information',
     'library'   => 'Document Library',
     'fieldtools' => 'Field Tools',

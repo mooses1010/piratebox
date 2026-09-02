@@ -46,6 +46,8 @@ $distExamples = [
             <p class="help-note">JavaScript is off, so the live converters below aren't interactive. The reference tables under each one are computed by the server and still accurate - use those for common values.</p>
         </noscript>
 
+        <p class="muted">Unfamiliar term (voltage, resistance, SI prefix)? See the <a href="/utility/glossary/">Glossary</a>.</p>
+
         <h2>Temperature</h2>
         <div class="fieldtools-tool" id="ft-temp-tool">
             <div class="fieldtools-row">
@@ -196,7 +198,7 @@ $distExamples = [
             <p class="fieldtools-result" id="ft-pct-change-result" aria-live="polite"></p>
         </div>
 
-        <h2>SI Prefixes <span class="muted">(metric scale reference)</span></h2>
+        <h2 id="si-prefixes">SI Prefixes <span class="muted">(metric scale reference)</span></h2>
         <div class="fieldtools-tool">
             <p>Every prefix below means the same multiplier no matter which unit it's attached to - once you know what "milli" means, you know it for milliamps, milliliters, and milliseconds alike.</p>
             <div class="table-wrapper">

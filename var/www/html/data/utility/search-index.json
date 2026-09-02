@@ -1230,6 +1230,343 @@
     ]
   },
   {
+    "title": "Subnet",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#subnet",
+    "snippet": "A smaller network carved out of a larger one, sharing a defined range of addresses.",
+    "keywords": [
+      "subnet",
+      "subnetting",
+      "subnetwork",
+      "network segment"
+    ]
+  },
+  {
+    "title": "CIDR",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#cidr",
+    "snippet": "A compact way to write how big a network is, as a slash-number after an IP address (e.g. /24).",
+    "keywords": [
+      "cidr",
+      "classless inter-domain routing",
+      "prefix length"
+    ]
+  },
+  {
+    "title": "DHCP",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#dhcp",
+    "snippet": "The service that automatically hands a joining device its IP address, subnet, gateway, and DNS server.",
+    "keywords": [
+      "dhcp",
+      "dynamic host configuration protocol",
+      "automatic ip"
+    ]
+  },
+  {
+    "title": "DNS",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#dns",
+    "snippet": "The lookup service that translates a domain name (example.com) into an IP address.",
+    "keywords": [
+      "dns",
+      "domain name system",
+      "name resolution"
+    ]
+  },
+  {
+    "title": "Checksum / Hash",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#checksum",
+    "snippet": "A short fixed-length fingerprint calculated from a file's contents, used to verify it wasn't corrupted or altered.",
+    "keywords": [
+      "checksum",
+      "hash",
+      "md5",
+      "sha-256",
+      "file integrity"
+    ]
+  },
+  {
+    "title": "Character Encoding",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#character-encoding",
+    "snippet": "The rule a computer uses to turn stored bytes back into readable text.",
+    "keywords": [
+      "character encoding",
+      "ascii",
+      "utf-8",
+      "unicode",
+      "mojibake"
+    ]
+  },
+  {
+    "title": "Serial (RS-232/UART)",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#serial",
+    "snippet": "A simple one-bit-at-a-time connection standard, still common for consoles on embedded/networking gear.",
+    "keywords": [
+      "serial",
+      "rs-232",
+      "uart",
+      "baud rate",
+      "console port"
+    ]
+  },
+  {
+    "title": "Polarization",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#polarization",
+    "snippet": "The orientation of a radio wave's electric field - vertical, horizontal, or circular - set by the transmitting antenna.",
+    "keywords": [
+      "polarization",
+      "vertical polarization",
+      "horizontal polarization",
+      "circular polarization"
+    ]
+  },
+  {
+    "title": "Impedance",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#impedance",
+    "snippet": "A circuit or cable's opposition to AC current flow - RF gear is almost always designed around 50 ohms.",
+    "keywords": [
+      "impedance",
+      "50 ohm",
+      "ohms",
+      "matching"
+    ]
+  },
+  {
+    "title": "SWR (Standing Wave Ratio)",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#swr",
+    "snippet": "A measure of how well an antenna system's impedance is matched - 1:1 is a perfect match, higher numbers mean more reflected signal.",
+    "keywords": [
+      "swr",
+      "standing wave ratio",
+      "vswr",
+      "antenna matching"
+    ]
+  },
+  {
+    "title": "Modulation",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#modulation",
+    "snippet": "How information (voice, data) is impressed onto a radio wave for transmission.",
+    "keywords": [
+      "modulation",
+      "am",
+      "fm",
+      "ssb",
+      "carrier wave"
+    ]
+  },
+  {
+    "title": "Simplex",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#simplex",
+    "snippet": "Direct radio-to-radio communication on one frequency, with no repeater in between.",
+    "keywords": [
+      "simplex",
+      "direct radio",
+      "radio to radio"
+    ]
+  },
+  {
+    "title": "Repeater",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#repeater",
+    "snippet": "A fixed station, usually on a hill/tower, that receives a signal and instantly retransmits it to extend range.",
+    "keywords": [
+      "repeater",
+      "relay station"
+    ]
+  },
+  {
+    "title": "dB / dBm",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#db-dbm",
+    "snippet": "Logarithmic units for comparing signal strength - dB is a ratio, dBm is an absolute power level referenced to 1 milliwatt.",
+    "keywords": [
+      "db",
+      "dbm",
+      "decibel",
+      "signal strength"
+    ]
+  },
+  {
+    "title": "Declination",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#declination",
+    "snippet": "The angle between true (map) north and magnetic (compass) north at a given location.",
+    "keywords": [
+      "declination",
+      "magnetic declination",
+      "true north",
+      "magnetic north"
+    ]
+  },
+  {
+    "title": "Datum",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#datum",
+    "snippet": "The specific mathematical model of the Earth's shape a coordinate is measured against - the same coordinates can shift if the datum differs.",
+    "keywords": [
+      "datum",
+      "wgs84",
+      "wgs 84",
+      "nad27",
+      "nad83",
+      "geodetic datum"
+    ]
+  },
+  {
+    "title": "Contour Interval",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#contour-interval",
+    "snippet": "The elevation difference represented between one contour line and the next on a topographic map.",
+    "keywords": [
+      "contour interval",
+      "contour lines",
+      "topographic map",
+      "elevation"
+    ]
+  },
+  {
+    "title": "Bearing",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#bearing",
+    "snippet": "The clockwise angle from north to whatever direction you're pointing or heading.",
+    "keywords": [
+      "bearing",
+      "compass bearing",
+      "heading",
+      "azimuth"
+    ]
+  },
+  {
+    "title": "Latitude / Longitude",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#latitude-longitude",
+    "snippet": "The universal coordinate pair for any point on Earth - how far north/south (latitude) and east/west (longitude) of two reference lines.",
+    "keywords": [
+      "latitude",
+      "longitude",
+      "lat long",
+      "coordinates"
+    ]
+  },
+  {
+    "title": "UTM",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#utm",
+    "snippet": "Universal Transverse Mercator - divides the world into 60 numbered zones, giving position as a meters-based easting/northing.",
+    "keywords": [
+      "utm",
+      "universal transverse mercator",
+      "easting",
+      "northing"
+    ]
+  },
+  {
+    "title": "MGRS",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#mgrs",
+    "snippet": "Military Grid Reference System - the same UTM grid, but identifies the 100km square with letters instead of numbers.",
+    "keywords": [
+      "mgrs",
+      "military grid reference system",
+      "grid square"
+    ]
+  },
+  {
+    "title": "Voltage",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#voltage",
+    "snippet": "Electrical potential difference - the \"pressure\" that pushes current through a circuit, measured in volts.",
+    "keywords": [
+      "voltage",
+      "volts",
+      "electrical potential"
+    ]
+  },
+  {
+    "title": "Current",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#current",
+    "snippet": "The actual flow of electric charge through a circuit, measured in amps.",
+    "keywords": [
+      "current",
+      "amps",
+      "amperage"
+    ]
+  },
+  {
+    "title": "Resistance",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#resistance",
+    "snippet": "How much a component opposes the flow of current, measured in ohms.",
+    "keywords": [
+      "resistance",
+      "ohms",
+      "resistor"
+    ]
+  },
+  {
+    "title": "Power (Electrical)",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#power-electrical",
+    "snippet": "The rate of energy use or transfer in a circuit, measured in watts.",
+    "keywords": [
+      "power",
+      "watts",
+      "wattage"
+    ]
+  },
+  {
+    "title": "SI Prefix",
+    "section": "glossary",
+    "section_label": "Glossary",
+    "url": "/utility/glossary/#si-prefix",
+    "snippet": "A standard multiplier (kilo, milli, mega, etc.) that means the same thing regardless of which unit it's attached to.",
+    "keywords": [
+      "si prefix",
+      "kilo",
+      "mega",
+      "giga",
+      "milli",
+      "micro",
+      "nano",
+      "metric prefix"
+    ]
+  },
+  {
     "title": "IPv4 Addressing Basics",
     "section": "computing",
     "section_label": "Computing & Networking Reference",

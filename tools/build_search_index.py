@@ -101,6 +101,14 @@ for t in load("firstaid", "topics.json"):
         t.get("summary", ""), t.get("keywords"),
     ))
 
+# --- Glossary ---------------------------------------------------------------
+for t in load("glossary", "terms.json"):
+    index.append(entry(
+        t.get("title", ""), "glossary", "Glossary",
+        f"/utility/glossary/#{t.get('id', '')}",
+        t.get("summary", ""), t.get("keywords"),
+    ))
+
 # --- Computing / Networking -------------------------------------------------
 for t in load("computing", "reference.json"):
     index.append(entry(

@@ -59,6 +59,11 @@ session_start();
             <span class="utility-card-title">Computing &amp; Networking</span>
             <span class="utility-card-desc">IP addressing, DNS/DHCP, ports, Wi-Fi, cabling, USB/serial &amp; checksums</span>
         </a>
+        <a class="utility-card" href="/utility/glossary/">
+            <span class="utility-card-icon" aria-hidden="true">📖</span>
+            <span class="utility-card-title">Glossary</span>
+            <span class="utility-card-desc">Quick definitions for terms used across this library, with links to the fuller reference</span>
+        </a>
         <a class="utility-card" href="/utility/about/">
             <span class="utility-card-icon" aria-hidden="true">ℹ️</span>
             <span class="utility-card-title">About This PirateBox</span>

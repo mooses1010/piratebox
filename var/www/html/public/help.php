@@ -23,6 +23,10 @@ $piratebox_device_id = piratebox_get_device_id();
     <h1>Help &amp; About</h1>
 
     <section class="help-section">
+        <p>Two different questions: this page covers <strong>how to connect and what you can do here</strong>. For <strong>what this device actually is and everything currently installed on it</strong>, see <a href="/utility/about/">About This PirateBox</a>.</p>
+    </section>
+
+    <section class="help-section">
         <h2>Connect</h2>
         <ol class="help-steps">
             <li>Join the Wi-Fi network named <strong>"PirateBox"</strong>. It's open - no password.</li>
@@ -105,18 +109,9 @@ $piratebox_device_id = piratebox_get_device_id();
     </section>
 
     <section class="help-section">
-        <h2>About This PirateBox</h2>
-        <p>This page is being served directly by the PirateBox you're connected to right now - there's no Internet involved anywhere in loading it. The website, every file, and every reference document lives on this one device's local storage; your device is talking directly to it over Wi-Fi.</p>
-        <p>This particular PirateBox is built around:</p>
-        <ul class="help-steps">
-            <li>A Raspberry Pi-based computer</li>
-            <li>Local storage for files and reference material</li>
-            <li>An independent Wi-Fi access point (not connected to any other network)</li>
-            <li>Portable, battery-capable power (planned/in progress)</li>
-            <li>Physical mode/status controls (planned)</li>
-            <li>A local status display (planned)</li>
-        </ul>
-        <p>It's meant to work as a portable community information and file-sharing appliance - useful sitting at home, riding in a vehicle, carried in a backpack, or set up at an event, depending on where it's needed.</p>
+        <h2>This Particular Device</h2>
+        <p>This page is being served directly by the PirateBox you're connected to right now - there's no Internet involved anywhere in loading it. The website, every file, and every reference document lives on this one device's local storage; your device is talking directly to it over Wi-Fi. It's built around a Raspberry Pi, local storage, and an independent Wi-Fi access point not connected to any other network - meant to work as a portable community information and file-sharing appliance, useful sitting at home, riding in a vehicle, carried in a backpack, or set up at an event.</p>
+        <p><strong>For exactly what's installed on this specific unit, what's working, and its current health</strong> - not a general description, the live, honest state of this device right now - see <a href="/utility/about/">About This PirateBox</a>.</p>
 
         <?php if ($piratebox_device_id !== null): ?>
             <p>Device ID: <strong class="help-url"><?= htmlspecialchars($piratebox_device_id) ?></strong> <span class="muted">- a random, non-sensitive label for this specific appliance, not derived from any hardware identifier. See <a href="/found/">Found This Device</a> if this unit seems lost or displaced.</span></p>

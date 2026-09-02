@@ -83,6 +83,7 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
         <p class="utility-breadcrumb"><a href="/utility/">&larr; Utility Library</a></p>
 
         <p>PirateBox is itself a small computer network - this page is a compact, offline reference for the concepts behind it and behind networking/computing in general: addressing, DNS/DHCP, ports, Wi-Fi, cabling, USB/serial, checksums, and text encoding. Deliberately tight in scope, not a general Linux/sysadmin manual.</p>
+        <p class="muted">Unfamiliar term (CIDR, DHCP, checksum)? See the <a href="/utility/glossary/">Glossary</a>.</p>
 
         <?= $libraryLinksHtml ?>
 

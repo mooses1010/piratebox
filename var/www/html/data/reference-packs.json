@@ -52,6 +52,17 @@
     "note": "IP addressing, DNS/DHCP, ports, Wi-Fi terminology, Ethernet/cabling, USB/serial, checksums/hashes, text encoding - concepts behind computer networking in general, not tied to this device's own location or configuration."
   },
   {
+    "id": "glossary-universal",
+    "title": "Glossary",
+    "scope": "universal",
+    "section": "glossary",
+    "url": "/utility/glossary/",
+    "data_file": "utility/glossary/terms.json",
+    "sources_file": "utility/glossary/sources.json",
+    "license": "PirateBox-authored reference material - see per-entry sources in data file",
+    "note": "Quick definitions for terms used across the Computing, Radio, Maps, and Electrical/Measurement reference pages, each linking to its fuller existing reference rather than duplicating it - see docs/REFERENCE-CONTENT-DESIGN.md §8."
+  },
+  {
     "id": "local-reference",
     "title": "Local Information",
     "scope": "local",
