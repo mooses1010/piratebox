@@ -37,3 +37,21 @@ ProtectSystem=strict
 # torn down again right after each run.
 RuntimeDirectory=piratebox
 RuntimeDirectoryPreserve=yes
+# Found live 2026-09-02, the same class of gap as the RuntimeDirectory=
+# fix above (ProtectSystem=strict blocking a path this script actually
+# needs to write, not caught until something tried to write there for
+# real): every hourly connection-stats rollover
+# (data/connection-stats.json, Post-Stage-32) and every Device Memory
+# event write (data/device-history.json,
+# docs/DEVICE-MEMORY-DESIGN.md) had been silently failing with
+# "OSError: [Errno 30] Read-only file system" (visible in journalctl -u
+# piratebox-status.service, wrapped in `|| true` so it never crashed the
+# unit or blocked the rest of the snapshot - just silently never
+# persisted). Confirmed via journalctl: every hourly rollover this boot
+# (03:00/04:00/05:00/06:00) hit this - the persisted 24h connection-
+# stats history has apparently never successfully written since that
+# feature shipped, not merely since today. The live in-progress-hour
+# counters (tmpfs, RuntimeDirectory above) were never affected, which is
+# why the feature looked like it was working in every check that only
+# looked at the current hour.
+ReadWritePaths=/var/www/html/data

@@ -461,15 +461,22 @@ late.
 
 - **Write side:** `piratebox_status_helper.sh` (repo, committed) -
   boot-event and undervoltage-onset-event detection, bounded persistence
-  to `data/device-history.json`. **Not yet installed live** - the
-  deployed `/usr/local/bin/piratebox_status_helper.sh` predates this
-  change, same situation (and same reason - no dedicated installer
-  script, no `sudo` grant for a root-owned script install) the
-  Field-Tools time-source fix hit once already
-  (`docs/OPERATIONAL-DECISIONS.md`). Pending step:
-  `sudo install -m 0755 -o root -g root piratebox_status_helper.sh
-  /usr/local/bin/piratebox_status_helper.sh && sudo systemctl restart
-  piratebox-status.timer`.
+  to `data/device-history.json`. **Installed live 2026-09-02** (operator
+  ran the install this section previously named), byte-identical to
+  repo source, confirmed. **But blocked by a separate, deeper, pre-
+  existing bug found while verifying that install** - see the new
+  "systemd sandboxing" finding in `docs/OPERATIONAL-DECISIONS.md`
+  ("Connection-Stats Persistence Bug Found + Fixed") and the pending
+  step recorded there. In short: `piratebox-status.service`'s
+  `ProtectSystem=strict` had no `ReadWritePaths=` for `var/www/html/
+  data/`, so every write to that directory from this service - both
+  the brand-new `data/device-history.json` and, discovered as a direct
+  consequence, the pre-existing `data/connection-stats.json` - has been
+  silently failing (`|| true`-wrapped, so it never crashed the unit,
+  just never persisted). The fix (`etc/systemd/system/piratebox-
+  status.service` gains `ReadWritePaths=/var/www/html/data`) is
+  committed and `systemd-analyze verify`-clean, **not yet installed
+  live** - a new, separate pending step.
 - **Read side:** `includes/device_memory.php`
   (`piratebox_get_device_memory()`) - live, tested
   (`tools/test_device_memory.php`, 27 assertions), reports

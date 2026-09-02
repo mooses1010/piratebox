@@ -6,6 +6,83 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Connection-Stats Persistence Bug Found + Fixed (systemd sandboxing)
+
+**Decision date:** 2026-09-02. The operator ran the pending
+`piratebox_status_helper.sh` install (adds `time_source` - closed
+already, `docs/FIELD-TOOLS-DESIGN.md` §9 - and now also Device Memory's
+`boot_events`/`undervoltage_daily` write). **Verification of that
+install found a real, more serious, pre-existing bug** while checking
+the new write side, not a clean success - reported honestly rather than
+closing the pending step as resolved.
+
+**Confirmed working:** installed script byte-identical to repo source;
+`time_source` correctly live in `/run/piratebox/status.json`; no
+service regressions, zero failed units.
+
+**Found broken:** the very first live run of the updated script logged
+`OSError: [Errno 30] Read-only file system: '/var/www/html/data/
+device-history.json.tmp'`. Investigating *why* (this directly relates
+to the work just verified, was clearly understood, and was low-risk to
+correct - per this session's own "fix it" criteria for exactly this
+situation) found something bigger: `journalctl -u piratebox-status.
+service` showed the **identical** `Read-only file system` error for
+`data/connection-stats.json.tmp` at every hourly rollover this boot
+(03:00, 04:00, 05:00, 06:00) - and `data/connection-stats.json` does
+not exist anywhere on the live filesystem (`find /` confirmed). **The
+persisted 24-hour connection-statistics history has apparently never
+successfully written since that feature shipped on 2026-09-01, not
+just today** - see the correction appended to "Post-Stage-32: Privacy-
+Preserving Connection Statistics," above.
+
+**Root cause:** `piratebox-status.service` has `ProtectSystem=strict`
+(makes the whole filesystem read-only except explicitly carved-out
+paths) with a `RuntimeDirectory=piratebox` exception for `/run/
+piratebox` (tmpfs) - but no exception was ever added for `var/www/
+html/data/`, the SD-card path both connection-stats' hourly rollup and
+the new Device Memory writes need. The `python3 ... || true` wrapping
+both writers already use (deliberately, so a write failure can never
+crash the unit or block the rest of the snapshot) meant this failed
+completely silently, every single hour, since the feature shipped -
+every other check of this feature (including its own original live
+regression testing) only ever observed the tmpfs-backed live counters,
+which were never affected, so nothing looked wrong.
+
+**Fixed:** `etc/systemd/system/piratebox-status.service` gains
+`ReadWritePaths=/var/www/html/data` - the same class of fix, and same
+file, as the existing documented `RuntimeDirectory=` fix for `/run/
+piratebox` (Stage 21) - narrow, additive, does not relax
+`ProtectSystem=strict` for anything else. `systemd-analyze verify`
+clean (exit 0). **Not yet installed live** - same boundary as every
+root-owned-file install this project has hit before (no dedicated
+installer, no `sudo` grant for installing a systemd unit). New,
+separate pending step:
+
+```
+sudo install -m 0644 -o root -g root /home/moose/piratebox/etc/systemd/system/piratebox-status.service /etc/systemd/system/piratebox-status.service
+sudo systemctl daemon-reload
+sudo systemctl restart piratebox-status.timer
+```
+
+**What this does NOT affect:** the live in-progress-hour connection
+counters (already correct, tmpfs-backed, unaffected by this bug); any
+Core service; any community data; the already-working `time_source`
+fields. Once installed, both `data/connection-stats.json` (retroactively
+correct from that point forward - no way to recover the missing
+history, only prevent further loss) and `data/device-history.json`
+should begin persisting correctly; will be verified live once the
+operator runs the command above.
+
+**Testing:** `systemd-analyze verify` on the modified unit (clean);
+confirmed via `journalctl` evidence rather than assumption that this
+has been silently failing since the connection-stats feature shipped,
+not introduced by today's work; confirmed no service regression from
+the file/timer restart already performed. Full live verification of
+the fix (a real hourly rollover succeeding, `device-history.json`
+appearing) deferred until the operator installs the corrected unit -
+recorded as the next actionable item, not assumed successful in
+advance.
+
 ## Graceful Self-Diagnosis (First Slice)
 
 **Decision date:** 2026-09-02. Fourth increment of the autonomous
@@ -1265,6 +1342,17 @@ Emergency Mode; `nginx`/`php8.4-fpm`/`piratebox-status` logs clean
 throughout; mode restored to Normal.
 
 **Backup:** `~/piratebox-backups/connstats-pre-20260901-124144/`.
+
+**Correction, found 2026-09-02:** the persisted hourly rollup
+(`data/connection-stats.json`, described above as flushed once per
+hour) had actually never once successfully written, since this
+feature shipped - `piratebox-status.service`'s `ProtectSystem=strict`
+silently blocked it every time. The live in-progress-hour counters
+(tmpfs, unaffected) always worked, which is why every check this
+feature received - including the live regression testing recorded
+above - only ever observed correct current-hour numbers and never
+caught the historical rollup failing. Full account, root cause, and
+fix: "Connection-Stats Persistence Bug Found + Fixed," below.
 
 ## Stage 32: Final Expansion Review / Wrap-Up (Stages 13-32 complete)
 

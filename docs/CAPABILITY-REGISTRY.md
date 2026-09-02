@@ -398,17 +398,22 @@ it is.**
 - **Purpose:** "what happened while I wasn't looking" - `docs/DEVICE-
   MEMORY-DESIGN.md`.
 - **Layer:** Operational.
-- **State:** write side (`piratebox_status_helper.sh`) committed, tested
-  (Python persistence logic verified in isolation - bounding, idempotent
-  daily increments, malformed-file recovery, 90-day pruning), **not yet
-  installed live** - same class of pending step as the earlier time-
-  source fix (no dedicated installer script, no `sudo` grant held for a
-  root-owned script install). Read side (`includes/device_memory.php`,
-  27 test assertions) is live and correctly reports `available: false`
-  until the install happens. **"Since last review" boundary is real**
-  (`data/review-boundary.json`, operator-set via a new `mark_reviewed`
-  admin action) - tested end-to-end including a real CSRF-protected
-  POST against a temporary local fixture, then cleaned up.
+- **State:** write side (`piratebox_status_helper.sh`) installed live
+  2026-09-02 (byte-identical, confirmed), but **currently blocked by a
+  separate systemd-sandboxing bug** found during that install's
+  verification - `piratebox-status.service`'s `ProtectSystem=strict`
+  has no write exception for `var/www/html/data/`, so every write there
+  (this feature's, and pre-existing connection-stats') silently fails.
+  Fix committed (`etc/systemd/system/piratebox-status.service` gains
+  `ReadWritePaths=/var/www/html/data`, `systemd-analyze verify`-clean),
+  **not yet installed live** - see `docs/OPERATIONAL-DECISIONS.md`,
+  "Connection-Stats Persistence Bug Found + Fixed," for the full
+  account and the exact pending command. Read side
+  (`includes/device_memory.php`, 27 test assertions) is live and
+  correctly reports `available: false` until the fix is installed and a
+  write actually succeeds. **"Since last review" boundary logic is
+  real and tested** (`data/review-boundary.json`, `mark_reviewed` admin
+  action) but has nothing to summarize yet for the same reason.
 - **Core dependency:** No.
 - **Privacy sensitivity:** low - boot timestamps and undervoltage-event
   counts only, both Operational History class, never raw per-second
