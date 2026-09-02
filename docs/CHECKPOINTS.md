@@ -250,3 +250,12 @@ States Reference Map: INSTALLED (1)`, computed live; zero failed
 units; no new nginx/PHP errors since deploy. Full five-suite
 regression: 206/206.
 
+| Deep field library, increment 3: Electrical Quick Reference (Ohm's Law + AWG ampacity tables, Field Tools Units page) | `1e7f8c1` | `~/piratebox-backups/electrical-ref-pre-20260902-095048/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `1e7f8c1` matching `HEAD` exactly. Live
+`/utility/fieldtools/units/` confirmed 200 with the new section and
+NEC caution text present; zero failed units; no new nginx/PHP errors
+since deploy. Search index at 101 entries. Full five-suite regression:
+206/206 (unaffected by design - static content, no new calc logic).
+
