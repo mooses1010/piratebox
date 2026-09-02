@@ -269,3 +269,12 @@ Document Library page shows all three; `/utility/about/` shows
 no new nginx/PHP errors since deploy. `tools/check_library_catalog.py`
 clean (3/3 agree). Full five-suite regression: 206/206.
 
+| Deep field library, increment 5: Original Signal Identification (8 signal types, `radio/signal-identification.json` - explicit non-SigIDWiki-derived framework, transparent about the licensing decision on-page) | `cdd0682` | `~/piratebox-backups/signal-id-pre-20260902-100552/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `cdd0682` matching `HEAD` exactly. Live
+`/utility/radio/` confirmed 200 with the new "Signal Identification"
+section, a specific entry (CW), and the SigIDWiki transparency note
+all present; zero failed units; no new nginx/PHP errors since deploy.
+Search index at 112 entries. Full five-suite regression: 206/206.
+
