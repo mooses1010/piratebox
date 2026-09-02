@@ -110,6 +110,36 @@ deliberate 4+ second hold produced exactly one "LONG PRESS DETECTED -
 would request shutdown (no action taken...)" log line, with no `sudo`
 call attempted.
 
+**Real bug found and fixed when the systemd service first went live:**
+`piratebox-button.service` crash-looped (`Could not claim GPIO25:
+[Errno 22] Invalid argument`) on its first install. Root cause:
+`gpiozero`'s `lgpio` pin factory needs to write a small notification-
+pipe file (`.lgd-nfy*`) into its own working directory; with no
+`WorkingDirectory=` set, systemd defaults to `/`, which
+`ProtectSystem=strict` makes read-only - so `lgpio` failed, then
+`rpigpio` failed the same way, `pigpio` isn't installed, and gpiozero
+fell all the way back to a broken experimental pin factory that could
+not actually claim the pin. Fixed by adding `WorkingDirectory=/tmp`
+(confirmed `tmpfs`/RAM-backed via `mount`, so this still produces zero
+SD card writes, and `PrivateTmp=yes` keeps it private to this service).
+Verified syntactically with `systemd-analyze verify` before rolling out.
+
+**Live persistent-service verification, after the fix (2026-09-02):**
+- `systemctl status piratebox-button.service` - `active (running)`,
+  clean startup log line, no pin-factory fallback warnings.
+- Two live short taps against the running service produced **zero**
+  log output - matches the standalone test exactly.
+- One live ~4-5 second hold produced exactly one "LONG PRESS DETECTED -
+  would request shutdown (no action taken; ...)" line, no `sudo` call
+  attempted - matches the standalone test exactly.
+- Confirmed no regression to the rest of the system: `nginx`,
+  `php8.4-fpm`, `hostapd`, `dnsmasq`, and `piratebox-backup.timer` all
+  `active`; `piratebox-status.timer` firing on schedule; the web app
+  responded `200 OK`.
+- Confirmed `piratebox-gpio`'s privileges stayed exactly as scoped:
+  member of `piratebox-gpio` and `gpio` groups only - no `sudo` group,
+  no `www-data`.
+
 **What is deliberately not touched:** the OLED page state machine
 (Stage 29 §1) and the four other momentary buttons (GPIO17 toggle,
 GPIO22/23/24/27) remain exactly as designed and completely unwired -
