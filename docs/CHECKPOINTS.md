@@ -325,3 +325,31 @@ nginx error log's last entry predates this deploy (pre-existing,
 already-documented `open_basedir` warning from `fieldtools_time.php`,
 unrelated). Full five-suite regression: 206/206.
 
+| Deep field library, increments 12-15: Radio antenna diagram, Maps navigation depth (5 entries + declination/UTM-MGRS diagrams), First Aid (DoD FM 4-25.11), food/water safety (FDA), electrical symbols + measurement concepts, watch/warning terminology, ground-to-air signals, new Computing & Networking category (10 entries), SI Prefixes reference | `ee5bfbb` | *(none taken under the usual `~/piratebox-backups/` naming - built across 4 commits on an isolated worktree branch by a background session per its own policy against merging/deploying from there; the operator merged `worktree-deep-library-continue2` into `main` and ran the deploy directly. `e9bc4d3`/`6f52726` above remains the most recent backed-up rollback point; the merge was a pure fast-forward, so rolling back to `6f52726` is still a clean `git checkout` if ever needed)* |
+
+**Deployed and live-verified 2026-09-02 (merged from a worktree branch,
+deploy run by the operator; this entry's verification was performed in
+a follow-up recovery pass):** `main`/HEAD confirmed at `ee5bfbb`, tree
+clean. Live `includes/VERSION` stamped to `ee5bfbb`, matching `HEAD`
+exactly. Every changed file across all four increments (Radio,
+Maps x2 diagrams, First Aid, Emergency x2 additions, Field Tools Units
+x2 additions, Computing page, Utility index, Search page, and both new
+library catalog/reference-pack JSON files) confirmed byte-identical
+between the repo and the live `/var/www/html` tree, including both new
+retained PDFs (DoD FM 4-25.11 and the FDA factsheet, both byte-for-
+byte identical live). Live-verified over HTTP against the real
+deployed site (not a dev server): `/utility/radio/` shows both the
+antenna diagram and the watch/warning terminology guide;
+`/utility/maps/` shows all 5 new reference entries plus both new
+diagrams inline; `/utility/firstaid/` shows the FM 4-25.11 Document
+Library cross-link; `/utility/emergency/` shows both the FDA
+cross-link and the ground-to-air-signals diagram;
+`/utility/fieldtools/units/` shows the electrical symbols diagram,
+Multimeter & Measurement Basics, and the new SI Prefixes table;
+`/utility/computing/` returns 200 with all 10 entries; the Utility
+Library index shows the new Computing nav card; `/utility/about/`
+correctly shows "Computing & Networking Reference: INSTALLED (10)",
+computed live, not hardcoded. `tools/check_library_catalog.py` clean
+(8/8 agree). Zero failed units; live search index confirmed at 134
+entries. Full five-suite regression: 206/206.
+

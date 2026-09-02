@@ -69,7 +69,7 @@ design doc is):
 | Local Information | BLOCKED BY OPERATOR DATA | Stage 6/17; deliberately ships near-empty; framework complete, no code needed once data provided | operator supplies region/hospital/shelter/repeater data | Stage 6/17 |
 | Document Library | BLOCKED BY OPERATOR DATA | Stage 7; empty by design until operator adds documents | operator adds files | Stage 7 |
 | Local/Regional Map Catalog | BLOCKED BY OPERATOR DATA | Stage 5; ready-to-use, empty by design | operator adds local map files | Stage 5, REFERENCE-CONTENT-DESIGN.md |
-| Computing &amp; Networking Reference (universal) | **IMPLEMENTED IN REPO, NOT YET DEPLOYED** | New 2026-09-02 (`/utility/computing/`, 10 entries) - see §3a discussion above for why this reverses an earlier "evaluated and rejected" call | none pending deploy | new reference-packs.json entry `computing-universal` |
+| Computing &amp; Networking Reference (universal) | **IMPLEMENTED + DEPLOYED + LIVE-VERIFIED** | New 2026-09-02 (`/utility/computing/`, 10 entries) - see §3a discussion above for why this reverses an earlier "evaluated and rejected" call; live About page confirmed "INSTALLED (10)," computed live | none | new reference-packs.json entry `computing-universal` |
 | Global Offline Search | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stage 8/18; 134 indexed items as of 2026-09-02 (99 after Radio's depth expansion increment; +5 Maps entries, +1 first-aid doc, +1 watch/warning guide, +10 Computing entries, +1 ground-to-air-signals topic added since) | none | Stage 8/18 |
 | "Take This With You" export/download | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stage 19; live-verified this session (200) | Field Tools calculators deliberately not bundled (§10 FIELD-TOOLS-DESIGN.md) - "worth revisiting if operators ask," not approved | Stage 19 |
 | Manifest ("What's on this PirateBox?") | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stage 20 | none | Stage 20 |
@@ -116,8 +116,8 @@ prose):
    Reference"). Common electrical symbols as an actual diagram
    remains unbuilt (a visual asset, not a table) - lower-priority
    future item.
-4. ~~First-aid visual diagrams~~ - **done 2026-09-02, IMPLEMENTED IN
-   REPO, NOT YET DEPLOYED**. Red Cross material stayed not-freely-
+4. ~~First-aid visual diagrams~~ - **done 2026-09-02, IMPLEMENTED +
+   DEPLOYED + LIVE-VERIFIED**. Red Cross material stayed not-freely-
    redistributable, so a different authoritative source was found
    instead: DoD FM 4-25.11 First Aid (227pp, public domain, joint
    Army/Navy/Air Force/Marine Corps field manual retrieved via
@@ -140,16 +140,15 @@ prose):
    `/utility/radio/` (200) shows the diagram inline, zero failed units,
    no new nginx/PHP errors, full 206/206 regression - see
    `docs/CHECKPOINTS.md`.
-   ~~Antenna-type diagrams~~ (dipole/vertical/Yagi) - **built 2026-09-02,
-   IMPLEMENTED IN REPO, NOT YET DEPLOYED** (`antenna-types.svg.php`,
+   ~~Antenna-type diagrams~~ (dipole/vertical/Yagi) - **done 2026-09-02,
+   IMPLEMENTED + DEPLOYED + LIVE-VERIFIED** (`antenna-types.svg.php`,
    wired into the existing "Antenna & Band Guidance" guide). Shows
    physical shape and a plain-language, explicitly-qualitative
    omnidirectional-vs-directional concept cue - deliberately NOT a
    measured/plotted radiation pattern, captioned as such, per the
    instruction not to make mathematically misleading pattern claims.
-   Roadmap item 5 (connector + antenna diagrams) is now fully closed in
-   the repo; deployment/live-verification still pending the same
-   background-session merge handoff as other items below.
+   Roadmap item 5 (connector + antenna diagrams) is now fully closed,
+   deployed, and live-verified - see `docs/CHECKPOINTS.md`.
 6. **Regional/State map layer** - genuinely useful next Maps increment
    (the pipeline now trivially extends to a single state via the same
    Admin 1 dataset already fetched), but the *which state(s)* question
@@ -159,8 +158,8 @@ prose):
    guessing. **Still open** - not touched this increment (correctly not
    guessed at).
 7. ~~Special-purpose maps~~ (UTM/MGRS visual grid reference, time-zone
-   reference) - **built 2026-09-02, IMPLEMENTED IN REPO, NOT YET
-   DEPLOYED**. Five new `data/utility/maps/reference.json` entries: Map
+   reference) - **done 2026-09-02, IMPLEMENTED + DEPLOYED +
+   LIVE-VERIFIED**. Five new `data/utility/maps/reference.json` entries: Map
    Scale, Reading Contour Lines (cross-referencing the retained USGS
    Topo Symbols document), True North vs. Magnetic North (with a new
    `declination.svg.php` concept diagram), United States Time Zones
@@ -204,8 +203,8 @@ rejected per source (not assumed uniformly):**
 | FCC | Already the citation basis for existing Radio content (Part 97/95/73) | **NOT USEFUL ENOUGH** *(for now)* - no additional FCC document identified as filling a gap beyond what's already cited; revisit if a specific need appears |
 | SigIDWiki | Investigated directly (its own General Disclaimer): signal recordings/images are user-submitted "as is," explicitly "not under any licenses," users retain "sole responsibility for... intellectual property ownership" | **LICENSING BLOCKED** - no redistribution grant exists. Original non-SigIDWiki-derived signal-ID framework built instead (§3b/OPERATIONAL-DECISIONS.md) |
 | ARRL | Not yet investigated per-publication (membership organization, not a blanket PD source) | **LICENSING BLOCKED for the band-chart candidate specifically** - checked 2026-09-02: ARRL's own Frequency/Band Chart PDFs (`arrl.org/files/file/Regulatory/Band%20Chart/...`) are marked "Copyright (C) ARRL, All Rights Reserved," commercially sold via the ARRL Store - not a blanket-PD source and not redistributable as retained originals. Not re-litigated for every possible ARRL publication (a different, explicitly-licensed one could still exist), but the specific band-plan-chart candidate this project would actually want is closed. Continue using ARRL only as a citation (`source_id`), never as a retained original |
-| FDA | Same PD basis as other federal sources - verified against FDA's own website policy (2026-09-02): "the contents of the FDA website...are not copyrighted...in the public domain" | **IMPLEMENTED IN REPO, NOT YET DEPLOYED** - "Food and Water Safety During Power Outages and Floods" retained (found as an alternate source after the USDA FSIS candidate on the same subject stayed blocked), cross-linked to Emergency's Food Safety and Power Outage topics |
-| DoD (joint Army/Navy/Air Force/Marine Corps) | Federal work, public domain under 17 U.S.C. Sec. 105 - verified via Wikimedia Commons' PD-USGov-Military file tags plus the manual's own "approved for public release; distribution unlimited" cover statement | **IMPLEMENTED IN REPO, NOT YET DEPLOYED** - FM 4-25.11 First Aid (227pp, full illustrated procedures) retained, closes the previously-recorded First Aid visual-diagram gap without needing Red Cross material |
+| FDA | Same PD basis as other federal sources - verified against FDA's own website policy (2026-09-02): "the contents of the FDA website...are not copyrighted...in the public domain" | **IMPLEMENTED + DEPLOYED + LIVE-VERIFIED** - "Food and Water Safety During Power Outages and Floods" retained (found as an alternate source after the USDA FSIS candidate on the same subject stayed blocked), cross-linked to Emergency's Food Safety and Power Outage topics |
+| DoD (joint Army/Navy/Air Force/Marine Corps) | Federal work, public domain under 17 U.S.C. Sec. 105 - verified via Wikimedia Commons' PD-USGov-Military file tags plus the manual's own "approved for public release; distribution unlimited" cover statement | **IMPLEMENTED + DEPLOYED + LIVE-VERIFIED** - FM 4-25.11 First Aid (227pp, full illustrated procedures) retained, closes the previously-recorded First Aid visual-diagram gap without needing Red Cross material |
 
 **Acquired so far** (`/utility/library/`, 8 documents total, ~9.6MB) -
 see `docs/OPERATIONAL-DECISIONS.md` "Original-Source Document Library:
