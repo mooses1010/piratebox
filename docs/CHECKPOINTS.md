@@ -372,3 +372,25 @@ search index confirmed at 161 entries with DHCP/CIDR/Polarization/
 Declination all present in its titles. `tools/check_library_catalog.py`
 clean (8/8). Zero failed units. Full five-suite regression: 206/206.
 
+| Deep field library, increments 18-19: Reference -> Tool principle, Morse Code Converter, tool audit, IPv4 Subnet Calculator (36 new deterministic tests) | `d943d6e` | *(none taken under the usual `~/piratebox-backups/` naming - built across 2 commits on an isolated worktree branch by a background session; the operator merged `worktree-deep-library-continue4` into `main` and ran the deploy directly. `804c3ce` above remains the most recent backed-up rollback point; the merge was a pure fast-forward)* |
+
+**Deployed and live-verified 2026-09-02 (merged from a worktree
+branch, deploy run by the operator; verified in this follow-up
+recovery pass):** `main`/HEAD confirmed at `d943d6e`, tree clean. Live
+`includes/VERSION` stamped to `d943d6e`, matching `HEAD`. Every
+changed file (`morse.php`, morse page, `subnet_calc.php`, subnet page,
+search-index.json) confirmed byte-identical between repo and live
+tree. Morse Code Converter live-verified over real HTTP with raw curl
+POST (no JS involved): PIRATEBOX->Morse, SOS round-trip, "HI THERE"
+word-separator handling, "CQ DX?" standard punctuation, and "AB#C"
+unknown-character handling (preserved bracketed) all correct; Radio
+page links to it; search index confirms "Morse Code Converter" present
+(163 entries). IPv4 Subnet Calculator live-verified the same way:
+192.168.1.10/24 standard case, 10.0.0.5/255.255.255.0 dotted-netmask
+input, /31 (no broadcast, 2 usable addresses, RFC 3021 noted) and /32
+(single host) edge cases, and a malformed-IP error message, all
+correct; Computing page links to it (3 cross-linked entries); search
+index confirms "Subnet Calculator" present. `tools/
+check_library_catalog.py` clean (8/8). Zero failed units. Full
+five-suite regression: 242/242.
+
