@@ -16,8 +16,11 @@ session_start();
 // to the already-tested scripts.js filter logic.
 
 require_once __DIR__ . '/../../../includes/content_profile.php';
+require_once __DIR__ . '/../../../includes/library_links.php';
 
 $DATA_DIR = __DIR__ . '/../../../data/utility/emergency';
+// Cross-link to the Document Library - metadata-driven, see includes/library_links.php.
+$libraryLinksHtml = piratebox_render_library_links_html(piratebox_get_library_entries_for_page('/utility/emergency/'));
 
 function ref_load_json(string $path): array
 {
@@ -110,6 +113,8 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
         <?php if ($contentProfile !== 'general_community'): ?>
             <p class="muted">Showing <strong><?= htmlspecialchars(PIRATEBOX_CONTENT_PROFILES[$contentProfile]) ?></strong>-prioritized order, set by this device's operator - every topic below is still shown, just reordered within its section to surface what's most relevant first.</p>
         <?php endif; ?>
+
+        <?= $libraryLinksHtml ?>
 
         <div class="radio-search-bar">
             <input type="text" id="radioSearch" placeholder="Search: flood, generator, water, hypothermia, evacuation..." aria-label="Search emergency reference">

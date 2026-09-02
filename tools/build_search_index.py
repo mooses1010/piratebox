@@ -14,6 +14,7 @@ section page follows).
 """
 import json
 import os
+import re
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(REPO_ROOT, "var/www/html/data/utility")
@@ -166,11 +167,20 @@ if isinstance(local_info, dict):
         ))
 
 # --- Document Library ----------------------------------------------------
+# Search should find a library document by its source organization too
+# (e.g. "NOAA", "USGS"), not just its title/description/tags - the
+# organization name is real, useful search intent for this kind of
+# content. `source` is free text ("NOAA / NASA (joint publication)"),
+# so split on non-letters and keep short all-caps-looking tokens
+# (acronyms) plus the words already present, rather than trying to
+# parse it more cleverly than that.
 for i, doc in enumerate(load("library", "catalog.json")):
+    source_words = re.findall(r"[A-Za-z]+", doc.get("source", ""))
+    keywords = list(doc.get("tags") or []) + source_words
     index.append(entry(
         doc.get("title", "Untitled document"), "library", "Document Library",
         f"/utility/library/#{doc.get('id', f'doc-{i}')}",
-        doc.get("description", ""), doc.get("tags"),
+        doc.get("description", ""), keywords,
     ))
 # Always index the Library section itself, even if the catalog is empty,
 # so a search for e.g. "manual" still points somewhere useful.

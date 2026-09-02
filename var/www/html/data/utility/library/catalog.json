@@ -10,7 +10,10 @@
     "file_size": "2.2 MB",
     "source": "U.S. Geological Survey (USGS)",
     "date_version": "USGS General Interest Publication",
-    "provenance_notes": "Source: https://pubs.usgs.gov/gip/TopographicMapSymbols/topomapsymbols.pdf - retrieved 2026-09-02. USGS-authored work of the US federal government, public domain under 17 U.S.C. Sec. 105 (confirmed against USGS's own published copyright policy, usgs.gov/information-policies-and-instructions/copyrights-and-credits: \"USGS-authored or produced data and information are considered to be in the U.S. Public Domain\"). No non-USGS third-party imagery involved - this is a symbols legend, not a photo collection."
+    "provenance_notes": "Source: https://pubs.usgs.gov/gip/TopographicMapSymbols/topomapsymbols.pdf - retrieved 2026-09-02. USGS-authored work of the US federal government, public domain under 17 U.S.C. Sec. 105 (confirmed against USGS's own published copyright policy, usgs.gov/information-policies-and-instructions/copyrights-and-credits: \"USGS-authored or produced data and information are considered to be in the U.S. Public Domain\"). No non-USGS third-party imagery involved - this is a symbols legend, not a photo collection.",
+    "related_pages": [
+      {"url": "/utility/maps/", "label": "Maps & Location Reference"}
+    ]
   },
   {
     "id": "nist-sp432-time-frequency-services",
@@ -23,7 +26,10 @@
     "file_size": "1.9 MB",
     "source": "National Institute of Standards and Technology (NIST)",
     "date_version": "NIST Special Publication 432, 2002 Edition",
-    "provenance_notes": "Source: https://www.nist.gov/document/sp432-02pdf (resolves to nist.gov/system/files/documents/calibrations/sp432-02.pdf) - retrieved 2026-09-02. NIST Special Publication series, authored by NIST employees (Lombardi et al.) as part of their official duties - public domain under 17 U.S.C. Sec. 105 (confirmed against NIST's own copyright policy page, nist.gov/open: works of NIST employees are not subject to US copyright; the Standard Reference Data Act exception does not apply to this narrative technical publication)."
+    "provenance_notes": "Source: https://www.nist.gov/document/sp432-02pdf (resolves to nist.gov/system/files/documents/calibrations/sp432-02.pdf) - retrieved 2026-09-02. NIST Special Publication series, authored by NIST employees (Lombardi et al.) as part of their official duties - public domain under 17 U.S.C. Sec. 105 (confirmed against NIST's own copyright policy page, nist.gov/open: works of NIST employees are not subject to US copyright; the Standard Reference Data Act exception does not apply to this narrative technical publication).",
+    "related_pages": [
+      {"url": "/utility/fieldtools/time/", "label": "Field Tools: Time & Date"}
+    ]
   },
   {
     "id": "noaa-nasa-sky-watcher-cloud-chart",
@@ -36,6 +42,10 @@
     "file_size": "2.5 MB",
     "source": "NOAA / NASA (joint publication)",
     "date_version": "NOAA/NCEI english-language edition",
-    "provenance_notes": "Source: https://www.ncei.noaa.gov/sites/default/files/sky-watcher-cloud-chart-noaa-nasa-english-version.pdf - retrieved 2026-09-02. Joint publication of two US federal agencies (NOAA and NASA) - public domain under 17 U.S.C. Sec. 105 (confirmed against NOAA's own copyright policy, library.noaa.gov: works of the US federal government are public domain; the caveat about non-federal co-authors, e.g. universities/Cooperative Institutes, does not apply here since both co-authoring agencies are federal)."
+    "provenance_notes": "Source: https://www.ncei.noaa.gov/sites/default/files/sky-watcher-cloud-chart-noaa-nasa-english-version.pdf - retrieved 2026-09-02. Joint publication of two US federal agencies (NOAA and NASA) - public domain under 17 U.S.C. Sec. 105 (confirmed against NOAA's own copyright policy, library.noaa.gov: works of the US federal government are public domain; the caveat about non-federal co-authors, e.g. universities/Cooperative Institutes, does not apply here since both co-authoring agencies are federal).",
+    "related_pages": [
+      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"},
+      {"url": "/utility/radio/#emergency-monitoring-quick-reference", "label": "Radio: Severe Weather Monitoring"}
+    ]
   }
 ]

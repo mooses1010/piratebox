@@ -24,6 +24,7 @@ $services = radio_load_json($DATA_DIR . '/services.json');
 $modulation = radio_load_json($DATA_DIR . '/modulation.json');
 $guides = radio_load_json($DATA_DIR . '/guides.json');
 $sigid = radio_load_json($DATA_DIR . '/signal-identification.json');
+require_once __DIR__ . '/../../../includes/library_links.php';
 $sources = radio_load_json($DATA_DIR . '/sources.json');
 
 // Group services into display sections. Keys are the "group" used for the
@@ -296,6 +297,13 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
                                         </table>
                                     </div>
                                 <?php endif; ?>
+                                <?php
+                                // Metadata-driven Document Library cross-link, checked per-guide
+                                // (not page-level) - a catalog entry names this exact guide's URL
+                                // (e.g. '/utility/radio/#emergency-monitoring-quick-reference') in
+                                // its own related_pages, so only the relevant guide gets the box.
+                                echo piratebox_render_library_links_html(piratebox_get_library_entries_for_page('/utility/radio/#' . $g['id']));
+                                ?>
                                 <p class="radio-entry-source"><?= radio_source_line($sources, $g['source_id'] ?? null, null, $g['confidence'] ?? null, $g['source_note'] ?? null) ?></p>
                             </div>
                         </details>

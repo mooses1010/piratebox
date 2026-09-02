@@ -11,10 +11,13 @@ require_once __DIR__ . '/../../../../includes/fieldtools_time.php';
 // includes/metrics.php's own header explains.
 
 require_once __DIR__ . '/../../../../includes/metrics.php'; // piratebox_get_uptime_seconds()
+require_once __DIR__ . '/../../../../includes/library_links.php';
 
 $snap = piratebox_fieldtools_now_snapshot();
 $timeSource = piratebox_get_time_source_status();
 $uptimeSeconds = piratebox_get_uptime_seconds();
+// Cross-link to the Document Library - metadata-driven, see includes/library_links.php.
+$libraryLinksHtml = piratebox_render_library_links_html(piratebox_get_library_entries_for_page('/utility/fieldtools/time/'));
 ?>
 <!doctype html>
 <html lang="en">
@@ -67,6 +70,8 @@ $uptimeSeconds = piratebox_get_uptime_seconds();
                 <p class="muted">"Local" and "UTC" below currently read the same: this device's PHP configuration has no timezone explicitly set, so it defaults to UTC regardless of where this box is physically deployed - not a display bug, and consistent with every other timestamp shown elsewhere on this site. See <code>docs/OPERATIONAL-DECISIONS.md</code> ("Field Tools / Offline Reference Instruments") if you want this changed.</p>
             <?php endif; ?>
         </div>
+
+        <?= $libraryLinksHtml ?>
 
         <h2>Right now</h2>
         <div class="stat-grid" id="ft-now-grid" data-base-unix="<?= (int) $snap['unix'] ?>" data-tz="<?= htmlspecialchars($snap['tz_name']) ?>">

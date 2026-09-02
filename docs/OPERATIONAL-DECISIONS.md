@@ -6,6 +6,66 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Document Library Cross-Linking (roadmap item 8)
+
+**Decision date:** 2026-09-02. High-priority item per operator
+instruction: turn the Document Library from "a thing that exists" into
+something a subject-page reader discovers naturally, without needing
+to already know `/utility/library/` exists.
+
+**Built:** `includes/library_links.php` -
+`piratebox_get_library_entries_for_page(string $pageUrl)` (matches a
+page's own URL against every catalog entry's `related_pages` array -
+returns nothing fabricated when no entry names that page) and
+`piratebox_render_library_links_html()` (one consistent "Original
+source material available offline" box, reused everywhere rather than
+each page inventing its own markup). **Metadata-driven, not a
+hardcoded link graph**, per instruction: the association lives in
+`data/utility/library/catalog.json`'s own `related_pages` field
+(`[{"url", "label"}, ...]`) - both directions (subject-page -> Library,
+Library -> subject-page) read the same one field, nothing kept in
+sync separately.
+
+**Wired into four subject pages** (each pulling its own relevant
+entries, none hardcoding another page's content):
+- `/utility/maps/` -> USGS Topographic Map Symbols
+- `/utility/fieldtools/time/` -> NIST SP 432 (Time and Frequency
+  Services)
+- `/utility/emergency/` -> NOAA/NASA Sky Watcher Cloud Chart
+- `/utility/radio/`'s specific "What to Monitor During Severe
+  Weather" guide (not the whole Radio page) -> the same cloud chart,
+  since that's the one guide it's actually relevant to - matched via
+  a per-guide URL (`/utility/radio/#<guide-id>`), not a page-level
+  match, so the box only appears on the one relevant guide.
+
+**Reverse direction:** `/utility/library/` itself now renders each
+document's own "See also:" links from the same `related_pages` field -
+no separate lookup, same single source of metadata.
+
+**Search discoverability audited and fixed:** library documents were
+already generically indexed (title/description/tags), but a search for
+the source organization itself (e.g. "NOAA", "USGS") wouldn't have
+matched, since `source` wasn't fed into search keywords.
+`tools/build_search_index.py`'s library loop now also extracts
+words from each entry's `source` field into its keyword list - a
+small, generic fix (works for any future library entry, not a
+one-off patch of these three).
+
+**Testing:** `php -l` clean on all five changed/new files. Each of the
+four subject pages rendered directly and independently (isolating each
+`include` in its own PHP process, after an initial combined test
+falsely suggested a session/redeclaration bug that was actually just
+an artifact of including multiple full pages in one process - not a
+real defect, confirmed by re-testing each in isolation exactly as
+php-fpm would serve it) - all four show their correct cross-link box
+with correct document title. Library page rendered directly - "See
+also" links confirmed present and correct for two of three documents
+(the third, USGS, wasn't checked by name but uses identical code).
+Search index rebuilt (112 entries, same count as before - this was a
+keyword-enrichment fix, not a new-entry fix) - `NOAA`/`NASA`/`USGS`/
+`NIST` keywords confirmed present on the relevant entries. Full
+five-suite regression: 206 assertions, 0 failures.
+
 ## Original Signal Identification Framework, Not a SigIDWiki Clone (roadmap item 7)
 
 **Decision date:** 2026-09-02. Direct follow-through on the SigIDWiki

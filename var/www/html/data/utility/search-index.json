@@ -1349,7 +1349,12 @@
       "legend",
       "usgs",
       "contour lines",
-      "map reading"
+      "map reading",
+      "U",
+      "S",
+      "Geological",
+      "Survey",
+      "USGS"
     ]
   },
   {
@@ -1367,7 +1372,14 @@
       "gps timing",
       "ntp",
       "calibration",
-      "time standards"
+      "time standards",
+      "National",
+      "Institute",
+      "of",
+      "Standards",
+      "and",
+      "Technology",
+      "NIST"
     ]
   },
   {
@@ -1384,7 +1396,11 @@
       "sky watcher",
       "cumulus",
       "cirrus",
-      "stratus"
+      "stratus",
+      "NOAA",
+      "NASA",
+      "joint",
+      "publication"
     ]
   },
   {

@@ -206,9 +206,37 @@ small future polish item, not yet done.
 3. ARRL - verify redistribution terms for a specific candidate
    publication (e.g. a band plan chart) before deciding whether to
    bundle it or just cite it as a research source.
-4. Cross-links from subject reference pages to relevant Document
-   Library entries (e.g. Radio -> NIST time/frequency; Maps -> USGS
-   topo symbols).
+4. ~~Cross-links from subject reference pages to relevant Document
+   Library entries~~ - **done 2026-09-02**, see §3c below
+   (`includes/library_links.php`, metadata-driven via `catalog.json`'s
+   own `related_pages` field - not hardcoded per-page).
+
+### 3c. Document Library cross-linking (added 2026-09-02)
+
+**Status: IMPLEMENTED + DEPLOYED + LIVE-VERIFIED.** See
+`docs/OPERATIONAL-DECISIONS.md` "Document Library Cross-Linking" for
+the full build/test record.
+
+| Subject page | Links to | Direction |
+|---|---|---|
+| `/utility/maps/` | USGS Topographic Map Symbols | forward |
+| `/utility/fieldtools/time/` | NIST SP 432 | forward |
+| `/utility/emergency/` | NOAA/NASA Sky Watcher Cloud Chart | forward |
+| `/utility/radio/` (severe-weather guide only) | NOAA/NASA Sky Watcher Cloud Chart | forward |
+| `/utility/library/` | all three subject pages above | reverse ("See also") |
+
+**Mechanism, for future documents:** add a `related_pages: [{"url",
+"label"}]` array to a `catalog.json` entry - both the forward
+(subject-page) and reverse (Library page) links pick it up
+automatically, no PHP changes needed for a new cross-link, only for a
+genuinely new subject page that doesn't already call
+`piratebox_get_library_entries_for_page()`.
+
+**Search discoverability**: audited and fixed in the same increment -
+library documents are searchable by their source organization
+(NOAA/NASA/USGS/NIST), not just title/description/tags -
+`tools/build_search_index.py` extracts source-name keywords generically
+for every library entry, not a one-off fix.
 
 ## 4. Field Tools
 

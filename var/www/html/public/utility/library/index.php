@@ -100,6 +100,11 @@ function ref_search_blob(array $fields): string
                                     <?php if (!empty($doc['file'])): ?>
                                         <p><a href="/utility/library/files/<?= rawurlencode($doc['file']) ?>" target="_blank" rel="noopener">Open document</a><?= !empty($doc['file_size']) ? ' (' . htmlspecialchars($doc['file_size']) . ')' : '' ?></p>
                                     <?php endif; ?>
+                                    <?php if (!empty($doc['related_pages']) && is_array($doc['related_pages'])): ?>
+                                        <p><strong>See also:</strong>
+                                            <?php foreach ($doc['related_pages'] as $i => $rp): ?><?= $i > 0 ? ' &middot; ' : '' ?><a href="<?= htmlspecialchars($rp['url'] ?? '#') ?>"><?= htmlspecialchars($rp['label'] ?? $rp['url'] ?? '') ?></a><?php endforeach; ?>
+                                        </p>
+                                    <?php endif; ?>
                                     <p class="radio-entry-source">
                                         <?= !empty($doc['source']) ? 'Source: ' . htmlspecialchars($doc['source']) : '' ?>
                                         <?= !empty($doc['date_version']) ? ' (' . htmlspecialchars($doc['date_version']) . ')' : '' ?>

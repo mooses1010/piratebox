@@ -23,6 +23,7 @@ session_start();
 // shows regardless. See includes/travel_mode.php.
 
 require_once __DIR__ . '/../../../includes/travel_mode.php';
+require_once __DIR__ . '/../../../includes/library_links.php';
 $travelMode = piratebox_get_travel_mode();
 
 $DATA_DIR = __DIR__ . '/../../../data/utility/maps';
@@ -56,6 +57,11 @@ $worldMapFileExists = $worldMap !== null
 $usMap = ref_load_json($DATA_DIR . '/us-reference-map.json')[0] ?? null;
 $usMapFileExists = $usMap !== null
     && is_file(__DIR__ . '/files/' . basename($usMap['file'] ?? ''));
+
+// Cross-link to the Document Library (see includes/library_links.php) -
+// metadata-driven from catalog.json's own `related_pages` field, not a
+// hardcoded link here.
+$libraryLinksHtml = piratebox_render_library_links_html(piratebox_get_library_entries_for_page('/utility/maps/'));
 
 function ref_search_blob(array $fields): string
 {
@@ -110,6 +116,8 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
         <p class="utility-breadcrumb"><a href="/utility/">&larr; Utility Library</a></p>
 
         <p>Coordinate/GPS/navigation basics, a world reference map, and a United States reference map below all work offline right now, everywhere. The map catalog is a ready-to-use framework for local/regional/evacuation/topographic maps - empty until real maps for this box's area are deliberately added.</p>
+
+        <?= $libraryLinksHtml ?>
 
         <div class="radio-search-bar">
             <input type="text" id="radioSearch" placeholder="Search: coordinates, gps, compass, utm, world map, us map, states..." aria-label="Search maps and location reference">
