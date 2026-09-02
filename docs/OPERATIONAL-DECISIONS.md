@@ -31,7 +31,7 @@ DS3231 with zero code change, see `docs/FIELD-TOOLS-DESIGN.md` §4);
 `public/utility/fieldtools/{index,time/index,units/index,
 coordinates/index}.php`; `public/assets/fieldtools.js` (client-side
 mirror of the PHP formulas, for instant feedback with no build step -
-see that doc §6 for why); `tools/test_fieldtools.php` (73 deterministic
+see that doc §6 for why); `tools/test_fieldtools.php` (86 deterministic
 CLI assertions, all passing - boundary/sign cases, decimals, round
 trips). **Changed:** `public/utility/index.php` (new nav card),
 `public/utility/search/index.php` (new section label),
@@ -40,6 +40,41 @@ json` (7 new entries, none `regional`), `public/utility/maps/index.php`
 (one cross-link to the new coordinate converter), `public/assets/
 styles.css` (dark-theme styling for number/date/time/select inputs the
 existing rules didn't cover, plus three small layout classes).
+
+**Real bug found live, before this stage's first deploy - `open_
+basedir` blocked the direct time-source reads:** `piratebox_get_time_
+source_status()`'s first version read `/sys/class/rtc/`, `/run/systemd/
+timesync/synchronized`, and `/etc/fake-hwclock.data` directly. `php -l`
+can't see this class of bug - only rendering the page for real caught
+it: PHP-FPM's existing `open_basedir` restriction (`etc/php/8.4/fpm/
+php.ini`) blocks every one of those paths, and `file_exists()`/`glob()`
+under `open_basedir` return a silent `false` rather than an exception -
+exactly the "looks like a real negative, isn't" failure this feature is
+supposed to refuse to produce. **Fixed before shipping, not shipped and
+revisited:** moved the actual reads into `piratebox_status_helper.sh`
+(runs as root, no `open_basedir`), which now publishes a `time_source`
+block into `/run/piratebox/status.json` (which IS inside `open_
+basedir`); `piratebox_get_time_source_status()` reads that instead, via
+`includes/metrics.php`'s existing `piratebox_get_helper_status()` - the
+same pattern that function's own header already documents for exactly
+this class of problem. The function's return shape grew a third state
+(`available`/`stale` alongside the three fields, which are `null` -
+never fabricated - whenever `available` is false) to honestly cover
+"the deployed status helper hasn't been updated to publish this yet."
+**That third state is this device's actual current live condition** -
+see the pending step below - confirmed live (rendered via `php -S`
+against this device's real, unmodified `/run/piratebox/status.json`),
+not simulated. Full account: `docs/FIELD-TOOLS-DESIGN.md` §4/§9.
+
+**Pending operator step (not deferred work - already built,
+uninstalled):** `piratebox_status_helper.sh`'s deployed copy at `/usr/
+local/bin/` predates this fix and has no dedicated installer script
+(unlike `piratebox_deploy.sh`/`set_piratebox_mode.sh`'s `setup_claude_
+automation.sh`) and no `sudo` grant this session holds -
+`sudo cp piratebox_status_helper.sh /usr/local/bin/piratebox_status_
+helper.sh && sudo systemctl restart piratebox-status.timer` is the one
+remaining manual step, whenever convenient. Until then the live Time
+page correctly shows "not currently reporting" rather than guessing.
 
 **Real, disclosed-not-fixed finding:** this device's PHP has no
 `date.timezone` configured, so `date()` defaults to UTC regardless of
@@ -60,12 +95,17 @@ status()` functions once that hardware exists. No OLED is wired - this
 is a design-document update only, per instruction not to write hardware
 code for display that isn't physically installed.
 
-**Testing:** see `docs/FIELD-TOOLS-DESIGN.md` §8 in full - `php -l`
-clean on every file, all pages rendered via `php -S` with zero warnings/
-errors, 73/73 deterministic test assertions passing, search index
-regenerated and spot-checked, external-reference grep clean. Not
-tested: real-browser JavaScript execution (no browser available in this
-environment).
+**Testing:** see `docs/FIELD-TOOLS-DESIGN.md` §8 in full - `php -l`/
+`bash -n` clean on every file, all pages rendered via `php -S` with zero
+warnings/errors (including, after the fix above, against this device's
+real live status snapshot), 86/86 deterministic test assertions
+passing, search index regenerated and spot-checked, external-reference
+grep clean. Not tested: real-browser JavaScript execution (no browser
+available in this environment); the Time page's "RTC detected" and
+"available" rendering branches against a live status snapshot (today's
+device can only exercise "not currently reporting" for real until the
+pending step above is done) - covered instead by a deterministic test
+of the underlying three-state decision logic plus direct code review.
 
 **Deployment:** see this repo's `git log`/`includes/VERSION` for current
 status as of any later reading - not asserted here to avoid this entry

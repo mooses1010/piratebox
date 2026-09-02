@@ -178,6 +178,21 @@ if command -v vcgencmd >/dev/null 2>&1; then
     fi
 fi
 
+# --- Time source (Field Tools, Post-Stage-32) ---
+# PHP-FPM's open_basedir (etc/php/8.4/fpm/php.ini) deliberately does not
+# include /sys/class/rtc, /run/systemd/timesync, or /etc/fake-hwclock.data
+# - the same security boundary that's the whole reason this script exists
+# (see this file's own header). This runs as root with no such
+# restriction, so it does the read and publishes the result here instead -
+# see includes/fieldtools_time.php's piratebox_get_time_source_status(),
+# which reads this block rather than touching those paths directly.
+rtc_detected=false
+if ls /sys/class/rtc/rtc* >/dev/null 2>&1; then rtc_detected=true; fi
+ntp_synchronized=false
+if [ -f /run/systemd/timesync/synchronized ]; then ntp_synchronized=true; fi
+fake_hwclock_installed=false
+if [ -f /etc/fake-hwclock.data ]; then fake_hwclock_installed=true; fi
+
 cat > "$TMP_FILE" <<EOF
 {
   "generated_at": $(date +%s),
@@ -197,6 +212,11 @@ cat > "$TMP_FILE" <<EOF
     "current_hour_start": $scratch_hour,
     "current_hour_count": $scratch_count,
     "current_hour_peak": $scratch_peak
+  },
+  "time_source": {
+    "rtc_detected": $rtc_detected,
+    "ntp_synchronized": $ntp_synchronized,
+    "fake_hwclock_installed": $fake_hwclock_installed
   }
 }
 EOF

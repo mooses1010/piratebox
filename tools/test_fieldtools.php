@@ -200,12 +200,58 @@ ft_assert_eq('Elapsed: end before start', $e['direction'], 'before');
 ft_assert_eq('Elapsed: negative seconds preserved', $e['seconds'], -3600);
 
 // --- Time source status: structural check only (live-system-dependent) -----
+//
+// piratebox_get_time_source_status() reads /run/piratebox/status.json
+// (via piratebox_get_helper_status()) rather than touching restricted
+// paths directly (see that function's own header - PHP-FPM's
+// open_basedir blocks /sys/class/rtc etc., found live). Whether this
+// CLI run's environment has a fresh, time_source-publishing status
+// snapshot available is itself live-system-dependent (this repo's fix
+// may be newer than whatever piratebox_status_helper.sh is actually
+// installed/running) - so this only checks the SHAPE is honest, not a
+// specific value: when 'available' is true the three fields must be
+// real booleans; when false, they must be null, never a fabricated
+// guess either way.
 
 $status = piratebox_get_time_source_status();
+ft_assert_true('Time source status has available key', array_key_exists('available', $status));
+ft_assert_true('Time source status has stale key', array_key_exists('stale', $status));
 ft_assert_true('Time source status has rtc_detected key', array_key_exists('rtc_detected', $status));
 ft_assert_true('Time source status has ntp_synchronized key', array_key_exists('ntp_synchronized', $status));
 ft_assert_true('Time source status has fake_hwclock_installed key', array_key_exists('fake_hwclock_installed', $status));
-ft_assert_true('rtc_detected is boolean', is_bool($status['rtc_detected']));
+ft_assert_true('available is boolean', is_bool($status['available']));
+ft_assert_true('stale is boolean', is_bool($status['stale']));
+foreach (['rtc_detected', 'ntp_synchronized', 'fake_hwclock_installed'] as $field) {
+    if ($status['available']) {
+        ft_assert_true("$field is boolean when available", is_bool($status[$field]));
+    } else {
+        ft_assert_null("$field is null when unavailable (never fabricated)", $status[$field]);
+    }
+}
+
+// Direct check of the pure shape logic (not live-system-dependent):
+// unavailable input must never leak a fabricated true/false.
+function ft_time_source_shape(bool $stale, $timeSource): array
+{
+    $available = !$stale && is_array($timeSource);
+    return [
+        'available'              => $available,
+        'stale'                  => $stale,
+        'rtc_detected'           => $available ? (bool) ($timeSource['rtc_detected'] ?? false) : null,
+        'ntp_synchronized'       => $available ? (bool) ($timeSource['ntp_synchronized'] ?? false) : null,
+        'fake_hwclock_installed' => $available ? (bool) ($timeSource['fake_hwclock_installed'] ?? false) : null,
+    ];
+}
+$shape = ft_time_source_shape(false, null); // fresh snapshot, but old status helper (no time_source key yet)
+ft_assert_eq('Shape: fresh snapshot, missing time_source block -> unavailable', $shape['available'], false);
+ft_assert_null('Shape: rtc_detected null when block missing', $shape['rtc_detected']);
+$shape = ft_time_source_shape(true, ['rtc_detected' => true]); // stale snapshot, even with a time_source block
+ft_assert_eq('Shape: stale snapshot -> unavailable even if block present', $shape['available'], false);
+ft_assert_null('Shape: rtc_detected null when stale', $shape['rtc_detected']);
+$shape = ft_time_source_shape(false, ['rtc_detected' => true, 'ntp_synchronized' => false, 'fake_hwclock_installed' => false]);
+ft_assert_eq('Shape: fresh + present block -> available', $shape['available'], true);
+ft_assert_eq('Shape: rtc_detected true passes through', $shape['rtc_detected'], true);
+ft_assert_eq('Shape: ntp_synchronized false passes through (not null)', $shape['ntp_synchronized'], false);
 
 // --- Summary ---------------------------------------------------------------
 

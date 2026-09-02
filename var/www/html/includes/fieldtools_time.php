@@ -70,43 +70,57 @@ if (!function_exists('piratebox_elapsed_between')) {
 
 if (!function_exists('piratebox_get_time_source_status')) {
     /**
-     * What this device actually knows about where its clock comes from -
-     * read-only, no shell_exec (PHP-FPM has it disabled - see
-     * etc/php/8.4/fpm/php.ini), so this is limited to plain file/
-     * directory reads, same constraint every other status reader in this
-     * app already works within (see includes/metrics.php's own note).
+     * What this device actually knows about where its clock comes from.
      *
+     * NOT a direct filesystem read (an earlier version of this function
+     * tried that - /sys/class/rtc, /run/systemd/timesync/synchronized,
+     * /etc/fake-hwclock.data - and found live that PHP-FPM's own
+     * open_basedir restriction, etc/php/8.4/fpm/php.ini, blocks every one
+     * of those paths, producing a PHP warning and a silently-wrong
+     * "false" that looked like a real negative result but wasn't). This
+     * reads piratebox_status_helper.sh's periodic snapshot instead - the
+     * established pattern this whole app already uses for exactly this
+     * situation (see includes/metrics.php's own header: "PHP cannot
+     * obtain [this] on its own... without exec()/shell_exec(), both
+     * deliberately unavailable"). That script runs as root with no
+     * open_basedir restriction and publishes a "time_source" block into
+     * /run/piratebox/status.json (which IS inside open_basedir) - see
+     * that script for what it actually checks and why:
      * - rtc_detected: true the moment ANY /sys/class/rtc/rtcN device
-     *   exists - this is exactly what a DS3231 (or any I2C RTC wired per
-     *   docs/HARDWARE-INTEGRATION-DESIGN.md) makes appear, with no driver-
-     *   specific code needed here. Today this is empty on this Pi (no RTC
-     *   installed - see docs/RTC-TIME-READINESS-DESIGN.md), so this
-     *   reads false; the day a DS3231 is added and the kernel overlay
-     *   loads, this starts reading true with zero changes to this file.
-     * - ntp_synchronized: systemd-timesyncd's own live verdict, read from
-     *   the flag file it maintains (/run/systemd/timesync/synchronized
-     *   exists only while it believes the clock is synced to a real NTP
-     *   server). This Pi is an isolated access point with no confirmed
-     *   uplink, so this is normally false by design, not a fault.
-     * - fake_hwclock_installed: whether the "last known good" software
-     *   fallback discussed in Stage 28 has since been installed (it
-     *   wasn't as of that audit - installing it needs an explicit
-     *   package-install approval this file doesn't grant itself).
+     *   exists - exactly what a DS3231 (or any I2C RTC wired per
+     *   docs/HARDWARE-INTEGRATION-DESIGN.md) makes appear, no driver-
+     *   specific code needed anywhere in this chain.
+     * - ntp_synchronized: systemd-timesyncd's own live verdict. Normally
+     *   false on this device by design (isolated AP, no confirmed
+     *   uplink), not a fault.
+     * - fake_hwclock_installed: whether Stage 28's other candidate
+     *   mitigation has since been installed.
+     *
+     * @return array{available:bool, stale:bool, rtc_detected:?bool,
+     *   ntp_synchronized:?bool, fake_hwclock_installed:?bool}
+     *   `available` is false if the status helper hasn't been updated to
+     *   publish this block yet (an old copy of piratebox_status_helper.sh
+     *   still running) or hasn't reported at all - the three data fields
+     *   are then null, never a fabricated guess. `stale` mirrors
+     *   piratebox_get_helper_status()'s own >300s staleness window.
      *
      * Deliberately does NOT report a "last successful NTP sync" instant -
-     * no code anywhere on this device currently persists that moment (it
-     * would need a new field in piratebox_status_helper.sh's periodic
-     * write, which this stage did not add - see docs/OPERATIONAL-
-     * DECISIONS.md for why that's future work, not fabricated here).
+     * no code anywhere on this device currently persists that moment (see
+     * docs/OPERATIONAL-DECISIONS.md for why that's future work, not
+     * fabricated here).
      */
     function piratebox_get_time_source_status(): array
     {
-        $rtcDevices = @glob('/sys/class/rtc/rtc*') ?: [];
+        require_once __DIR__ . '/metrics.php'; // piratebox_get_helper_status()
+        $helper = piratebox_get_helper_status();
+        $timeSource = $helper['status']['time_source'] ?? null;
+        $available = !$helper['stale'] && is_array($timeSource);
         return [
-            'rtc_detected'          => count($rtcDevices) > 0,
-            'rtc_device_count'      => count($rtcDevices),
-            'ntp_synchronized'      => file_exists('/run/systemd/timesync/synchronized'),
-            'fake_hwclock_installed' => file_exists('/etc/fake-hwclock.data'),
+            'available'              => $available,
+            'stale'                  => $helper['stale'],
+            'rtc_detected'           => $available ? (bool) ($timeSource['rtc_detected'] ?? false) : null,
+            'ntp_synchronized'       => $available ? (bool) ($timeSource['ntp_synchronized'] ?? false) : null,
+            'fake_hwclock_installed' => $available ? (bool) ($timeSource['fake_hwclock_installed'] ?? false) : null,
         ];
     }
 }

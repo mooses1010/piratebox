@@ -35,23 +35,33 @@ $uptimeSeconds = piratebox_get_uptime_seconds();
         <p class="utility-breadcrumb"><a href="/utility/fieldtools/">&larr; Field Tools</a></p>
 
         <div class="help-note">
-            <p><strong>Time source:</strong>
-                <?php if ($timeSource['rtc_detected']): ?>
-                    a hardware real-time clock is detected on this device (<?= (int) $timeSource['rtc_device_count'] ?> RTC device<?= $timeSource['rtc_device_count'] === 1 ? '' : 's' ?>) - the system clock can be backed by it across a power-off, not just while running.
-                <?php else: ?>
-                    <strong>no hardware real-time clock is installed on this device.</strong> A Raspberry Pi has no battery-backed clock of its own - the time below comes from whatever the system clock has held since it was last set (network time sync, if one ever succeeded, or the boot default), and can be significantly wrong after a cold boot with no network available. A DS3231 hardware RTC is planned for this device but not yet installed - see this project's <code>docs/RTC-TIME-READINESS-DESIGN.md</code>. Once it's added, this line updates automatically with no code change.
-                <?php endif; ?>
-            </p>
-            <p>
-                Network time sync (NTP):
-                <?= $timeSource['ntp_synchronized'] ? '<span class="status-ok">currently synchronized</span>' : '<span class="status-bad">not currently synchronized</span>' ?>.
-                <?php if (!$timeSource['ntp_synchronized']): ?>
-                    This PirateBox is an isolated access point by design - if it has no separate uplink to the Internet, it has no path to a real time server, so this is expected here, not necessarily a fault.
-                <?php endif; ?>
-                <?php if (!$timeSource['fake_hwclock_installed'] && !$timeSource['rtc_detected']): ?>
-                    <code>fake-hwclock</code> (a software "remember the last known time across a reboot" fallback) is also not installed.
-                <?php endif; ?>
-            </p>
+            <?php if (!$timeSource['available']): ?>
+                <p><strong>Time source: not currently reporting.</strong>
+                    <?php if ($timeSource['stale']): ?>
+                        This device's periodic status snapshot hasn't updated recently - see <a href="/utility/status/">Status</a> for the same staleness condition affecting other readings.
+                    <?php else: ?>
+                        This device's status helper hasn't been updated to report this yet (a small, known pending step - see <code>docs/OPERATIONAL-DECISIONS.md</code>, "Field Tools / Offline Reference Instruments"). Nothing is fabricated in its place.
+                    <?php endif; ?>
+                </p>
+            <?php else: ?>
+                <p><strong>Time source:</strong>
+                    <?php if ($timeSource['rtc_detected']): ?>
+                        a hardware real-time clock is detected on this device - the system clock can be backed by it across a power-off, not just while running.
+                    <?php else: ?>
+                        <strong>no hardware real-time clock is installed on this device.</strong> A Raspberry Pi has no battery-backed clock of its own - the time below comes from whatever the system clock has held since it was last set (network time sync, if one ever succeeded, or the boot default), and can be significantly wrong after a cold boot with no network available. A DS3231 hardware RTC is planned for this device but not yet installed - see this project's <code>docs/RTC-TIME-READINESS-DESIGN.md</code>. Once it's added, this line updates automatically with no code change.
+                    <?php endif; ?>
+                </p>
+                <p>
+                    Network time sync (NTP):
+                    <?= $timeSource['ntp_synchronized'] ? '<span class="status-ok">currently synchronized</span>' : '<span class="status-bad">not currently synchronized</span>' ?>.
+                    <?php if (!$timeSource['ntp_synchronized']): ?>
+                        This PirateBox is an isolated access point by design - if it has no separate uplink to the Internet, it has no path to a real time server, so this is expected here, not necessarily a fault.
+                    <?php endif; ?>
+                    <?php if (!$timeSource['fake_hwclock_installed'] && !$timeSource['rtc_detected']): ?>
+                        <code>fake-hwclock</code> (a software "remember the last known time across a reboot" fallback) is also not installed.
+                    <?php endif; ?>
+                </p>
+            <?php endif; ?>
             <p class="muted">This device does not claim atomic-clock or GPS-level accuracy, and does not fabricate a "last synchronized" time it hasn't actually recorded. Treat the time below as a best-effort local reading, not a certified reference.</p>
             <?php if (strtoupper($snap['tz_name']) === 'UTC'): ?>
                 <p class="muted">"Local" and "UTC" below currently read the same: this device's PHP configuration has no timezone explicitly set, so it defaults to UTC regardless of where this box is physically deployed - not a display bug, and consistent with every other timestamp shown elsewhere on this site. See <code>docs/OPERATIONAL-DECISIONS.md</code> ("Field Tools / Offline Reference Instruments") if you want this changed.</p>

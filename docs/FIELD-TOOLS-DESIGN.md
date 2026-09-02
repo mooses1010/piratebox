@@ -76,32 +76,63 @@ visible `help-note` block above the calculator.
 This Pi has **no hardware RTC installed** as of this writing (see
 `docs/RTC-TIME-READINESS-DESIGN.md`, Stage 28 - that audit's findings
 are unchanged by this stage; a DS3231 remains **planned, not
-installed**). The Time page does not pretend otherwise:
-`includes/fieldtools_time.php`'s `piratebox_get_time_source_status()`
-reports, read-only, with no `shell_exec` (disabled for PHP-FPM - see
-`etc/php/8.4/fpm/php.ini`):
+installed**). The Time page does not pretend otherwise.
+
+**Found live, corrected before this stage's first deploy:** an earlier
+version of `piratebox_get_time_source_status()` read `/sys/class/rtc/`,
+`/run/systemd/timesync/synchronized`, and `/etc/fake-hwclock.data`
+directly. Rendering the Time page for real (not just `php -l`) showed
+PHP-FPM's `open_basedir` restriction (`etc/php/8.4/fpm/php.ini`) blocks
+every one of those paths - `file_exists()`/`glob()` returned a *silent*
+`false` under a PHP warning, which would have looked like a real "not
+present" answer while actually being a permissions block. That's
+exactly the kind of fabricated-looking negative this feature is
+supposed to refuse to produce, so it was fixed before shipping rather
+than shipped and revisited: `piratebox_get_time_source_status()` now
+reads `/run/piratebox/status.json` (which **is** inside `open_basedir`)
+via `includes/metrics.php`'s existing `piratebox_get_helper_status()`,
+the same "PHP can't read this directly, so a root-run periodic script
+publishes it instead" pattern that function's own header already
+documents and this app already relies on elsewhere. The actual
+`/sys/class/rtc`/`/run/systemd/timesync`/`/etc/fake-hwclock.data` reads
+now happen inside `piratebox_status_helper.sh` (runs as root, no
+`open_basedir`), which publishes a new `time_source` block into that
+status file:
 
 - `rtc_detected` - true the instant any `/sys/class/rtc/rtcN` device
   exists. This is exactly what wiring a DS3231 per `docs/HARDWARE-
-  INTEGRATION-DESIGN.md`'s I2C plan makes appear - **this function
-  needs zero code changes when that happens**, it already reads
-  whatever's really there.
-- `ntp_synchronized` - systemd-timesyncd's own live verdict
-  (`/run/systemd/timesync/synchronized`'s existence). Normally false on
-  this device by design (isolated AP, no confirmed uplink) - the UI
-  states this is expected here, not a fault.
+  INTEGRATION-DESIGN.md`'s I2C plan makes appear - **this needs zero
+  code changes when that happens**, the script already reads whatever's
+  really there.
+- `ntp_synchronized` - systemd-timesyncd's own live verdict. Normally
+  false on this device by design (isolated AP, no confirmed uplink) -
+  the UI states this is expected here, not a fault.
 - `fake_hwclock_installed` - whether Stage 28's other candidate
   mitigation has since been installed (it hadn't, as of this stage).
 
+**Three-state, not two:** `piratebox_get_time_source_status()` returns
+`available` (bool) and `stale` (bool) alongside the three fields above,
+which are `null` - never a fabricated guess - whenever `available` is
+false. That happens in two real cases: the status snapshot is stale
+(`piratebox_get_helper_status()`'s existing >300s window, same as every
+other reader of that file), or the snapshot is fresh but doesn't carry
+a `time_source` block yet, because the *deployed*
+`piratebox_status_helper.sh` (root-owned, `/usr/local/bin/`, installed
+separately from the web-tree deploy - see §9) predates this change. The
+Time page shows an honest "not currently reporting" message in either
+case rather than guessing. **This second case is this repo's actual
+live state as of this commit** - the code fix is deployed, the root
+script that would populate the new field is not (see §9) - so the live
+Time page currently shows exactly that message, correctly.
+
 **Deliberately not built:** a persisted "last successful NTP sync"
 timestamp. No component on this device currently records that moment -
-adding it would mean a new field in `piratebox_status_helper.sh`'s
-periodic write (a root-run script, a different trust boundary than this
-web-facing stage), which this stage did not touch, consistent with
-"do not change ... unless absolutely required." The Time page states
-plainly that no such record exists yet rather than fabricating one.
-`piratebox_get_time_source_status()`'s shape already has room for this
-field to be added later without a breaking change.
+it would need a new field in `piratebox_status_helper.sh`'s periodic
+write, same file the RTC/NTP/fake-hwclock fields above already went
+into, but a genuinely separate piece of work (this stage's fields are
+all live/instantaneous checks; "last successful sync" needs actual
+persistence logic). Deferred, not fabricated - see the Time page's own
+statement of this.
 
 **What becomes automatically better once a DS3231 is wired and its
 kernel overlay loads**, with no further PirateBox code changes:
@@ -181,20 +212,30 @@ and three small `.fieldtools-*` layout classes.
 
 ## 8. Testing performed
 
-- `tools/test_fieldtools.php` (new, PHP CLI, no dependency) - 73
+- `tools/test_fieldtools.php` (new, PHP CLI, no dependency) - 86
   deterministic assertions against `includes/fieldtools_convert.php`
   and `includes/fieldtools_time.php`: boundary/sign cases (negative
   temperatures including the -40 fixed point and absolute zero, zero
   values, division-by-zero-guarded percentage/electrical functions),
   decimal values, round trips (temperature, distance, volume,
   coordinate DD&rarr;DMS&rarr;DD including a negative-longitude case),
-  a leap-year and non-leap-year day-of-year check, and structural checks
-  on the time-source status function. All 73 pass.
-- `php -l` clean on every new/changed PHP file.
+  a leap-year and non-leap-year day-of-year check, and - after §4's
+  fix - a direct, deterministic test of `piratebox_get_time_source_
+  status()`'s three-state decision logic itself (fresh-but-no-block,
+  stale-even-with-a-block, fresh-with-a-block), not just its shape,
+  confirming the `null`-when-unavailable / real-booleans-when-available
+  contract holds in every case. All 86 pass.
+- `php -l`/`bash -n` clean on every new/changed PHP and shell file.
 - Every new/changed page rendered via `php -S` (PHP's built-in dev
   server) - all return HTTP 200, zero PHP warnings/errors/notices in
-  the server log, spot-checked rendered output for the "right now"
-  snapshot and time-source note.
+  the server log. This is exactly how §4's `open_basedir` bug was
+  caught in the first place (`php -l` alone can't see it - it's a
+  runtime restriction, not a syntax error) - re-rendering after the fix
+  against this device's actual live `/run/piratebox/status.json`
+  (genuinely missing the `time_source` block, since the deployed status
+  helper isn't updated yet - see §9) confirmed the real degraded case
+  renders the honest "not currently reporting" message with zero
+  warnings, not simulated.
 - `grep` across every new file for `http://`/`https://`/`cdn.`/known
   CDN hostnames - zero matches; confirmed zero external requests
   anywhere in this feature (`fieldtools.js` contains no `fetch`/`XHR`
@@ -206,9 +247,39 @@ and three small `.fieldtools-*` layout classes.
 - Not tested: JavaScript execution in an actual browser (no browser
   available in this environment) - the PHP-rendered static content and
   JS syntax/logic were verified as above instead; a real-browser check
-  is worth doing once this reaches live use.
+  is worth doing once this reaches live use. Also not tested: the
+  Time page's "RTC detected" and "available, no RTC" rendering branches
+  against a real live status snapshot (§9's pending step means today's
+  live device can only exercise the "not currently reporting" branch
+  for real) - covered instead by the deterministic shape-logic test
+  above plus direct code review of the template's conditional
+  structure, which mirrors that same tested logic exactly.
 
-## 9. What's deferred
+## 9. Pending operator step - not deferred work, already built
+
+Unlike everything in §10 below, this one thing is **finished and
+committed, just not yet installed live**, because it's outside this
+session's automation, not outside its scope: `piratebox_status_helper.
+sh` (repo root) now publishes the `time_source` block §4 describes, but
+the deployed copy at `/usr/local/bin/piratebox_status_helper.sh`
+(root-owned, installed separately from the `var/www/html/` web-tree
+deploy - there's no `setup_*.sh` installer for this specific script,
+unlike `piratebox_deploy.sh`/`set_piratebox_mode.sh`'s
+`setup_claude_automation.sh`) still predates this change, and this
+session has no `sudo` grant that can install/overwrite it. **One
+remaining manual step, whenever convenient:**
+
+```
+sudo cp piratebox_status_helper.sh /usr/local/bin/piratebox_status_helper.sh
+sudo systemctl restart piratebox-status.timer
+```
+
+Until then, the live Time page correctly and honestly shows "time
+source: not currently reporting" (§4's `available: false` case) rather
+than a wrong or fabricated answer - confirmed live, not just reasoned
+through (see §8).
+
+## 10. What's deferred
 
 - **Export-bundle integration** (`tools/build_export_bundles.py`,
   Stage 19's "Take This With You") - not added. That mechanism assumes
@@ -219,7 +290,7 @@ and three small `.fieldtools-*` layout classes.
 - **`date.timezone` fix** - see §6.
 - **UTM/MGRS coordinate conversion** - see §2.
 
-## 10. Relationship to Stage 29 (OLED)
+## 11. Relationship to Stage 29 (OLED)
 
 The OLED Clock page design (`docs/PHYSICAL-CONTROL-UX-DESIGN.md` §1)
 now names `piratebox_get_time_source_status()` and
