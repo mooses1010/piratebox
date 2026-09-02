@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../includes/content_profile.php';
 require_once __DIR__ . '/../../includes/travel_mode.php';
 require_once __DIR__ . '/../../includes/capability_state.php';
 require_once __DIR__ . '/../../includes/device_memory.php';
+require_once __DIR__ . '/../../includes/hardware_wiring.php';
 
 // PirateBox admin/status page - Phase 4.
 //
@@ -304,6 +305,15 @@ $travelModeActive = piratebox_get_travel_mode();
 $capabilities = piratebox_get_capability_state();
 $operationalState = piratebox_get_operational_state();
 
+// Self-describing device (docs/ARCHITECTURE.md §17): physical wiring
+// assignments - the one explicit gap that section named ("reachable
+// today only by reading this repository's own docs directly, not from
+// a page"). Operator-maintained (mirrors docs/HARDWARE-INTEGRATION-
+// DESIGN.md §2), not live-sensed - see includes/hardware_wiring.php's
+// own header for why. null (not []) means the data file itself is
+// missing/malformed, shown honestly rather than as "no wiring."
+$gpioWiring = piratebox_get_gpio_wiring();
+
 // Device Memory (docs/DEVICE-MEMORY-DESIGN.md): bounded operational
 // event history - see includes/device_memory.php's own header for the
 // "available=false means the write side hasn't been installed yet,
@@ -450,6 +460,31 @@ $connStats = piratebox_get_connection_stats();
         </table>
     </div>
     <p class="muted" style="text-align:center;">"Core dependency" (not shown per-row - see docs/ARCHITECTURE.md §2) is <code>true</code> only for the three Core rows above; every Operational/Optional row failing degrades only itself.</p>
+
+    <h2 class="admin-section-heading">Physical wiring <span class="section-tag">self-description</span></h2>
+    <?php if ($gpioWiring === null): ?>
+        <p class="muted" style="text-align:center;">Wiring data unavailable - data/gpio-wiring.json is missing or malformed. Nothing fabricated in its place.</p>
+    <?php else: ?>
+        <p class="muted" style="text-align:center;">docs/ARCHITECTURE.md &sect;17 - so a future owner can understand this device's physical control wiring from the box itself, not only from its source repository. Operator-maintained, mirrors docs/HARDWARE-INTEGRATION-DESIGN.md &sect;2 (the authoritative source - update both together).</p>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr><th>Function</th><th>GPIO (BCM)</th><th>Physical pin</th><th>Status</th><th>Notes</th></tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($gpioWiring as $w): ?>
+                        <tr>
+                            <td><?= htmlspecialchars($w['function']) ?></td>
+                            <td><?= htmlspecialchars($w['bcm']) ?></td>
+                            <td><?= htmlspecialchars($w['physical_pin']) ?></td>
+                            <td class="<?= str_contains($w['status'], 'Wired') && !str_contains($w['status'], 'Not wired') ? 'status-ok' : 'muted' ?>"><?= htmlspecialchars($w['status']) ?></td>
+                            <td class="muted"><?= htmlspecialchars($w['notes']) ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
 
     <h2 class="admin-section-heading">Operational history <span class="section-tag">bounded, aggregate only</span></h2>
     <?php if (!$deviceMemory['available']): ?>

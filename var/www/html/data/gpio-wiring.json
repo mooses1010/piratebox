@@ -1,0 +1,58 @@
+[
+  {
+    "function": "Normal/Emergency toggle",
+    "bcm": "GPIO17",
+    "physical_pin": "11",
+    "status": "Not wired",
+    "notes": "Input, internal pull-up, switch to GND"
+  },
+  {
+    "function": "OLED SDA",
+    "bcm": "GPIO2",
+    "physical_pin": "3",
+    "status": "Not wired",
+    "notes": "Fixed I2C1 function, not reassignable - reserved, do not use for anything else"
+  },
+  {
+    "function": "OLED SCL",
+    "bcm": "GPIO3",
+    "physical_pin": "5",
+    "status": "Not wired",
+    "notes": "Fixed I2C1 function, not reassignable - reserved, do not use for anything else"
+  },
+  {
+    "function": "Momentary button 1",
+    "bcm": "GPIO22",
+    "physical_pin": "15",
+    "status": "Not wired",
+    "notes": "Cycle page (planned)"
+  },
+  {
+    "function": "Momentary button 2",
+    "bcm": "GPIO23",
+    "physical_pin": "16",
+    "status": "Not wired",
+    "notes": "Wake display (planned)"
+  },
+  {
+    "function": "Momentary button 3",
+    "bcm": "GPIO24",
+    "physical_pin": "18",
+    "status": "Not wired",
+    "notes": "Reserved, unassigned"
+  },
+  {
+    "function": "Momentary button 4",
+    "bcm": "GPIO27",
+    "physical_pin": "13",
+    "status": "Not wired",
+    "notes": "Reserved, unassigned"
+  },
+  {
+    "function": "Shutdown button",
+    "bcm": "GPIO25",
+    "physical_pin": "22",
+    "status": "Wired, verified, real power-cycle tested",
+    "notes": "Other leg on physical pin 9 (GND). piratebox-button.service / piratebox_button_daemon.py. 50ms debounce, 4.0s hold-to-trigger, no short-press path."
+  }
+]

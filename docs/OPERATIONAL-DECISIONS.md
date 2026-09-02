@@ -6,6 +6,57 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Physical Wiring Self-Description (roadmap item 2)
+
+**Decision date:** 2026-09-02. Second roadmap-driven implementation
+increment. `docs/ARCHITECTURE.md` §17 ("self-describing/inheritable
+device") named a specific, concrete, still-missing piece: "Neither
+[`/utility/about/` nor admin's Capabilities table] yet covers wiring
+assignments... reachable today only by reading this repository's own
+docs directly, not from a page." Everything else that section
+mentions (ownership/recovery concept, replaceable-hardware-role
+narrative) is either a genuine operator decision or a much larger
+scope - wiring assignments specifically is small, static, already
+fully known (`docs/HARDWARE-INTEGRATION-DESIGN.md` §2), and needed no
+decision to surface.
+
+**Built:** `data/gpio-wiring.json` (mirrors §2's table exactly - that
+design doc stays the authoritative source for wiring *decisions*, this
+is what actually renders on-device), `includes/hardware_wiring.php`
+(`piratebox_parse_gpio_wiring()`/`piratebox_get_gpio_wiring()`, same
+pure-parser-plus-thin-fs-wrapper shape as `reference_packs.php` -
+returns `null`, never a fabricated empty list, on missing/malformed
+data), and a new "Physical wiring" section in `admin/index.php`
+(operator tier, next to Capabilities &amp; Health - physical wiring
+detail is diagnostic, not public-safe, same boundary logic already
+applied to Power/undervoltage). **Deliberately not live-sensed:**
+there's no software way to discover what a floating, unclaimed GPIO
+pin is physically wired to - `status` is the same operator-maintained
+fact the design doc already records, honestly presented as such (the
+one row that IS truly live-verifiable, GPIO25/shutdown button, already
+has its own real capability-state entry elsewhere - this file adds the
+physical-pin context that capability doesn't carry, not a competing
+source of truth for it).
+
+**Testing:** `php -l` clean; `tools/test_hardware_wiring.php` (new, 21
+assertions - null/malformed/missing-field/mixed-garbage-and-valid-rows
+cases, plus an integration check against the real data file confirming
+exactly one row - the shutdown button - is marked wired, matching
+`gpioinfo`'s live confirmation that every other assigned pin is an
+unclaimed `input`). Rendered the actual repo `admin/index.php` directly
+(bypassing the nginx Basic Auth layer for a structural GET-only check,
+same technique as prior sessions' admin-page smoke tests) - confirmed
+the new section renders, GPIO25 shows its wired status, every other
+row shows "Not wired," no PHP warnings/errors. Full five-suite
+regression: 202 assertions, 0 failures (was 181, +21 new).
+
+**Disposition:** `docs/ARCHITECTURE.md` §17's wiring-assignments gap
+closed. Ownership/recovery concept and the fuller "Tell me about
+yourself" narrative remain correctly out of scope - the former is a
+genuine operator decision (§15-16), the latter a much larger, less
+concretely-scoped future increment, not "already approved in
+principle" the way this specific gap was.
+
 ## purge_uploads.sh Completeness Gap Closed (roadmap item 1)
 
 **Decision date:** 2026-09-02. First roadmap-driven implementation

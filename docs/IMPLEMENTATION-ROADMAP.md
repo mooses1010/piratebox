@@ -137,7 +137,7 @@ design doc is):
 | Trust-is-not-binary principle | DOCUMENTED ONLY | ARCHITECTURE.md §14, semantics only | none pending - principle, not a feature | ARCHITECTURE.md §14 |
 | Transferable ownership mechanism | DOCUMENTED ONLY | ARCHITECTURE.md §15, explicitly "None of these is chosen or implemented" | BLOCKED BY OPERATOR DECISION - a real security/identity choice | ARCHITECTURE.md §15 |
 | Data-aware ownership transfer (reset vs. preserve) | DOCUMENTED ONLY | ARCHITECTURE.md §16, explicitly "not decided here" | BLOCKED BY OPERATOR DECISION | ARCHITECTURE.md §16 |
-| Self-describing/inheritable device | PARTIALLY IMPLEMENTED | `/utility/about/` + admin Capabilities table exist (the self-description part); wiring-assignment/maintenance/repair info and the ownership/recovery concept itself remain undocumented on-device | could add a wiring/maintenance reference page (software-only, no decision needed) - candidate for a future increment | ARCHITECTURE.md §17 |
+| Self-describing/inheritable device | PARTIALLY IMPLEMENTED (was; wiring gap now closed) | `/utility/about/` + admin Capabilities table + **new admin "Physical wiring" section (2026-09-02, `includes/hardware_wiring.php`, live-verified)**. Remaining gaps: broader maintenance/repair narrative, the ownership/recovery concept itself | Ownership/recovery concept is BLOCKED BY OPERATOR DECISION (§15-16); a fuller "Tell me about yourself" maintenance narrative is a larger future increment, not yet approved in principle | ARCHITECTURE.md §17, OPERATIONAL-DECISIONS.md "Physical Wiring Self-Description" |
 
 ---
 
