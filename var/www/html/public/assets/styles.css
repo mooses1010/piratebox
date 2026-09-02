@@ -1220,3 +1220,58 @@ ul#chat li.empty-state {
 .hero-emergency .hero-tagline {
     color: #ffb347;
 }
+
+/* -------------------------------------------------
+   Field Tools (Post-Stage-32): dark-theme styling for
+   the plain number/date/time/select inputs the existing
+   input[type="text"] rule doesn't cover, plus layout for
+   each tool's input row and live result line.
+   ------------------------------------------------- */
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+select {
+    font-family: inherit;
+    font-size: 1rem;
+    padding: 0.5rem;
+    border: 1px solid #8c8dff;
+    background: #000;
+    color: #ddd9e8;
+    border-radius: 0;
+}
+
+.fieldtools-tool {
+    background: #292938;
+    padding: 1rem;
+    margin: 1rem 0;
+    max-width: 700px;
+}
+
+.fieldtools-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.fieldtools-row label {
+    min-width: 8rem;
+    flex-shrink: 0;
+}
+
+.fieldtools-row input[type="number"],
+.fieldtools-row input[type="date"],
+.fieldtools-row input[type="time"],
+.fieldtools-row input[type="datetime-local"] {
+    flex: 1 1 8rem;
+    min-width: 0;
+}
+
+.fieldtools-result {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: #8c8dff;
+    margin: 0.5rem 0 0 0;
+}

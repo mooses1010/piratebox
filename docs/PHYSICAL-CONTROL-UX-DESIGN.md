@@ -29,16 +29,49 @@ decision made on this session's own authority.
 
 ## 1. OLED page state machine
 
-Three pages, cycling in a fixed order, matching Stage 11 §5's two
-content layouts plus one addition (§3 below):
+**Updated (Post-Stage-32, Field Tools): Clock/Time is now a first-class
+fourth page, not a secondary field folded into Status.** Originally
+this section specified three pages; a Time page was added once Field
+Tools (`docs/FIELD-TOOLS-DESIGN.md`) built the exact shared time/time-
+source functions this page needs, on the reasoning that "what time is
+it, and can I trust this device's clock" is glance-info in its own
+right during an off-grid deployment, not a detail worth burying inside
+another page. Four pages, cycling in a fixed order, matching Stage 11
+§5's two content layouts plus two additions (§3 below, and this one):
 
 ```
-[Status] --(short-press cycle button)--> [Network] --(cycle)--> [Health] --(cycle)--> [Status] ...
+[Status] --(cycle)--> [Time] --(cycle)--> [Network] --(cycle)--> [Health] --(cycle)--> [Status] ...
 ```
 
 - **Status page**: mode (NORMAL/EMERGENCY), SSID, client count - the
   single most-wanted glance-info, so it's the page shown on wake and
   after an idle timeout returns here (see §4).
+- **Time page** *(new)*: local time, UTC, date, weekday/day-of-year, and
+  system uptime - a compact view of exactly what
+  `includes/fieldtools_time.php`'s `piratebox_fieldtools_now_snapshot()`
+  and `piratebox_get_time_source_status()` already compute for the web
+  Time &amp; Date tool (`/utility/fieldtools/time/`), reused rather than
+  reimplemented, same "one tested copy" pattern as the Network/Health
+  pages below. A compact target layout for the 128&times;64 display
+  (exact formatting adaptable):
+  ```
+  TIME
+  Local  03:42:18 PM
+  UTC    22:42:18
+  Date   2026-09-02
+  Day    Wednesday / 245
+  Uptime 5d 07h
+  ```
+  **Must also show this device's time-source status**, not just the
+  numbers - whatever `piratebox_get_time_source_status()` reports
+  (`rtc_detected`, `ntp_synchronized`), rendered honestly the same way
+  the web page does (no hardware RTC installed as of this writing - see
+  `docs/RTC-TIME-READINESS-DESIGN.md` - so today this page must say so
+  plainly rather than implying a precision the clock doesn't have). Once
+  a DS3231 is wired (`docs/HARDWARE-INTEGRATION-DESIGN.md`), this page's
+  source line updates automatically - the function it reads already
+  reports whatever RTC hardware it actually finds, with no OLED-side
+  code change needed.
 - **Network page**: IP, SSID again (in case someone starts here),
   per-service health (nginx/php-fpm/hostapd/dnsmasq - reusing
   `includes/metrics.php`'s `piratebox_get_helper_status()` exactly as
@@ -48,7 +81,10 @@ content layouts plus one addition (§3 below):
   Emergency Mode runtime (Stage 21's `piratebox_get_emergency_runtime_
   seconds()`) - the device-health facts an operator checks in on
   periodically rather than glances at constantly, which is why they're
-  one press deeper than Status.
+  one press deeper than Status. (Uptime now also appears on the Time
+  page, per the mockup above - a harmless small overlap between "what
+  time is it" and "how long has this box been running," not worth
+  engineering around.)
 
 **Degraded-state display, decided now rather than left to whoever
 builds this later:** every page must show an honest "not reporting"

@@ -133,6 +133,7 @@ error by itself, just a prompt to do the same file-level check.
 | Physical buttons / toggle / OLED UX design | `docs/PHYSICAL-CONTROL-UX-DESIGN.md` |
 | Power / UPS / undervoltage design | `docs/POWER-UPS-DESIGN.md`; live reading: `/run/piratebox/status.json`, `vcgencmd get_throttled` |
 | RTC / time readiness | `docs/RTC-TIME-READINESS-DESIGN.md` |
+| Field Tools (time/date, unit conversion, coordinates) | `docs/FIELD-TOOLS-DESIGN.md` |
 | Travel Mode | `docs/TRAVEL-MODE-DESIGN.md` |
 | Voluntary check-in board (evaluated, deferred) | `docs/CHECKIN-BOARD-DESIGN.md` |
 | Wi-Fi / AP adapter / networking notes | `docs/OPERATIONAL-DECISIONS.md` → "Wi-Fi adapter notes / planned hardware" (grep for the heading; no standalone file yet) |

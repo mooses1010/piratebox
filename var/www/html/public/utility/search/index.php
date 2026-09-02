@@ -56,6 +56,7 @@ $sectionLabels = [
     'maps'      => 'Maps & Location Reference',
     'local'     => 'Local Information',
     'library'   => 'Document Library',
+    'fieldtools' => 'Field Tools',
 ];
 
 function ref_search_blob(array $fields): string

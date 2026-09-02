@@ -6,6 +6,74 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Field Tools / Offline Reference Instruments
+
+**Decision date:** 2026-09-02. A new, self-contained public section -
+`/utility/fieldtools/` - adding a third role to this device alongside
+"public file/community service" and "operator console" (Stage 29):
+**field instrument**. Time/date tools, unit conversion (temperature,
+distance, mass, volume, speed, pressure, storage, percentage,
+electrical/battery), and a coordinate (DD&harr;DMS) converter - useful
+when this box is operating for days with no mains power, cell service,
+or Internet. Full design, architecture rationale, and testing detail in
+`docs/FIELD-TOOLS-DESIGN.md` - this entry is a summary.
+
+**Scope boundary honored:** no networking/captive-portal/GPIO/Travel-
+Mode-semantics change, no packages installed, no community data
+touched. Plain PHP/HTML/CSS + dependency-free local JavaScript only -
+zero external web/API/CDN calls anywhere in this feature (verified by
+grep, not assumed).
+
+**New files:** `includes/fieldtools_convert.php` and `includes/
+fieldtools_time.php` (pure, tested conversion/time functions -
+`piratebox_get_time_source_status()` is written to auto-detect a future
+DS3231 with zero code change, see `docs/FIELD-TOOLS-DESIGN.md` §4);
+`public/utility/fieldtools/{index,time/index,units/index,
+coordinates/index}.php`; `public/assets/fieldtools.js` (client-side
+mirror of the PHP formulas, for instant feedback with no build step -
+see that doc §6 for why); `tools/test_fieldtools.php` (73 deterministic
+CLI assertions, all passing - boundary/sign cases, decimals, round
+trips). **Changed:** `public/utility/index.php` (new nav card),
+`public/utility/search/index.php` (new section label),
+`tools/build_search_index.py` + regenerated `data/utility/search-index.
+json` (7 new entries, none `regional`), `public/utility/maps/index.php`
+(one cross-link to the new coordinate converter), `public/assets/
+styles.css` (dark-theme styling for number/date/time/select inputs the
+existing rules didn't cover, plus three small layout classes).
+
+**Real, disclosed-not-fixed finding:** this device's PHP has no
+`date.timezone` configured, so `date()` defaults to UTC regardless of
+system timezone - the Time page detects and explains this rather than
+silently showing identical Local/UTC columns. Not fixed here
+(app-wide blast radius, a separate future stage) - see `docs/
+FIELD-TOOLS-DESIGN.md` §6.
+
+**Travel Mode / Content Profile:** deliberately not integrated - this
+section has no local-sensitive or hazard-scenario content. See `docs/
+FIELD-TOOLS-DESIGN.md` §5 for why.
+
+**Stage 29 (OLED) design updated, no hardware changed:** `docs/
+PHYSICAL-CONTROL-UX-DESIGN.md` §1 now specifies Clock/Time as a
+first-class fourth OLED page (was three pages), reading this stage's
+new `piratebox_fieldtools_now_snapshot()`/`piratebox_get_time_source_
+status()` functions once that hardware exists. No OLED is wired - this
+is a design-document update only, per instruction not to write hardware
+code for display that isn't physically installed.
+
+**Testing:** see `docs/FIELD-TOOLS-DESIGN.md` §8 in full - `php -l`
+clean on every file, all pages rendered via `php -S` with zero warnings/
+errors, 73/73 deterministic test assertions passing, search index
+regenerated and spot-checked, external-reference grep clean. Not
+tested: real-browser JavaScript execution (no browser available in this
+environment).
+
+**Deployment:** see this repo's `git log`/`includes/VERSION` for current
+status as of any later reading - not asserted here to avoid this entry
+going stale the way a hardcoded claim would (see `CLAUDE.md` §1a on
+why). Checkpoint backup taken before any change in this stage:
+`~/piratebox-backups/fieldtools-pre-20260902-031945/` (full `var/www/
+html` mirror + pre-change git HEAD `e0ba886`).
+
 ## VERSION Honesty Marker
 
 **Decision date:** 2026-09-02. Found while validating the new

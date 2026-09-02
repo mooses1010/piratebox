@@ -156,6 +156,36 @@ index.append(entry(
     ["manual", "document", "library", "pdf"],
 ))
 
+# --- Field Tools (Post-Stage-32) ------------------------------------------
+# Hand-written, not data-file-driven - these are interactive tools, not a
+# JSON reference catalog like every section above. No `regional` flag on
+# any of these: nothing here is local/deployment-specific, so Travel Mode
+# never needs to hide them (see includes/travel_mode.php).
+for title, url, snippet, keywords in [
+    ("Field Tools", "/utility/fieldtools/",
+     "Time/date, unit conversion, and coordinate calculators for offline field use.",
+     ["field tools", "calculator", "converter"]),
+    ("Time & Date", "/utility/fieldtools/time/",
+     "Current local/UTC time, ISO-8601, Unix timestamp, elapsed-time calculator, day of year.",
+     ["time", "clock", "date", "utc", "iso 8601", "unix timestamp", "elapsed", "duration", "weekday", "day of year"]),
+    ("Temperature Converter", "/utility/fieldtools/units/",
+     "Celsius to Fahrenheit and back.",
+     ["temperature", "celsius", "fahrenheit", "convert"]),
+    ("Distance / Mass / Volume / Speed / Pressure Converter", "/utility/fieldtools/units/",
+     "mm/cm/m/km/in/ft/yd/mi, g/kg/oz/lb, mL/L/US fl oz/cups/pints/quarts/gallons, mph/km/h/m/s, PSI/kPa/bar.",
+     ["distance", "mass", "weight", "volume", "speed", "pressure", "convert", "units", "metric", "imperial"]),
+    ("Storage / Percentage Converter", "/utility/fieldtools/units/",
+     "Bytes/KiB/MiB/GiB/TiB, percentage-of and percent-change calculators.",
+     ["storage", "bytes", "kib", "mib", "gib", "percent", "percentage", "ratio"]),
+    ("Electrical & Battery Runtime", "/utility/fieldtools/units/",
+     "Volts x Amps = Watts, amp-hours to watt-hours, and a theoretical battery runtime estimate.",
+     ["electrical", "volts", "amps", "watts", "battery", "runtime", "power"]),
+    ("Coordinate Converter", "/utility/fieldtools/coordinates/",
+     "Decimal degrees to/from degrees-minutes-seconds (DMS).",
+     ["coordinates", "gps", "latitude", "longitude", "dms", "decimal degrees"]),
+]:
+    index.append(entry(title, "fieldtools", "Field Tools", url, snippet, keywords))
+
 with open(OUT_PATH, "w", encoding="utf-8") as f:
     json.dump(index, f, indent=2, ensure_ascii=False)
     f.write("\n")

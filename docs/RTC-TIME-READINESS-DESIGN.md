@@ -10,6 +10,17 @@ for explicit approval first, same as every prior stage that touched
 either boundary (Stage 19's `ZipArchive` stop, Stage 11/12's hardware
 designs).
 
+**Still true, unchanged by Field Tools (Post-Stage-32):** no hardware
+RTC or `fake-hwclock` has been installed since this audit - the DS3231
+remains **planned, not installed**. What did change: this audit's own
+live checks (`/sys/class/rtc/`, the NTP-synchronized flag) are now also
+surfaced to visitors, honestly, on the live site itself -
+`includes/fieldtools_time.php`'s `piratebox_get_time_source_status()`
+and `/utility/fieldtools/time/` - and named in `docs/PHYSICAL-CONTROL-
+UX-DESIGN.md`'s OLED Clock page spec as what that future page should
+read too. See `docs/FIELD-TOOLS-DESIGN.md` §4 for that design. Nothing
+in this document's own findings needed correcting.
+
 ---
 
 ## 1. Current state (verified live, this session)

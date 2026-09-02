@@ -107,6 +107,7 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
         <div id="radioResults">
             <section class="radio-group" data-group-section="reference">
                 <h2 class="radio-group-heading">Coordinates, GPS &amp; Navigation Basics</h2>
+                <p class="muted">Need to actually convert a coordinate, not just read about the formats? See the <a href="/utility/fieldtools/coordinates/">Coordinate Converter</a> in Field Tools.</p>
                 <?php foreach ($reference as $t): ?>
                     <?php $search = ref_search_blob([$t['title'], $t['summary'], $t['keywords'] ?? [], 'reference']); ?>
                     <details class="radio-entry" id="<?= htmlspecialchars($t['id']) ?>" data-group="reference" data-search="<?= $search ?>">

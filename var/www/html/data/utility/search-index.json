@@ -1113,5 +1113,116 @@
       "library",
       "pdf"
     ]
+  },
+  {
+    "title": "Field Tools",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/",
+    "snippet": "Time/date, unit conversion, and coordinate calculators for offline field use.",
+    "keywords": [
+      "field tools",
+      "calculator",
+      "converter"
+    ]
+  },
+  {
+    "title": "Time & Date",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/time/",
+    "snippet": "Current local/UTC time, ISO-8601, Unix timestamp, elapsed-time calculator, day of year.",
+    "keywords": [
+      "time",
+      "clock",
+      "date",
+      "utc",
+      "iso 8601",
+      "unix timestamp",
+      "elapsed",
+      "duration",
+      "weekday",
+      "day of year"
+    ]
+  },
+  {
+    "title": "Temperature Converter",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/units/",
+    "snippet": "Celsius to Fahrenheit and back.",
+    "keywords": [
+      "temperature",
+      "celsius",
+      "fahrenheit",
+      "convert"
+    ]
+  },
+  {
+    "title": "Distance / Mass / Volume / Speed / Pressure Converter",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/units/",
+    "snippet": "mm/cm/m/km/in/ft/yd/mi, g/kg/oz/lb, mL/L/US fl oz/cups/pints/quarts/gallons, mph/km/h/m/s, PSI/kPa/bar.",
+    "keywords": [
+      "distance",
+      "mass",
+      "weight",
+      "volume",
+      "speed",
+      "pressure",
+      "convert",
+      "units",
+      "metric",
+      "imperial"
+    ]
+  },
+  {
+    "title": "Storage / Percentage Converter",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/units/",
+    "snippet": "Bytes/KiB/MiB/GiB/TiB, percentage-of and percent-change calculators.",
+    "keywords": [
+      "storage",
+      "bytes",
+      "kib",
+      "mib",
+      "gib",
+      "percent",
+      "percentage",
+      "ratio"
+    ]
+  },
+  {
+    "title": "Electrical & Battery Runtime",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/units/",
+    "snippet": "Volts x Amps = Watts, amp-hours to watt-hours, and a theoretical battery runtime estimate.",
+    "keywords": [
+      "electrical",
+      "volts",
+      "amps",
+      "watts",
+      "battery",
+      "runtime",
+      "power"
+    ]
+  },
+  {
+    "title": "Coordinate Converter",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/coordinates/",
+    "snippet": "Decimal degrees to/from degrees-minutes-seconds (DMS).",
+    "keywords": [
+      "coordinates",
+      "gps",
+      "latitude",
+      "longitude",
+      "dms",
+      "decimal degrees"
+    ]
   }
 ]

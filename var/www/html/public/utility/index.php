@@ -49,6 +49,11 @@ session_start();
             <span class="utility-card-title">Local Info</span>
             <span class="utility-card-desc">Hospitals, shelters, emergency contacts &amp; repeaters for this area</span>
         </a>
+        <a class="utility-card" href="/utility/fieldtools/">
+            <span class="utility-card-icon" aria-hidden="true">🧰</span>
+            <span class="utility-card-title">Field Tools</span>
+            <span class="utility-card-desc">Time/date, unit conversion &amp; coordinate calculators for offline field use</span>
+        </a>
         <a class="utility-card" href="/utility/library/">
             <span class="utility-card-icon" aria-hidden="true">📚</span>
             <span class="utility-card-title">Library</span>
