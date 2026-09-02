@@ -196,6 +196,27 @@ $distExamples = [
             <p class="fieldtools-result" id="ft-pct-change-result" aria-live="polite"></p>
         </div>
 
+        <h2>SI Prefixes <span class="muted">(metric scale reference)</span></h2>
+        <div class="fieldtools-tool">
+            <p>Every prefix below means the same multiplier no matter which unit it's attached to - once you know what "milli" means, you know it for milliamps, milliliters, and milliseconds alike.</p>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Prefix</th><th>Symbol</th><th>Factor</th><th>Example</th></tr></thead>
+                    <tbody>
+                        <tr><td>giga</td><td>G</td><td>&times;1,000,000,000 (10&sup9;)</td><td>GHz (radio frequency), GB (storage)</td></tr>
+                        <tr><td>mega</td><td>M</td><td>&times;1,000,000 (10&sup6;)</td><td>MHz (radio frequency), MB (storage)</td></tr>
+                        <tr><td>kilo</td><td>k</td><td>&times;1,000 (10&sup3;)</td><td>km, kg, kHz</td></tr>
+                        <tr><td>(base unit)</td><td>&mdash;</td><td>&times;1</td><td>meter, gram, second, hertz, amp, volt</td></tr>
+                        <tr><td>centi</td><td>c</td><td>&divide;100 (10&#8315;&sup2;)</td><td>cm</td></tr>
+                        <tr><td>milli</td><td>m</td><td>&divide;1,000 (10&#8315;&sup3;)</td><td>mm, mL, mA, ms</td></tr>
+                        <tr><td>micro</td><td>&micro;</td><td>&divide;1,000,000 (10&#8315;&sup6;)</td><td>&micro;s (microsecond), &micro;A</td></tr>
+                        <tr><td>nano</td><td>n</td><td>&divide;1,000,000,000 (10&#8315;&sup9;)</td><td>ns (nanosecond) - see NIST Time/Frequency in the Document Library</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="muted">Binary storage prefixes (kibi/mebi/gibi, 1024-based) are a different, related system - see the Storage/data section above, which this device's own Status page also uses.</p>
+        </div>
+
         <h2>Electrical &amp; battery runtime</h2>
         <div class="help-note">
             <p><strong>Runtime estimates are theoretical, not a guarantee.</strong> This is plain arithmetic (capacity &divide; load), derated by one efficiency factor you set. Real-world runtime is normally <em>lower</em> than this suggests: inverter/converter losses, a battery's usable capacity dropping at high discharge rates or in cold temperatures, and a load that isn't perfectly constant all reduce actual runtime further. Treat this as a rough planning number, not a promise.</p>
