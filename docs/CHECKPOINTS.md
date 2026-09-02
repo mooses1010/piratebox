@@ -204,3 +204,11 @@ capability check against the deployed tree confirms `storage` correctly
 reads `AVAILABLE`/`null diagnosis` against this device's real free
 space (114GB of 123GB); zero failed units; no new nginx/PHP errors
 since deploy. Full four-suite regression: 181 assertions, 0 failures.
+
+| Implementation-focused audit, increment 3: Reference Library navigation coherence fixes (utility/index.php Maps card, README's Maps/Search bullets, FIELD-TOOLS-DESIGN.md status banner - all text-only) | `bcd061e` | `~/piratebox-backups/nav-coherence-pre-20260902-074337/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `bcd061e` matching `HEAD` exactly. Live
+Utility Library card text confirmed updated; zero failed units; no new
+nginx/PHP errors since deploy. Text-only change - regression suite
+unaffected by design, re-run anyway and still 181/181.
