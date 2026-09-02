@@ -14,13 +14,14 @@ ExecStart=/usr/local/bin/piratebox_button_daemon.py
 Restart=on-failure
 RestartSec=5
 
-# SAFE BY DEFAULT: real shutdown is NOT enabled by this base unit. A
-# 4-second hold only logs what it would have done until an operator
-# deliberately adds PIRATEBOX_BUTTON_ENABLE_SHUTDOWN=1 here (or in a
-# drop-in override) after verifying the persistent service end to end -
-# see docs/OPERATIONAL-DECISIONS.md for the staged bring-up this
-# followed.
-#Environment=PIRATEBOX_BUTTON_ENABLE_SHUTDOWN=1
+# Real shutdown is armed. This was left commented out (dry-run/log-only)
+# through discovery, electrical bring-up, and persistent-service
+# verification, and enabled only after the persistent service was
+# confirmed to correctly distinguish short presses (no-op) from a
+# deliberate ~4s hold (log-only) with zero effect on the rest of the
+# system - see docs/OPERATIONAL-DECISIONS.md for the full staged
+# bring-up and the live shutdown test this enabled.
+Environment=PIRATEBOX_BUTTON_ENABLE_SHUTDOWN=1
 
 # Deliberately NOT NoNewPrivileges=yes - this daemon's one legitimate
 # job requires escalating via `sudo -n systemctl poweroff` (see
