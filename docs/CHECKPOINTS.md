@@ -194,3 +194,13 @@ toggling the live operator setting merely to re-test something already
 confirmed. Full four-suite regression: 171 assertions, 0 failures. See
 `docs/OPERATIONAL-DECISIONS.md` for the full provenance/sourcing
 account.
+
+| Implementation-focused audit, increment 2: storage self-diagnosis gap closed (`piratebox_classify_storage()`, reuses the existing 2x-reserve threshold) + two stale-doc fixes (self-diagnosis, since-last-review) | `9c7fd10` | `~/piratebox-backups/storage-diagnosis-pre-20260902-074044/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `9c7fd10` matching `HEAD` exactly. Live:
+admin page still correctly gated (401, not 500 - no crash); live
+capability check against the deployed tree confirms `storage` correctly
+reads `AVAILABLE`/`null diagnosis` against this device's real free
+space (114GB of 123GB); zero failed units; no new nginx/PHP errors
+since deploy. Full four-suite regression: 181 assertions, 0 failures.
