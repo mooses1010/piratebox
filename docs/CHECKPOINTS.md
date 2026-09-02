@@ -278,3 +278,12 @@ section, a specific entry (CW), and the SigIDWiki transparency note
 all present; zero failed units; no new nginx/PHP errors since deploy.
 Search index at 112 entries. Full five-suite regression: 206/206.
 
+| Deep field library, increment 6: Document Library cross-linking (`includes/library_links.php`, metadata-driven via `catalog.json`'s `related_pages` field; 4 subject pages + reverse links + search keyword fix) | `f04dbeb` | `~/piratebox-backups/library-crosslink-pre-20260902-101556/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `f04dbeb` matching `HEAD` exactly. Live:
+all five pages (Maps, Field Tools Time, Emergency, Radio, Document
+Library) confirmed showing their cross-link box; zero failed units; no
+new nginx/PHP errors since deploy. Full five-suite regression:
+206/206.
+
