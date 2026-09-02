@@ -353,3 +353,22 @@ computed live, not hardcoded. `tools/check_library_catalog.py` clean
 (8/8 agree). Zero failed units; live search index confirmed at 134
 entries. Full five-suite regression: 206/206.
 
+| Deep field library, increments 16-17: Help/About discoverability + de-duplication, Glossary architecture (26 terms), Ten Essentials outdoor/field topic | `804c3ce` | *(none taken under the usual `~/piratebox-backups/` naming - built across 2 commits on an isolated worktree branch by a background session; the operator merged `worktree-deep-library-continue3` into `main` and ran the deploy directly. `ee5bfbb` above remains the most recent backed-up rollback point; the merge was a pure fast-forward)* |
+
+**Deployed and live-verified 2026-09-02 (merged from a worktree
+branch, deploy run by the operator; verified in this follow-up
+recovery pass):** `main`/HEAD confirmed at `804c3ce`, tree clean. Live
+`includes/VERSION` stamped to `804c3ce`, matching `HEAD`. Every
+changed file (`help.php`, `index.php`, glossary page + data, emergency
+topics/sources, reference-packs.json, search-index.json) confirmed
+byte-identical between repo and live tree. Live-verified over HTTP
+against the real deployed site: `help.php` shows the new "Two
+different questions" pointer and no longer shows the stale
+"planned/in progress" capability bullets; `/utility/about/` still
+links back to Help (4 occurrences); `/utility/glossary/` returns 200
+with `dhcp`/`cidr`/`polarization`/`declination` entries all present;
+`/utility/emergency/` shows the new `ten-essentials` topic; live
+search index confirmed at 161 entries with DHCP/CIDR/Polarization/
+Declination all present in its titles. `tools/check_library_catalog.py`
+clean (8/8). Zero failed units. Full five-suite regression: 206/206.
+
