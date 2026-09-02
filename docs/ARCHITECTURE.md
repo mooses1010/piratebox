@@ -591,13 +591,15 @@ Operational History vs. Sensitive Observation History (the key
 distinction a future retention decision must classify against),
 retention-class semantics, aggregation-over-raw-samples, the optional
 Field Session concept, and how this interacts with §16's ownership-
-transfer question. **Most of it remains unimplemented** - no review
-mechanism or Field Sessions exist. **A first real slice does now
-exist**, as of 2026-09-02: bounded boot-event and undervoltage-event
-tracking (`piratebox_status_helper.sh` write side,
-`includes/device_memory.php` read side, `admin/index.php`'s
-"Operational history" section) - a genuine Event History + Summary
-History example, not just a description of one. See
+transfer question. **Most of it remains unimplemented** - Field
+Sessions don't exist. **A first real slice does now exist**, as of
+2026-09-02: bounded boot-event and undervoltage-event tracking
+(`piratebox_status_helper.sh` write side, `includes/device_memory.php`
+read side, `admin/index.php`'s "Operational history" section) - a
+genuine Event History + Summary History example, not just a
+description of one - **plus a real "since last review" boundary**
+(`data/review-boundary.json`, a non-destructive `mark_reviewed` admin
+action, tested end-to-end including a real CSRF-protected POST). See
 `docs/DEVICE-MEMORY-DESIGN.md` §15 for exact status, including one
 pending root-script install step.
 

@@ -6,6 +6,67 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## "Since Last Review" Boundary
+
+**Decision date:** 2026-09-02. Third increment of the autonomous
+implementation phase, continuing directly from the previous checkpoint
+(`8bdc981`/`7dcbd1f`) without pausing, per operator instruction. Also
+confirmed, not just assumed, before starting: `data/reference-packs.
+json` and `data/device-history.json` cannot leak into any export/
+download surface - `tools/build_export_bundles.py`'s `zip_dir()` only
+ever walks explicitly-named static-export subdirectories, never a raw
+sweep of `data/`, and neither file is ever rendered into the static
+export pipeline at all. Travel Mode's quarantine list
+(`includes/travel_mode.php`) needed no change - confirmed by reading
+it, not assumed.
+
+**Built:** `docs/DEVICE-MEMORY-DESIGN.md` §3's operator review boundary
+- `data/review-boundary.json` (operator-set, same trust boundary as
+`data/travel-mode.json` - written by the admin page, not the root
+status helper), `piratebox_get_review_boundary()`/
+`piratebox_mark_reviewed()` (`includes/device_memory.php`, same atomic
+temp-file-then-rename pattern `piratebox_set_travel_mode()` already
+uses), a new `mark_reviewed` admin action (non-destructive - doesn't
+delete any history, just moves where the summary starts counting from
+- same reasoning as `set_travel_mode`/`set_content_profile`,
+deliberately not in `$CONFIRM_REQUIRED_ACTIONS`), and
+`piratebox_device_memory_since()` - a pure function computing boots/
+undervoltage-events at-or-after the boundary from the already-parsed
+device-memory array, so every boundary case (never reviewed, a
+boundary in the future, one exactly matching an event, empty history)
+is directly unit-tested without needing a live file fixture.
+
+**A real design gap found and fixed while building this:**
+`piratebox_parse_device_memory()` only returned derived summaries
+(`boot_count`, `last_boot_at`), not the raw event list - insufficient
+to compute "since a boundary." Fixed by extending its return shape with
+`boot_events_recent` (symmetric with the `undervoltage_events_recent`
+field it already returned), additive and non-breaking to every existing
+caller/test.
+
+**Tested end-to-end, not just unit-tested:** rendered the admin page
+against a temporary local `data/device-history.json` fixture (never the
+live path) - confirmed "never reviewed" renders correctly, submitted
+`mark_reviewed` via a real CSRF-protected POST (session cookie + token
+extracted from the rendered page, matching how a real browser would),
+confirmed `data/review-boundary.json` was written correctly and the
+summary correctly excluded all prior events once the new boundary took
+effect. Fixture and resulting files deleted afterward - confirmed via
+`git status` that no test artifact was left behind or accidentally
+tracked.
+
+**Testing:** all four suites passing - `test_fieldtools.php` 86/86,
+`test_capability_state.php` 32/32, `test_reference_packs.php` 15/15,
+`test_device_memory.php` 27/27 (was 19) - 160 total assertions. `php
+-l`/`bash -n` clean. Every page rendered via `php -S`, zero warnings.
+Markdown structure verified in both changed design docs.
+
+**Scope preserved:** no networking/GPIO/system config changed, no
+packages installed, no community data touched, `data/review-
+boundary.json`/`data/device-history.json` added to `.gitignore` and
+`piratebox_deploy.sh`'s exclude list *before* ever being deployed - the
+exact mistake the deploy script's own header warns against.
+
 ## Capability/Provider Distinction + Reference Content Foundation + Device Memory (first slice)
 
 **Decision date:** 2026-09-02. Second increment of the autonomous

@@ -229,6 +229,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? ['ok' => true, 'msg' => 'Travel Mode turned ' . ($enabled ? 'ON - Local Information is now hidden.' : 'OFF - Local Information is showing again.')]
                     : ['ok' => false, 'msg' => 'Failed to change Travel Mode - nothing was changed.'];
                 break;
+            case 'mark_reviewed':
+                // docs/DEVICE-MEMORY-DESIGN.md §3: sets a new "since last
+                // review" boundary. Not destructive or irreversible (it
+                // doesn't delete any history, just moves where the
+                // summary starts counting from) - same reasoning as
+                // set_travel_mode/set_content_profile above.
+                $actionResult = piratebox_mark_reviewed()
+                    ? ['ok' => true, 'msg' => 'Marked reviewed - future visits will summarize events after this point.']
+                    : ['ok' => false, 'msg' => 'Failed to record the review boundary - nothing was changed.'];
+                break;
             default:
                 $actionResult = ['ok' => false, 'msg' => 'Unknown action.'];
         }
@@ -299,6 +309,8 @@ $operationalState = piratebox_get_operational_state();
 // "available=false means the write side hasn't been installed yet,
 // never a fabricated zero" distinction.
 $deviceMemory = piratebox_get_device_memory();
+$reviewBoundary = piratebox_get_review_boundary();
+$memorySince = piratebox_device_memory_since($deviceMemory, $reviewBoundary);
 
 // Post-Stage-32: connection statistics - see piratebox_get_connection_stats()
 // for the full privacy design (aggregate integer counts only, never a
@@ -454,7 +466,19 @@ $connStats = piratebox_get_connection_stats();
                 <span class="stat-value <?= ($deviceMemory['undervoltage_events_total'] ?? 0) > 0 ? 'status-bad' : 'status-ok' ?>"><?= (int) $deviceMemory['undervoltage_events_total'] ?></span>
             </div>
         </div>
-        <p class="muted" style="text-align:center;">"Boots recorded" only counts boots since history tracking began (above) - not a lifetime total for hardware installed earlier. A "since last review" summary boundary is designed (docs/DEVICE-MEMORY-DESIGN.md §3) but not yet built - this shows raw totals, not a reviewed/unreviewed split.</p>
+        <p class="muted" style="text-align:center;">"Boots recorded"/"Undervoltage events" above are raw totals since history tracking began - not a lifetime total for hardware installed earlier.</p>
+
+        <h3 style="text-align:center;">Since last review</h3>
+        <?php if ($reviewBoundary === null): ?>
+            <p class="muted" style="text-align:center;">Never marked reviewed - the totals above already show everything on record.</p>
+        <?php else: ?>
+            <p class="muted" style="text-align:center;">Since <?= htmlspecialchars(date('Y-m-d H:i', $reviewBoundary)) ?>: <strong><?= (int) $memorySince['boots_since'] ?></strong> boot(s), <strong class="<?= ($memorySince['undervoltage_events_since'] ?? 0) > 0 ? 'status-bad' : '' ?>"><?= (int) $memorySince['undervoltage_events_since'] ?></strong> undervoltage event(s).</p>
+        <?php endif; ?>
+        <form method="post" class="admin-action-form" style="max-width:none;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+            <input type="hidden" name="action" value="mark_reviewed">
+            <button type="submit">Mark reviewed (starts a new boundary now)</button>
+        </form>
     <?php endif; ?>
 
     <h2 class="admin-section-heading">Recovery messages <span class="section-tag">local only</span></h2>

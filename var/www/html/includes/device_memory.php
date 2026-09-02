@@ -44,6 +44,7 @@ if (!function_exists('piratebox_parse_device_memory')) {
         $unavailable = [
             'available' => false,
             'boot_count' => null,
+            'boot_events_recent' => null,
             'last_boot_at' => null,
             'undervoltage_events_total' => null,
             'undervoltage_events_recent' => null,
@@ -53,7 +54,8 @@ if (!function_exists('piratebox_parse_device_memory')) {
 
         if (!is_array($decoded)) return $unavailable;
 
-        $bootEvents = is_array($decoded['boot_events'] ?? null) ? $decoded['boot_events'] : [];
+        $bootEvents = is_array($decoded['boot_events'] ?? null)
+            ? array_values(array_filter($decoded['boot_events'], 'is_int')) : [];
         $dailyBuckets = is_array($decoded['undervoltage_daily'] ?? null) ? $decoded['undervoltage_daily'] : [];
 
         $undervoltageTotal = 0;
@@ -66,7 +68,8 @@ if (!function_exists('piratebox_parse_device_memory')) {
         return [
             'available' => true,
             'boot_count' => count($bootEvents),
-            'last_boot_at' => $bootEvents !== [] ? (int) max($bootEvents) : null,
+            'boot_events_recent' => $bootEvents,
+            'last_boot_at' => $bootEvents !== [] ? max($bootEvents) : null,
             'undervoltage_events_total' => $undervoltageTotal,
             'undervoltage_events_recent' => $dailyBuckets,
             'history_started_at' => isset($decoded['history_started_at']) ? (int) $decoded['history_started_at'] : null,
@@ -89,5 +92,90 @@ if (!function_exists('piratebox_get_device_memory')) {
     {
         $raw = @file_get_contents(__DIR__ . '/../data/device-history.json');
         return piratebox_parse_device_memory($raw === false ? null : json_decode($raw, true));
+    }
+}
+
+// --- "Since last review" (docs/DEVICE-MEMORY-DESIGN.md §3) ---------------
+//
+// A small, separate, operator-set boundary - NOT part of device-
+// history.json (which the root helper owns exclusively; this file is
+// operator-set state, written by the admin page, same trust boundary as
+// data/travel-mode.json/data/content-profile.json). Only ever holds a
+// single timestamp - "the moment the operator last pressed Mark
+// Reviewed" - never a log of review sessions.
+
+define('PIRATEBOX_REVIEW_BOUNDARY_FILE', __DIR__ . '/../data/review-boundary.json');
+
+if (!function_exists('piratebox_get_review_boundary')) {
+    /** Null = never marked reviewed (not the same as "reviewed at time 0"). */
+    function piratebox_get_review_boundary(): ?int
+    {
+        $raw = @file_get_contents(PIRATEBOX_REVIEW_BOUNDARY_FILE);
+        if ($raw === false) return null;
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded) || !isset($decoded['last_reviewed_at']) || !is_int($decoded['last_reviewed_at'])) return null;
+        return $decoded['last_reviewed_at'];
+    }
+}
+
+if (!function_exists('piratebox_mark_reviewed')) {
+    /** Sets the boundary to right now. Same atomic temp-file-then-rename
+     * pattern every other small state file in this project already uses
+     * (see includes/travel_mode.php's piratebox_set_travel_mode()). */
+    function piratebox_mark_reviewed(): bool
+    {
+        $tmp = PIRATEBOX_REVIEW_BOUNDARY_FILE . '.tmp.' . getmypid() . '.' . bin2hex(random_bytes(4));
+        if (file_put_contents($tmp, json_encode(['last_reviewed_at' => time()], JSON_PRETTY_PRINT)) === false) {
+            return false;
+        }
+        if (!rename($tmp, PIRATEBOX_REVIEW_BOUNDARY_FILE)) {
+            @unlink($tmp);
+            return false;
+        }
+        return true;
+    }
+}
+
+if (!function_exists('piratebox_device_memory_since')) {
+    /**
+     * Pure, directly testable - takes an already-parsed device-memory
+     * array (piratebox_parse_device_memory()'s output, using its raw
+     * boot_events_recent/undervoltage_events_recent fields) and a
+     * boundary timestamp (or null for "never reviewed - show everything
+     * on record"), returns only what happened at/after that boundary.
+     * No filesystem access, so every boundary case (no boundary set, a
+     * boundary in the future, one exactly matching an event, an empty
+     * history) is unit-testable directly.
+     *
+     * @return array{boots_since:?int, undervoltage_events_since:?int}
+     *   null fields mean "device memory itself isn't available" (see
+     *   piratebox_parse_device_memory()) - never a fabricated zero,
+     *   same distinction as everywhere else in this module. A daily
+     *   undervoltage bucket counts if its day started at/after the
+     *   boundary - a bucket straddling the exact boundary moment may
+     *   slightly over-count that one day, an accepted imprecision given
+     *   the source data is only daily-grained to begin with (see
+     *   docs/DEVICE-MEMORY-DESIGN.md §6 on daily granularity being
+     *   "plenty" for this purpose).
+     */
+    function piratebox_device_memory_since(array $deviceMemory, ?int $boundary): array
+    {
+        if (empty($deviceMemory['available'])) {
+            return ['boots_since' => null, 'undervoltage_events_since' => null];
+        }
+        $since = $boundary ?? 0; // no boundary set yet = everything on record counts
+
+        $bootEvents = is_array($deviceMemory['boot_events_recent'] ?? null) ? $deviceMemory['boot_events_recent'] : [];
+        $bootsSince = count(array_filter($bootEvents, fn($t) => is_int($t) && $t >= $since));
+
+        $dailyBuckets = is_array($deviceMemory['undervoltage_events_recent'] ?? null) ? $deviceMemory['undervoltage_events_recent'] : [];
+        $undervoltageSince = 0;
+        foreach ($dailyBuckets as $bucket) {
+            if (is_array($bucket) && ($bucket['day_start'] ?? -1) >= $since && isset($bucket['count']) && is_int($bucket['count'])) {
+                $undervoltageSince += $bucket['count'];
+            }
+        }
+
+        return ['boots_since' => $bootsSince, 'undervoltage_events_since' => $undervoltageSince];
     }
 }

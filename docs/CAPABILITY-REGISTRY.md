@@ -401,8 +401,11 @@ it is.**
   installed live** - same class of pending step as the earlier time-
   source fix (no dedicated installer script, no `sudo` grant held for a
   root-owned script install). Read side (`includes/device_memory.php`,
-  19 test assertions) is live and correctly reports `available: false`
-  until the install happens.
+  27 test assertions) is live and correctly reports `available: false`
+  until the install happens. **"Since last review" boundary is real**
+  (`data/review-boundary.json`, operator-set via a new `mark_reviewed`
+  admin action) - tested end-to-end including a real CSRF-protected
+  POST against a temporary local fixture, then cleaned up.
 - **Core dependency:** No.
 - **Privacy sensitivity:** low - boot timestamps and undervoltage-event
   counts only, both Operational History class, never raw per-second

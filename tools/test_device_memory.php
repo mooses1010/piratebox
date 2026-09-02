@@ -66,6 +66,48 @@ $r = piratebox_parse_device_memory(['undervoltage_daily' => [['day_start' => 1, 
 dm_assert_eq('boot_events entirely absent -> boot_count 0, not a crash', $r['boot_count'], 0);
 dm_assert_eq('malformed buckets skipped, valid one still counted', $r['undervoltage_events_total'], 2);
 
+// --- piratebox_device_memory_since(): boundary cases ---
+
+$unavailable = piratebox_parse_device_memory(null);
+$sinceResult = piratebox_device_memory_since($unavailable, 1000);
+dm_assert_eq('since(): device memory unavailable -> both fields null, never zero', $sinceResult, ['boots_since' => null, 'undervoltage_events_since' => null]);
+
+$populated = piratebox_parse_device_memory([
+    'boot_events' => [1000, 5000, 9000],
+    'undervoltage_daily' => [
+        ['day_start' => 0, 'count' => 2],
+        ['day_start' => 5000, 'count' => 3],
+        ['day_start' => 9000, 'count' => 1],
+    ],
+    'history_started_at' => 0, 'updated_at' => 9000,
+]);
+
+$sinceResult = piratebox_device_memory_since($populated, null);
+dm_assert_eq('since(): no boundary set -> everything on record counts', $sinceResult, ['boots_since' => 3, 'undervoltage_events_since' => 6]);
+
+$sinceResult = piratebox_device_memory_since($populated, 5000);
+dm_assert_eq('since(): boundary excludes earlier boots', $sinceResult['boots_since'], 2);
+dm_assert_eq('since(): boundary excludes earlier undervoltage buckets', $sinceResult['undervoltage_events_since'], 4);
+
+$sinceResult = piratebox_device_memory_since($populated, 9000);
+dm_assert_eq('since(): boundary exactly matching an event includes it (>=, not >)', $sinceResult['boots_since'], 1);
+
+$sinceResult = piratebox_device_memory_since($populated, 999999);
+dm_assert_eq('since(): boundary in the future -> zero, not null (a real observed zero)', $sinceResult, ['boots_since' => 0, 'undervoltage_events_since' => 0]);
+
+$empty = piratebox_parse_device_memory(['boot_events' => [], 'undervoltage_daily' => []]);
+$sinceResult = piratebox_device_memory_since($empty, null);
+dm_assert_eq('since(): empty history, no boundary -> zero, not null', $sinceResult, ['boots_since' => 0, 'undervoltage_events_since' => 0]);
+
+// --- Review boundary read (structural only) ---
+//
+// piratebox_get_review_boundary()/piratebox_mark_reviewed() read/write
+// the real repo path (data/review-boundary.json) - deliberately NOT
+// exercised end-to-end by this CLI test (no live/community-adjacent
+// data touched by tests, per project convention - the file doesn't
+// exist in this repo checkout and this test doesn't create it).
+dm_assert_eq('piratebox_get_review_boundary() returns int or null, never a fabricated value', is_int(piratebox_get_review_boundary()) || piratebox_get_review_boundary() === null, true);
+
 // --- Live smoke test: whatever this environment's real state is ---
 
 $live = piratebox_get_device_memory();

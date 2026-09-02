@@ -472,14 +472,29 @@ late.
   piratebox-status.timer`.
 - **Read side:** `includes/device_memory.php`
   (`piratebox_get_device_memory()`) - live, tested
-  (`tools/test_device_memory.php`, 19 assertions), reports
+  (`tools/test_device_memory.php`, 27 assertions), reports
   `available: false` honestly until the step above happens.
 - **UI:** `admin/index.php`'s "Operational history" section (operator
   tier - raw event counts are more diagnostic than public-safe, per
   progressive disclosure).
-- **Not yet built:** the review-boundary/"since last review" split
-  (§3), Field Sessions (§7), any Sensitive Capture class content, GNSS
-  history (§8) - all still design-only.
+- **Review boundary (§3) - now real, same day:** `data/review-
+  boundary.json` (operator-set, same trust boundary as `data/travel-
+  mode.json` - written by the admin page, not the root status helper),
+  `piratebox_get_review_boundary()`/`piratebox_mark_reviewed()`, a new
+  non-destructive `mark_reviewed` admin action (same CSRF/no-confirm-
+  checkbox pattern as `set_travel_mode`), and
+  `piratebox_device_memory_since()` - a pure function computing boots/
+  undervoltage-events at-or-after the boundary, taking the already-
+  parsed device-memory array so every boundary case (never reviewed, a
+  boundary in the future, one exactly matching an event, empty history)
+  is directly unit-tested rather than needing a live file fixture.
+  Tested end-to-end against a real (then removed) local fixture, not
+  just unit-tested: rendered "never reviewed," submitted `mark_reviewed`
+  via a real CSRF-protected POST, confirmed the file was written
+  correctly and the summary correctly excluded all prior events once
+  the new boundary took effect.
+- **Not yet built:** Field Sessions (§7), any Sensitive Capture class
+  content, GNSS history (§8) - still design-only.
 
 ## 16. Cross-references
 
