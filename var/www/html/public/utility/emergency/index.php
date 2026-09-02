@@ -173,6 +173,9 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                                         </table>
                                     </div>
                                 <?php endif; ?>
+                                <?php if ($t['id'] === 'ten-essentials'): ?>
+                                    <p><a href="/utility/outdoor/">Knots &amp; hitches for basic field utility</a> - useful for the repair-kit/shelter items on this checklist.</p>
+                                <?php endif; ?>
                                 <?php if ($t['id'] === 'ground-to-air-signals'): ?>
                                     <div class="radio-spectrum-wrap">
                                         <?php require __DIR__ . '/ground-to-air-signals.svg.php'; ?>

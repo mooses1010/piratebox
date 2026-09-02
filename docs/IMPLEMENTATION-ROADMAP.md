@@ -45,6 +45,7 @@ design doc is):
 | Logbook (formerly "Guestbook") | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Renamed 2026-09-02 (`db06c6d`), message now optional, 3 real entries preserved live | none | OPERATIONAL-DECISIONS.md "Guestbook Reframed" |
 | Found Device / Recovery messages | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Stage 16; `purge_recovery_one`/`_all` admin actions exist | none | OPERATIONAL-DECISIONS.md Stage 16 |
 | Help / About / "What can I do here?" | IMPLEMENTED + DEPLOYED + LIVE-VERIFIED | Stage 13/14 base still live; **2026-09-02: fixed a real discoverability + staleness gap** - `/utility/about/` (the live, honest self-description page) was too buried under Utilities and had no early pointer from Help; `help.php` separately carried its own same-named "About This PirateBox" section with hardcoded capability bullets that had gone stale (e.g. "Physical mode/status controls (planned)" - actually built, GPIO25 shutdown button live, since an earlier stage). Fixed: `help.php` now opens with a 2-sentence pointer distinguishing "how do I use this" (Help) from "what is this device" (`/utility/about/`), and its own duplicate section was trimmed to stable narrative facts only, replaced the stale bullet list with a link to the live page instead of hardcoding capability claims a second place to go stale. Landing page's Upload-a-file focus and existing Help link preserved unchanged, only the link text sharpened ("Help / About This PirateBox"); no new landing-page cards added, per explicit instruction | none pending deploy | `docs/REFERENCE-CONTENT-DESIGN.md`, OPERATIONAL-DECISIONS.md Stage 13/14 |
+| Discoverability/navigation audit (2026-09-02) | **IMPLEMENTED IN REPO, NOT YET DEPLOYED** | Targeted first-time-visitor audit (landing/Help/About/Utility index/Search/mobile/no-JS/naming consistency/dead ends), not a redesign, per instruction. Found and fixed one real naming inconsistency: the Utility Library index card said "Library" while the page itself is titled "Document Library" everywhere else it's referenced - now matches. Found one accepted, pre-existing, consistent (not newly introduced) tradeoff: `/utility/search/` uses the same shared JS-filtered reference-list pattern as every subject page - with JS off, the full ~178-entry index simply renders unfiltered rather than being hidden, which is functional (browser Ctrl+F still works) but not a true no-JS search experience; recorded as a possible future enhancement, not an urgent gap, since it's the same tradeoff already accepted everywhere else on the site, not something search introduced. Everything else checked (nav card completeness, cross-links, mobile viewport meta, breadcrumbs) was already sound | Full-text no-JS search fallback would be a real but nontrivial future increment (server-side search across all sections) - not attempted speculatively | this entry |
 | Glossary / terminology (universal) | **IMPLEMENTED + DEPLOYED + LIVE-VERIFIED** | New 2026-09-02 (`/utility/glossary/`, **28 terms** across Computing/Radio/Maps/Electrical/**Weather (new category, 2026-09-02: beaufort-scale, watch-vs-warning)**) - see `docs/REFERENCE-CONTENT-DESIGN.md` §8 for the full architecture (reuses the existing reference-list pattern, no new UI/JS, `related_pages` links to deeper existing reference instead of re-explaining). Registered as reference pack `glossary-universal`; indexed by search; one-line, non-intrusive pointer added to Radio/Maps/Computing/Field-Tools-Units (not inline per-term links) | Populate remaining example terms from the original instruction as those categories grow further (not required now - tranches are deliberately representative, not exhaustive) | `docs/REFERENCE-CONTENT-DESIGN.md` §7-§8 |
 | Normal/Emergency Mode | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Emergency Mode foundation commit; `set_piratebox_mode.sh`; currently Normal | none | OPERATIONAL-DECISIONS.md "Emergency Mode" |
 | purge_uploads.sh doesn't purge bulletin.json/recovery-messages.json | **IMPLEMENTED + DEPLOYED + LIVE-VERIFIED** | Fixed 2026-09-02, tested against an isolated scratch dir. Operator ran the install step 2026-09-02; `diff` against repo source confirmed byte-identical, executable, root-owned | none | OPERATIONAL-DECISIONS.md "purge_uploads.sh Completeness Gap Closed" |
@@ -99,7 +100,7 @@ just because it was mentioned most recently.
 - ~~Computing/networking - evaluated and rejected~~ - **reversed 2026-09-02 on explicit instruction**: PirateBox being a computing/networking appliance was reconsidered as a reason IN FAVOR of a compact reference (not a reason to skip one) - built as `/utility/computing/` (10 entries: IP addressing, private ranges, CIDR/subnet reference, DNS/DHCP, common ports, Wi-Fi terminology, Ethernet/cabling, USB/serial, checksums/hashes, text encoding). Deliberately scoped tight per the same instruction's own caution against "a giant generic Linux manual" - no shell/sysadmin/Linux-specific content, just the networking/computing concepts a field user might need regardless of platform.
 - **Electrical/electronics reference** (Ohm's law, wire gauge/ampacity, common symbols) - genuinely absent, moderate field-repair value, not yet built - candidate for a future increment.
 - ~~Outdoor/field: pre-trip safety checklist~~ - **done 2026-09-02**: new Emergency Reference topic "Ten Essentials for Outdoor/Field Safety" (`ten-essentials`), written originally (Tier 2 PirateBox Reference Material per `docs/REFERENCE-CONTENT-DESIGN.md` §7) from NPS's public-domain "The Ten Essentials" article - not copied verbatim, cited by source.
-- **Knots/rigging/basic repair** - genuinely absent, field-useful, not yet built - candidate for a future increment, lower priority than Maps.
+- ~~Knots/rigging/basic repair~~ - **done 2026-09-02** for the "basic field utility" portion: new `/utility/outdoor/` page, 8 knots/hitches (Bowline, Figure-Eight Stopper, Square/Reef Knot, Sheet Bend, Clove Hitch, Two Half Hitches, Taut-Line Hitch, Trucker's Hitch overview) - written originally as Tier 2 PirateBox Reference Material (knot-tying technique is functional/utilitarian, not copyrightable expression, so no source document is required for redistribution rights - see `docs/REFERENCE-CONTENT-DESIGN.md` §7). Each entry states what it's for AND what it's not for, explicitly excluding life-safety/climbing/rescue-rigging/lifting-people use per instruction. **Candidate Tier 1 document investigated, not retained**: US Army FM 5-125 (Rigging Techniques, Procedures, and Applications) is a plausible authoritative source (widely mirrored, part of an FM-5 series with several PD-tagged siblings on Wikimedia Commons) but direct cover-page/distribution-statement verification was blocked this session (no PDF-rendering tool installed - the existing poppler-utils blocker; a second mirror, globalsecurity.org, returned HTTP 403) - not retried further per instruction, and not retained without that direct confirmation. **Visual gap recorded honestly, not papered over**: no diagrams were built this increment - knot diagrams are genuinely harder to get right than the connector/antenna/electrical-symbol diagrams already built, and a rushed, unclear diagram would be worse than the current text-only entries. The Trucker's Hitch entry specifically flags itself as the one most in need of a diagram. Candidate for a focused future increment once a proper diagram design pass is done, not attempted speculatively.
 - **First-aid visual extraction from FM 4-25.11** - genuinely desirable (the retained manual has real diagrams for CPR/splinting/etc. that could become web-friendly extracted images), but **blocked by tooling, not licensing**: this project's own `tools/check_library_catalog.py` documents that PDF-image extraction requires poppler-utils/similar, and CLAUDE.md §2 forbids installing any package without the operator's explicit go-ahead first. The whole source document is already confirmed public domain, so a derivative extraction would carry no licensing risk once the tooling question is resolved - this is purely "needs an operator-approved package install," not a content/rights blocker. Not attempted; flagged for the operator rather than worked around.
 - ~~Signaling reference (ground-to-air visual signals)~~ - **done 2026-09-02**: new Emergency Reference topic "Ground-to-Air Emergency Signals" with an original diagram (`ground-to-air-signals.svg.php`) covering the 6 core standardized ICAO/FAA symbols (V/X/N/Y/F/arrow) - a publicly documented, internationally standardized code, not proprietary to any organization, so safe to author directly like the connector/antenna/electrical-symbol diagrams. Morse SOS (Radio page) and this ground-panel code are both covered now, as two different, complementary signaling methods.
 
@@ -374,6 +375,47 @@ one real gap (world electrical standards) is now closed. Future
 increments should keep applying this same test (universal knowledge
 vs. US-specific reference vs. region-specific reference) rather than
 assuming a US federal source automatically means US-only content.
+
+### 3f. Visual reference audit (2026-09-02)
+
+Reviewed the library for subjects where a diagram would materially
+improve comprehension, per instruction, while working on knots.
+
+**Built so far** (original PirateBox schematics, all self-authored,
+no licensing question - see `docs/REFERENCE-CONTENT-DESIGN.md` §7's
+Tier 3): connector types, antenna types, declination concept, UTM/MGRS
+grid concept, electrical symbols, ground-to-air signals. **Retained
+authoritative originals** (Tier 1, third-party PD documents, not
+PirateBox-drawn): USGS Topographic Map Symbols, NOAA/NASA Sky Watcher
+Cloud Chart.
+
+**Genuine remaining gaps, in priority order:**
+1. **Knot diagrams** - the freshest gap (§3a above). Deliberately not
+   attempted this increment; knot geometry is harder to draw clearly
+   than the connector/antenna/symbol diagrams already built, and a
+   confusing diagram would be worse than the current text-only
+   entries (per instruction: "do not pretend a poor diagram is safer
+   than text"). The Trucker's Hitch entry specifically needs one most.
+2. **First-aid procedure diagrams** (CPR hand position, recovery
+   position, bleeding control, splinting) - licensing-clear (the
+   retained FM 4-25.11 is already public domain and contains real
+   diagrams) but **tooling-blocked**: extraction needs poppler-utils
+   or similar, not installed, and this project's standing rule
+   forbids installing a package without the operator's go-ahead. Not
+   attempted, not worked around, per explicit instruction not to
+   spend substantial time on this specific blocker.
+3. **Antenna radiation-pattern nuance** - the existing antenna-types
+   diagram already deliberately uses a qualitative "which directions
+   are favored" cue rather than a measured polar plot (see its own
+   commit); no further work identified as needed here.
+
+Nothing else audited surfaced a comprehension gap severe enough to
+justify a new diagram right now - most subjects (radio bands, computing
+concepts, coordinate formats, Beaufort scale, emergency numbers) are
+adequately served by text/tables, and adding a diagram "because a
+subject exists" rather than because comprehension genuinely suffers
+without one would be exactly the decorative-image anti-pattern the
+instruction warned against.
 
 ## 4. Field Tools
 

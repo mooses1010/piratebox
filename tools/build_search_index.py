@@ -101,6 +101,14 @@ for t in load("firstaid", "topics.json"):
         t.get("summary", ""), t.get("keywords"),
     ))
 
+# --- Outdoor & Field ---------------------------------------------------------
+for t in load("outdoor", "reference.json"):
+    index.append(entry(
+        t.get("title", ""), "outdoor", "Outdoor & Field Reference",
+        f"/utility/outdoor/#{t.get('id', '')}",
+        t.get("summary", ""), t.get("keywords"),
+    ))
+
 # --- Glossary ---------------------------------------------------------------
 for t in load("glossary", "terms.json"):
     index.append(entry(

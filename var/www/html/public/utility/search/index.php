@@ -56,6 +56,7 @@ $sectionLabels = [
     'maps'      => 'Maps & Location Reference',
     'computing' => 'Computing & Networking Reference',
     'glossary'  => 'Glossary',
+    'outdoor'   => 'Outdoor & Field Reference',
     'local'     => 'Local Information',
     'library'   => 'Document Library',
     'fieldtools' => 'Field Tools',

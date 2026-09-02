@@ -1,0 +1,126 @@
+[
+  {
+    "id": "bowline",
+    "category": "knots",
+    "title": "Bowline",
+    "summary": "A fixed loop at the end of a line that won't slip or jam - the classic \"rescue loop,\" but not a life-safety knot on its own.",
+    "quick_actions": [
+      "What it's for: making a secure, non-slipping loop in the end of a rope - looping over a post, tying to a ring, or making a hand/foot loop for hauling gear.",
+      "What it's NOT for: life-safety anchoring, climbing protection, or any load where the rope will repeatedly go slack and load again - a plain bowline can work itself loose under that specific cycling, unlike under one steady load.",
+      "Simple sequence: make a small loop (\"the rabbit hole\") in the standing part; pass the working end up through the loop (\"the rabbit comes out of the hole\"), around behind the standing part (\"around the tree\"), and back down through the same loop (\"back down the hole\"); pull the standing part to tighten.",
+      "Security note: dress and set the knot (pull all four rope parts snug) before loading it, and leave a reasonable tail - an undressed or short-tailed bowline is far more likely to slip than a properly set one."
+    ],
+    "more_info": "The bowline's real advantage over other loop knots is that it stays easy to untie even after being loaded hard - many knots that hold just as well become nearly impossible to pick apart after taking a real load. That convenience is exactly why it's not chosen for critical safety applications: the same property that makes it easy to release can let it work loose under the wrong loading pattern.",
+    "keywords": ["bowline", "loop knot", "rescue loop"],
+    "source_id": "general-knot-reference",
+    "confidence": "high"
+  },
+  {
+    "id": "figure-eight-stopper",
+    "category": "knots",
+    "title": "Figure-Eight Stopper Knot",
+    "summary": "A thick, easy-to-untie knot tied in the end of a rope so it can't pull through a pulley, block, or grommet.",
+    "quick_actions": [
+      "What it's for: stopping a rope's end from slipping through a hole, pulley, or hand - simple and reliable, and (unlike an overhand knot) stays easy to untie later even after being loaded.",
+      "What it's NOT for: this basic stopper is not the same knot as the load-bearing \"figure-eight follow-through\" loop used in climbing for tying into a harness - that variant is a life-safety knot requiring hands-on training and is out of scope here.",
+      "Simple sequence: make a loop, wrap the working end once around the standing part, then feed it back through the first loop from the opposite side it entered - the finished knot looks like the digit 8."
+    ],
+    "more_info": "A quick way to remember which side to feed the working end back through: done correctly, the rope traces a clean figure-8 shape with no crossed-over twist. If it looks tangled rather than a clean 8, it's tied wrong and won't hold as reliably.",
+    "keywords": ["figure eight", "figure 8", "stopper knot"],
+    "source_id": "general-knot-reference",
+    "confidence": "high"
+  },
+  {
+    "id": "square-reef-knot",
+    "category": "knots",
+    "title": "Square Knot (Reef Knot)",
+    "summary": "Joins two ropes of similar thickness for light, non-critical purposes - notoriously unsafe for anything that actually needs to hold.",
+    "quick_actions": [
+      "What it's for: light-duty bundling (tying off a bandage end, bundling a tarp, joining two cords to tie a package) where the joint won't be under real load.",
+      "What it's NOT for: joining two climbing ropes, hauling, or anything load-bearing - a square knot can capsize (silently reconfigure into a much weaker, slipping shape) under load or when the two ropes differ in thickness/stiffness/wetness. This specific failure mode is well documented and is exactly why it should never be used to join lines that matter.",
+      "Simple sequence: left end over right and under, then right end over left and under (\"left over right, right over left\") - both working ends must exit on the same side as their own standing part, or it's actually a weaker, less-symmetrical \"granny knot\" instead.",
+      "If two ropes genuinely need to be joined under load, use a sheet bend instead (see below), or better, a proper bend rated for the purpose."
+    ],
+    "more_info": "The historical, non-negotiable warning about this knot exists precisely because it looks secure at a glance and holds fine under gentle, steady tension - the failure shows up specifically when load varies or the ropes are dissimilar, which is exactly the situation you can't always predict in the field.",
+    "keywords": ["square knot", "reef knot", "granny knot"],
+    "source_id": "general-knot-reference",
+    "confidence": "high"
+  },
+  {
+    "id": "sheet-bend",
+    "category": "knots",
+    "title": "Sheet Bend",
+    "summary": "Joins two ropes - especially two of different thickness, or wet/slippery cordage - more securely than a square knot.",
+    "quick_actions": [
+      "What it's for: joining two ropes, particularly when they're different diameters or materials (e.g. paracord to a thicker line) where a square knot would be unreliable.",
+      "What it's NOT for: still not a life-safety/climbing bend - use it for utility joins, not critical loads.",
+      "Simple sequence: form a loop (a \"bight\") in the thicker rope; pass the thinner rope's working end up through the bight, around behind both parts of the bight, then tuck it back under itself (not back through the bight) so it's pinched against its own standing part.",
+      "For a genuinely slippery/synthetic line or a heavier load, tie a double sheet bend (repeat the wrap-and-tuck a second time) for extra security."
+    ],
+    "more_info": "A sheet bend is essentially the same working principle as a bowline (a bight with a part tucked back under itself), which is part of why it's easy to learn right after learning a bowline.",
+    "keywords": ["sheet bend", "joining rope", "becket bend"],
+    "source_id": "general-knot-reference",
+    "confidence": "high"
+  },
+  {
+    "id": "clove-hitch",
+    "category": "knots",
+    "title": "Clove Hitch",
+    "summary": "A quick hitch around a post or pole - fast to tie and untie, but can slip if the pull direction shifts around.",
+    "quick_actions": [
+      "What it's for: quickly attaching a line to a post, rail, or pole - starting point for lashings, temporary tie-offs, or fender lines on a boat.",
+      "What it's NOT for: a sole point of critical support, or any situation where the direction of pull will change - a clove hitch can work itself loose or slide along the post when the load direction isn't staying roughly constant.",
+      "Simple sequence: wrap the rope around the post, cross over itself, wrap around the post again in the same direction, then tuck the working end under the second wrap.",
+      "For real security, back it up: a clove hitch is often finished with an extra half hitch, or used only as the starting wrap for a lashing that gets its actual strength from the wraps that follow."
+    ],
+    "more_info": "Its main real-world value is speed - it's one of the fastest hitches to tie and adjust, which is exactly why it's used to start lashings and for temporary attachments rather than as a final, trusted anchor point by itself.",
+    "keywords": ["clove hitch", "lashing", "post hitch"],
+    "source_id": "general-knot-reference",
+    "confidence": "high"
+  },
+  {
+    "id": "two-half-hitches",
+    "category": "knots",
+    "title": "Two Half Hitches (Round Turn and Two Half Hitches)",
+    "summary": "A dependable way to tie a line to a post, ring, or tree - more secure than a clove hitch alone.",
+    "quick_actions": [
+      "What it's for: anchoring a line to a fixed point (tent guy line to a stake, tarp line to a tree, mooring a small boat) where you want real confidence it will hold.",
+      "Simple sequence: pass the working end around the post/ring (a full \"round turn\" adds friction and is worth the extra wrap for a heavier load), then tie two half hitches around the standing part, snugged up against the post.",
+      "Security note: like most hitches, it depends on the standing part staying under some tension - a hitch that's allowed to go completely slack repeatedly can work its half hitches loose over time; check it periodically on a line left tied for a while (e.g. an overnight tent guy line)."
+    ],
+    "more_info": "This is a genuinely good default \"tie this line to that fixed point\" hitch for most everyday field purposes - simple, reasonably strong, and easy to inspect at a glance (you can see both half hitches are actually dressed correctly).",
+    "keywords": ["two half hitches", "round turn", "mooring hitch"],
+    "source_id": "general-knot-reference",
+    "confidence": "high"
+  },
+  {
+    "id": "taut-line-hitch",
+    "category": "knots",
+    "title": "Taut-Line Hitch",
+    "summary": "An adjustable friction hitch that holds under tension but slides to re-tension by hand - ideal for tent and tarp guy lines.",
+    "quick_actions": [
+      "What it's for: exactly the job of a tent/tarp guy line or a load that needs periodic re-tensioning (a rope stretches or a tent settles overnight) - slide the hitch to adjust, and it grips again under load without retying.",
+      "Simple sequence: wrap the working end around the anchor point (a stake, another line) back toward the standing part, make two wraps around the standing part working toward the anchor, then one more wrap on the far side of those two, and snug it all down - the friction of the wraps is what lets it grip under tension yet still slide by hand when there's no load on it.",
+      "If it's slipping when it shouldn't: check that all the wraps are snug and in the right order - a taut-line hitch tied loosely or out of sequence loses the friction that makes it work at all."
+    ],
+    "more_info": "This is one of the few knots on this list that's genuinely hard to substitute with a commercial equivalent in the field - plastic guy-line tensioners do the same job but are one more part to lose or break, while this hitch just needs the rope you already have.",
+    "keywords": ["taut-line hitch", "guy line", "tent line", "adjustable hitch"],
+    "source_id": "general-knot-reference",
+    "confidence": "high"
+  },
+  {
+    "id": "truckers-hitch",
+    "category": "knots",
+    "title": "Trucker's Hitch (Overview)",
+    "summary": "A mechanical-advantage hitch for cinching a load down tight - genuinely useful, but the hardest knot on this list to learn from text alone.",
+    "quick_actions": [
+      "What it's for: pulling a line drum-tight before tying it off - securing gear on a vehicle roof/trailer, tensioning a tarp ridge line, or compressing a bulky load for transport.",
+      "Concept: a loop is formed partway along the rope (not at the end); the working end is passed around the far anchor point and back through that loop, which acts like a pulley, letting you pull the load tight with real mechanical advantage before locking it off with a couple of half hitches.",
+      "Honest caveat: this is the one knot here that's genuinely difficult to learn correctly from written steps alone - the mid-line loop itself (commonly a slipped loop or a version of a figure-eight) and the exact locking-off sequence are easy to get subtly wrong in a way that looks right but doesn't actually hold. If you don't already know this one, practice it at home under a light load before you need it in the field, rather than attempting it for the first time under a real load."
+    ],
+    "more_info": "This is exactly the kind of knot a clear diagram helps far more than paragraphs of text can - flagged here as a genuine, not-yet-built visual-reference gap rather than pretending a text-only description is sufficient teaching on its own.",
+    "keywords": ["trucker's hitch", "truckers hitch", "cinch knot", "tie down"],
+    "source_id": "general-knot-reference",
+    "confidence": "medium"
+  }
+]

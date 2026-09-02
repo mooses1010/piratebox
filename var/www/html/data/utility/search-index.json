@@ -1276,6 +1276,104 @@
     ]
   },
   {
+    "title": "Bowline",
+    "section": "outdoor",
+    "section_label": "Outdoor & Field Reference",
+    "url": "/utility/outdoor/#bowline",
+    "snippet": "A fixed loop at the end of a line that won't slip or jam - the classic \"rescue loop,\" but not a life-safety knot on its own.",
+    "keywords": [
+      "bowline",
+      "loop knot",
+      "rescue loop"
+    ]
+  },
+  {
+    "title": "Figure-Eight Stopper Knot",
+    "section": "outdoor",
+    "section_label": "Outdoor & Field Reference",
+    "url": "/utility/outdoor/#figure-eight-stopper",
+    "snippet": "A thick, easy-to-untie knot tied in the end of a rope so it can't pull through a pulley, block, or grommet.",
+    "keywords": [
+      "figure eight",
+      "figure 8",
+      "stopper knot"
+    ]
+  },
+  {
+    "title": "Square Knot (Reef Knot)",
+    "section": "outdoor",
+    "section_label": "Outdoor & Field Reference",
+    "url": "/utility/outdoor/#square-reef-knot",
+    "snippet": "Joins two ropes of similar thickness for light, non-critical purposes - notoriously unsafe for anything that actually needs to hold.",
+    "keywords": [
+      "square knot",
+      "reef knot",
+      "granny knot"
+    ]
+  },
+  {
+    "title": "Sheet Bend",
+    "section": "outdoor",
+    "section_label": "Outdoor & Field Reference",
+    "url": "/utility/outdoor/#sheet-bend",
+    "snippet": "Joins two ropes - especially two of different thickness, or wet/slippery cordage - more securely than a square knot.",
+    "keywords": [
+      "sheet bend",
+      "joining rope",
+      "becket bend"
+    ]
+  },
+  {
+    "title": "Clove Hitch",
+    "section": "outdoor",
+    "section_label": "Outdoor & Field Reference",
+    "url": "/utility/outdoor/#clove-hitch",
+    "snippet": "A quick hitch around a post or pole - fast to tie and untie, but can slip if the pull direction shifts around.",
+    "keywords": [
+      "clove hitch",
+      "lashing",
+      "post hitch"
+    ]
+  },
+  {
+    "title": "Two Half Hitches (Round Turn and Two Half Hitches)",
+    "section": "outdoor",
+    "section_label": "Outdoor & Field Reference",
+    "url": "/utility/outdoor/#two-half-hitches",
+    "snippet": "A dependable way to tie a line to a post, ring, or tree - more secure than a clove hitch alone.",
+    "keywords": [
+      "two half hitches",
+      "round turn",
+      "mooring hitch"
+    ]
+  },
+  {
+    "title": "Taut-Line Hitch",
+    "section": "outdoor",
+    "section_label": "Outdoor & Field Reference",
+    "url": "/utility/outdoor/#taut-line-hitch",
+    "snippet": "An adjustable friction hitch that holds under tension but slides to re-tension by hand - ideal for tent and tarp guy lines.",
+    "keywords": [
+      "taut-line hitch",
+      "guy line",
+      "tent line",
+      "adjustable hitch"
+    ]
+  },
+  {
+    "title": "Trucker's Hitch (Overview)",
+    "section": "outdoor",
+    "section_label": "Outdoor & Field Reference",
+    "url": "/utility/outdoor/#truckers-hitch",
+    "snippet": "A mechanical-advantage hitch for cinching a load down tight - genuinely useful, but the hardest knot on this list to learn from text alone.",
+    "keywords": [
+      "trucker's hitch",
+      "truckers hitch",
+      "cinch knot",
+      "tie down"
+    ]
+  },
+  {
     "title": "Subnet",
     "section": "glossary",
     "section_label": "Glossary",

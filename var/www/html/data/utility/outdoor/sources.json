@@ -1,0 +1,9 @@
+{
+  "general-knot-reference": {
+    "name": "General knot-tying technique (cross-checked against multiple technical/maritime references)",
+    "publisher": null,
+    "url": null,
+    "retrieved": "2026-09-02",
+    "note": "Knot-tying technique is centuries-old functional/utilitarian method, not original creative expression - identical step sequences appear across countless independent sources (maritime, military, mountaineering) with no single owner. Written originally for this reference, cross-checked against widely-corroborated technique rather than copied from any one source. A specific candidate original document (US Army FM 5-125, Rigging Techniques, Procedures, and Applications) was investigated for retention as an authoritative Tier 1 source but direct cover-page/distribution-statement verification was blocked this session (no PDF-rendering tool installed, and a second mirror returned HTTP 403) - not retained without that direct confirmation, not retried further per instruction not to spend substantial time on a tooling blocker. See docs/IMPLEMENTATION-ROADMAP.md for the exact blocker record."
+  }
+}

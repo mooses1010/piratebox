@@ -63,6 +63,17 @@
     "note": "Quick definitions for terms used across the Computing, Radio, Maps, and Electrical/Measurement reference pages, each linking to its fuller existing reference rather than duplicating it - see docs/REFERENCE-CONTENT-DESIGN.md §8."
   },
   {
+    "id": "outdoor-universal",
+    "title": "Outdoor & Field Reference",
+    "scope": "universal",
+    "section": "outdoor",
+    "url": "/utility/outdoor/",
+    "data_file": "utility/outdoor/reference.json",
+    "sources_file": "utility/outdoor/sources.json",
+    "license": "PirateBox-authored reference material (functional technique, not copyrightable expression) - see per-entry sources in data file",
+    "note": "Knots and hitches for basic field utility, explicitly scoped away from life-safety/climbing/rescue-rigging use - see docs/IMPLEMENTATION-ROADMAP.md for the FM 5-125 candidate-document verification record (not retained - tooling/access blocked direct confirmation this session)."
+  },
+  {
     "id": "local-reference",
     "title": "Local Information",
     "scope": "local",

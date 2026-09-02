@@ -64,6 +64,11 @@ session_start();
             <span class="utility-card-title">Glossary</span>
             <span class="utility-card-desc">Quick definitions for terms used across this library, with links to the fuller reference</span>
         </a>
+        <a class="utility-card" href="/utility/outdoor/">
+            <span class="utility-card-icon" aria-hidden="true">🪢</span>
+            <span class="utility-card-title">Outdoor &amp; Field</span>
+            <span class="utility-card-desc">Knots and hitches for basic field utility - not a life-safety/climbing reference</span>
+        </a>
         <a class="utility-card" href="/utility/about/">
             <span class="utility-card-icon" aria-hidden="true">ℹ️</span>
             <span class="utility-card-title">About This PirateBox</span>
@@ -71,7 +76,7 @@ session_start();
         </a>
         <a class="utility-card" href="/utility/library/">
             <span class="utility-card-icon" aria-hidden="true">📚</span>
-            <span class="utility-card-title">Library</span>
+            <span class="utility-card-title">Document Library</span>
             <span class="utility-card-desc">Manuals and reference documents stored on this device</span>
         </a>
         <a class="utility-card" href="/utility/search/">
