@@ -176,3 +176,21 @@ behavior and CSRF/blank-submission/ID-increment correctness were
 verified pre-deploy against an isolated scratch copy, not live data,
 per the no-testing-on-community-data rule - see
 `docs/OPERATIONAL-DECISIONS.md` for the full account.
+
+| Implementation-focused audit, increment 1: World Reference Map CANDIDATE -> INSTALLED (Natural Earth public-domain data, static SVG, always-visible Maps &amp; Location Reference section) | `1db5fab` | `~/piratebox-backups/world-map-pre-20260902-073511/` |
+
+**Deployed and live-verified 2026-09-02:** dry-run clean, real deploy
+clean, `VERSION` stamped to `1db5fab` matching `HEAD` exactly. Live:
+`/utility/maps/files/world-reference-map.svg` serves as
+`image/svg+xml` at the expected ~183KB; the Maps &amp; Location
+Reference page's new "World Reference Map" section renders it with
+correct caption/source citation; `/utility/about/`'s live
+self-awareness table shows `World Reference Map: INSTALLED (1)`,
+computed from the real file, not hand-set; zero failed units; no new
+nginx/PHP errors since deploy. Travel-Mode-visibility (stays shown
+while the operator's own regional map catalog correctly hides) was
+verified against an isolated scratch copy before deploy, not by
+toggling the live operator setting merely to re-test something already
+confirmed. Full four-suite regression: 171 assertions, 0 failures. See
+`docs/OPERATIONAL-DECISIONS.md` for the full provenance/sourcing
+account.
