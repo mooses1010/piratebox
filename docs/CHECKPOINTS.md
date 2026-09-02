@@ -108,3 +108,18 @@ for the full record. No code changed - documentation-only follow-up.
 | Fix: capability_state.php storage check hit open_basedir (off-by-one path depth) - found live immediately after deploying above, fixed and redeployed same session | `44e2f42` | (same backup as above covers this too - no new pre-change snapshot needed for a same-session fix) |
 | Capability/Provider Distinction + Reference Content Foundation + Device Memory (first slice) (`docs/REFERENCE-CONTENT-DESIGN.md`, `includes/reference_packs.php`, `includes/device_memory.php`) | `8bdc981` | (no `~/piratebox-backups/` snapshot - continuation of the same autonomous-run checkpoint above, no destructive change) |
 | "Since Last Review" Boundary (`data/review-boundary.json`, `mark_reviewed` admin action, `piratebox_device_memory_since()`) | `007323f` | (no `~/piratebox-backups/` snapshot - continuation of the same autonomous-run checkpoint above, no destructive change) |
+| Graceful Self-Diagnosis, first slice (`piratebox_diagnose_capability()`) | `990a4b8` | (no `~/piratebox-backups/` snapshot - continuation of the same autonomous-run checkpoint above, no destructive change) |
+
+**Autonomous run summary (2026-09-02, `92f2ab4`..`990a4b8`):** four
+increments (self-awareness + physical transport/input safety design;
+capability/provider distinction + reference content foundation +
+device memory first slice; "since last review" boundary; graceful
+self-diagnosis first slice), each tested, deployed, and live-verified
+before the next began, per the operator's explicit "test/deploy/
+verify/document/commit/continue - do not stop at boundaries"
+instruction. One pending operator step remains, deliberately not
+requested mid-run (batched): installing the updated
+`piratebox_status_helper.sh` (adds `time_source` - already pending
+since `58ef5bb` - and now also `boot_events`/`undervoltage_daily`) to
+`/usr/local/bin/`. See `docs/OPERATIONAL-DECISIONS.md` for the full
+per-increment record.
