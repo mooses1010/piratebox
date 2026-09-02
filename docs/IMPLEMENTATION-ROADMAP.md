@@ -326,7 +326,54 @@ was here* - not "is this mathematically possible."
 Two tools built this increment (Morse, Subnet); the "Deferred, not
 blocked" rows are real candidates for a future increment, not silently
 dropped - each has a specific reason it wasn't built *now* rather than
-"not yet gotten to."
+"not yet gotten to." Three more tools were built in a follow-up
+increment the same day: Frequency/Wavelength, Ohm's Law Solver, and a
+Checksum/Hash Calculator (the last reversed from its own "deferred"
+row above after doing the design pass it needed - see its updated row
+for the full reasoning). The existing Coordinate Converter was also
+retrofitted (not duplicated) to add a server-rendered fallback, fixing
+a real no-JS-required gap the audit surfaced by inspection rather than
+by a prompted instruction.
+
+### 3e. Global / non-US balance audit (2026-09-02)
+
+Explicit audit of the reference library's content, per instruction, to
+check for convenience bias (US federal public-domain material being
+easiest to redistribute is not the same as the library actually
+needing to be US-specific). Classified every major content area:
+
+| Content | Classification | Assessment |
+|---|---|---|
+| Radio physics (propagation, dB/dBm, modulation, polarization, impedance/SWR) | Universal | Correctly universal already - physics doesn't have a nationality |
+| Radio band plans/services (FCC Part 97/95/73) | US-specific, correctly labeled | Explicitly "National (US band plans)" scope in this roadmap and in the reference pack metadata - not presented as universal |
+| First aid technique (CPR, splinting, bleeding control - FM 4-25.11) | Universal technique, US-sourced document | The *technique* is medically universal; the source happens to be a US DoD manual because it was the identified public-domain option, not because the technique is American |
+| Emergency/hazard guidance (storms, floods, heat/cold) | Mostly universal, US-sourced | The hazards and responses apply anywhere; agency branding (Ready.gov/CDC) is a sourcing detail, not a scope limitation on usefulness |
+| Maps: World Reference Map | Universal | Already correctly universal (Natural Earth data, always visible regardless of Travel Mode) |
+| Maps: US Reference Map, US Time Zones | US-specific, correctly labeled | Explicitly scoped as such; paired with the universal World UTC Reference Points entry for balance |
+| Electrical: AWG wire gauge, NEC ampacity | US/North America-specific, correctly labeled | AWG and NEC are real US/Canada conventions - the caveat text already says so; most of the rest of the world uses metric (mm&sup2;) wire sizing, which this table doesn't cover - a genuine gap, addressed this increment (see below) |
+| Computing/Networking (IP addressing, DNS, ports, checksums, encoding) | Universal | Internet/computing standards are global by nature - correctly built with no US framing anywhere |
+| Glossary (26 terms) | Universal | Same universal framing as the underlying reference material each term points to |
+
+**One genuine gap found and closed this increment:** a **World
+Electrical Power Standards** table (voltage/frequency/plug type by
+major region) added to Field Tools Units' Electrical Quick Reference -
+directly useful for carrying this device (or any electronics) outside
+the US, which the existing AWG/NEC content did not address at all.
+Curated to ~9 representative regions (not a 150+-country bulk list,
+per instruction to curate rather than bulk-download), citing the
+IEC's own World Plugs classification, with Japan's split-frequency
+grid and Brazil's state-by-state voltage flagged specifically since
+"one answer per country" doesn't always hold.
+
+**Conclusion:** the library is not becoming US-centric in substance -
+the underlying technical/physical/medical knowledge is already
+universal wherever it appears, and every genuinely US-specific
+reference (band plans, AWG/NEC, US time zones/map) is already
+correctly labeled as national scope, not presented as universal. The
+one real gap (world electrical standards) is now closed. Future
+increments should keep applying this same test (universal knowledge
+vs. US-specific reference vs. region-specific reference) rather than
+assuming a US federal source automatically means US-only content.
 
 ## 4. Field Tools
 

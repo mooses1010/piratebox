@@ -285,6 +285,25 @@ $distExamples = [
             </div>
             <p class="muted">*Reviewed against NEC-style reference tables (2026-09-02): the 14/12/10 AWG figures above (15/20/30 A) match the NEC's standard branch-circuit overcurrent protection (breaker/fuse) sizing for those gauges - deliberately more conservative than a conductor's raw rated ampacity (NEC Table 310.16 rates 14 AWG up to ~25-36 A depending on insulation type, but code still caps its breaker at 15 A for safety margin). This table intentionally uses the more conservative, code-aligned numbers throughout, not the higher raw ratings. Still not a substitute for the actual NEC tables/a qualified electrician: real safe ampacity also depends on insulation rating, how many conductors are bundled together, ambient temperature, and run length (voltage drop) - especially at 12V/24V DC, where a longer run needs a thicker gauge than this table alone would suggest.</p>
 
+            <p><strong>World Electrical Power Standards</strong> <span class="muted">(for carrying this device, or any electronics, outside the US)</span></p>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>Region</th><th>Voltage</th><th>Frequency</th><th>Common plug type(s)</th></tr></thead>
+                    <tbody>
+                        <tr><td>North America (US, Canada, Mexico)</td><td>120 V</td><td>60 Hz</td><td>A, B</td></tr>
+                        <tr><td>Most of Europe</td><td>230 V</td><td>50 Hz</td><td>C, E, F</td></tr>
+                        <tr><td>UK, Ireland, Malta, Hong Kong, Singapore, Malaysia</td><td>230 V</td><td>50 Hz</td><td>G</td></tr>
+                        <tr><td>Japan</td><td>100 V</td><td>50 Hz (east) / 60 Hz (west)</td><td>A, B</td></tr>
+                        <tr><td>China</td><td>220 V</td><td>50 Hz</td><td>A, C, I</td></tr>
+                        <tr><td>Australia, New Zealand</td><td>230 V</td><td>50 Hz</td><td>I</td></tr>
+                        <tr><td>India, Sri Lanka, Nepal</td><td>230 V</td><td>50 Hz</td><td>C, D, M</td></tr>
+                        <tr><td>Brazil</td><td>127 V or 220 V (varies by state)</td><td>60 Hz</td><td>C, N</td></tr>
+                        <tr><td>South Africa</td><td>230 V</td><td>50 Hz</td><td>M, N</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="muted">Plug type letters follow the IEC's own World Plugs classification (iec.ch/world-plugs). This is a curated set of common cases, not a complete country-by-country list - Japan's split-frequency grid and Brazil's state-by-state voltage are flagged specifically because "region" isn't always one answer per country. A device rated for one voltage/frequency range plugged into another can be damaged - check the device's own rating plate (often printed as "100-240V ~50/60Hz" for something already worldwide-compatible) before traveling, not just the plug shape.</p>
+
             <p><strong>Common Schematic Symbols</strong></p>
             <div class="radio-spectrum-wrap">
                 <?php require __DIR__ . '/electrical-symbols.svg.php'; ?>
