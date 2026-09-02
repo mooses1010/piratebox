@@ -101,3 +101,8 @@ with honest values, the Time page renders the "available" branch, zero
 new warnings, all services/timer active, zero failed units. See
 `docs/FIELD-TOOLS-DESIGN.md` §9 and `docs/OPERATIONAL-DECISIONS.md`
 for the full record. No code changed - documentation-only follow-up.
+
+| Autonomous phase, increment 1 | Commit | Backup |
+|---|---|---|
+| Self-Awareness Implementation + Physical Transport/Input Safety Design (`includes/capability_state.php`, `/utility/about/`, admin Capabilities & Health section) | `636fd49` | `~/piratebox-backups/self-awareness-pre-20260902-052640/` |
+| Fix: capability_state.php storage check hit open_basedir (off-by-one path depth) - found live immediately after deploying above, fixed and redeployed same session | `44e2f42` | (same backup as above covers this too - no new pre-change snapshot needed for a same-session fix) |
