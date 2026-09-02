@@ -156,6 +156,46 @@ would need to distinguish.
 This is the same rule as §2's layering, extended to things that aren't
 even physically part of the box.
 
+**Capability and provider are distinct concepts.** A **capability** is
+*what can be done* (e.g. "SDR receive," "GNSS position"); a **provider**
+is *what currently provides it*. PirateBox may host a capability a
+companion device (a cyberdeck, ClockworkPi, laptop) then consumes -
+bulky/awkward peripherals stay attached to PirateBox rather than a
+handheld operator terminal - and the reverse should be architecturally
+possible too: PirateBox consuming a capability from a trusted companion
+that happens to have it. Neither direction couples a capability to one
+physical device. **`includes/capability_state.php` was audited against
+this and given the smallest change that keeps the door open**: every
+capability entry now carries `provider` and `provider_class` (Integrated/
+Attachable/Network Companion/Operator Device, matching the four kinds
+above) alongside its state - today every real capability's provider is
+simply "PirateBox (this device), integrated" (nothing else exists to
+provide anything yet), but the field exists so a future remote provider
+has somewhere to go without restructuring the array. **Not built:** any
+multi-provider list, provider selection, or failover logic - a
+capability has at most one provider today, by construction, because
+only one ever needs to be represented.
+
+**Discovery does not imply trust, for providers too.** A device joining
+the PirateBox Wi-Fi network must never automatically become an
+authoritative capability provider by announcing itself as one ("I am
+your GNSS," "I am your SDR"). §14's Access/Operation/Ownership/Recovery
+distinction already establishes this for administrative authority;
+capability-provider trust is the same principle applied to a narrower
+question. Future remote providers need explicit, bounded trust/
+configuration appropriate to the capability - not designed here, and
+not a reason to avoid recording the `provider`/`provider_class` fields
+now, since those fields describe *what's providing something today*,
+which is orthogonal to *how a future remote provider would earn
+trust*.
+
+**The device-independence test:** leave the cyberdeck home - PirateBox
+remains useful. Leave PirateBox home - the cyberdeck remains a useful
+computer. Bring both - they become more capable together. PirateBox
+Core must never depend on a companion device, and a companion should
+never need proprietary software where an ordinary documented local
+protocol/interface would do.
+
 ## 4. Physical modularity
 
 A long-term design goal, not a current implementation: avoid opening
@@ -551,8 +591,15 @@ Operational History vs. Sensitive Observation History (the key
 distinction a future retention decision must classify against),
 retention-class semantics, aggregation-over-raw-samples, the optional
 Field Session concept, and how this interacts with §16's ownership-
-transfer question. **None of it is implemented** - no logging,
-database, or review mechanism exists on this device today.
+transfer question. **Most of it remains unimplemented** - no review
+mechanism or Field Sessions exist. **A first real slice does now
+exist**, as of 2026-09-02: bounded boot-event and undervoltage-event
+tracking (`piratebox_status_helper.sh` write side,
+`includes/device_memory.php` read side, `admin/index.php`'s
+"Operational history" section) - a genuine Event History + Summary
+History example, not just a description of one. See
+`docs/DEVICE-MEMORY-DESIGN.md` §15 for exact status, including one
+pending root-script install step.
 
 ## 13. Graceful self-diagnosis
 
@@ -817,6 +864,10 @@ open questions for future design work, not gaps to silently fill now.
   discipline):** `docs/TRAVEL-MODE-DESIGN.md`.
 - **Unattended-operation memory/history model in full** (§9/§12's
   detailed companion): `docs/DEVICE-MEMORY-DESIGN.md`.
+- **Reference content organization (Universal->National->Regional->
+  Local->Live), the Reference Pack model, and why new map/geographic
+  content is deferred rather than fabricated:**
+  `docs/REFERENCE-CONTENT-DESIGN.md`.
 - **Found Device / "Recovery Messages" (distinct from §14's
   "Recovery/Claim" - see that section's explicit note):**
   `docs/OPERATIONAL-DECISIONS.md`, "Stage 16."

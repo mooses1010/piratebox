@@ -1,0 +1,84 @@
+[
+  {
+    "id": "navigation-universal",
+    "title": "Navigation & Coordinates",
+    "scope": "universal",
+    "section": "maps",
+    "url": "/utility/maps/",
+    "data_file": "utility/maps/reference.json",
+    "sources_file": "utility/maps/sources.json",
+    "license": "Public domain / US government works (USGS, NOAA, gps.gov)",
+    "note": "Coordinate formats, GPS basics, magnetic declination - useful anywhere on Earth, not tied to this device's location."
+  },
+  {
+    "id": "radio-national",
+    "title": "Radio Reference",
+    "scope": "national",
+    "section": "radio",
+    "url": "/utility/radio/",
+    "data_file": "utility/radio/services.json",
+    "license": "See per-entry sources in data file",
+    "note": "US band plans/services (amateur, NOAA weather radio, CB/FRS/GMRS/MURS, marine, airband, railroad)."
+  },
+  {
+    "id": "emergency-national",
+    "title": "Emergency / Outage Reference",
+    "scope": "national",
+    "section": "emergency",
+    "url": "/utility/emergency/",
+    "data_file": "utility/emergency/topics.json",
+    "license": "See per-entry sources in data file",
+    "note": "Ready.gov/FEMA, CDC, NOAA/NWS, NFPA sourced guidance - applies nationally, not to one location."
+  },
+  {
+    "id": "firstaid-national",
+    "title": "First Aid Reference",
+    "scope": "national",
+    "section": "firstaid",
+    "url": "/utility/firstaid/",
+    "data_file": "utility/firstaid/topics.json",
+    "license": "See per-entry sources in data file",
+    "note": "American Red Cross / CDC sourced overview guidance."
+  },
+  {
+    "id": "local-reference",
+    "title": "Local Information",
+    "scope": "local",
+    "section": "local",
+    "url": "/utility/local/",
+    "data_file": "utility/local/info.json",
+    "license": "Operator-provided",
+    "note": "Deliberately ships empty except two universal numbers (911, Poison Control) - see docs/OPERATIONAL-DECISIONS.md, Stage 6. Adds usefulness when configured; PirateBox's other reference material does not depend on it."
+  },
+  {
+    "id": "library",
+    "title": "Document Library",
+    "scope": "local",
+    "section": "library",
+    "url": "/utility/library/",
+    "data_file": "utility/library/catalog.json",
+    "license": "Operator-provided",
+    "note": "Empty by design until the operator adds documents."
+  },
+  {
+    "id": "map-catalog",
+    "title": "Local/Regional Map Files",
+    "scope": "local",
+    "section": "maps-catalog",
+    "url": "/utility/maps/",
+    "data_file": "utility/maps/catalog.json",
+    "license": "Operator-provided",
+    "note": "Ready-to-use framework - add a file and one catalog entry, no code change needed. Empty by design."
+  },
+  {
+    "id": "world-reference-map",
+    "title": "World Reference Map",
+    "scope": "universal",
+    "section": "maps-catalog",
+    "url": null,
+    "data_file": null,
+    "license": null,
+    "state_override": "candidate",
+    "note": "A curated, small, durable world/country reference map would be genuinely valuable here (docs/ARCHITECTURE.md's 'small + durable + high value' principle) - deferred, not built: this device has no verified WAN/Internet path to source and properly license/attribute cartographic data, and this project's existing content (see every other pack above) always cites a real, checked source rather than bundling anything of unverified origin. See docs/CAPABILITY-REGISTRY.md."
+  }
+]

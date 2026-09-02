@@ -83,6 +83,7 @@ rsync -a "${DRYRUN[@]}" --chown=www-data:www-data \
     --exclude 'data/bulletin.json.lock' \
     --exclude 'data/content-profile.json' \
     --exclude 'data/connection-stats.json' \
+    --exclude 'data/device-history.json' \
     --exclude 'data/travel-mode.json' \
     --exclude 'data/travel-mode-quarantine/' \
     --exclude 'includes/VERSION' \

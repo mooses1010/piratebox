@@ -77,11 +77,39 @@ if (!function_exists('piratebox_classify_rtc')) {
     }
 }
 
+if (!function_exists('piratebox_default_provider')) {
+    /**
+     * CAPABILITY and PROVIDER are distinct concepts (see docs/
+     * ARCHITECTURE.md's expanded self-awareness section): a capability
+     * is "what can be done," a provider is "what currently provides
+     * it." Today every real capability on this device has exactly one
+     * possible provider - PirateBox's own integrated hardware/software -
+     * so this is deliberately a single default, not a list. It exists
+     * so a future companion-device provider (docs/ARCHITECTURE.md §3's
+     * Integrated/Attachable/Network Companion/Operator Device classes)
+     * has a field to occupy without restructuring this array later -
+     * the smallest change that keeps that door open, not a multi-
+     * provider registry built ahead of an actual second provider.
+     *
+     * Pure, directly testable - see piratebox_classify_service_pair().
+     *
+     * @return array{0: ?string, 1: ?string} [provider label, provider class]
+     */
+    function piratebox_default_provider(string $state): array
+    {
+        if (in_array($state, ['NOT_INSTALLED', 'UNKNOWN'], true)) {
+            return [null, null]; // nothing is providing this right now - say so, don't guess
+        }
+        return ['PirateBox (this device)', 'integrated'];
+    }
+}
+
 if (!function_exists('piratebox_get_capability_state')) {
     /**
      * @return array<string, array{
      *   layer: string, state: string, label: string,
-     *   core_dependency: bool, stale?: bool, detail?: array
+     *   core_dependency: bool, stale?: bool, detail?: array,
+     *   provider: ?string, provider_class: ?string
      * }>
      */
     function piratebox_get_capability_state(): array
@@ -247,6 +275,15 @@ if (!function_exists('piratebox_get_capability_state')) {
             'state' => 'NOT_INSTALLED',
             'detail' => ['note' => 'see docs/CAPABILITY-REGISTRY.md for candidates - none installed'],
         ];
+
+        // Attach provider/provider_class uniformly (see
+        // piratebox_default_provider()'s own header) rather than
+        // repeating the same two fields in all 13 entries above.
+        foreach ($capabilities as $id => $c) {
+            [$provider, $providerClass] = piratebox_default_provider($c['state']);
+            $capabilities[$id]['provider'] = $provider;
+            $capabilities[$id]['provider_class'] = $providerClass;
+        }
 
         return $capabilities;
     }

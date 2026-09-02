@@ -4,6 +4,7 @@ session_start();
 
 require_once __DIR__ . '/../../../includes/capability_state.php';
 require_once __DIR__ . '/../../../includes/helpers.php';
+require_once __DIR__ . '/../../../includes/reference_packs.php';
 
 // About This PirateBox (self-description, docs/ARCHITECTURE.md §7/§9).
 //
@@ -35,6 +36,9 @@ $optionalInstalled = count(array_filter($optionalStates, fn($c) => $c['state'] =
 
 $diskFree = $caps['storage']['detail']['free_bytes'] ?? null;
 $diskTotal = $caps['storage']['detail']['total_bytes'] ?? null;
+
+$refPacks = piratebox_get_reference_packs();
+$scopeLabels = ['universal' => 'Universal', 'national' => 'National', 'regional' => 'Regional', 'local' => 'Local', 'live' => 'Current/Live'];
 ?>
 <!doctype html>
 <html lang="en">
@@ -94,6 +98,25 @@ $diskTotal = $caps['storage']['detail']['total_bytes'] ?? null;
                         $notInstalled = count(array_filter($inLayer, fn($c) => $c['state'] === 'NOT_INSTALLED'));
                         ?>
                         <tr><td><?= $layerLabel ?></td><td><?= $working ?> of <?= count($inLayer) ?></td><td><?= $notInstalled ?></td></tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>Reference content</h2>
+        <p>Organized universal &rarr; national &rarr; regional &rarr; local &rarr; current, per <a href="/utility/">the Utility Library</a>. Universal/national material is useful anywhere and doesn't depend on this device's location; local material adds relevance if the operator configures it, but nothing here requires that to be useful.</p>
+        <div class="table-wrapper">
+            <table>
+                <thead><tr><th>Scope</th><th>Reference</th><th>State</th></tr></thead>
+                <tbody>
+                    <?php foreach (piratebox_reference_pack_scope_order() as $scopeKey): ?>
+                        <?php foreach ($refPacks as $p): if ($p['scope'] !== $scopeKey) continue; ?>
+                            <tr>
+                                <td><?= htmlspecialchars($scopeLabels[$scopeKey] ?? $scopeKey) ?></td>
+                                <td><?= $p['url'] !== null ? '<a href="' . htmlspecialchars($p['url']) . '">' . htmlspecialchars($p['title']) . '</a>' : htmlspecialchars($p['title']) ?></td>
+                                <td class="<?= $p['state'] === 'INSTALLED' ? 'status-ok' : '' ?>"><?= htmlspecialchars($p['state']) ?><?= $p['entry_count'] !== null ? ' (' . $p['entry_count'] . ')' : '' ?></td>
+                            </tr>
+                        <?php endforeach; ?>
                     <?php endforeach; ?>
                 </tbody>
             </table>

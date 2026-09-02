@@ -96,6 +96,29 @@ foreach ($caps as $c) {
 }
 cs_assert_eq('core_dependency=true only ever appears on layer=core entries', $coreConsistent, true);
 
+// --- piratebox_default_provider(): capability/provider distinction ---
+
+[$provider, $class] = piratebox_default_provider('AVAILABLE');
+cs_assert_eq('AVAILABLE capability defaults to PirateBox as provider', $provider, 'PirateBox (this device)');
+cs_assert_eq('AVAILABLE capability defaults to integrated provider class', $class, 'integrated');
+
+[$provider, $class] = piratebox_default_provider('DEGRADED');
+cs_assert_eq('DEGRADED capability still has a provider (it exists, just unhealthy)', $provider, 'PirateBox (this device)');
+
+[$provider, $class] = piratebox_default_provider('NOT_INSTALLED');
+cs_assert_eq('NOT_INSTALLED capability has no provider - never guessed', $provider, null);
+cs_assert_eq('NOT_INSTALLED capability has no provider class either', $class, null);
+
+[$provider, $class] = piratebox_default_provider('UNKNOWN');
+cs_assert_eq('UNKNOWN capability has no fabricated provider', $provider, null);
+
+// Every entry from the live function actually carries the new fields.
+$providerFieldsPresent = true;
+foreach ($caps as $c) {
+    if (!array_key_exists('provider', $c) || !array_key_exists('provider_class', $c)) $providerFieldsPresent = false;
+}
+cs_assert_eq('Every live capability entry carries provider/provider_class', $providerFieldsPresent, true);
+
 // Regression test for a real bug found live: capability_state.php's
 // disk_total_space()/disk_free_space() path must resolve to exactly the
 // webroot (var/www/html) - one level too many silently resolves outside

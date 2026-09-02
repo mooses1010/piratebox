@@ -132,6 +132,7 @@ error by itself, just a prompt to do the same file-level check.
 | Long-term architecture, layering, privacy/trust/ownership philosophy, self-awareness model | `docs/ARCHITECTURE.md` |
 | Concrete capability inventory (installed/owned/planned/candidate/deferred/rejected) | `docs/CAPABILITY-REGISTRY.md` |
 | Unattended-operation memory/history model (retention classes, "since last review," Field Sessions) | `docs/DEVICE-MEMORY-DESIGN.md` |
+| Reference content organization (Universal/National/Regional/Local/Live), Reference Packs | `docs/REFERENCE-CONTENT-DESIGN.md` |
 | GPIO/hardware wiring, current pin status | `docs/HARDWARE-INTEGRATION-DESIGN.md` §2 (the one live wiring map) |
 | Physical buttons / toggle / OLED UX design | `docs/PHYSICAL-CONTROL-UX-DESIGN.md` |
 | Power / UPS / undervoltage design | `docs/POWER-UPS-DESIGN.md`; live reading: `/run/piratebox/status.json`, `vcgencmd get_throttled` |

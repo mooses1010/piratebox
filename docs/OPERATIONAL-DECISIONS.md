@@ -6,6 +6,93 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Capability/Provider Distinction + Reference Content Foundation + Device Memory (first slice)
+
+**Decision date:** 2026-09-02. Second increment of the autonomous
+implementation phase, continuing directly from the previous increment
+(`636fd49`/`44e2f42`/`92f2ab4`) without stopping at that checkpoint, per
+operator instruction that known-good boundaries are for testing/
+deploying/documenting/committing, not for pausing.
+
+**Capability/provider distinction (`docs/ARCHITECTURE.md` §3):**
+audited `includes/capability_state.php` for a real future need -
+PirateBox hosting a capability a companion device (cyberdeck, etc.)
+consumes, or the reverse - without building speculative infrastructure
+for it now. Smallest change that keeps the door open: every capability
+entry gained `provider`/`provider_class` fields (today always
+"PirateBox (this device)"/"integrated," since nothing else provides
+anything yet), computed by one small pure function
+(`piratebox_default_provider()`), not restructured per-entry. No multi-
+provider list, selection, or failover logic added - a capability has at
+most one provider today because only one needs representing. Also
+surfaced as a new column in `admin/index.php`'s Capabilities table.
+Tests: 9 new assertions in `tools/test_capability_state.php` (32 total,
+was 23).
+
+**Reference content foundation (`docs/REFERENCE-CONTENT-DESIGN.md`,
+new):** audited actual content before designing anything - Radio (25)/
+Emergency (21)/First Aid (16)/Maps-universal (5) reference entries are
+already substantial, already sourced (USGS/NOAA/gps.gov/Red Cross/CDC/
+FEMA/NFPA), and already fully independent of Local Information, which
+ships empty by design (Stage 6, unchanged - not a gap to fix). Built
+`data/reference-packs.json` + `includes/reference_packs.php` - a
+Reference Pack model computing live state (INSTALLED/NOT_CONFIGURED/
+CANDIDATE/UNKNOWN) from each pack's actual underlying data file, never
+from a static claim, organized by the Universal/National/Regional/
+Local/Live hierarchy. Surfaced on `/utility/about/`. **No new map or
+geographic content was bundled** - this device has no verified WAN path
+to source it, and this project's existing content always cites a real,
+checked source; `world-reference-map` is recorded as CANDIDATE, not
+fabricated or silently dropped. Tests: `tools/test_reference_packs.php`,
+15 assertions (missing/malformed/empty files, the Local Information
+special-case counting rule).
+
+**Device Memory, first real slice (`docs/DEVICE-MEMORY-DESIGN.md` §15,
+updated):** two Operational-History event types - boot events (uptime
+lower than last poll = reboot happened) and undervoltage-onset events
+(edge-triggered, same "new, not still" discipline connection-stats
+already uses) - now detected and bounded-persisted by
+`piratebox_status_helper.sh` to `data/device-history.json` (boot events
+capped at last 50; undervoltage events daily-bucketed, 90-day window -
+deliberately longer than connection-stats' 24h focus, since this needs
+to span weeks/months unattended). **Added to `piratebox_deploy.sh`'s
+exclude list and `.gitignore` before ever being deployed** - the exact
+mistake the deploy script's own header warns against. Persistence logic
+verified in isolation (bounding, idempotent same-day increments,
+malformed-file recovery, 90-day pruning - `bash`/root paths mean the
+live script itself can't run as `moose`, so the extracted Python logic
+was tested directly instead). Read side: `includes/device_memory.php`
+(`piratebox_get_device_memory()`, refactored into a pure parser +
+thin filesystem wrapper specifically for testability - 19 assertions in
+`tools/test_device_memory.php`), reporting `available: false` with
+every field `null` (never a fabricated zero) until installed live.
+Surfaced in `admin/index.php`'s new "Operational history" section,
+confirmed live to correctly show the honest unavailable state today.
+
+**One pending operator step, not yet requested** (batched, not blocking
+further autonomous work - see this session's own operating
+instructions): `piratebox_status_helper.sh`'s deployed copy needs the
+same `sudo install -m 0755 -o root -g root ... && sudo systemctl
+restart piratebox-status.timer` treatment the time-source fix needed
+once already. Deferred to whenever independent work is exhausted, not
+requested mid-run.
+
+**Testing:** all four test suites passing after this increment -
+`test_fieldtools.php` 86/86, `test_capability_state.php` 32/32,
+`test_reference_packs.php` 15/15 (new), `test_device_memory.php` 19/19
+(new) - 152 total assertions. `php -l`/`bash -n` clean on every changed
+file. Every changed page rendered via `php -S` against this device's
+real live state, zero warnings. External-reference grep clean. Markdown
+structure verified in all three changed/new design docs.
+
+**Scope preserved:** no networking/GPIO/system config changed (the
+Transport Lock/GPIO17 material from the previous increment was design-
+only and untouched again here), no packages installed, no community
+data touched, no fabricated hardware or content state anywhere
+(world-reference-map stays CANDIDATE, Local Information stays
+NOT_CONFIGURED, device-history stays `available: false` until actually
+installed).
+
 ## Self-Awareness Implementation + Physical Transport/Input Safety Design
 
 **Decision date:** 2026-09-02. First increment of the autonomous

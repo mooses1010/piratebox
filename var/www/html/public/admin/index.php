@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../includes/metrics.php';
 require_once __DIR__ . '/../../includes/content_profile.php';
 require_once __DIR__ . '/../../includes/travel_mode.php';
 require_once __DIR__ . '/../../includes/capability_state.php';
+require_once __DIR__ . '/../../includes/device_memory.php';
 
 // PirateBox admin/status page - Phase 4.
 //
@@ -293,6 +294,12 @@ $travelModeActive = piratebox_get_travel_mode();
 $capabilities = piratebox_get_capability_state();
 $operationalState = piratebox_get_operational_state();
 
+// Device Memory (docs/DEVICE-MEMORY-DESIGN.md): bounded operational
+// event history - see includes/device_memory.php's own header for the
+// "available=false means the write side hasn't been installed yet,
+// never a fabricated zero" distinction.
+$deviceMemory = piratebox_get_device_memory();
+
 // Post-Stage-32: connection statistics - see piratebox_get_connection_stats()
 // for the full privacy design (aggregate integer counts only, never a
 // MAC/IP/hostname). null when the helper snapshot itself is stale.
@@ -397,7 +404,7 @@ $connStats = piratebox_get_connection_stats();
     <p class="muted" style="text-align:center;">docs/ARCHITECTURE.md's Core/Operational/Optional model, made concrete - <?= (int) piratebox_capability_summary_counts($capabilities)['AVAILABLE'] ?> available, <?= (int) piratebox_capability_summary_counts($capabilities)['NOT_INSTALLED'] ?> not installed. Mode: <?= htmlspecialchars(ucfirst($operationalState['mode'])) ?>, Travel Mode: <?= $operationalState['travel_mode'] ? 'on' : 'off' ?>.</p>
     <div class="table-wrapper">
         <table>
-            <thead><tr><th>Layer</th><th>Capability</th><th>State</th><th>Notes</th></tr></thead>
+            <thead><tr><th>Layer</th><th>Capability</th><th>State</th><th>Provider</th><th>Notes</th></tr></thead>
             <tbody>
                 <?php foreach (['core' => 'Core', 'operational' => 'Operational', 'optional' => 'Optional/Field'] as $layerKey => $layerLabel): ?>
                     <?php foreach ($capabilities as $c): if ($c['layer'] !== $layerKey) continue; ?>
@@ -407,6 +414,7 @@ $connStats = piratebox_get_connection_stats();
                             <td class="<?= $c['state'] === 'AVAILABLE' ? 'status-ok' : (in_array($c['state'], ['DEGRADED', 'UNAVAILABLE'], true) ? 'status-bad' : '') ?>">
                                 <?= htmlspecialchars($c['state']) ?><?= !empty($c['stale']) ? ' (stale)' : '' ?>
                             </td>
+                            <td class="muted"><?= $c['provider'] !== null ? htmlspecialchars($c['provider']) : '-' ?></td>
                             <td class="muted">
                                 <?php if (isset($c['detail']) && is_array($c['detail'])): ?>
                                     <?php
@@ -426,6 +434,28 @@ $connStats = piratebox_get_connection_stats();
         </table>
     </div>
     <p class="muted" style="text-align:center;">"Core dependency" (not shown per-row - see docs/ARCHITECTURE.md §2) is <code>true</code> only for the three Core rows above; every Operational/Optional row failing degrades only itself.</p>
+
+    <h2 class="admin-section-heading">Operational history <span class="section-tag">bounded, aggregate only</span></h2>
+    <?php if (!$deviceMemory['available']): ?>
+        <p class="muted" style="text-align:center;">Not currently available - the deployed status helper hasn't been updated to write this yet (a pending install step, same situation the time-source status hit once - see docs/OPERATIONAL-DECISIONS.md). Nothing is fabricated in its place.</p>
+    <?php else: ?>
+        <p class="muted" style="text-align:center;">docs/DEVICE-MEMORY-DESIGN.md's Operational History class - boot/undervoltage <em>events</em> only, never raw per-second telemetry. History recorded since <?= $deviceMemory['history_started_at'] !== null ? htmlspecialchars(date('Y-m-d H:i', $deviceMemory['history_started_at'])) : 'unknown' ?>.</p>
+        <div class="stat-grid">
+            <div class="stat-card">
+                <span class="stat-label">Boots recorded</span>
+                <span class="stat-value"><?= (int) $deviceMemory['boot_count'] ?></span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Last boot</span>
+                <span class="stat-value"><?= $deviceMemory['last_boot_at'] !== null ? htmlspecialchars(date('Y-m-d H:i', $deviceMemory['last_boot_at'])) : 'none recorded' ?></span>
+            </div>
+            <div class="stat-card">
+                <span class="stat-label">Undervoltage events (90d)</span>
+                <span class="stat-value <?= ($deviceMemory['undervoltage_events_total'] ?? 0) > 0 ? 'status-bad' : 'status-ok' ?>"><?= (int) $deviceMemory['undervoltage_events_total'] ?></span>
+            </div>
+        </div>
+        <p class="muted" style="text-align:center;">"Boots recorded" only counts boots since history tracking began (above) - not a lifetime total for hardware installed earlier. A "since last review" summary boundary is designed (docs/DEVICE-MEMORY-DESIGN.md §3) but not yet built - this shows raw totals, not a reviewed/unreviewed split.</p>
+    <?php endif; ?>
 
     <h2 class="admin-section-heading">Recovery messages <span class="section-tag">local only</span></h2>
     <p class="muted" style="text-align:center;">Stage 16 - separate from Chat/Guestbook. Never transmitted over the Internet.</p>

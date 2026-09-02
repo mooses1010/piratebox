@@ -72,6 +72,8 @@ it is.**
 | RTC (DS3231) | Operational | PLANNED (chip chosen, not purchased) | Integrated (planned) |
 | Self-awareness / capability-state model (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | About This PirateBox page (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
+| Reference Pack model (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
+| Device Memory - bounded event history (software) | Operational | INSTALLED (write side pending live install - see docs/DEVICE-MEMORY-DESIGN.md §15) | Integrated (software) |
 | Physical transport lock | Operational | CANDIDATE (design only, no hardware/mechanism chosen) | Integrated (if adopted) |
 | `fake-hwclock` (software time fallback) | Operational | CANDIDATE | n/a (software) |
 | Field Tools (time/date, unit conversion, coordinates) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
@@ -371,6 +373,42 @@ it is.**
 - **Notes:** does not yet cover wiring assignments, the ownership/
   recovery concept, or maintenance/repair information - see
   `docs/ARCHITECTURE.md` §17 for what remains future work.
+
+### Reference Pack model (software)
+
+- **Purpose:** self-awareness extended to content/resources, not just
+  hardware - `docs/ARCHITECTURE.md` §14, `docs/REFERENCE-CONTENT-
+  DESIGN.md`.
+- **Layer:** Operational.
+- **State:** INSTALLED, CURRENT SCOPE - `data/reference-packs.json` +
+  `includes/reference_packs.php`, live on `/utility/about/`. Tested:
+  `tools/test_reference_packs.php` (15 assertions - missing/malformed/
+  empty file cases, the Local Information special-case counting rule).
+- **Core dependency:** No.
+- **Notes:** registers existing content (Radio/Emergency/First Aid/
+  Maps-universal/Local Info/Library/map catalog); does not add any new
+  reference content itself - see `docs/REFERENCE-CONTENT-DESIGN.md` §5
+  for why new map/geographic content was deliberately not bundled.
+
+### Device Memory - bounded event history (software)
+
+- **Purpose:** "what happened while I wasn't looking" - `docs/DEVICE-
+  MEMORY-DESIGN.md`.
+- **Layer:** Operational.
+- **State:** write side (`piratebox_status_helper.sh`) committed, tested
+  (Python persistence logic verified in isolation - bounding, idempotent
+  daily increments, malformed-file recovery, 90-day pruning), **not yet
+  installed live** - same class of pending step as the earlier time-
+  source fix (no dedicated installer script, no `sudo` grant held for a
+  root-owned script install). Read side (`includes/device_memory.php`,
+  19 test assertions) is live and correctly reports `available: false`
+  until the install happens.
+- **Core dependency:** No.
+- **Privacy sensitivity:** low - boot timestamps and undervoltage-event
+  counts only, both Operational History class, never raw per-second
+  telemetry (`docs/DEVICE-MEMORY-DESIGN.md` §4).
+- **UI exposure:** operator-only (`admin/index.php`, "Operational
+  history") - raw event counts are diagnostic, not public-safe framing.
 
 ### Physical transport lock
 

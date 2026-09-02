@@ -31,6 +31,19 @@
 # hostname, or other per-device identifier is ever written there or
 # anywhere else. The persisted file is flushed once per hour (on
 # rollover), not every 30-second poll, to keep SD card writes minimal.
+#
+# Field Tools addition: time-source status (rtc_detected/
+# ntp_synchronized/fake_hwclock_installed) - see includes/
+# fieldtools_time.php.
+#
+# Device Memory addition (docs/DEVICE-MEMORY-DESIGN.md): bounded
+# Operational-History event tracking - boot events and undervoltage-
+# onset events, edge-triggered (new event, not "still happening") the
+# same way connection events already are, persisted to var/www/html/
+# data/device-history.json ONLY when an event actually occurs (not
+# every 30s poll). Boot events bounded by count (last 50); undervoltage
+# events bucketed daily, bounded to a 90-day window. No raw per-second
+# telemetry ever persists.
 
 set -euo pipefail
 
@@ -176,6 +189,112 @@ if command -v vcgencmd >/dev/null 2>&1; then
     else
         throttled_hex="unavailable"
     fi
+fi
+
+# --- Device memory: bounded operational event history (docs/DEVICE-
+# MEMORY-DESIGN.md) ---
+# "Prefer current-state awareness over historical surveillance, but
+# retain enough history for the operator to understand what happened
+# while unattended." Two Operational-History-class events, chosen
+# because they're the two this project's own docs already flagged as
+# useful for a since-last-review summary and are cheap to detect
+# correctly: boot events (uptime resetting lower than last poll means a
+# reboot happened) and undervoltage-onset events (edge-triggered, same
+# discipline connection-stats already uses for "new" vs. "still
+# connected"). Only small integers + timestamps ever persist - no raw
+# per-second telemetry, matching docs/DEVICE-MEMORY-DESIGN.md §5's
+# aggregation-over-raw-samples principle. Bounded by count (boot
+# events) or a fixed day window (undervoltage), never unbounded.
+DEVICE_HISTORY_FILE="/var/www/html/data/device-history.json"
+DEVMEM_SCRATCH_FILE="$OUT_DIR/devmem-scratch"
+
+uptime_now=0
+if [ -r /proc/uptime ]; then
+    uptime_now=$(awk '{print int($1)}' /proc/uptime 2>/dev/null || echo 0)
+fi
+
+prev_uptime=0
+prev_undervoltage=false
+if [ -f "$DEVMEM_SCRATCH_FILE" ]; then
+    read -r prev_uptime prev_undervoltage < "$DEVMEM_SCRATCH_FILE" 2>/dev/null || true
+fi
+prev_uptime=${prev_uptime:-0}
+prev_undervoltage=${prev_undervoltage:-false}
+
+# A reboot happened since the last poll if uptime is now LOWER than it
+# was last poll (uptime only ever increases within one boot). The very
+# first poll ever (no scratch file yet) is NOT counted as a boot event -
+# it would just be recording that the helper started, not that the
+# device rebooted.
+boot_event=false
+if [ -f "$DEVMEM_SCRATCH_FILE" ] && [ "$uptime_now" -lt "$prev_uptime" ]; then
+    boot_event=true
+fi
+
+# Undervoltage EVENT = the moment it turns on (false -> true), not every
+# poll it happens to still be true - same "new, not still" distinction
+# connection-stats already draws for MAC associations.
+undervoltage_event=false
+if [ "$undervoltage_now" = "true" ] && [ "$prev_undervoltage" != "true" ]; then
+    undervoltage_event=true
+fi
+
+printf '%s %s\n' "$uptime_now" "$undervoltage_now" > "$DEVMEM_SCRATCH_FILE"
+
+if [ "$boot_event" = "true" ] || [ "$undervoltage_event" = "true" ]; then
+    python3 - "$DEVICE_HISTORY_FILE" "$boot_event" "$undervoltage_event" <<'PYEOF' || true
+import json
+import os
+import sys
+import time
+
+path, boot_event, undervoltage_event = sys.argv[1], sys.argv[2] == "true", sys.argv[3] == "true"
+now = int(time.time())
+
+data = {"boot_events": [], "undervoltage_daily": [], "history_started_at": now}
+try:
+    with open(path, encoding="utf-8") as f:
+        loaded = json.load(f)
+    if isinstance(loaded, dict):
+        data = loaded
+        data.setdefault("boot_events", [])
+        data.setdefault("undervoltage_daily", [])
+        data.setdefault("history_started_at", now)
+except Exception:
+    # Missing, unreadable, or corrupt - start fresh rather than fail.
+    # Best-effort aggregate history, never load-bearing for Core.
+    pass
+
+if boot_event:
+    events = [e for e in data["boot_events"] if isinstance(e, int)]
+    events.append(now)
+    # Bounded by count, not time - a fixed cap keeps this small even if
+    # the device reboots unusually often, without needing a time-based
+    # prune pass for something that isn't naturally hourly/daily.
+    data["boot_events"] = events[-50:]
+
+if undervoltage_event:
+    day_start = (now // 86400) * 86400
+    daily = [d for d in data["undervoltage_daily"] if isinstance(d, dict) and "day_start" in d]
+    daily = [d for d in daily if d.get("day_start") != day_start] + [
+        {"day_start": day_start, "count": next((d["count"] for d in daily if d.get("day_start") == day_start), 0) + 1}
+    ]
+    # Bounded to a fixed ~90-day window - daily granularity is plenty for
+    # a "since last review" summary spanning weeks/months (unlike
+    # connection stats' 24h-focused hourly buckets), and stays compact.
+    cutoff = day_start - 90 * 86400
+    daily = [d for d in daily if d.get("day_start", 0) >= cutoff]
+    daily.sort(key=lambda d: d["day_start"])
+    data["undervoltage_daily"] = daily
+
+data["updated_at"] = now
+
+tmp = path + ".tmp"
+with open(tmp, "w", encoding="utf-8") as f:
+    json.dump(data, f)
+os.chmod(tmp, 0o644)
+os.replace(tmp, path)
+PYEOF
 fi
 
 # --- Time source (Field Tools, Post-Stage-32) ---

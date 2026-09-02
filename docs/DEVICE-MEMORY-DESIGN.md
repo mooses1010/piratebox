@@ -1,12 +1,17 @@
 # Device Memory & Unattended Operation Design
 
-**Status: DESIGN ONLY.** Formalizes principles for how PirateBox should
-eventually remember what happened while it was unattended. **Nothing in
-this document is implemented** - no logging mechanism, database,
-retention job, review boundary, "since last review" summary, Field
-Session handling, or GNSS capture exists on this device as a result of
-this document. Where an example below looks like a real screen or a
-real data shape, it is illustrative only, marked as such.
+**Status: DESIGN, WITH A FIRST REAL SLICE IMPLEMENTED (2026-09-02).**
+Formalizes principles for how PirateBox should eventually remember what
+happened while it was unattended. **Most of this document remains
+design only** - no review boundary, "since last review" summary, Field
+Session handling, or GNSS capture exists. **What is now real:** two
+Operational-History event types - boot events and undervoltage-onset
+events - are detected and bounded-persisted by `piratebox_status_helper.
+sh` and read honestly by `includes/device_memory.php` (`available: false`
+with every field `null`, never a fabricated zero, when the write side
+isn't installed yet - see §15 for the current live status). Where an
+example below still looks like a real screen or data shape beyond this,
+it remains illustrative only, marked as such.
 
 This document is the detailed companion to `docs/ARCHITECTURE.md` §12
 (current-state awareness, refined below) - that document states the
@@ -168,12 +173,20 @@ rather than invented fresh:
   hour counter (`/run/piratebox/prev-stations`, `/run/piratebox/hour-
   scratch` - both tmpfs, both gone on reboot).
 - **Event history** - compact, persistent, noteworthy events (a boot, a
-  fallback, a threshold crossed) rather than continuous samples.
+  fallback, a threshold crossed) rather than continuous samples. **Now
+  real for boot events**: `piratebox_status_helper.sh` detects a reboot
+  (uptime lower than the last poll) and appends a timestamp to
+  `data/device-history.json`'s `boot_events`, bounded to the last 50 -
+  a genuine Event History example, not just a description of one.
 - **Summary history** - bounded aggregate summaries (hourly/daily/min/
   max/count) rather than every raw sample. Already the live pattern for
   connection statistics' persisted `{hour_start, count, peak}` triples
   (`data/connection-stats.json`, rolling ~25-hour window, oldest pruned
-  automatically).
+  automatically). **Now also real for undervoltage events**: edge-
+  triggered (onset only, not "still active" every poll) daily counts in
+  the same `device-history.json`, bounded to a 90-day window - a longer
+  window than connection stats' 24h focus, deliberately, since a
+  since-last-review summary needs to span weeks/months, not hours.
 - **Explicit capture** - retained because the operator deliberately
   enabled a capture function/session (see §7's Field Session concept).
 - **Sensitive capture** - explicit capture with stronger privacy/
@@ -444,7 +457,31 @@ late.
 - Whether/how this document's classes map onto an eventual capability-
   state schema (`docs/ARCHITECTURE.md` §11 also leaves this open).
 
-## 15. Cross-references
+## 15. Implementation status (2026-09-02)
+
+- **Write side:** `piratebox_status_helper.sh` (repo, committed) -
+  boot-event and undervoltage-onset-event detection, bounded persistence
+  to `data/device-history.json`. **Not yet installed live** - the
+  deployed `/usr/local/bin/piratebox_status_helper.sh` predates this
+  change, same situation (and same reason - no dedicated installer
+  script, no `sudo` grant for a root-owned script install) the
+  Field-Tools time-source fix hit once already
+  (`docs/OPERATIONAL-DECISIONS.md`). Pending step:
+  `sudo install -m 0755 -o root -g root piratebox_status_helper.sh
+  /usr/local/bin/piratebox_status_helper.sh && sudo systemctl restart
+  piratebox-status.timer`.
+- **Read side:** `includes/device_memory.php`
+  (`piratebox_get_device_memory()`) - live, tested
+  (`tools/test_device_memory.php`, 19 assertions), reports
+  `available: false` honestly until the step above happens.
+- **UI:** `admin/index.php`'s "Operational history" section (operator
+  tier - raw event counts are more diagnostic than public-safe, per
+  progressive disclosure).
+- **Not yet built:** the review-boundary/"since last review" split
+  (§3), Field Sessions (§7), any Sensitive Capture class content, GNSS
+  history (§8) - all still design-only.
+
+## 16. Cross-references
 
 - **Principles this extends:** `docs/ARCHITECTURE.md` §6-13
   (exposure/privacy, self-awareness), §16 (ownership transfer).
