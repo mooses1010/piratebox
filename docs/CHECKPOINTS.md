@@ -88,3 +88,16 @@ Items 6-7 remain untouched, as before.
 | Field Tools: open_basedir time-source fix | `58ef5bb` | (no backup - `piratebox_status_helper.sh`/web-tree fix only, see `docs/OPERATIONAL-DECISIONS.md`) |
 | Architecture/Philosophy Formalization (Core/Operational/Optional, privacy, ownership, self-awareness - `docs/ARCHITECTURE.md`, `docs/CAPABILITY-REGISTRY.md`) | `d0ec128` | (docs only, no site/system changes) |
 | Device Memory / Unattended-Operation Design (`docs/DEVICE-MEMORY-DESIGN.md`) | `f1326f0` | (docs only, no site/system changes) |
+
+**Operator step completed 2026-09-02:** the `58ef5bb` commit's one
+pending manual step - installing the updated `piratebox_status_helper.
+sh` to `/usr/local/bin/` (root-owned, no dedicated installer script,
+outside Claude's `sudo` automation) - was done by the operator
+(`sudo install -m 0755 -o root -g root ...` + `sudo systemctl restart
+piratebox-status.timer`), verified in a later session: installed copy
+byte-identical to repo source, service ran successfully, live
+`/run/piratebox/status.json` now carries a real `time_source` block
+with honest values, the Time page renders the "available" branch, zero
+new warnings, all services/timer active, zero failed units. See
+`docs/FIELD-TOOLS-DESIGN.md` §9 and `docs/OPERATIONAL-DECISIONS.md`
+for the full record. No code changed - documentation-only follow-up.

@@ -120,10 +120,16 @@ a `time_source` block yet, because the *deployed*
 `piratebox_status_helper.sh` (root-owned, `/usr/local/bin/`, installed
 separately from the web-tree deploy - see §9) predates this change. The
 Time page shows an honest "not currently reporting" message in either
-case rather than guessing. **This second case is this repo's actual
-live state as of this commit** - the code fix is deployed, the root
-script that would populate the new field is not (see §9) - so the live
-Time page currently shows exactly that message, correctly.
+case rather than guessing. **This second case was this repo's actual
+live state as of the `58ef5bb` commit** - the code fix was deployed,
+but the root script that populates the new field wasn't yet installed
+(see §9) - so the live Time page showed exactly that message,
+correctly, until the operator installed the updated script on
+2026-09-02 (§9). Live now reads `available: true` with real
+(non-`null`) `rtc_detected`/`ntp_synchronized`/`fake_hwclock_installed`
+values, confirmed via the actual generated `/run/piratebox/status.json`
+and the live-rendered Time page - not the "not currently reporting"
+branch anymore.
 
 **Deliberately not built:** a persisted "last successful NTP sync"
 timestamp. No component on this device currently records that moment -
@@ -247,37 +253,61 @@ and three small `.fieldtools-*` layout classes.
 - Not tested: JavaScript execution in an actual browser (no browser
   available in this environment) - the PHP-rendered static content and
   JS syntax/logic were verified as above instead; a real-browser check
-  is worth doing once this reaches live use. Also not tested: the
-  Time page's "RTC detected" and "available, no RTC" rendering branches
-  against a real live status snapshot (§9's pending step means today's
-  live device can only exercise the "not currently reporting" branch
-  for real) - covered instead by the deterministic shape-logic test
-  above plus direct code review of the template's conditional
-  structure, which mirrors that same tested logic exactly.
+  is worth doing once this reaches live use.
+- The Time page's "available, no RTC" rendering branch **was**
+  subsequently verified live, once §9's pending step closed on
+  2026-09-02: the actual live `/run/piratebox/status.json` and the
+  live-rendered page both confirmed correct. The "RTC detected" branch
+  remains untested against a real live snapshot, for the obvious reason
+  that no RTC hardware exists on this device yet
+  (`docs/CAPABILITY-REGISTRY.md`) - covered instead by the deterministic
+  shape-logic test plus direct code review of the template's
+  conditional structure, which mirrors that same tested logic exactly.
 
-## 9. Pending operator step - not deferred work, already built
+## 9. Operator step - RESOLVED 2026-09-02 (was pending since `58ef5bb`)
 
-Unlike everything in §10 below, this one thing is **finished and
-committed, just not yet installed live**, because it's outside this
-session's automation, not outside its scope: `piratebox_status_helper.
-sh` (repo root) now publishes the `time_source` block §4 describes, but
-the deployed copy at `/usr/local/bin/piratebox_status_helper.sh`
-(root-owned, installed separately from the `var/www/html/` web-tree
-deploy - there's no `setup_*.sh` installer for this specific script,
-unlike `piratebox_deploy.sh`/`set_piratebox_mode.sh`'s
-`setup_claude_automation.sh`) still predates this change, and this
-session has no `sudo` grant that can install/overwrite it. **One
-remaining manual step, whenever convenient:**
+**Status: done.** Kept below for the historical record of why the gap
+existed and how it was closed, per this project's convention of not
+erasing rationale once it stops being current.
+
+At the `58ef5bb` commit, this one thing was **finished and committed,
+just not yet installed live**, because it was outside that session's
+automation, not outside its scope: `piratebox_status_helper.sh` (repo
+root) published the `time_source` block §4 describes, but the deployed
+copy at `/usr/local/bin/piratebox_status_helper.sh` (root-owned,
+installed separately from the `var/www/html/` web-tree deploy - there's
+no `setup_*.sh` installer for this specific script, unlike
+`piratebox_deploy.sh`/`set_piratebox_mode.sh`'s
+`setup_claude_automation.sh`) still predated the change, and that
+session had no `sudo` grant able to install/overwrite it. Until closed,
+the live Time page correctly and honestly showed "time source: not
+currently reporting" (§4's `available: false` case) rather than a wrong
+or fabricated answer - confirmed live at the time, not just reasoned
+through.
+
+**Closed 2026-09-02:** the operator ran, verified in a later session:
 
 ```
-sudo cp piratebox_status_helper.sh /usr/local/bin/piratebox_status_helper.sh
+sudo install -m 0755 -o root -g root /home/moose/piratebox/piratebox_status_helper.sh /usr/local/bin/piratebox_status_helper.sh
 sudo systemctl restart piratebox-status.timer
 ```
 
-Until then, the live Time page correctly and honestly shows "time
-source: not currently reporting" (§4's `available: false` case) rather
-than a wrong or fabricated answer - confirmed live, not just reasoned
-through (see §8).
+(`install -m 0755 -o root -g root`, not a bare `cp` - matches the exact
+ownership/mode convention `setup_claude_automation.sh` already uses for
+`piratebox_deploy.sh`/`set_piratebox_mode.sh`, rather than leaving the
+installed copy group-writable the way a plain `cp` from the `moose`-
+owned, `0775` repo file would have.) Verified after: installed copy is
+byte-identical to the repo source (`diff` clean); `piratebox-status.
+service` ran to `status=0/SUCCESS`; the regenerated
+`/run/piratebox/status.json` carries a real `time_source` block
+(`rtc_detected: false`, `ntp_synchronized: false`,
+`fake_hwclock_installed: false` - all real booleans, honestly reflecting
+this device's actual state: no RTC installed, no NTP path on an
+isolated AP, `fake-hwclock` not installed); the live Time page now
+renders the "available" branch (the honest "no hardware RTC" message,
+not "not currently reporting"); zero PHP warnings/errors; all core
+services and `piratebox-status.timer` active; zero failed systemd
+units; no unrelated file or runtime change.
 
 ## 10. What's deferred
 

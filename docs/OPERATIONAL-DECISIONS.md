@@ -247,20 +247,27 @@ this class of problem. The function's return shape grew a third state
 (`available`/`stale` alongside the three fields, which are `null` -
 never fabricated - whenever `available` is false) to honestly cover
 "the deployed status helper hasn't been updated to publish this yet."
-**That third state is this device's actual current live condition** -
-see the pending step below - confirmed live (rendered via `php -S`
-against this device's real, unmodified `/run/piratebox/status.json`),
-not simulated. Full account: `docs/FIELD-TOOLS-DESIGN.md` §4/§9.
+**That third state was this device's live condition at the time of the
+`58ef5bb` commit** - confirmed live then (rendered via `php -S` against
+this device's real, unmodified `/run/piratebox/status.json`), not
+simulated. Full account: `docs/FIELD-TOOLS-DESIGN.md` §4/§9.
 
-**Pending operator step (not deferred work - already built,
-uninstalled):** `piratebox_status_helper.sh`'s deployed copy at `/usr/
-local/bin/` predates this fix and has no dedicated installer script
-(unlike `piratebox_deploy.sh`/`set_piratebox_mode.sh`'s `setup_claude_
-automation.sh`) and no `sudo` grant this session holds -
-`sudo cp piratebox_status_helper.sh /usr/local/bin/piratebox_status_
-helper.sh && sudo systemctl restart piratebox-status.timer` is the one
-remaining manual step, whenever convenient. Until then the live Time
-page correctly shows "not currently reporting" rather than guessing.
+**Operator step RESOLVED 2026-09-02** (was pending since `58ef5bb`;
+`piratebox_status_helper.sh`'s deployed copy at `/usr/local/bin/`
+predated this fix and had no dedicated installer script, unlike
+`piratebox_deploy.sh`/`set_piratebox_mode.sh`'s `setup_claude_
+automation.sh`, and no `sudo` grant the original session held):
+operator ran `sudo install -m 0755 -o root -g root piratebox_status_
+helper.sh /usr/local/bin/piratebox_status_helper.sh && sudo systemctl
+restart piratebox-status.timer` in a later session. Verified after:
+installed copy byte-identical to repo source; service ran to
+`status=0/SUCCESS`; live `/run/piratebox/status.json` now carries a
+real `time_source` block (`rtc_detected`/`ntp_synchronized`/
+`fake_hwclock_installed` all real booleans - `false`/`false`/`false`,
+honestly matching this device's actual state); the live Time page
+renders the "available" branch, not "not currently reporting"; zero
+PHP warnings; all core services and the timer active; zero failed
+units. Full account: `docs/FIELD-TOOLS-DESIGN.md` §9.
 
 **Real, disclosed-not-fixed finding:** this device's PHP has no
 `date.timezone` configured, so `date()` defaults to UTC regardless of
@@ -287,11 +294,12 @@ warnings/errors (including, after the fix above, against this device's
 real live status snapshot), 86/86 deterministic test assertions
 passing, search index regenerated and spot-checked, external-reference
 grep clean. Not tested: real-browser JavaScript execution (no browser
-available in this environment); the Time page's "RTC detected" and
-"available" rendering branches against a live status snapshot (today's
-device can only exercise "not currently reporting" for real until the
-pending step above is done) - covered instead by a deterministic test
-of the underlying three-state decision logic plus direct code review.
+available in this environment). The Time page's "available" rendering
+branch was subsequently confirmed live once the operator step above
+closed on 2026-09-02; the "RTC detected" branch remains untested
+against a live snapshot for the obvious reason that no RTC hardware
+exists on this device - covered instead by a deterministic test of the
+underlying three-state decision logic plus direct code review.
 
 **Deployment:** see this repo's `git log`/`includes/VERSION` for current
 status as of any later reading - not asserted here to avoid this entry
