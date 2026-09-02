@@ -215,3 +215,11 @@ unaffected by design, re-run anyway and still 181/181.
 
 | Roadmap reconciliation: `docs/IMPLEMENTATION-ROADMAP.md` created, historical intent recovered from 159 commits + 64 decision-log entries + live hardware state | `d4e6082` | (docs only, no site/system changes) |
 
+| Roadmap item 1: `purge_uploads.sh` now removes `bulletin.json`/`recovery-messages.json` too (gap open since Stage 25/32, never fixed until now) | `1708cfd` | (no `~/piratebox-backups/` snapshot needed - not a `var/www/html` change) |
+
+**New pending operator step, batched:**
+```
+sudo cp /home/moose/piratebox/purge_uploads.sh /usr/local/bin/purge_uploads.sh
+sudo chmod +x /usr/local/bin/purge_uploads.sh
+```
+
