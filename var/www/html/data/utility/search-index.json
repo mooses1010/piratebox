@@ -1351,6 +1351,22 @@
     ]
   },
   {
+    "title": "Electrical Quick Reference",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/units/",
+    "snippet": "Ohm's Law and power relationships, common copper wire gauge (AWG) ampacity reference.",
+    "keywords": [
+      "ohms law",
+      "ohm's law",
+      "wire gauge",
+      "awg",
+      "ampacity",
+      "resistance",
+      "electrical reference"
+    ]
+  },
+  {
     "title": "Coordinate Converter",
     "section": "fieldtools",
     "section_label": "Field Tools",

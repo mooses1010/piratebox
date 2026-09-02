@@ -226,6 +226,42 @@ $distExamples = [
             <p class="fieldtools-result" id="ft-batt-result" aria-live="polite"></p>
             <p class="muted">Have amp-hours instead of watt-hours? Wh = Ah &times; V (e.g. a 10Ah battery at 12V is about 120Wh).</p>
         </div>
+
+        <h2>Electrical Quick Reference</h2>
+        <div class="help-note">
+            <p><strong>General reference only, not a substitute for the National Electrical Code (NEC) or a qualified electrician.</strong> Real wiring/circuit-breaker sizing must follow local code, the actual wire's insulation rating, bundling/conduit fill, ambient temperature, and run length (voltage drop) - all of which change safe ampacity from the simplified numbers below. Use this for rough field/DC/low-voltage planning, not for permanent household wiring decisions.</p>
+        </div>
+        <div class="fieldtools-tool">
+            <p><strong>Ohm's Law &amp; power relationships</strong></p>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>To find</th><th>Formula</th><th>Also equals</th></tr></thead>
+                    <tbody>
+                        <tr><td>Voltage (V)</td><td>V = I &times; R</td><td>V = P &divide; I</td></tr>
+                        <tr><td>Current (I, amps)</td><td>I = V &divide; R</td><td>I = P &divide; V</td></tr>
+                        <tr><td>Resistance (R, ohms)</td><td>R = V &divide; I</td><td>R = V&sup2; &divide; P</td></tr>
+                        <tr><td>Power (P, watts)</td><td>P = V &times; I</td><td>P = I&sup2; &times; R = V&sup2; &divide; R</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="muted">V = volts, I = current in amps, R = resistance in ohms, P = power in watts. Any two known values give the other two.</p>
+
+            <p><strong>Common copper wire gauge (AWG) reference</strong></p>
+            <div class="table-wrapper">
+                <table>
+                    <thead><tr><th>AWG</th><th>Diameter (approx.)</th><th>Typical safe ampacity*</th><th>Common use</th></tr></thead>
+                    <tbody>
+                        <tr><td>18 AWG</td><td>1.0 mm</td><td>~5 A</td><td>Low-current signal/LED wiring</td></tr>
+                        <tr><td>16 AWG</td><td>1.3 mm</td><td>~10 A</td><td>Light-duty extension cords, small accessories</td></tr>
+                        <tr><td>14 AWG</td><td>1.6 mm</td><td>~15 A</td><td>Household lighting circuits</td></tr>
+                        <tr><td>12 AWG</td><td>2.05 mm</td><td>~20 A</td><td>Household general-purpose outlet circuits</td></tr>
+                        <tr><td>10 AWG</td><td>2.6 mm</td><td>~30 A</td><td>Larger appliances, short solar/battery runs</td></tr>
+                        <tr><td>8 AWG</td><td>3.3 mm</td><td>~40 A</td><td>Sub-panels, high-current DC runs</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="muted">*Approximate figures for insulated copper conductor, short run, moderate ambient temperature - a widely-cited simplification of NEC-style ampacity tables, not a substitute for one. Longer runs need a thicker gauge than this table suggests to keep voltage drop acceptable, especially at 12V/24V DC.</p>
+        </div>
     </div>
 
     <script src="/assets/fieldtools.js"></script>

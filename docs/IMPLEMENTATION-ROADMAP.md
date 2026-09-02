@@ -89,7 +89,7 @@ just because it was mentioned most recently.
 | Maps &amp; Location Reference | 2 maps (world + US, 2026-09-02) + 5 coordinate/GPS entries; local/regional catalog empty by design | Good - "at a glance" world/US maps, GPS/coordinate basics | Moderate - Universal+National layers now real; no Regional/State layer, no UTM/MGRS visual, no map-symbols reference | 2 SVG maps (world, US w/ AK+HI insets) | Natural Earth (public domain), USGS/NOAA/gps.gov | **Universal+National now real** (was Universal-only). Regional/State and Special-Purpose layers still absent | see updated next actions below |
 | Local Information | Empty except 2 universal numbers | N/A until configured | N/A | None | Operator-provided | Local | Correctly BLOCKED BY OPERATOR DATA, not a content gap |
 | Document Library | Empty | N/A | N/A | N/A | Operator-provided | Local | Correctly BLOCKED BY OPERATOR DATA |
-| Field Tools | 3 tool pages (time/units/coordinates) | Good | Good for what's in scope | None (calculators, not reference material) | N/A (interactive tools) | Universal | UTM/MGRS conversion deliberately out of scope (already re-audited, see §4) |
+| Field Tools | 3 tool pages (time/units/coordinates) | Good | Good for what's in scope | None (calculators/tables, not diagrams) | N/A (interactive tools); **Electrical Quick Reference (2026-09-02) cites standard Ohm's Law + AWG ampacity figures** | Universal | UTM/MGRS conversion deliberately out of scope (already re-audited, see §4) |
 
 **New categories evaluated, not added (reasoned no, not silently skipped):**
 - **Water/sanitation/shelter/food safety** - already substantially covered inside Emergency/Outage Reference (Water Storage & Boil-Water Advisories, Food Safety During an Outage, Sanitation Without Running Water, Shelter-in-Place vs. Evacuating). Adding a separate category would duplicate, not fill a gap.
@@ -106,9 +106,12 @@ prose):
    (`us-reference-map`, `tools/build_us_reference_map.py`).
 2. **Cloud-identification visual reference** - genuinely useful, small,
    sourceable from NOAA/NWS public-domain material.
-3. **Electrical/electronics quick reference** (Ohm's law, wire gauge
-   table, common symbols) - moderate value, no safety-critical
-   procedures, software/content-only.
+3. ~~Electrical/electronics quick reference~~ - **done 2026-09-02**
+   (Ohm's Law + AWG ampacity tables, added to the existing Field Tools
+   Units page - see OPERATIONAL-DECISIONS.md "Electrical Quick
+   Reference"). Common electrical symbols as an actual diagram
+   remains unbuilt (a visual asset, not a table) - lower-priority
+   future item.
 4. **First-aid visual diagrams** - real gap, but explicitly gated on
    finding an authoritatively-sourced, redistributable diagram set
    first (Red Cross material is often not freely redistributable) -

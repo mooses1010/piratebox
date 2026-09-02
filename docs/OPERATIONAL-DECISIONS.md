@@ -6,6 +6,46 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Deep Offline Reference Library: Electrical Quick Reference (roadmap item 5)
+
+**Decision date:** 2026-09-02. Third content increment, continuing the
+audit's priority list (`docs/IMPLEMENTATION-ROADMAP.md` §3a item 3):
+electrical/electronics reference was evaluated during the audit as
+genuinely absent, moderate field-repair value, and safely buildable
+from well-established physics/engineering reference (not a
+safety-critical *procedure* the way medical/electrical-work-execution
+guidance would be).
+
+**Built:** a new "Electrical Quick Reference" section on the existing
+Field Tools Units page (`/utility/fieldtools/units/`), placed directly
+after the existing Volts x Amps / battery-runtime calculators it
+naturally extends - no new page, no new nav entry, matching "keep the
+existing UI visual language unless depth genuinely requires
+navigation changes." Two tables: **Ohm's Law &amp; power
+relationships** (V/I/R/P, all four standard forms - fixed physics, not
+a judgment call) and a **copper wire gauge (AWG) ampacity reference**
+(18 AWG through 8 AWG, approximate safe current + typical use).
+
+**Safety framing, per the request's own instruction to preserve
+warnings for consequential material:** an explicit `help-note` states
+this is general reference only, not a substitute for the National
+Electrical Code or a qualified electrician, and that real wiring
+decisions depend on insulation rating, bundling, ambient temperature,
+and run length that this simplified table doesn't capture - the same
+"estimate, not a guarantee" register the page's own pre-existing
+battery-runtime tool already uses for its own caveat.
+
+**Testing:** `php -l` clean. Rendered `fieldtools/units/index.php`
+directly - confirmed the new section, both tables, and the NEC caution
+text all render. `tools/build_search_index.py` gained one new static
+entry (Field Tools' index is a curated list, not JSON-driven, unlike
+the reference sections) - 101 entries, up from 100.
+`tools/test_fieldtools.php` unaffected by design (86/86 - this is
+static reference content with no new PHP calculation logic to unit-
+test; the structural render check above is this change's verification,
+same as the Radio guides increment). Full five-suite regression:
+206 assertions, 0 failures.
+
 ## Deep Offline Reference Library: United States Reference Map (roadmap item 4)
 
 **Decision date:** 2026-09-02. Second content increment, following the
