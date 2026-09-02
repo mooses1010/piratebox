@@ -47,5 +47,53 @@
       {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"},
       {"url": "/utility/radio/#emergency-monitoring-quick-reference", "label": "Radio: Severe Weather Monitoring"}
     ]
+  },
+  {
+    "id": "cdc-make-water-safe-emergency",
+    "title": "Make Water Safe During an Emergency",
+    "category": "emergency-firstaid",
+    "description": "CDC fact sheet on making water safe to drink after an emergency or disaster - boiling, chemical disinfection, and filtering, with the important limitation that fuel/chemical/radioactive contamination cannot be fixed by any of these methods.",
+    "tags": ["water safety", "boil water", "disinfection", "water treatment", "emergency water", "cdc"],
+    "file": "cdc-make-water-safe-emergency.pdf",
+    "file_type": "pdf",
+    "file_size": "730 KB",
+    "source": "Centers for Disease Control and Prevention (CDC)",
+    "date_version": "CDC water-emergency fact sheet",
+    "provenance_notes": "Source: https://www.cdc.gov/water-emergency/media/pdfs/make-water-safe-during-emergency-p.pdf - retrieved 2026-09-02. CDC-authored public health fact sheet, work of the US federal government, public domain under 17 U.S.C. Sec. 105 (confirmed against CDC's own copyright guidance: \"Most of the information on the CDC and ATSDR websites is not subject to copyright, is in the public domain\" - the caveat about contractor/grantee-developed or third-party-licensed material does not apply to this agency-authored fact sheet).",
+    "related_pages": [
+      {"url": "/utility/emergency/#water-storage-safety", "label": "Emergency: Water Storage & Boil-Water Advisories"}
+    ]
+  },
+  {
+    "id": "fema-family-emergency-communication-plan",
+    "title": "Family Emergency Communication Plan",
+    "category": "emergency-firstaid",
+    "description": "FEMA/Ready.gov's full fillable family emergency communication plan - household contact info, out-of-town contact, meeting places, school/work emergency plans, and important medical/insurance information in one printable document.",
+    "tags": ["family emergency plan", "communication plan", "fema", "ready.gov", "emergency contacts", "meeting place"],
+    "file": "fema-family-emergency-communication-plan.pdf",
+    "file_type": "pdf",
+    "file_size": "1.0 MB",
+    "source": "Federal Emergency Management Agency (FEMA) / Ready.gov",
+    "date_version": "Ready.gov Family Emergency Communication Plan",
+    "provenance_notes": "Source: https://www.ready.gov/sites/default/files/2020-03/family-emergency-communication-planning-document.pdf - retrieved 2026-09-02. FEMA-authored preparedness publication, public domain under 17 U.S.C. Sec. 105 (confirmed against FEMA's own copyright policy: \"Most material on FEMA.gov is free of copyright and may be copied and distributed without permission\"; Ready Campaign publications are explicitly made available for free public download/reproduction).",
+    "related_pages": [
+      {"url": "/utility/emergency/#family-emergency-plan", "label": "Emergency: Family Emergency Communication Plan"}
+    ]
+  },
+  {
+    "id": "epa-reduce-wildfire-smoke-exposure",
+    "title": "Reduce Your Smoke Exposure (Wildfire Smoke Factsheet)",
+    "category": "emergency-firstaid",
+    "description": "EPA factsheet on reducing exposure to wildfire smoke - indoor/outdoor precautions, air cleaners, and who is at greater risk, developed through interagency collaboration including the US Forest Service.",
+    "tags": ["wildfire smoke", "smoke exposure", "air quality", "epa", "us forest service", "clean room"],
+    "file": "epa-reduce-wildfire-smoke-exposure.pdf",
+    "file_type": "pdf",
+    "file_size": "346 KB",
+    "source": "U.S. Environmental Protection Agency (EPA)",
+    "date_version": "EPA wildfire smoke factsheet, 2026 edition",
+    "provenance_notes": "Source: https://www.epa.gov/system/files/documents/2026-06/reduce-smoke-exposure-factsheet.pdf - retrieved 2026-09-02. EPA-authored public health factsheet, work of the US federal government, public domain under 17 U.S.C. Sec. 105 (confirmed against EPA's own copyright policy framework - covers works of the US Government distinctly from contractor/grantee-produced or third-party content, and this is a plain agency-authored factsheet, not either of those exceptions). Developed with US Forest Service/CDC/other agency input per EPA's own wildfire smoke guide materials, but authored/published by EPA.",
+    "related_pages": [
+      {"url": "/utility/emergency/#wildfire-smoke", "label": "Emergency: Wildfire & Smoke"}
+    ]
   }
 ]

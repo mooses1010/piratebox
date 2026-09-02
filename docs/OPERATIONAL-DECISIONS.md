@@ -6,6 +6,75 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Three More Original-Source Documents: CDC/FEMA/EPA (roadmap item 9)
+
+**Decision date:** 2026-09-02. Continuing source investigation with
+the candidates named next in priority: FEMA, FCC, CDC, USDA, US
+Forest Service.
+
+**Investigated, per-source, same discipline as before:**
+- **CDC**: confirmed public domain, verified against CDC's own
+  copyright guidance ("Most of the information on the CDC and ATSDR
+  websites is not subject to copyright, is in the public domain").
+  Acquired: **Make Water Safe During an Emergency** fact sheet
+  (730KB) - directly strengthens the existing PirateBox-authored
+  "Water Storage & Boil-Water Advisories" topic with the actual CDC
+  original behind it, matching the instruction that a PirateBox
+  summary shouldn't replace a retainable authoritative original.
+- **FEMA**: confirmed public domain, verified against FEMA's own
+  policy ("Most material on FEMA.gov is free of copyright... Ready
+  Campaign publications" explicitly made available for free
+  reproduction). Acquired: **Family Emergency Communication Plan**
+  (1.0MB, full fillable planning document) - a genuinely useful
+  original the existing "Family Emergency Communication Plan" topic
+  only described, never provided.
+- **EPA** (not originally on the candidate list, but directly
+  relevant - discovered while researching US Forest Service wildfire
+  material, which EPA co-develops with): confirmed public domain,
+  verified against EPA's own copyright-policy framework. Acquired:
+  **Reduce Your Smoke Exposure** wildfire smoke factsheet (346KB,
+  2026 edition) - fills the "Wildfire & Smoke" topic the same way.
+- **USDA (FSIS)**: candidate identified (a "Severe Storms, Hurricanes,
+  Power Outages" food-safety brochure) but the direct URL returned
+  **HTTP 403** (Akamai bot protection, not a licensing issue) -
+  recorded as access-blocked, not licensing-blocked; worth retrying
+  later or leaving for the operator to fetch manually if wanted.
+- **FCC**: not pursued this increment - already the citation basis for
+  existing Radio content (Part 97/95/73); no new specific FCC document
+  identified as filling a genuine additional gap yet.
+- **US Forest Service**: not pursued directly this increment (see EPA
+  above, which substitutes as the practical publisher for the wildfire-
+  smoke material USFS co-develops) - no additional USFS-specific
+  document identified as necessary beyond that.
+
+**Integrated exactly like the first three** - `categories.json`
+unchanged (all three fit the existing `emergency-firstaid` category);
+three new `catalog.json` entries with full provenance; each carries a
+**topic-specific** `related_pages` entry (not page-level) pointing at
+the exact Emergency Reference topic it strengthens
+(`water-storage-safety`, `family-emergency-plan`, `wildfire-smoke`).
+
+**`emergency/index.php` upgraded to match**: the per-topic cross-link
+check used on Radio's severe-weather guide (previous increment) is now
+also used per-*topic* on the Emergency Reference page, not just
+page-level - the existing page-level cloud-chart link stays (general
+weather awareness), and the three new documents each appear inside
+their own specific topic's detail block.
+
+**Testing:** `tools/check_library_catalog.py` clean (6/6 agree).
+`php -l` clean. `piratebox_get_reference_packs()` confirmed live:
+`library` pack now `INSTALLED`, `entry_count: 6`. Rendered
+`emergency/index.php` directly - confirmed all three new documents
+render inside their correct topic. Search index rebuilt (115 entries,
+was 112). Full five-suite regression: 206 assertions, 0 failures.
+
+**Disposition:** Document Library now holds 6 documents, ~8.4MB total,
+every one individually sourced/licensed/cross-linked - not a bulk
+import. See `docs/IMPLEMENTATION-ROADMAP.md` §3b for the updated
+source-status table using the newly-requested status vocabulary
+(IMPLEMENTED+DEPLOYED+LIVE-VERIFIED / VERIFIED SOURCE, QUEUED /
+LICENSING BLOCKED / etc.).
+
 ## Document Library Cross-Linking (roadmap item 8)
 
 **Decision date:** 2026-09-02. High-priority item per operator

@@ -151,6 +151,12 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                                 <?php if (!empty($t['more_info'])): ?>
                                     <p><?= htmlspecialchars($t['more_info']) ?></p>
                                 <?php endif; ?>
+                                <?php
+                                // Metadata-driven Document Library cross-link, per-topic (not
+                                // page-level) - see includes/library_links.php. Only topics a
+                                // catalog entry actually names get a box.
+                                echo piratebox_render_library_links_html(piratebox_get_library_entries_for_page('/utility/emergency/#' . $t['id']));
+                                ?>
                                 <p class="radio-entry-source"><?= ref_source_line($sources, $t['source_id'] ?? null, $t['secondary_source_id'] ?? null, $t['confidence'] ?? null, $t['source_note'] ?? null) ?></p>
                             </div>
                         </details>

@@ -147,22 +147,30 @@ redistributable had been sourced yet, not because it needed building.
 **Source families investigated, redistribution basis confirmed or
 rejected per source (not assumed uniformly):**
 
-| Source | Redistribution basis | Verdict |
+| Source | Redistribution basis | Status |
 |---|---|---|
-| NIST | US federal work, no US copyright (17 U.S.C. Sec. 105), verified against NIST's own policy page. SRD exception doesn't apply to narrative publications | **Usable** - SP 432 retained |
-| USGS | Same basis, verified against USGS's own policy. Caveat: some USGS pages embed non-USGS third-party imagery that isn't PD | **Usable for USGS-authored works** - Topo Map Symbols retained |
-| NOAA | Same basis, verified against NOAA Library's guidance. Caveat: NOAA material co-authored with a *non-federal* party isn't automatically PD | **Usable for NOAA-only or NOAA+other-federal-agency works** - Sky Watcher Cloud Chart (NOAA+NASA, both federal) retained |
-| SigIDWiki | Investigated directly (its own General Disclaimer): signal recordings/images are user-submitted "as is," explicitly "not under any licenses," users retain "sole responsibility for... intellectual property ownership" | **NOT usable** - no redistribution grant exists. Recorded as blocked, not silently dropped - see next action below |
-| ARRL | Not yet investigated per-publication (membership organization, not a blanket PD source) | **Deferred** - verify per-publication before bundling anything; use as research reference only until then |
-| FEMA, FCC, NASA, CDC, USDA, US Forest Service | Same general federal-work PD basis expected, not yet individually verified/acquired | **Candidate sources** - verify per-publication when a specific document is identified, same discipline as above |
+| NIST | US federal work, no US copyright (17 U.S.C. Sec. 105), verified against NIST's own policy page. SRD exception doesn't apply to narrative publications | **IMPLEMENTED+DEPLOYED+LIVE-VERIFIED** - SP 432 retained, cross-linked from Field Tools Time |
+| USGS | Same basis, verified against USGS's own policy. Caveat: some USGS pages embed non-USGS third-party imagery that isn't PD | **IMPLEMENTED+DEPLOYED+LIVE-VERIFIED** - Topo Map Symbols retained, cross-linked from Maps |
+| NOAA | Same basis, verified against NOAA Library's guidance. Caveat: NOAA material co-authored with a *non-federal* party isn't automatically PD | **IMPLEMENTED+DEPLOYED+LIVE-VERIFIED** - Sky Watcher Cloud Chart (NOAA+NASA, both federal) retained, cross-linked from Emergency + Radio |
+| CDC | Same basis, verified against CDC's own copyright guidance | **IMPLEMENTED+DEPLOYED+LIVE-VERIFIED** - "Make Water Safe During an Emergency" retained, cross-linked to the Water Storage topic |
+| FEMA | Same basis, verified against FEMA's own policy; Ready Campaign publications explicitly free to redistribute | **IMPLEMENTED+DEPLOYED+LIVE-VERIFIED** - Family Emergency Communication Plan retained, cross-linked to that topic |
+| EPA | Same basis, verified against EPA's own copyright-policy framework (not on the original candidate list - found while researching US Forest Service wildfire material, which EPA co-publishes) | **IMPLEMENTED+DEPLOYED+LIVE-VERIFIED** - "Reduce Your Smoke Exposure" retained, cross-linked to the Wildfire & Smoke topic |
+| USDA (FSIS) | Same PD basis expected (not yet confirmed - blocked before reaching the license question) | **LICENSING BLOCKED** *(access, not license)* - candidate URL (severe-storms food-safety brochure) returned HTTP 403 (Akamai bot protection); worth retrying via a different path or leaving for the operator to fetch manually |
+| US Forest Service | Same PD basis expected | **SUPERSEDED BY BETTER SOURCE** - EPA's wildfire-smoke factsheet (co-developed with USFS) already fills this specific gap; no separate USFS document pursued |
+| FCC | Already the citation basis for existing Radio content (Part 97/95/73) | **NOT USEFUL ENOUGH** *(for now)* - no additional FCC document identified as filling a gap beyond what's already cited; revisit if a specific need appears |
+| SigIDWiki | Investigated directly (its own General Disclaimer): signal recordings/images are user-submitted "as is," explicitly "not under any licenses," users retain "sole responsibility for... intellectual property ownership" | **LICENSING BLOCKED** - no redistribution grant exists. Original non-SigIDWiki-derived signal-ID framework built instead (§3b/OPERATIONAL-DECISIONS.md) |
+| ARRL | Not yet investigated per-publication (membership organization, not a blanket PD source) | **VERIFIED SOURCE, QUEUED** - verify per-publication before bundling anything; use as research reference only until then |
 
-**Acquired this increment** (`/utility/library/`, category
-`reference` new, `maps` existing) - see
-`docs/OPERATIONAL-DECISIONS.md` "Original-Source Document Library:
-First Three Documents" for full provenance on each:
+**Acquired so far** (`/utility/library/`, 6 documents total, ~8.4MB) -
+see `docs/OPERATIONAL-DECISIONS.md` "Original-Source Document Library:
+First Three Documents" and "Three More Original-Source Documents:
+CDC/FEMA/EPA" for full provenance on each:
 1. USGS Topographic Map Symbols (2.2 MB, `maps` category).
 2. NIST SP 432 - Time and Frequency Services (1.9 MB, `reference`).
 3. NOAA/NASA Sky Watcher Cloud Chart (2.5 MB, `reference`).
+4. CDC "Make Water Safe During an Emergency" (730 KB, `emergency-firstaid`).
+5. FEMA Family Emergency Communication Plan (1.0 MB, `emergency-firstaid`).
+6. EPA "Reduce Your Smoke Exposure" wildfire smoke factsheet (346 KB, `emergency-firstaid`).
 
 Total added this increment: **6.4 MB** (library files) - Reference/
 Utility Library total is now ~6.65 MB (was 244 KB before this
@@ -200,9 +208,10 @@ small future polish item, not yet done.
    Identification Framework, Not a SigIDWiki Clone"). Waterfall/audio
    examples remain unsourced (candidate: NTIA/FCC spectrum-allocation
    charts for a frequency-allocation visual, not per-signal crops).
-2. FEMA/FCC/CDC/USDA/US Forest Service candidate documents - identify
-   1-2 specific, genuinely valuable publications per source and verify
-   individually, same discipline as above, rather than a bulk sweep.
+2. ~~FEMA/FCC/CDC/USDA/US Forest Service candidate documents~~ -
+   **substantially done 2026-09-02** (CDC, FEMA, EPA acquired; USDA
+   FSIS access-blocked - HTTP 403, worth retrying later; FCC/USFS
+   judged not-useful-enough/superseded for now - see the table above).
 3. ARRL - verify redistribution terms for a specific candidate
    publication (e.g. a band plan chart) before deciding whether to
    bundle it or just cite it as a research source.
