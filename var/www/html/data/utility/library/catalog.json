@@ -1,1 +1,41 @@
-[]
+[
+  {
+    "id": "usgs-topographic-map-symbols",
+    "title": "Topographic Map Symbols",
+    "category": "maps",
+    "description": "The official USGS legend for topographic map symbols - contours, boundaries, vegetation, hydrography, transportation, and structures - the standard reference for reading a USGS topo map.",
+    "tags": ["topographic map", "map symbols", "legend", "usgs", "contour lines", "map reading"],
+    "file": "usgs-topographic-map-symbols.pdf",
+    "file_type": "pdf",
+    "file_size": "2.2 MB",
+    "source": "U.S. Geological Survey (USGS)",
+    "date_version": "USGS General Interest Publication",
+    "provenance_notes": "Source: https://pubs.usgs.gov/gip/TopographicMapSymbols/topomapsymbols.pdf - retrieved 2026-09-02. USGS-authored work of the US federal government, public domain under 17 U.S.C. Sec. 105 (confirmed against USGS's own published copyright policy, usgs.gov/information-policies-and-instructions/copyrights-and-credits: \"USGS-authored or produced data and information are considered to be in the U.S. Public Domain\"). No non-USGS third-party imagery involved - this is a symbols legend, not a photo collection."
+  },
+  {
+    "id": "nist-sp432-time-frequency-services",
+    "title": "NIST Time and Frequency Services (NIST Special Publication 432)",
+    "category": "reference",
+    "description": "NIST's comprehensive reference on time and frequency measurement, calibration, and broadcast services (WWV/WWVB, GPS timing, NTP) - the authoritative technical background behind the time-confidence concepts this device's own Field Tools/status pages already surface.",
+    "tags": ["nist", "time", "frequency", "wwv", "wwvb", "gps timing", "ntp", "calibration", "time standards"],
+    "file": "nist-sp432-time-frequency-services.pdf",
+    "file_type": "pdf",
+    "file_size": "1.9 MB",
+    "source": "National Institute of Standards and Technology (NIST)",
+    "date_version": "NIST Special Publication 432, 2002 Edition",
+    "provenance_notes": "Source: https://www.nist.gov/document/sp432-02pdf (resolves to nist.gov/system/files/documents/calibrations/sp432-02.pdf) - retrieved 2026-09-02. NIST Special Publication series, authored by NIST employees (Lombardi et al.) as part of their official duties - public domain under 17 U.S.C. Sec. 105 (confirmed against NIST's own copyright policy page, nist.gov/open: works of NIST employees are not subject to US copyright; the Standard Reference Data Act exception does not apply to this narrative technical publication)."
+  },
+  {
+    "id": "noaa-nasa-sky-watcher-cloud-chart",
+    "title": "Sky Watcher Cloud Chart",
+    "category": "reference",
+    "description": "A visual cloud-identification chart (cirrus, cumulus, stratus, and their combinations/altitudes) for identifying cloud types by sight - useful alongside this device's severe-weather monitoring guidance.",
+    "tags": ["clouds", "cloud identification", "cloud chart", "weather", "sky watcher", "cumulus", "cirrus", "stratus"],
+    "file": "noaa-nasa-sky-watcher-cloud-chart.pdf",
+    "file_type": "pdf",
+    "file_size": "2.5 MB",
+    "source": "NOAA / NASA (joint publication)",
+    "date_version": "NOAA/NCEI english-language edition",
+    "provenance_notes": "Source: https://www.ncei.noaa.gov/sites/default/files/sky-watcher-cloud-chart-noaa-nasa-english-version.pdf - retrieved 2026-09-02. Joint publication of two US federal agencies (NOAA and NASA) - public domain under 17 U.S.C. Sec. 105 (confirmed against NOAA's own copyright policy, library.noaa.gov: works of the US federal government are public domain; the caveat about non-federal co-authors, e.g. universities/Cooperative Institutes, does not apply here since both co-authoring agencies are federal)."
+  }
+]

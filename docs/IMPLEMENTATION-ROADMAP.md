@@ -125,9 +125,85 @@ prose):
    region), not a sourcing blocker - action: ask the operator which
    state(s), if any, should get a dedicated regional pack, rather than
    guessing.
-7. **Special-purpose maps** (UTM/MGRS visual grid reference, map
-   symbols legend, time-zone reference) - genuinely useful, not yet
-   built, no blocker beyond effort - candidate for a future increment.
+7. **Special-purpose maps** (UTM/MGRS visual grid reference, time-zone
+   reference) - genuinely useful, not yet built. ~~Map symbols
+   legend~~ - **done 2026-09-02**, see §3b below (USGS Topographic Map
+   Symbols, retained as an original-source PDF rather than a
+   PirateBox-authored summary).
+
+### 3b. Layer 4: Original-Source Document/Visual/Media Library (added 2026-09-02)
+
+**Concept:** the at-a-glance/learn/technical layers above are all
+PirateBox-authored. A fourth layer sits alongside them: real,
+authoritative original documents/images/charts (and, where genuinely
+valuable, small audio) retained offline with full provenance - a
+PirateBox summary should not replace a retainable authoritative
+original. Exposed through the pre-existing `/utility/library/`
+("Document Library," Stage 7) mechanism - it already had exactly the
+right shape (category grouping, per-entry provenance fields, a
+consistency checker) and was empty only because nothing verified-
+redistributable had been sourced yet, not because it needed building.
+
+**Source families investigated, redistribution basis confirmed or
+rejected per source (not assumed uniformly):**
+
+| Source | Redistribution basis | Verdict |
+|---|---|---|
+| NIST | US federal work, no US copyright (17 U.S.C. Sec. 105), verified against NIST's own policy page. SRD exception doesn't apply to narrative publications | **Usable** - SP 432 retained |
+| USGS | Same basis, verified against USGS's own policy. Caveat: some USGS pages embed non-USGS third-party imagery that isn't PD | **Usable for USGS-authored works** - Topo Map Symbols retained |
+| NOAA | Same basis, verified against NOAA Library's guidance. Caveat: NOAA material co-authored with a *non-federal* party isn't automatically PD | **Usable for NOAA-only or NOAA+other-federal-agency works** - Sky Watcher Cloud Chart (NOAA+NASA, both federal) retained |
+| SigIDWiki | Investigated directly (its own General Disclaimer): signal recordings/images are user-submitted "as is," explicitly "not under any licenses," users retain "sole responsibility for... intellectual property ownership" | **NOT usable** - no redistribution grant exists. Recorded as blocked, not silently dropped - see next action below |
+| ARRL | Not yet investigated per-publication (membership organization, not a blanket PD source) | **Deferred** - verify per-publication before bundling anything; use as research reference only until then |
+| FEMA, FCC, NASA, CDC, USDA, US Forest Service | Same general federal-work PD basis expected, not yet individually verified/acquired | **Candidate sources** - verify per-publication when a specific document is identified, same discipline as above |
+
+**Acquired this increment** (`/utility/library/`, category
+`reference` new, `maps` existing) - see
+`docs/OPERATIONAL-DECISIONS.md` "Original-Source Document Library:
+First Three Documents" for full provenance on each:
+1. USGS Topographic Map Symbols (2.2 MB, `maps` category).
+2. NIST SP 432 - Time and Frequency Services (1.9 MB, `reference`).
+3. NOAA/NASA Sky Watcher Cloud Chart (2.5 MB, `reference`).
+
+Total added this increment: **6.4 MB** (library files) - Reference/
+Utility Library total is now ~6.65 MB (was 244 KB before this
+increment; the two maps + JSON content are the rest).
+
+**Signal Identification (Radio -> Signal ID), explicitly NOT built as
+a SigIDWiki clone:** since SigIDWiki's own content isn't
+redistributable, the next action is an **original, compact signal-
+identification framework** using only content this project can
+already verify - the real frequency/service data already in
+`data/utility/radio/services.json` plus the modulation-type
+explanations already in `modulation.json` - reorganized as an
+identification aid (what to look for, not a waterfall-image gallery
+this project can't legally source yet). No waterfall images or audio
+samples until/unless a genuinely public-domain or clearly-licensed
+source is found for those specifically (candidate: NTIA/FCC spectrum
+charts, which are federal works, for a *frequency-allocation* visual -
+distinct from SigIDWiki's per-signal waterfall images).
+
+**Document Library UX:** kept the existing pattern rather than
+inventing "Quick Reference / Learn / Technical / Documents & Sources"
+labels - the existing per-subject `<details>` accordion (Radio/
+Emergency/etc.) already serves layers 1-3, and `/utility/library/`
+already serves layer 4 as a separate, linked destination (every
+`hero-actions` footer already links to `/utility/library/` or
+similar). Cross-linking from a subject page to a specific library
+document (e.g. Radio -> the NIST time/frequency document) is a good
+small future polish item, not yet done.
+
+**Next actions, in priority order:**
+1. Original compact Signal Identification framework (Radio section) -
+   software/content-only, no further sourcing blocker.
+2. FEMA/FCC/CDC/USDA/US Forest Service candidate documents - identify
+   1-2 specific, genuinely valuable publications per source and verify
+   individually, same discipline as above, rather than a bulk sweep.
+3. ARRL - verify redistribution terms for a specific candidate
+   publication (e.g. a band plan chart) before deciding whether to
+   bundle it or just cite it as a research source.
+4. Cross-links from subject reference pages to relevant Document
+   Library entries (e.g. Radio -> NIST time/frequency; Maps -> USGS
+   topo symbols).
 
 ## 4. Field Tools
 

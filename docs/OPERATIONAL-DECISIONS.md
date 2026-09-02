@@ -6,6 +6,104 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Original-Source Document Library: First Three Documents (roadmap item 6)
+
+**Decision date:** 2026-09-02. New addendum to the Deep Offline
+Reference Library direction: a fourth layer, alongside the existing
+at-a-glance/learn/technical layers - a curated ORIGINAL-SOURCE library
+(real authoritative documents/charts retained offline with provenance,
+not PirateBox-authored summaries replacing them where a real original
+can legally be kept).
+
+**Discovered rather than built from scratch:** `/utility/library/`
+("Document Library," Stage 7) already existed as exactly this
+mechanism - `data_file`/category grouping, per-entry
+`source`/`date_version`/`provenance_notes` fields, a consistency
+checker (`tools/check_library_catalog.py`), and an explicit
+"don't add copyrighted material you don't have the right to
+redistribute" rule already written into its own README. It was empty
+"by design... per instruction not to bulk-download or fabricate
+entries" - not because the mechanism was missing, but because no
+verified-redistributable content had been sourced yet. This is exactly
+the "documented but forgotten vs. genuinely blocked" distinction the
+project's own roadmap-reconciliation discipline exists to catch.
+
+**Source investigation performed before acquiring anything** (per the
+explicit "publicly accessible does not mean redistributable" hard
+requirement):
+- **NIST**: confirmed public domain - works of NIST employees carry no
+  US copyright (17 U.S.C. Sec. 105), verified directly against NIST's
+  own copyright policy page. The Standard Reference Data Act exception
+  (15 U.S.C. Sec. 290e) does not apply to narrative technical
+  publications like the one retained here.
+- **USGS**: same public-domain basis, verified against USGS's own
+  copyright policy - with the confirmed caveat that some USGS pages
+  embed third-party (non-USGS) images that aren't public domain. The
+  document retained here (a symbols legend, USGS's own cartographic
+  work) doesn't have that problem.
+- **NOAA**: same basis, verified against NOAA Library's own copyright
+  guidance - with the confirmed caveat that NOAA material co-authored
+  with a *non-federal* party (a university, a Cooperative Institute)
+  isn't automatically public domain. The document retained here is
+  co-published with NASA - also a federal agency, so the caveat
+  doesn't apply.
+- **SigIDWiki**: investigated and explicitly NOT used. Its own general
+  disclaimer states signal recordings/images are user-submitted "as
+  is," "not under any licenses," with users retaining "sole
+  responsibility for... intellectual property ownership" - the
+  opposite of a clear redistribution grant. Recorded as a licensing-
+  blocked source, not silently dropped - see the roadmap for what
+  happens instead (an original, non-SigIDWiki-derived compact
+  reference using only content this project can already verify).
+- **ARRL**: not yet needed for this increment (no ARRL material was
+  acquired) - flagged in the roadmap as "verify per-publication before
+  bundling anything," per instruction, since ARRL is a membership
+  organization, not a blanket public-domain source.
+
+**Acquired (all three independently verified: reachable, correct
+`Content-Type: application/pdf`, byte-for-byte size match against the
+server's own `Content-Length`, valid `%PDF-` header and `%%EOF`
+trailer - not merely assumed intact):**
+1. **USGS Topographic Map Symbols** (2.2 MB) - the standard map-symbols
+   legend; fills the "map symbols reference" / "topographic-map
+   education" gap flagged in the earlier audit.
+2. **NIST SP 432 (2002): NIST Time and Frequency Services** (1.9 MB) -
+   ties directly into this device's own existing time-confidence/RTC/
+   NTP self-awareness theme.
+3. **NOAA/NASA Sky Watcher Cloud Chart** (2.5 MB) - fills the
+   "cloud-identification visual" gap flagged in the earlier audit.
+
+**Integrated via the existing mechanism, no new code path:** files
+placed in `public/utility/library/files/`, three `catalog.json`
+entries added with full provenance (source URL, retrieval date,
+publication identifier/edition, explicit license basis citing the
+specific statute and the specific policy page checked - not a vague
+"probably public domain"). One new category added to `categories.json`
+("reference" - General Reference & Standards) since NIST/USGS/NOAA
+material didn't fit the existing radio/electronics/maps/emergency
+buckets cleanly. `data/reference-packs.json`'s `library` pack entry
+updated - its `license`/`note` fields previously claimed a blanket
+"Operator-provided," now correctly says "mixed, see per-document
+provenance" since curated public-domain content and (eventually)
+operator-added personal manuals will coexist.
+
+**Testing:** `tools/check_library_catalog.py` - clean, catalog and
+files directory agree exactly (3/3). `php -l` clean.
+`piratebox_get_reference_packs()` confirmed live: `library` pack now
+`INSTALLED`, `entry_count: 3` - computed from the real files, not
+hand-set. Rendered `library/index.php` directly - all three documents,
+their filenames, and the license-basis text render correctly. Search
+index rebuilt (104 entries, was 101). Full five-suite regression:
+206 assertions, 0 failures (unaffected by design - no suite covers
+static document metadata).
+
+**Disposition:** the Document Library moves from CANDIDATE-in-spirit
+(a working, empty mechanism) to genuinely populated, with every entry
+individually sourced and licensed - not a bulk import. See
+`docs/IMPLEMENTATION-ROADMAP.md` for the new Layer 4 section and the
+continuing source-investigation queue (ARRL, remaining NOAA/USGS/FEMA
+candidates, the SigIDWiki-alternative signal-ID framework).
+
 ## Deep Offline Reference Library: Electrical Quick Reference (roadmap item 5)
 
 **Decision date:** 2026-09-02. Third content increment, continuing the

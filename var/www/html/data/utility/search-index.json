@@ -1242,6 +1242,56 @@
     ]
   },
   {
+    "title": "Topographic Map Symbols",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/#usgs-topographic-map-symbols",
+    "snippet": "The official USGS legend for topographic map symbols - contours, boundaries, vegetation, hydrography, transportation, and structures - the standard reference for reading a USGS topo map.",
+    "keywords": [
+      "topographic map",
+      "map symbols",
+      "legend",
+      "usgs",
+      "contour lines",
+      "map reading"
+    ]
+  },
+  {
+    "title": "NIST Time and Frequency Services (NIST Special Publication 432)",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/#nist-sp432-time-frequency-services",
+    "snippet": "NIST's comprehensive reference on time and frequency measurement, calibration, and broadcast services (WWV/WWVB, GPS timing, NTP) - the authoritative technical background behind the time-confidence concepts this device's own Field Tools/status pages already surface.",
+    "keywords": [
+      "nist",
+      "time",
+      "frequency",
+      "wwv",
+      "wwvb",
+      "gps timing",
+      "ntp",
+      "calibration",
+      "time standards"
+    ]
+  },
+  {
+    "title": "Sky Watcher Cloud Chart",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/#noaa-nasa-sky-watcher-cloud-chart",
+    "snippet": "A visual cloud-identification chart (cirrus, cumulus, stratus, and their combinations/altitudes) for identifying cloud types by sight - useful alongside this device's severe-weather monitoring guidance.",
+    "keywords": [
+      "clouds",
+      "cloud identification",
+      "cloud chart",
+      "weather",
+      "sky watcher",
+      "cumulus",
+      "cirrus",
+      "stratus"
+    ]
+  },
+  {
     "title": "Document Library",
     "section": "library",
     "section_label": "Document Library",

@@ -57,8 +57,8 @@
     "section": "library",
     "url": "/utility/library/",
     "data_file": "utility/library/catalog.json",
-    "license": "Operator-provided",
-    "note": "Empty by design until the operator adds documents."
+    "license": "Mixed - see per-document provenance_notes in catalog.json",
+    "note": "Holds both PirateBox-curated public-domain reference documents (currently: USGS topographic map symbols, NIST time/frequency services, NOAA/NASA cloud chart - each individually verified public domain, see catalog.json's provenance_notes) and, when the operator adds them, this box's own personal equipment manuals. Every entry records its own source/license basis - never a blanket claim."
   },
   {
     "id": "map-catalog",
