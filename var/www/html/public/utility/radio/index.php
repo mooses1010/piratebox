@@ -224,6 +224,12 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
             <?php if (!empty($modulation)): ?>
                 <section class="radio-group" data-group-section="modulation">
                     <h2 class="radio-group-heading">Modulation Types</h2>
+                    <div class="doc-figure-gallery">
+                        <figure class="doc-figure" style="max-width:480px;">
+                            <img src="/utility/radio/images/neets12-fig2-19-20-modulation.png" alt="Diagram comparing an unmodulated carrier wave to a modulated wave, and a second diagram comparing phase modulation and frequency modulation waveforms against the same modulating waveshape" loading="lazy">
+                            <figcaption>Figures 2-19/2-20. What "modulation" actually looks like on a carrier wave, and how PM and FM waveforms differ for the same modulating signal.<span class="doc-figure-source">Source: NEETS Module 12, <em>Modulation</em>, p. 111 (public domain)</span></figcaption>
+                        </figure>
+                    </div>
                     <?php foreach ($modulation as $m): ?>
                         <?php $search = radio_search_blob([$m['name'], $m['keywords'] ?? []]); ?>
                         <details class="radio-entry" id="<?= htmlspecialchars($m['id']) ?>" data-group="modulation" data-search="<?= $search ?>">

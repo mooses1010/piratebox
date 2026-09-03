@@ -390,5 +390,165 @@
     "related_pages": [
       {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
     ]
+  },
+  {
+    "id": "nga-bowditch-american-practical-navigator",
+    "title": "American Practical Navigator (Bowditch)",
+    "category": "reference",
+    "description": "The classic, encyclopedic reference on navigation without electronics: piloting, dead reckoning, tides and currents, and full celestial navigation (sextant use, sight reduction, the nautical almanac, time and celestial coordinate systems). Genuinely one of the most valuable offline references imaginable for a device meant to help when GPS/electronics aren't available - teaches navigation methods that work with nothing but a sextant, a chronometer, and this book.",
+    "tags": ["navigation", "celestial navigation", "piloting", "dead reckoning", "sextant", "tides", "astronomy", "bowditch"],
+    "file": "nga-bowditch-american-practical-navigator.pdf",
+    "file_type": "pdf",
+    "file_size": "128 MB",
+    "source": "U.S. Government Printing Office, originally by Nathaniel Bowditch, continued by the U.S. Navy Hydrographic Office / NGA",
+    "date_version": "1966 edition",
+    "provenance_notes": "Source: https://archive.org/details/bwb_W7-CRM-563 - retrieved 2026-09-03. Published by the U.S. Government Printing Office, work of the US federal government, public domain under 17 U.S.C. Sec. 105. This is the 1966 edition, not the current NGA Pub. 9 edition (attempts to locate a working direct download of the current edition from msi.nga.mil were unsuccessful this round) - noted explicitly as a historical edition. Sections on electronic/radio aids to navigation are dated (no GPS, era-specific radio direction-finding equipment); the celestial navigation, piloting, and tide/current theory - the core, most offline-relevant content - remain fully valid, since the underlying astronomy and mathematics haven't changed. A current-edition upgrade remains a reasonable future candidate if a working download source is found.",
+    "related_pages": [
+      {"url": "/utility/maps/", "label": "Maps & Location Reference"}
+    ]
+  },
+  {
+    "id": "neets-module01-matter-energy-dc",
+    "title": "Introduction to Matter, Energy, and Direct Current (NEETS Module 1)",
+    "category": "electronics",
+    "description": "Navy self-study training module on DC electrical fundamentals: atomic theory of electricity, conductors/insulators/semiconductors, static electricity, magnetism, and DC circuit theory (Ohm's law, series/parallel circuits, Kirchhoff's laws). The foundational module beneath the wave-propagation/antenna and test-equipment modules already retained.",
+    "tags": ["dc circuits", "ohm's law", "electricity fundamentals", "magnetism", "conductors", "navy", "neets"],
+    "file": "neets-module01-matter-energy-dc.pdf",
+    "file_type": "pdf",
+    "file_size": "6.7 MB",
+    "source": "United States Navy (Naval Education and Training Professional Development and Technology Center)",
+    "date_version": "NAVEDTRA 14173A",
+    "provenance_notes": "Source: https://archive.org/download/neetsmodules_202003/NEETS%20MOD%201%20NAVEDTRA%2014173A.pdf - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same two-part standard (PD + the document's own release statement) used for every DoD manual in this library, matching the already-retained NEETS Modules 10/13.",
+    "related_pages": [
+      {"url": "/utility/fieldtools/ohmslaw/", "label": "Field Tools: Ohm's Law Solver"}
+    ]
+  },
+  {
+    "id": "neets-module12-modulation",
+    "title": "Modulation (NEETS Module 12)",
+    "category": "radio",
+    "description": "Navy self-study training module on modulation principles: AM/FM/PM theory and waveforms, transmitter block diagrams, keying methods (on-off, frequency-shift, phase-shift), pulse modulation (PAM/PFM/PCM), and demodulation/detector circuits. Source for the carrier/modulation diagrams now on the Radio page's Modulation Types section.",
+    "tags": ["modulation", "am", "fm", "pm", "transmitters", "demodulation", "navy", "neets"],
+    "file": "neets-module12-modulation.pdf",
+    "file_type": "pdf",
+    "file_size": "1.6 MB",
+    "source": "United States Navy (Naval Education and Training Professional Development and Technology Center)",
+    "date_version": "NAVEDTRA 14184, September 1998",
+    "provenance_notes": "Source: https://archive.org/details/NEETSModule12 (direct: https://archive.org/download/NEETSModule12/NEETSModule12.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text).",
+    "related_pages": [
+      {"url": "/utility/radio/", "label": "Radio Reference"}
+    ]
+  },
+  {
+    "id": "neets-module16-test-equipment",
+    "title": "Introduction to Test Equipment (NEETS Module 16)",
+    "category": "electronics",
+    "description": "Navy self-study training module on multimeters and other test equipment: analog (D'Arsonval movement) and digital meter theory, how voltmeters/ammeters/ohmmeters actually work internally, proper connection/measurement technique, and oscilloscope basics. Source for the labeled VOM diagram now on the Field Tools Units page's Multimeter & Measurement Basics section.",
+    "tags": ["multimeter", "vom", "test equipment", "oscilloscope", "voltmeter", "ammeter", "ohmmeter", "navy", "neets"],
+    "file": "neets-module16-test-equipment.pdf",
+    "file_type": "pdf",
+    "file_size": "1.9 MB",
+    "source": "United States Navy (Naval Education and Training Professional Development and Technology Center)",
+    "date_version": "NAVEDTRA 14188, September 1998",
+    "provenance_notes": "Source: https://archive.org/details/NEETSModule16 (direct: https://archive.org/download/NEETSModule16/NEETSModule16.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text).",
+    "related_pages": [
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+    ]
+  },
+  {
+    "id": "gutenberg-thompson-calculus-made-easy",
+    "title": "Calculus Made Easy (Thompson, 1910)",
+    "category": "reference",
+    "description": "A famously accessible introduction to differential and integral calculus - the ideas of rates of change and accumulation explained plainly, without the dense formalism of a typical modern textbook. Retained as a historical public-domain work for a durable, non-safety-critical subject (calculus, like geometry, hasn't changed since publication).",
+    "tags": ["calculus", "mathematics", "historical", "derivatives", "integrals"],
+    "file": "gutenberg-thompson-calculus-made-easy.pdf",
+    "file_type": "pdf",
+    "file_size": "1.2 MB",
+    "source": "Silvanus P. Thompson, via Project Gutenberg",
+    "date_version": "Originally published 1910 (2nd edition); this Project Gutenberg edition (eBook #33283)",
+    "provenance_notes": "Source: https://www.gutenberg.org/ebooks/33283 (PDF: https://www.gutenberg.org/files/33283/33283-pdf.pdf) - retrieved 2026-09-03. Original 1910 work is public domain by US copyright term (published before 1929); Project Gutenberg's own terms explicitly permit redistribution of its public-domain e-texts. HISTORICAL WORK, clearly dated as such, matching the same historical-retention basis already used for the Gutenberg Wentworth Plane Geometry text.",
+    "related_pages": [
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+    ]
+  },
+  {
+    "id": "niosh-pocket-guide-chemical-hazards",
+    "title": "NIOSH Pocket Guide to Chemical Hazards",
+    "category": "materials-chemistry",
+    "description": "Quick-reference safety information for hundreds of individual chemicals: exposure limits, physical/chemical properties, health effects, personal protective equipment, and first-aid measures. A safe general reference for identifying and understanding chemical hazards - not a set of hazardous procedures. Opens a new Materials & Chemical Safety Reference category.",
+    "tags": ["chemical hazards", "niosh", "exposure limits", "ppe", "msds", "chemical safety", "occupational health"],
+    "file": "niosh-pocket-guide-chemical-hazards.pdf",
+    "file_type": "pdf",
+    "file_size": "6.0 MB",
+    "source": "National Institute for Occupational Safety and Health (NIOSH), Centers for Disease Control and Prevention (CDC)",
+    "date_version": "DHHS (NIOSH) Publication No. 2005-149, 3rd printing, September 2007",
+    "provenance_notes": "Source: https://www.cdc.gov/niosh/docs/2005-149/pdfs/2005-149.pdf - retrieved 2026-09-03. Carries its own explicit statement: \"This document is in the public domain and may be freely copied or reprinted.\" NIOSH-authored, work of the US federal government, public domain under 17 U.S.C. Sec. 105.",
+    "related_pages": [
+      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"}
+    ]
+  },
+  {
+    "id": "cobbaut-linux-fundamentals",
+    "title": "Linux Fundamentals",
+    "category": "pi-linux-networking",
+    "description": "A practical, hands-on Linux system administration course: the shell, filesystem hierarchy, permissions, users/groups, processes, package management, and text processing. Aimed at novice Linux sysadmins - directly relevant to understanding and maintaining this PirateBox's own underlying Raspberry Pi OS. Fills the previously-empty Raspberry Pi / Linux / Networking category alongside the companion Linux Networking book below.",
+    "tags": ["linux", "sysadmin", "shell", "bash", "permissions", "filesystem", "users", "raspberry pi"],
+    "file": "cobbaut-linux-fundamentals.pdf",
+    "file_type": "pdf",
+    "file_size": "6.7 MB",
+    "source": "Paul Cobbaut (linux-training.be)",
+    "date_version": "Publication date 2015-05-24",
+    "provenance_notes": "Source: http://linux-training.be/linuxfun.pdf - retrieved 2026-09-03. The document's own copyright page states: \"Copyright 2007-2015 Netsec BVBA, Paul Cobbaut. Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version... with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.\" Retained unmodified (verbatim copying), which the GFDL permits outright; the full license text is included within the document itself, satisfying the GFDL's own notice-preservation requirement.",
+    "related_pages": [
+      {"url": "/utility/computing/", "label": "Computing Reference"}
+    ]
+  },
+  {
+    "id": "cobbaut-linux-networking",
+    "title": "Linux Networking",
+    "category": "pi-linux-networking",
+    "description": "A practical Linux networking course: TCP/IP and IPv4 fundamentals, DNS, DHCP, SSH client/server, iptables firewalls, and Samba file sharing. Directly addresses the Computing/Networking depth gap (TCP/IP, DNS, DHCP) with a dedicated, hands-on-oriented book rather than a general overview.",
+    "tags": ["linux", "networking", "tcp/ip", "dns", "dhcp", "ssh", "iptables", "firewall", "samba", "raspberry pi"],
+    "file": "cobbaut-linux-networking.pdf",
+    "file_type": "pdf",
+    "file_size": "5.8 MB",
+    "source": "Paul Cobbaut (linux-training.be)",
+    "date_version": "Publication date 2015-05-24",
+    "provenance_notes": "Source: https://linux-training.be/linuxnet.pdf - retrieved 2026-09-03. Same GNU Free Documentation License 1.3 terms as the companion Linux Fundamentals book above (confirmed by reading this document's own copyright page, not assumed from the same-author/same-site relationship) - no Invariant Sections, no Front/Back-Cover Texts, full license text included in the document itself. Retained unmodified.",
+    "related_pages": [
+      {"url": "/utility/computing/", "label": "Computing Reference"}
+    ]
+  },
+  {
+    "id": "navedtra14256-tools-and-their-uses",
+    "title": "Tools and Their Uses (NAVEDTRA 14256)",
+    "category": "mechanical-repair",
+    "description": "Navy self-study training course on hand tools and precision measuring tools: types and proper uses of a large range of tools, safety practices, general care, and reading measuring scales/calipers/micrometers. Directly complements the Fastener Design Manual and Basic Machines with the hand-tool and measurement side of Mechanical & Basic Repair - a candidate deferred twice in earlier rounds on access grounds, successfully located this round.",
+    "tags": ["hand tools", "measuring tools", "calipers", "micrometers", "tool safety", "navy", "mechanical"],
+    "file": "navedtra14256-tools-and-their-uses.pdf",
+    "file_type": "pdf",
+    "file_size": "18.3 MB",
+    "source": "United States Navy (Naval Education and Training Program Management Support Activity)",
+    "date_version": "NAVEDTRA 14256, June 1992",
+    "provenance_notes": "Source: https://archive.org/details/tools_202001 (direct: https://archive.org/download/tools_202001/tools.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every Navy/DoD manual in this library.",
+    "related_pages": [
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+    ]
+  },
+  {
+    "id": "millikan-gale-first-course-in-physics",
+    "title": "A First Course in Physics (Millikan & Gale, 1906)",
+    "category": "reference",
+    "description": "A comprehensive introductory physics textbook covering mechanics, heat, sound, light, magnetism, and electricity from first principles, with worked examples throughout. Co-authored by Robert Millikan, later a Nobel laureate in Physics. Retained as a historical public-domain work - the physical principles covered (Newton's laws, energy conservation, basic circuits, optics) remain valid; only the era-specific apparatus/units occasionally show their age.",
+    "tags": ["physics", "mechanics", "electricity", "optics", "historical", "textbook"],
+    "file": "millikan-gale-first-course-in-physics.pdf",
+    "file_type": "pdf",
+    "file_size": "23.4 MB",
+    "source": "Robert Andrews Millikan and Henry Gordon Gale, via Internet Archive",
+    "date_version": "Originally published 1906",
+    "provenance_notes": "Source: https://archive.org/details/bwb_Y0-DTD-909 - retrieved 2026-09-03. Original 1906 work is public domain by US copyright term (published before 1929). HISTORICAL WORK, clearly dated as such, same historical-retention basis as the already-retained Gutenberg geometry and calculus texts - retained because the underlying physics is durable, not because it is free.",
+    "related_pages": [
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+    ]
   }
 ]

@@ -328,6 +328,12 @@ $distExamples = [
                 <li><strong>Resistance (&#8486;)</strong> should only be measured on a de-energized, disconnected component - measuring resistance on a live/powered circuit gives a meaningless or misleading reading and can damage the meter.</li>
                 <li><strong>Current (A)</strong> is measured in series (in-line with the circuit, not across it) and uses a different meter jack on most multimeters - plugging into the wrong jack while measuring voltage is a common way to blow a meter's internal fuse.</li>
             </ul>
+            <div class="doc-figure-gallery">
+                <figure class="doc-figure" style="max-width:420px;">
+                    <img src="/utility/fieldtools/units/images/neets16-fig4-1-vom-multimeter.png" alt="Diagram of a Simpson 260 analog volt-ohm-milliammeter (VOM) with the range selector switch, meter face, and jacks all labeled" loading="lazy">
+                    <figcaption>Figure 4-1. A classic analog VOM (volt-ohm-milliammeter) - the range switch and jacks shown here follow the same basic layout as most multimeters, digital or analog.<span class="doc-figure-source">Source: NEETS Module 16, <em>Introduction to Test Equipment</em>, p. 112 (public domain)</span></figcaption>
+                </figure>
+            </div>
             <div class="help-note">
                 <p><strong>This is a conceptual orientation, not a procedure for working on live/mains circuits.</strong> A multimeter's CAT (overvoltage category) rating must match or exceed what it's being used on; household mains and anything beyond low-voltage DC/battery work carries real shock and arc-flash risk and is outside what this page teaches - that work is for a qualified electrician using proper safety equipment.</p>
             </div>

@@ -850,6 +850,103 @@ guessing. catalog.json re-validated (24/24), search index rebuilt
 cross-link renders on Field Tools Units). **Library footprint: 24
 documents, ~67 MB total.**
 
+### 3l. Deep bookshelf pass, round 5: substantial expansion (2026-09-03)
+
+Following the OLED hardware milestone, a large source-acquisition and
+integration pass across the priority areas named for this round:
+Computing/Networking, Electronics/Electrical, Radio/RF, Mechanical/
+Repair, Math/Physics, Astronomy/Navigation, Materials/Chemistry, and
+continued global-source investigation. Storage headroom explicitly
+not treated as a constraint - the goal was depth and coverage, still
+per-item-verified, not bulk for its own sake.
+
+**Retained (10 new documents, ~209 MB):**
+
+| Document | Source | Basis | Category | Scope |
+|---|---|---|---|---|
+| American Practical Navigator (Bowditch) | US GPO, 1966 ed., 1542pp, 128MB | PD (17 U.S.C. Sec. 105) | `reference` | Universal navigation/celestial theory; dated on electronic-aids sections only |
+| NEETS Module 1: Matter, Energy, and DC | US Navy, 338pp, 6.7MB | PD + "approved for public release" | `electronics` | Universal |
+| NEETS Module 12: Modulation | US Navy, Sept 1998, 230pp, 1.6MB | PD + "approved for public release" | `radio` | Universal |
+| NEETS Module 16: Introduction to Test Equipment | US Navy, Sept 1998, 272pp, 1.9MB | PD + "approved for public release" | `electronics` | Universal |
+| Calculus Made Easy (Thompson, 1910) | Project Gutenberg | PD (pre-1929) | `reference` | Universal, historical |
+| NIOSH Pocket Guide to Chemical Hazards | NIOSH/CDC, 2007, 454pp, 6.0MB | PD (explicit "in the public domain" statement) | `materials-chemistry` (**new category**) | Universal |
+| Linux Fundamentals (Cobbaut) | linux-training.be, 2015, 365pp, 6.7MB | GNU FDL 1.3, no invariant sections | `pi-linux-networking` | Universal |
+| Linux Networking (Cobbaut) | linux-training.be, 2015, 294pp, 5.8MB | GNU FDL 1.3, no invariant sections | `pi-linux-networking` | Universal |
+| Tools and Their Uses (NAVEDTRA 14256) | US Navy, June 1992, 368pp, 18.3MB | PD + "approved for public release" | `mechanical-repair` | Universal |
+| A First Course in Physics (Millikan & Gale, 1906) | Internet Archive | PD (pre-1929) | `reference` | Universal, historical |
+
+One new Document Library category added: `materials-chemistry`
+("Materials & Chemical Safety Reference"), previously nonexistent.
+`pi-linux-networking` (existing since an earlier round, always empty
+until now) gets its first two documents.
+
+**A real licensing catch, not assumed away:** the USDA "Complete Guide
+to Home Canning" (Guide 1: Principles) was investigated as a strong
+candidate for Food/Water/Sanitation depth - genuinely excellent,
+authoritative content on safe canning (acidity, altitude adjustment,
+pressure vs. boiling-water canners, botulism prevention). **REJECTED -
+licensing unclear**: its own front matter credits primary authorship
+to university researchers (Penn State, University of Georgia) under a
+USDA-funded cooperative grant, not federal employees acting in their
+official capacity - the standard "work of the US government" basis
+this library relies on for every other USDA/CDC/DoD document doesn't
+clearly apply here. No explicit public-domain or reproduction-rights
+statement was found on the document or its hosting page (National
+Center for Home Food Preservation, University of Georgia) despite a
+real search for one. Not retained without that confirmation, even
+though the content itself is exactly what this round was looking for -
+matches this project's own standing rule that government-published
+does not automatically mean government-authored-and-PD.
+
+**Global-source investigation continued, no new document found this
+round:** UK Met Office, Environment/Natural Resources Canada, and NZ
+Transport Agency were checked for concrete downloadable technical
+references with clear licensing - none yielded a working candidate
+this round (mostly HTML-only content or no direct PDF surfaced).
+**DEFERRED - access/no candidate found**, not a rejected-on-licensing
+outcome; the two non-US sources already retained (UK OGL, Australia
+CC BY 4.0) remain the current state, an acknowledged, still-open gap
+rather than something silently dropped.
+
+**Figure extraction, two genuinely valuable diagrams added:**
+- NEETS Module 16, Figure 4-1 (a fully-labeled Simpson 260 analog VOM/
+  multimeter) added to Field Tools Units' existing "Multimeter &
+  Measurement Basics" section - materially improves a previously
+  text-only bullet list by showing what the range switch, jacks, and
+  meter face actually look like.
+- NEETS Module 12, Figures 2-19/2-20 (carrier vs. modulated wave, and
+  PM-vs-FM waveform comparison) added to Radio's existing "Modulation
+  Types" section, immediately above the AM/FM/WFM/SSB entries.
+
+Both figures use the same `.doc-figure-gallery` pattern established in
+earlier rounds - no new CSS/markup pattern invented. Both are full-page
+renders (not cropped) for the same reason established previously (no
+image-editing tool installed; preserves captions/context as a
+byproduct, not a limitation).
+
+**Category-page audit (repeated, per instruction to keep checking as
+the library grows):** every related_pages target across all 34 catalog
+entries (`computing`, `emergency`, `fieldtools/ohmslaw`, `fieldtools/
+time`, `fieldtools/units`, `firstaid`, `maps`, `outdoor`, `radio`)
+confirmed to actually call `piratebox_get_library_entries_for_page()`
+- no new wiring gaps found. No duplicate catalog IDs or titles across
+all 34 entries.
+
+Verification: catalog.json validates, `tools/check_library_catalog.py`
+clean (34/34), search index rebuilt (204 entries), php -l clean on
+both changed pages, full five-suite regression still 287/287, all 10
+new documents and both new figures smoke-tested via `php -S` (all
+downloads 200, all cross-links render on their 6 distinct target
+pages, both figure images 200, new `materials-chemistry` and
+previously-empty `pi-linux-networking` category chips render
+correctly on the Document Library page), `/utility/about/` reads
+"Document Library: INSTALLED (34)".
+
+**Library footprint:** 34 documents, ~267 MB total (was ~67 MB) -
+still under 0.3% of the 128GB card; still curated per-item, still
+rejecting on real licensing findings rather than assuming government-
+published means government-authored-and-PD.
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |
