@@ -960,6 +960,122 @@ index rebuilt (206 entries), full regression still 287/287,
 smoke-tested (both 200, both cross-links render on Field Tools Units).
 **Library footprint: 36 documents, ~271 MB total.**
 
+### 3m. Deep bookshelf pass, round 6: audit, global source, mining the existing library (2026-09-03)
+
+Following an audit of the 36-document collection's strengths/
+weaknesses (electronics/radio building up well via NEETS; global
+sources still thin at 2; USB/serial/character-encoding and ANSI-
+standard-adjacent topics genuinely hard to source cleanly; materials/
+chemistry has one strong anchor (NIOSH) but little else), this round
+prioritized: one more targeted global-source attempt, rounding out RF
+coverage, and - the round's second major task - mining figures out of
+already-retained documents, not just newly-downloaded ones.
+
+**Retained (2 new documents, ~9.1 MB):**
+
+| Document | Source | Basis | Category | Scope |
+|---|---|---|---|---|
+| National Risk Register (UK, 2025 ed.) | UK Cabinet Office, 187pp, 4.7MB | Crown copyright, Open Government Licence v3.0 (confirmed on the document's own final page) | `emergency-firstaid` | UK-specific hazard framework; this library's third non-US document |
+| NEETS Module 11: Microwave Principles | US Navy, Sept 1998, 192pp, 4.4MB | PD + "approved for public release" | `radio` | Universal; extends Modules 10/12 into the microwave/waveguide regime |
+
+**Global-source diversity - one real addition, other leads investigated
+and correctly not forced:**
+- UK National Risk Register (above) - genuinely broad (natural,
+  technological, and security hazards with individual risk summaries),
+  cleanly OGL-licensed, content-checked via pdftotext before retaining.
+- Canada (`getprepared.gc.ca`/`publications.gc.ca`) - tried again with
+  a fresh, specific search rather than the same dead URLs; still no
+  working direct PDF found (redirects to HTML-only pages or catalog
+  pages, consistent with the same finding across three prior rounds).
+  **DEFERRED - access**, now confirmed dead across enough independent
+  attempts that further retries aren't a good use of time absent a
+  structurally different lead.
+- WHO WASH Technical Notes in Emergencies - investigated, but prepared
+  for WHO by a university partner (WEDC, Loughborough) under the same
+  "agency-published, not clearly agency-authored" pattern already
+  flagged for the round-5 USDA canning guide, plus WHO's own general
+  "all rights reserved" policy already confirmed in an earlier round.
+  **REJECTED - licensing**, not re-litigated further.
+- Japan Meteorological Agency English-language earthquake/tsunami
+  guides - found, but no explicit license/redistribution statement
+  surfaced this round. **DEFERRED - licensing unclear**, not chased
+  further; a genuine candidate for a future round if a clearer rights
+  statement can be found.
+- Australia (Geoscience Australia topographic symbols) - no direct CC
+  BY PDF found. **DEFERRED - no candidate found.**
+
+**A real, deliberately-avoided near-miss:** NASA-STD-6016B ("Standard
+Materials and Processes Requirements for Spacecraft") is genuinely
+PD ("approved for public release") and was briefly downloaded, but
+turned out to be a narrow aerospace-component compliance
+specification (outgassing limits, spacecraft flammability
+requirements) rather than a general materials-properties reference -
+**REJECTED - low value for this library's purpose**, not retained
+merely because it was easy and free.
+
+**Second major task: mining figures from already-retained documents,
+not just new ones.** A Poppler-assisted inspection pass across the
+existing collection (not limited to round 6's own new documents):
+- **American Practical Navigator (Bowditch)** - explicitly flagged by
+  instruction as worth checking given its size. Located and extracted
+  two genuinely high-value figures to the Maps page: Figure 1504 (a
+  clean photograph of a clamp-screw vernier sextant, p.402) and
+  Figures 1505a/b (the actual view through the telescope while sighting
+  the sun, plus a labeled star-sighting diagram, p.403) - selected
+  after inspecting the surrounding chapter (Instruments for Celestial
+  Navigation) specifically because the two pages together teach both
+  "recognize this instrument" and "here's how it's actually used,"
+  not because they were the first figures found. Full-text extraction
+  of this 1542-page scanned book was abandoned partway (10+ minutes,
+  still running) in favor of a faster targeted approach: extracting a
+  small page range, reading the printed page number in the header to
+  calibrate the PDF-page-to-printed-page offset, then jumping directly
+  to the target chapter - a useful technique note for any future large
+  scanned-book figure extraction.
+- **Basic Machines (NAVEDTRA 14037)** - Figure 1-2 ("Three classes of
+  levers," with the companion "oars are levers" and "simple lever"
+  diagrams on the same page) was located and inspected - genuinely
+  excellent, clearly labeled. **Deliberately NOT integrated this
+  round**: Mechanical & Basic Repair has no dedicated subject page to
+  attach it to, and inventing a new content section on an existing
+  page (rather than just adding a figure to content that already
+  exists) was judged to be authorship beyond "wire into existing
+  reference pages" - flagged as a good candidate for a future round
+  that also builds a minimal Mechanical/Repair reference section, not
+  silently dropped.
+- USGS Topographic Map Symbols was checked but is itself only 4 pages
+  - already a compact, purpose-built reference chart rather than a
+  large manual with under-exploited figures buried in it; no
+  additional extraction judged worthwhile.
+
+**Category-page audit (repeated again):** all `related_pages` targets
+across all 38 catalog entries re-confirmed wired; no duplicate IDs or
+titles.
+
+Verification: catalog.json validates, `tools/check_library_catalog.py`
+clean (38/38), search index rebuilt (208 entries), php -l clean on the
+changed Maps page, full five-suite regression still 287/287, both new
+documents and both new Bowditch figures smoke-tested via `php -S`
+(downloads 200, cross-links render, figure images 200), `/utility/
+about/` reads "Document Library: INSTALLED (38)".
+
+**Library footprint:** 38 documents, ~281 MB total (was ~271 MB) -
+still under 0.3% of the 128GB card.
+
+**Genuine remaining gaps, recorded honestly rather than papered over:**
+USB/serial/UART and character-encoding (ASCII/Unicode) standards
+proved hard to source both authoritatively AND freely this round -
+the underlying ANSI/USB-IF standards are commercially copyrighted even
+when referenced by federal specifications, and no clean PD/openly-
+licensed substitute was found. A PirateBox-original reference table
+(the ASCII code-point mapping itself is an uncopyrightable fact, only
+a specific standard's prose/typesetting is protected) remains a
+plausible future path, not attempted this round since it would be new
+reference-content authorship rather than library acquisition/
+integration. Materials/Chemistry still has only one strong document
+(NIOSH); global-source diversity improved (2 -> 3 non-US documents)
+but remains thin relative to the collection's US-federal majority.
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |

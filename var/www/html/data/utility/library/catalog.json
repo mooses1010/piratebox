@@ -402,7 +402,7 @@
     "file_size": "128 MB",
     "source": "U.S. Government Printing Office, originally by Nathaniel Bowditch, continued by the U.S. Navy Hydrographic Office / NGA",
     "date_version": "1966 edition",
-    "provenance_notes": "Source: https://archive.org/details/bwb_W7-CRM-563 - retrieved 2026-09-03. Published by the U.S. Government Printing Office, work of the US federal government, public domain under 17 U.S.C. Sec. 105. This is the 1966 edition, not the current NGA Pub. 9 edition (attempts to locate a working direct download of the current edition from msi.nga.mil were unsuccessful this round) - noted explicitly as a historical edition. Sections on electronic/radio aids to navigation are dated (no GPS, era-specific radio direction-finding equipment); the celestial navigation, piloting, and tide/current theory - the core, most offline-relevant content - remain fully valid, since the underlying astronomy and mathematics haven't changed. A current-edition upgrade remains a reasonable future candidate if a working download source is found.",
+    "provenance_notes": "Source: https://archive.org/details/bwb_W7-CRM-563 - retrieved 2026-09-03. Published by the U.S. Government Printing Office, work of the US federal government, public domain under 17 U.S.C. Sec. 105. This is the 1966 edition, not the current NGA Pub. 9 edition (attempts to locate a working direct download of the current edition from msi.nga.mil were unsuccessful this round) - noted explicitly as a historical edition. Sections on electronic/radio aids to navigation are dated (no GPS, era-specific radio direction-finding equipment); the celestial navigation, piloting, and tide/current theory - the core, most offline-relevant content - remain fully valid, since the underlying astronomy and mathematics haven't changed. A current-edition upgrade remains a reasonable future candidate if a working download source is found. Two figures (a sextant photograph and its practical-use diagrams, pp. 402-403) were selectively extracted to the Maps page - see docs/IMPLEMENTATION-ROADMAP.md for the selection reasoning.",
     "related_pages": [
       {"url": "/utility/maps/", "label": "Maps & Location Reference"}
     ]
@@ -581,6 +581,38 @@
     "provenance_notes": "Source: https://archive.org/details/NEETSModule07 (direct: https://archive.org/download/NEETSModule07/NEETSModule07.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every NEETS module already retained.",
     "related_pages": [
       {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+    ]
+  },
+  {
+    "id": "neets-module11-microwave-principles",
+    "title": "Microwave Principles (NEETS Module 11)",
+    "category": "radio",
+    "description": "Navy self-study training module on microwave-frequency RF theory: waveguides, microwave oscillators (klystrons, magnetrons), and microwave amplifiers (TWTs). Extends the wave-propagation/antenna (Module 10) and modulation (Module 12) coverage into the microwave/UHF-and-above regime, where transmission-line theory gives way to waveguide theory.",
+    "tags": ["microwave", "waveguide", "klystron", "magnetron", "rf fundamentals", "navy", "neets"],
+    "file": "neets-module11-microwave-principles.pdf",
+    "file_type": "pdf",
+    "file_size": "4.4 MB",
+    "source": "United States Navy (Naval Education and Training Professional Development and Technology Center)",
+    "date_version": "NAVEDTRA 14183, September 1998",
+    "provenance_notes": "Source: https://archive.org/details/NEETSModule11 (direct: https://archive.org/download/NEETSModule11/NEETSModule11.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every NEETS module already retained.",
+    "related_pages": [
+      {"url": "/utility/radio/", "label": "Radio Reference"}
+    ]
+  },
+  {
+    "id": "uk-national-risk-register-2025",
+    "title": "National Risk Register (UK, 2025 edition)",
+    "category": "emergency-firstaid",
+    "description": "The UK government's own comprehensive assessment of the most serious risks it plans against: natural hazards (flooding, wildfire, earthquake, severe space weather, storms, heatwaves, drought, pandemic), infrastructure/technological failures, and security threats, each with a risk summary and preparedness guidance. Complements the existing US-centric emergency content and the already-retained UK Cabinet Office community guide with a broader, current UK government hazard framework - this library's third non-US document.",
+    "tags": ["risk assessment", "hazards", "uk", "civil emergency", "national risk register", "preparedness"],
+    "file": "uk-national-risk-register-2025.pdf",
+    "file_type": "pdf",
+    "file_size": "4.7 MB",
+    "source": "UK Cabinet Office",
+    "date_version": "2025 edition",
+    "provenance_notes": "Source: https://assets.publishing.service.gov.uk/media/67b5f85732b2aab18314bbe4/National_Risk_Register_2025.pdf - retrieved 2026-09-03. The document's own final page states: \"© Crown copyright 2025. This publication is licensed under the terms of the Open Government Licence v3.0\" - confirmed by reading the actual PDF text, the same license basis already used for the UK Cabinet Office community-preparedness guide retained in an earlier round. Content inspected via pdftotext confirming substantive, broad hazard coverage (natural, technological, and security risks with individual summaries) before retaining, not assumed from the title.",
+    "related_pages": [
+      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"}
     ]
   }
 ]

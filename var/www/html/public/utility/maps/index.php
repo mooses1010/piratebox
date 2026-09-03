@@ -120,6 +120,18 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
 
         <?= $libraryLinksHtml ?>
 
+        <div class="doc-figure-gallery">
+            <figure class="doc-figure" style="max-width:340px;">
+                <img src="/utility/maps/images/bowditch-fig1504-sextant.png" alt="Photograph of a clamp screw vernier marine sextant, labeled parts visible: telescope, index arm, horizon glass, micrometer drum, and handle" loading="lazy">
+                <figcaption>Figure 1504. A clamp screw vernier sextant - the instrument at the center of celestial navigation.<span class="doc-figure-source">Source: <em>American Practical Navigator</em> (Bowditch), p. 402 (public domain)</span></figcaption>
+            </figure>
+            <figure class="doc-figure" style="max-width:420px;">
+                <img src="/utility/maps/images/bowditch-fig1505-sextant-use.png" alt="Two diagrams: three telescope views showing the sun being brought down to the horizon during a sextant sighting, and a labeled diagram of sighting a star against the horizon" loading="lazy">
+                <figcaption>Figure 1505a/b. What you actually see through a sextant while taking a sun or star sight.<span class="doc-figure-source">Source: <em>American Practical Navigator</em> (Bowditch), p. 403 (public domain)</span></figcaption>
+            </figure>
+        </div>
+        <p class="muted">A glimpse of what's inside the full <em>American Practical Navigator</em> above - the authoritative reference on navigating without GPS or any other electronics, from basic piloting through full celestial navigation.</p>
+
         <div class="radio-search-bar">
             <input type="text" id="radioSearch" placeholder="Search: coordinates, gps, compass, utm, world map, us map, states..." aria-label="Search maps and location reference">
             <div class="radio-chip-row" id="radioChips" role="group" aria-label="Filter by category">
