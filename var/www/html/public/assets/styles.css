@@ -1192,6 +1192,49 @@ ul#chat li.empty-state {
     padding-left: 1.25rem;
 }
 
+/* -------------------------------------------------
+   Deep-library round 3: selectively-extracted diagram
+   figures from a retained public-domain source manual
+   (e.g. FM 4-25.11, FM 3-25.26). Full manual page
+   renders, not crops - see docs/REFERENCE-CONTENT-DESIGN.md
+   Tier 1 (original source) presented alongside Tier 2
+   (PirateBox reference text). Reused wherever a category
+   page selectively surfaces a small set of manual figures.
+   ------------------------------------------------- */
+.doc-figure-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin: 0.5rem 0 1.5rem 0;
+}
+
+.doc-figure {
+    flex: 1 1 260px;
+    max-width: 340px;
+    background: #292938;
+    padding: 0.5rem;
+}
+
+.doc-figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    background: #fff;
+}
+
+.doc-figure figcaption {
+    font-size: 0.75rem;
+    color: #a0a0c0;
+    margin-top: 0.4rem;
+    line-height: 1.4;
+}
+
+.doc-figure figcaption .doc-figure-source {
+    display: block;
+    color: #606085;
+    margin-top: 0.2rem;
+}
+
 .ref-quick-actions li {
     margin-bottom: 0.4rem;
 }

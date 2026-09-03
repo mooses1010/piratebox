@@ -98,6 +98,34 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
 
         <?= $libraryLinksHtml ?>
 
+        <section class="doc-figure-section">
+            <h2 class="radio-group-heading">Illustrated Reference: FM 4-25.11 Diagrams</h2>
+            <p>A small set of diagrams selected from the full manual below, because a picture communicates some of these techniques better than text alone. Full pages are shown (not cropped) so captions and surrounding context stay attached. Public domain, U.S. Army Field Manual 4-25.11, <em>First Aid</em> (2002).</p>
+            <div class="doc-figure-gallery">
+                <figure class="doc-figure">
+                    <img src="/utility/firstaid/images/fm4-25-11-fig2-31-pressure-points.png" alt="Diagram of digital pressure points on the body used to help control severe bleeding, at the temple, jaw, neck, shoulder, upper and lower arm, hand, two points on the thigh, foot, and lower leg" loading="lazy">
+                    <figcaption>Figure 2-31. Pressure points for controlling severe bleeding when direct pressure on the wound isn't enough.<span class="doc-figure-source">Source: FM 4-25.11, p. 47 (public domain)</span></figcaption>
+                </figure>
+                <figure class="doc-figure">
+                    <img src="/utility/firstaid/images/fm4-25-11-fig2-32-tourniquet.png" alt="Diagram of an improvised tourniquet applied above the knee" loading="lazy">
+                    <figcaption>Figure 2-32. Improvised tourniquet placement, above the knee &mdash; last resort for life-threatening limb bleeding that direct pressure can't control.<span class="doc-figure-source">Source: FM 4-25.11, p. 49 (public domain)</span></figcaption>
+                </figure>
+                <figure class="doc-figure">
+                    <img src="/utility/firstaid/images/fm4-25-11-fig3-13-burning-clothing.png" alt="Diagram showing a casualty's burning clothing being smothered with a field jacket and the casualty being rolled on the ground" loading="lazy">
+                    <figcaption>Figure 3-13. Smothering burning clothing, then rolling the casualty to fully extinguish it.<span class="doc-figure-source">Source: FM 4-25.11, p. 68 (public domain)</span></figcaption>
+                </figure>
+                <figure class="doc-figure">
+                    <img src="/utility/firstaid/images/fm4-25-11-fig4-1-fracture-types.png" alt="Diagram comparing a closed fracture with two types of open fracture" loading="lazy">
+                    <figcaption>Figure 4-1. Closed vs. open fracture types &mdash; what to look for before splinting.<span class="doc-figure-source">Source: FM 4-25.11, p. 91 (public domain)</span></figcaption>
+                </figure>
+                <figure class="doc-figure">
+                    <img src="/utility/firstaid/images/fm4-25-11-fig4-18-19-splints.png" alt="Diagrams of board splints applied to a fractured hip or thigh, and to a fractured or dislocated knee" loading="lazy">
+                    <figcaption>Figures 4-18/4-19. Board splints for a fractured hip/thigh and for a fractured or dislocated knee.<span class="doc-figure-source">Source: FM 4-25.11, p. 102 (public domain)</span></figcaption>
+                </figure>
+            </div>
+            <p class="radio-spectrum-caption">Not shown: recovery position &mdash; checked directly against the manual's text and it does not appear in FM 4-25.11, so no recovery-position diagram is included here rather than improvising one.</p>
+        </section>
+
         <div class="radio-search-bar">
             <input type="text" id="radioSearch" placeholder="Search: bleeding, choking, burn, cpr, poison, allergic reaction..." aria-label="Search first aid reference">
             <div class="radio-chip-row" id="radioChips" role="group" aria-label="Filter by category">

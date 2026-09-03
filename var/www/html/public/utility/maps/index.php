@@ -186,6 +186,14 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                                 </div>
                                 <p class="radio-spectrum-caption">Schematic concept diagram - the declination angle shown is illustrative, not a live figure for any specific location. PirateBox-authored, not copied from any map margin or third-party image.</p>
                             <?php endif; ?>
+                            <?php if ($t['id'] === 'reading-contour-lines'): ?>
+                                <div class="doc-figure-gallery">
+                                    <figure class="doc-figure" style="max-width:480px;">
+                                        <img src="/utility/maps/images/fm3-25-26-fig10-26-terrain-features.png" alt="Topographic map excerpt with contour lines, numbered to identify a hill, valley, ridge, saddle, depression, draw, spur, cliff, cut, and fill" loading="lazy">
+                                        <figcaption>Figure 10-26. Terrain features &mdash; the ten standard landforms a navigator learns to recognize from contour-line shape alone, on a real topographic map excerpt.<span class="doc-figure-source">Source: FM 3-25.26, <em>Map Reading and Land Navigation</em>, p. 120 (public domain)</span></figcaption>
+                                    </figure>
+                                </div>
+                            <?php endif; ?>
                             <?php if ($t['id'] === 'coordinate-formats'): ?>
                                 <div class="radio-spectrum-wrap">
                                     <?php require __DIR__ . '/utm-grid.svg.php'; ?>

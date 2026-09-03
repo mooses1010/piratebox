@@ -133,6 +133,22 @@
     ]
   },
   {
+    "id": "epa-emergency-disinfection-drinking-water",
+    "title": "Emergency Disinfection of Drinking Water",
+    "category": "emergency-firstaid",
+    "description": "EPA two-page fact sheet with specific bleach-dosing measurements (drops per quart/liter/gallon at two different bleach concentrations), a granular calcium hypochlorite (HTH) method, and an iodine tincture method for disinfecting water when boiling isn't possible - concrete dosing detail that complements rather than duplicates the existing CDC water-safety fact sheet, which covers methods at a higher level without exact measurements.",
+    "tags": ["water safety", "water disinfection", "bleach", "chlorine", "calcium hypochlorite", "iodine", "emergency water", "epa"],
+    "file": "epa-emergency-disinfection-drinking-water.pdf",
+    "file_type": "pdf",
+    "file_size": "737 KB",
+    "source": "U.S. Environmental Protection Agency (EPA), Office of Water",
+    "date_version": "EPA 816-F-15-003, September 2017",
+    "provenance_notes": "Source: https://www.epa.gov/sites/default/files/2015-07/documents/emergency_disinfection.pdf - retrieved 2026-09-02. EPA-authored public health fact sheet, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Deliberately re-evaluated (not auto-retained) against the already-retained CDC water-safety document by reading the actual text via pdftotext before deciding: this document adds specific actionable measurements the CDC sheet doesn't have (exact drops-per-volume bleach dosing at 6% and 8.25% concentrations, doubling guidance for cold/cloudy water, plus the HTH and iodine tincture alternative methods), so it is retained as a genuine complement, not a duplicate.",
+    "related_pages": [
+      {"url": "/utility/emergency/#water-storage-safety", "label": "Emergency: Water Storage & Boil-Water Advisories"}
+    ]
+  },
+  {
     "id": "fema-family-emergency-communication-plan",
     "title": "Family Emergency Communication Plan",
     "category": "emergency-firstaid",
