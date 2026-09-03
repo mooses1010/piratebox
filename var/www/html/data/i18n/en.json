@@ -90,5 +90,7 @@
   "landing.explore_desc": "A substantial offline knowledge library and toolkit - available any time, not just during an outage, and it works exactly the same with no Internet connection anywhere nearby.",
   "landing.explore.reference_title": "Offline Reference Library",
   "landing.explore.reference_desc": "Radio, maps, mechanical/electronics, materials, computing, field tools & more",
-  "landing.explore.more_link": "See everything this PirateBox can do →"
+  "landing.explore.more_link": "See everything this PirateBox can do →",
+  "help.trust_prefs_title": "Language and appearance choices stay with you, not on this device",
+  "help.trust_prefs_body": "Picking a visual theme saves one small preference in this browser's own local storage on this device only - it is never sent to this PirateBox at all, and disappears if you clear this browser's site data. Picking a language saves a similar small preference in a plain cookie, sent back to this PirateBox only so it knows which language to reply in - never shared with any other visitor, never linked to any account, because there is no account and no cookie tracks anything beyond that one setting."
 }

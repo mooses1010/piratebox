@@ -90,5 +90,7 @@
   "landing.explore_desc": "Una biblioteca de conocimiento y caja de herramientas sin conexión considerable - disponible en cualquier momento, no solo durante un corte de servicio, y funciona exactamente igual sin ninguna conexión a Internet cercana.",
   "landing.explore.reference_title": "Biblioteca de Referencia Sin Conexión",
   "landing.explore.reference_desc": "Radio, mapas, mecánica/electrónica, materiales, computación, herramientas de campo y más",
-  "landing.explore.more_link": "Ver todo lo que este PirateBox puede hacer →"
+  "landing.explore.more_link": "Ver todo lo que este PirateBox puede hacer →",
+  "help.trust_prefs_title": "Las preferencias de idioma y apariencia se quedan contigo, no en este dispositivo",
+  "help.trust_prefs_body": "Elegir un tema visual guarda una pequeña preferencia solo en el almacenamiento local de este navegador en este dispositivo - nunca se envía a este PirateBox, y desaparece si borras los datos del sitio en este navegador. Elegir un idioma guarda una preferencia similar en una simple cookie, enviada de vuelta a este PirateBox únicamente para que sepa en qué idioma responder - nunca se comparte con ningún otro visitante, nunca se vincula a ninguna cuenta, porque no existe ninguna cuenta y esa cookie no rastrea nada más allá de esa única configuración."
 }

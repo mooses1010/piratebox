@@ -103,6 +103,11 @@ $piratebox_locale = piratebox_get_locale();
             <h3><?= htmlspecialchars(piratebox_t('help.trust_content_title')) ?></h3>
             <p><?= htmlspecialchars(piratebox_t('help.trust_content_body')) ?></p>
         </div>
+
+        <div class="trust-item">
+            <h3><?= htmlspecialchars(piratebox_t('help.trust_prefs_title')) ?></h3>
+            <p><?= htmlspecialchars(piratebox_t('help.trust_prefs_body')) ?></p>
+        </div>
     </section>
 
     <section class="help-section">
