@@ -1,0 +1,49 @@
+# PirateBox: stable interface name for the external USB Wi-Fi AP adapter.
+#
+# STAGED, NOT YET INSTALLED. This file lives in the repo for review and
+# for the eventual migration step - it is not copied to
+# /etc/udev/rules.d/ by any current deploy/setup script. Installing it
+# (see docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md "Migration plan") is a
+# migration-time action, not a side effect of an ordinary deploy.
+#
+# Problem this solves: Linux assigns "wlan0"/"wlan1"/... in whatever
+# order interfaces enumerate, which depends on USB plug order and boot
+# timing - not something PirateBox should build its identity of "the
+# external AP radio" on. See docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md
+# "Stable ALFA identity" for the full reasoning, including why USB
+# serial number was rejected (this adapter reports a generic/blank
+# serial - "000000000" - confirmed live during the Hardware Validation
+# Round, not a per-unit identifier).
+#
+# What this matches: the MediaTek MT7612U chipset (USB VID:PID
+# 0e8d:7612) bound to the mainline mt76x2u driver - i.e. any adapter of
+# this exact chipset attached to this Pi, not a specific physical unit.
+# This is a deliberate choice, not an oversight: if this exact ALFA
+# AWUS036ACM dies and is replaced with another unit of the same model,
+# the replacement gets the same stable name automatically, with no
+# operator/udev-rule update required - the chipset itself, not a serial
+# number, is what PirateBox's radio-role logic (see
+# docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md "Radio role model") actually
+# cares about identifying. The tradeoff: this rule would equally rename
+# ANY MT7612U-based adapter plugged into this Pi, including one that
+# was never intended as the PirateBox AP - acceptable here because this
+# is single-purpose deployed hardware, not a general-purpose desktop,
+# and a second simultaneous MT7612U adapter is not a configuration this
+# project supports.
+#
+# Why match on driver+VID:PID and not just VID:PID: MediaTek chipsets
+# appear across many OEM products under multiple driver families;
+# restricting to the specific mt76x2u kernel driver (which was
+# confirmed bound live during hardware validation) avoids a coincidental
+# rename of an unrelated MediaTek-chipset device that happens to share
+# a USB ID range but uses a different driver.
+#
+# Privacy note: this rule names a piece of the operator's OWN AP
+# hardware for the PirateBox appliance's internal bookkeeping - it is
+# not visitor/client identification. It never touches, stores, or
+# reasons about the MAC address of any device that associates to the
+# AP. That distinction matters and is kept: see this project's existing
+# rule against persisting visitor MAC addresses (docs/
+# DEVICE-MEMORY-DESIGN.md, tools/backup_piratebox_data.sh) - unaffected
+# by this file.
+SUBSYSTEM=="net", ACTION=="add", DRIVERS=="mt76x2u", ATTRS{idVendor}=="0e8d", ATTRS{idProduct}=="7612", NAME="pb-ap"

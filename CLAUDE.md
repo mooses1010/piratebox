@@ -141,7 +141,7 @@ error by itself, just a prompt to do the same file-level check.
 | Field Tools (time/date, unit conversion, coordinates) | `docs/FIELD-TOOLS-DESIGN.md` |
 | Travel Mode | `docs/TRAVEL-MODE-DESIGN.md` |
 | Voluntary check-in board (evaluated, deferred) | `docs/CHECKIN-BOARD-DESIGN.md` |
-| Wi-Fi / AP adapter / networking notes | `docs/OPERATIONAL-DECISIONS.md` → "Wi-Fi adapter notes / planned hardware" (grep for the heading; no standalone file yet) |
+| Wi-Fi / AP adapter / external-AP migration architecture | **`docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md`** - stable interface identity, radio role model, boot fallback, NetworkManager ownership, regulatory domain, migration/rollback plan. Earlier history: `docs/OPERATIONAL-DECISIONS.md` → "Wi-Fi adapter notes / planned hardware" (grep for the heading). |
 | Deployment mechanism (repo → live) | `piratebox_deploy.sh` header comments + `docs/OPERATIONAL-DECISIONS.md` → "Claude deployment/mode-switch automation" |
 | Backup / restore of live community data | `tools/backup_piratebox_data.sh`, `tools/restore_piratebox_data.sh` header comments + `docs/OPERATIONAL-DECISIONS.md` → "Stage 25: Backup / Restore for Live Community Data" |
 | Known-good rollback points | `docs/CHECKPOINTS.md` |

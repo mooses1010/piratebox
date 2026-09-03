@@ -181,6 +181,63 @@ cs_assert_eq(
 );
 cs_assert_eq('storage state reads real values against this environment (no open_basedir here)', $caps['storage']['state'], 'AVAILABLE');
 
+// --- piratebox_classify_visitor_ap_provider: External AP Architecture
+// Round. Pure/synthetic - no hardware, no live iw/ALFA required, per
+// that round's instruction not to falsify hardware tests in software:
+// these test the CLASSIFICATION logic only, fed already-detected
+// (real-or-fake) helper output - never claim the ALFA itself was
+// exercised. -----------------------------------------------------------
+
+cs_assert_eq(
+    'Helper unavailable -> UNKNOWN regardless of any field values',
+    piratebox_classify_visitor_ap_provider(false, 'wlan0', 'onboard', false),
+    ['state' => 'UNKNOWN', 'label' => 'unknown']
+);
+
+cs_assert_eq(
+    "Today's production reality: onboard wlan0 active -> AVAILABLE, labeled onboard",
+    piratebox_classify_visitor_ap_provider(true, 'wlan0', 'onboard', false),
+    ['state' => 'AVAILABLE', 'label' => 'onboard Wi-Fi (wlan0)']
+);
+
+cs_assert_eq(
+    'Future post-migration reality: pb-ap active -> AVAILABLE, labeled external',
+    piratebox_classify_visitor_ap_provider(true, 'pb-ap', 'external', false),
+    ['state' => 'AVAILABLE', 'label' => 'external AWUS036ACM (pb-ap)']
+);
+
+cs_assert_eq(
+    'No AP-mode interface found at all -> DEGRADED, never a fabricated AVAILABLE',
+    piratebox_classify_visitor_ap_provider(true, null, 'none', false),
+    ['state' => 'DEGRADED', 'label' => 'no visitor AP interface active']
+);
+
+cs_assert_eq(
+    'Multiple AP-mode interfaces flagged by the helper -> DEGRADED even if interface/provider look fine',
+    piratebox_classify_visitor_ap_provider(true, 'pb-ap', 'external', true),
+    ['state' => 'DEGRADED', 'label' => 'multiple AP-mode interfaces detected - unsupported configuration']
+);
+
+cs_assert_eq(
+    'Malformed/missing provider string with a real interface -> DEGRADED, not guessed AVAILABLE',
+    piratebox_classify_visitor_ap_provider(true, 'wlan0', null, false),
+    ['state' => 'DEGRADED', 'label' => 'no visitor AP interface active']
+);
+
+// ap_network's live detail carries the new provider sub-classification
+// alongside the unchanged top-level state - present and never throws,
+// regardless of whether the live status.json this environment happens
+// to have already has a "visitor_ap" block (it does once
+// piratebox_status_helper.sh's staged change is actually reinstalled -
+// see docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md; until then, an older
+// live status.json simply lacks the key, and the ??-null fallbacks
+// above correctly classify that as DEGRADED/"no visitor AP interface
+// active" rather than crashing or fabricating AVAILABLE - both are
+// valid, honest outcomes depending on what's actually deployed, so this
+// only checks shape/presence, not a specific value).
+cs_assert_eq('ap_network.detail.provider is present on the live capability entry', isset($caps['ap_network']['detail']['provider']['state']), true);
+cs_assert_eq('ap_network.detail.provider.state is always one of the real vocabulary values, live', in_array($caps['ap_network']['detail']['provider']['state'], ['AVAILABLE', 'DEGRADED', 'UNKNOWN'], true), true);
+
 echo "Capability state tests: $passCount passed, " . count($failures) . " failed.\n";
 if ($failures) {
     echo "\nFAILURES:\n";

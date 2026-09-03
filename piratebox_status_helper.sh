@@ -57,15 +57,65 @@ CONN_STATS_FILE="/var/www/html/data/connection-stats.json"
 mkdir -p "$OUT_DIR"
 chmod 0755 "$OUT_DIR"
 
-# --- Wi-Fi client count (associated stations on wlan0) ---
+# --- Visitor AP interface: auto-detected, not hardcoded -----------------
+# External AP Architecture Round (2026-09-03): PirateBox may in the
+# future serve visitors from either the onboard wlan0 or the external
+# AWUS036ACM (stable name "pb-ap" once etc/udev/rules.d/
+# 99-piratebox-external-ap.rules is installed - see
+# docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md). Rather than keep a separate
+# "which one is active" config file that could drift from reality, this
+# asks the kernel directly, every poll: whichever interface `iw dev`
+# currently reports as `type AP` IS the visitor AP, full stop. This is
+# the same principle as the rest of this script (read real state, don't
+# assume) and means connection statistics automatically follow a future
+# migration with no code change and no coordination file to keep in
+# sync - see that design doc's "Connection statistics" section.
+#
+# Today, only wlan0 is ever brought up in AP mode, so this resolves to
+# exactly wlan0 - byte-identical behavior to before this change.
+visitor_ap_iface=""
+visitor_ap_provider="none"
+visitor_ap_multiple_warning=false
+if command -v iw >/dev/null 2>&1; then
+    ap_ifaces=$(iw dev 2>/dev/null | awk '
+        /^phy#/ { iface="" }
+        /^[ \t]*Interface / { iface=$2 }
+        /^[ \t]*type AP$/ { if (iface != "") print iface }
+    ')
+    ap_iface_count=$(printf '%s\n' "$ap_ifaces" | grep -c . || true)
+    if [ "$ap_iface_count" -eq 1 ]; then
+        visitor_ap_iface="$ap_ifaces"
+    elif [ "$ap_iface_count" -gt 1 ]; then
+        # Not a supported configuration (this project runs exactly one
+        # visitor AP at a time) - prefer the external radio if it's one
+        # of the AP-mode interfaces found, since a future migration
+        # step bringing pb-ap up is expected to take wlan0 down first,
+        # and if both are somehow up simultaneously that's the more
+        # actionable radio to report against. Flag it either way so
+        # this anomaly is visible rather than silently picking one.
+        visitor_ap_multiple_warning=true
+        if printf '%s\n' "$ap_ifaces" | grep -qx "pb-ap"; then
+            visitor_ap_iface="pb-ap"
+        else
+            visitor_ap_iface=$(printf '%s\n' "$ap_ifaces" | head -n1)
+        fi
+    fi
+    if [ "$visitor_ap_iface" = "pb-ap" ]; then
+        visitor_ap_provider="external"
+    elif [ -n "$visitor_ap_iface" ]; then
+        visitor_ap_provider="onboard"
+    fi
+fi
+
+# --- Wi-Fi client count (associated stations on the visitor AP) ---
 # current_stations holds this poll's raw MAC list, sorted - needed
 # transiently below to detect new associations. It is never written
 # anywhere except the tmpfs scratch file that immediately replaces the
 # previous poll's copy.
 current_stations=""
 wifi_clients=0
-if command -v iw >/dev/null 2>&1 && ip link show wlan0 >/dev/null 2>&1; then
-    current_stations=$(iw dev wlan0 station dump 2>/dev/null | awk '/^Station/ {print $2}' | sort)
+if [ -n "$visitor_ap_iface" ]; then
+    current_stations=$(iw dev "$visitor_ap_iface" station dump 2>/dev/null | awk '/^Station/ {print $2}' | sort)
     wifi_clients=$(printf '%s\n' "$current_stations" | grep -c . || true)
 fi
 
@@ -369,6 +419,11 @@ cat > "$TMP_FILE" <<EOF
   },
   "hardware": {
     "oled_service_active": $(json_bool "$oled_service_state")
+  },
+  "visitor_ap": {
+    "interface": $([ -n "$visitor_ap_iface" ] && echo "\"$visitor_ap_iface\"" || echo null),
+    "provider": "$visitor_ap_provider",
+    "multiple_ap_interfaces_warning": $visitor_ap_multiple_warning
   }
 }
 EOF

@@ -6,6 +6,104 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## External AP Architecture + Production Migration Readiness Round
+
+**Decision date:** 2026-09-03, immediately following the AWUS036ACM
+Hardware Validation Round (`9d573f6`). Full design and staged
+implementation in `docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md` - this
+entry is a summary/index, not a duplicate of that document's content.
+
+**Scope:** architecture and migration-readiness only. **`wlan0` remains
+the production PirateBox AP throughout this round** - nothing here
+switches it, and the round was explicitly instructed not to.
+
+**What this round produced, all staged/committed but not installed,
+enabled, or executed against production:**
+- `etc/udev/rules.d/99-piratebox-external-ap.rules` - stable `pb-ap`
+  naming for the AWUS036ACM, matched on driver (`mt76x2u`) + USB
+  VID:PID (`0e8d:7612`), not enumeration order or USB serial (this
+  adapter's serial is generic/blank). A same-model replacement unit
+  qualifies automatically - a deliberate choice, not an oversight.
+- `etc/NetworkManager/conf.d/99-piratebox.conf` - brought into version
+  control for the first time (it existed live-only, untracked,
+  throughout this project's history) and extended to exclude `pb-ap`
+  alongside the existing `wlan0` exclusion, ahead of any migration.
+- `piratebox_status_helper.sh` - connection statistics now
+  auto-detect whichever interface is actually in `type AP` state
+  (verified live: resolves to `wlan0` today, byte-identical to
+  before), instead of hardcoding `wlan0`. This is the one and only
+  place in the codebase that ever did a raw interface-named `iw
+  station dump` - every other consumer (OLED, admin, status page,
+  `capability_state.php`) only ever reads the resulting integer, so
+  fixing this one call site was sufficient for the whole chain.
+- `includes/capability_state.php` - new `piratebox_classify_visitor_
+  ap_provider()` (pure, tested) and `ap_network.detail.provider`,
+  reporting which radio is currently serving without changing the
+  public-facing summary or the existing top-level `ap_network` state
+  semantics.
+- `tools/piratebox_radio_select.sh` - staged boot-time decision script
+  (external if `pb-ap` present and not rfkilled, else onboard);
+  deliberately does not itself touch hostapd/dnsmasq, and is not wired
+  to any systemd unit. Runtime (post-boot) automatic fallback was
+  explicitly scoped OUT of this round as a later stage - the risk of
+  two DHCP/AP instances racing, or flapping on a marginal USB
+  connection, needs its own soak-backed design, not a boot-time
+  script's worth of logic.
+- `tools/migrate_visitor_ap_to_alfa.sh` / `tools/
+  rollback_visitor_ap_to_onboard.sh` - the actual migration, written in
+  full (preflight checks, backup, interface= rewrite in `hostapd.conf`/
+  `dnsmasq.conf` only, live verification) but gated behind an explicit
+  environment-variable confirmation plus an interactive prompt, so it
+  cannot run by accident or by a future session mistaking "staged" for
+  "approved."
+
+**A real, pre-existing bug found during this round, unrelated to
+anything this round introduced:** `/boot/firmware/cmdline.txt` already
+contains `cfg80211.ieee80211_regdom=UM` - not `US`. `UM` (US Minor
+Outlying Islands) is a real ISO 3166 code but has no entry in
+`wireless-regdb`'s actual database, so the kernel silently falls back
+to the generic `world`/`00` regulatory domain - confirmed live via
+`iw reg get` still reading `country 00` despite the kernel command line
+naming a country. This fully explains why every 5GHz channel showed
+`(no IR)` during the Hardware Validation Round. Not fixed here - it's a
+boot-configuration file, squarely an operator action - exact commands
+are in `docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md` "Regulatory domain."
+
+**Band/antenna strategy, decided:** 2.4GHz stays the default/primary
+band even after a future migration (phone compatibility, range,
+emergency/public accessibility, and this Pi's own USB2 bottleneck all
+point the same way) - 5GHz is documented as a legitimate optional
+future profile, not a default, and is blocked anyway until the
+regulatory-domain bug above is fixed. The two stock ALFA dual-band
+antennas stay the production candidate baseline; the operator's single
+ARS-N19 (2.4GHz-only, unmatched) stays explicitly excluded, per
+instruction.
+
+**Power-aware migration gate, defined but not run:** extended
+multi-hour soak, multiple simultaneous clients, sustained (not
+synthetic-stress) traffic, continuous USB/power/SD error monitoring
+across that whole window - see the design doc's own section 8 for the
+full bar. The known `0x50005` condition is unchanged, unsolved, and not
+attempted this round, exactly as instructed.
+
+**Regression:** 305/305 → **313/313** (8 new synthetic tests for the
+new classification logic, no hardware/live ALFA required to run them).
+Catalog unchanged at 42/42 (no content work this round).
+
+**Implementation boundary honored:** no production `hostapd`/
+`dnsmasq`/`dhcpcd` file was edited live. No permanent or temporary
+ALFA AP was enabled (correctly - the previous round's isolated test AP
+was already torn down before this round began). `piratebox_status_
+helper.sh`'s live reinstall was written up as backward-compatible and
+low-risk but deliberately not performed - treated as an operator-gated
+system-file install regardless of how safe the diff is.
+
+**Exact operator gate for eventual migration:** see `docs/
+EXTERNAL-AP-ARCHITECTURE-DESIGN.md`'s own closing section - in short,
+fix the regulatory domain, install the two staged system files, satisfy
+the power-aware gate, then explicitly run the staged (confirmation-
+gated) migration script. Do not begin without the operator saying so.
+
 ## AWUS036ACM Hardware Validation Round
 
 **Decision date:** 2026-09-03, following Round 9's post-power-outage

@@ -61,7 +61,7 @@ it is.**
 | Built-in `wlan0` (production AP) | Core | INSTALLED, CURRENT SCOPE | Integrated |
 | TP-Link TL-WN722N v2/v3 | - | INSTALLED (physically present); REJECTED as AP candidate | Attachable |
 | ALFA AWUS036NHA (AR9271) | - | REJECTED as AP candidate (never purchased) | n/a |
-| ALFA AWUS036ACM (MT7612U) | Core (if adopted) | INSTALLED (evaluation) - hardware/driver/AP-association VALIDATED (3x proven WPA2 handshake, live station confirmed); not yet the production AP | Attachable today; would become semi-permanent if adopted |
+| ALFA AWUS036ACM (MT7612U) | Core (if adopted) | INSTALLED (evaluation) - hardware/driver/AP-association VALIDATED; migration architecture/readiness designed and staged (stable `pb-ap` naming, role model, migration+rollback scripts) but NOT installed/enabled; still not the production AP | Attachable today; would become semi-permanent if adopted |
 | ALFA ARS-N19 antenna | Core (if AWUS036ACM adopted) | OWNED / INCOMING (operator-asserted this session - see note) | Attachable |
 | GPIO25 shutdown button | Core | INSTALLED, CURRENT SCOPE | Integrated |
 | Toggle switch (Normal/Emergency, GPIO17) | Operational | OWNED / INCOMING | Integrated (planned) |
@@ -174,6 +174,19 @@ it is.**
   production AP - `wlan0` continues in that role.** See
   `docs/OPERATIONAL-DECISIONS.md` "AWUS036ACM Hardware Validation
   Round" for the full evidence.
+- **Migration architecture/readiness (2026-09-03, External AP
+  Architecture + Production Migration Readiness Round):** a stable
+  interface identity (`pb-ap`, udev rule matching driver+VID:PID - see
+  `docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md` "Stable ALFA identity"),
+  radio role model, boot-time fallback design, NetworkManager
+  ownership fix, regulatory-domain findings (a real pre-existing
+  `UM`/`US` typo in `/boot/firmware/cmdline.txt`, unrelated to but
+  found during this work), band/antenna strategy, a power-aware
+  migration gate, and a full migration+rollback plan are all designed
+  and staged - **none installed, enabled, or executed.** `wlan0`
+  remains production. See that document in full, especially its "Exact
+  operator gate for eventual migration" section, before treating any of
+  this as ready to run.
 - **Identity, confirmed live (not assumed from the purchase):** USB ID
   `0e8d:7612` (MediaTek Inc. MT7612U 802.11a/b/g/n/ac Wireless
   Adapter), enumerates as `wlan1` on this Pi today. USB2 480M

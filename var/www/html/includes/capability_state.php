@@ -60,6 +60,44 @@ if (!function_exists('piratebox_classify_service_pair')) {
     }
 }
 
+if (!function_exists('piratebox_classify_visitor_ap_provider')) {
+    /**
+     * Pure, directly testable - see piratebox_classify_service_pair().
+     *
+     * External AP Architecture Round (2026-09-03): PirateBox's visitor
+     * AP may in the future be served by either the onboard radio
+     * ("onboard", wlan0) or the external AWUS036ACM ("external", stable
+     * name "pb-ap" - see etc/udev/rules.d/99-piratebox-external-ap.rules
+     * and docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md). $interface/$provider
+     * come from piratebox_status_helper.sh's own live `iw dev` detection
+     * (status.json's "visitor_ap" block) - this function only classifies
+     * what the helper already found, it does not itself touch hardware.
+     *
+     * Returns ['state' => ..., 'label' => ...] rather than a bare string
+     * because, unlike the other classify_* functions here, the right
+     * operator-facing label genuinely depends on which provider is
+     * active - useful admin/OLED detail (docs/
+     * EXTERNAL-AP-ARCHITECTURE-DESIGN.md "Status/OLED/admin"), not shown
+     * to public/unauthenticated pages.
+     */
+    function piratebox_classify_visitor_ap_provider(bool $helperAvailable, ?string $interface, ?string $provider, ?bool $multipleWarning): array
+    {
+        if (!$helperAvailable) {
+            return ['state' => 'UNKNOWN', 'label' => 'unknown'];
+        }
+        if ($multipleWarning === true) {
+            return ['state' => 'DEGRADED', 'label' => 'multiple AP-mode interfaces detected - unsupported configuration'];
+        }
+        if ($provider === 'external' && $interface !== null) {
+            return ['state' => 'AVAILABLE', 'label' => "external AWUS036ACM ($interface)"];
+        }
+        if ($provider === 'onboard' && $interface !== null) {
+            return ['state' => 'AVAILABLE', 'label' => "onboard Wi-Fi ($interface)"];
+        }
+        return ['state' => 'DEGRADED', 'label' => 'no visitor AP interface active'];
+    }
+}
+
 if (!function_exists('piratebox_classify_power')) {
     /** Pure, directly testable - see piratebox_classify_service_pair(). */
     function piratebox_classify_power(bool $helperAvailable, ?bool $undervoltageNow): string
@@ -187,13 +225,30 @@ if (!function_exists('piratebox_get_capability_state')) {
 
         // --- Core ---------------------------------------------------------
 
+        // 'state' stays exactly what it always was (hostapd+dnsmasq
+        // active) - the visitor AP capability itself doesn't become any
+        // less "Core" depending on which physical radio serves it.
+        // 'detail.provider' is additional, optional detail about WHICH
+        // radio - see piratebox_classify_visitor_ap_provider() above and
+        // docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md "Status/OLED/admin".
+        // Today this always classifies to onboard/wlan0 - no behavior
+        // change yet, since production hasn't migrated.
+        $visitorAp = $helperAvailable ? ($status['visitor_ap'] ?? null) : null;
         $capabilities['ap_network'] = [
             'layer' => 'core',
             'core_dependency' => true,
             'label' => 'Wi-Fi access point',
             'state' => piratebox_classify_service_pair($helperAvailable, $status['services']['hostapd'] ?? null, $status['services']['dnsmasq'] ?? null),
             'stale' => $helperStale,
-            'detail' => ['wifi_clients' => $helperAvailable ? ($status['wifi_clients'] ?? null) : null],
+            'detail' => [
+                'wifi_clients' => $helperAvailable ? ($status['wifi_clients'] ?? null) : null,
+                'provider' => piratebox_classify_visitor_ap_provider(
+                    $helperAvailable,
+                    $visitorAp['interface'] ?? null,
+                    $visitorAp['provider'] ?? null,
+                    $visitorAp['multiple_ap_interfaces_warning'] ?? null
+                ),
+            ],
         ];
 
         $capabilities['web_app'] = [
