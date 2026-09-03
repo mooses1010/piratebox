@@ -456,3 +456,22 @@ INSTALLED (8)," computed live; live search index confirmed at 178
 entries. `tools/check_library_catalog.py` clean (8/8). Zero failed
 units. Full five-suite regression: 287/287.
 
+| QR order fix, Document Library round 2 (4 new documents), Related Documents completeness audit, EPA redundancy deferral | `6c25dea` | *(none taken under the usual `~/piratebox-backups/` naming - built across 4 commits on an isolated worktree branch; the operator fast-forward merged `worktree-deep-library-continue8` into `main` and ran the deploy directly, then approved and installed poppler-utils)* |
+
+**Deployed and live-verified 2026-09-02:** `main`/HEAD confirmed at
+`6c25dea`, tree clean. Live `includes/VERSION` stamped to `6c25dea`,
+matching `HEAD`. QR order confirmed live: `qr-wifi.png` renders before
+`qr-url.png` in the page source, with "Connect to the...Wi-Fi" and
+"Open PirateBox" captions both present; canonical `http://piratebox/`
+payload unchanged. All 4 newly retained documents (FM 3-25.26, NTIA
+frequency chart, OSHA electrical safety, UK Preparing for Emergencies)
+confirmed downloadable (200, `application/pdf`) and each one's
+category-level cross-link confirmed live on Maps, Radio, Field Tools
+Units, and Emergency respectively. `tools/check_library_catalog.py`
+clean (12/12). Live search index at 182 entries. About page correctly
+shows "Document Library: INSTALLED (12)", computed live. Zero failed
+units. Full five-suite regression: 287/287. Separately: `pdfinfo`/
+`pdftotext`/`pdfimages` (poppler-utils 25.03.0) confirmed installed
+and working - the standing tooling blocker on first-aid/land-nav
+diagram extraction is closed.
+
