@@ -718,3 +718,45 @@ documents, ~281 MB - the two new OSHA QuickCards are small enough not
 to move the rounded total). Merge/deploy and live re-verification
 recorded immediately below, in the same session.
 
+**Closing this out (2026-09-03): round 7 WAS merged and deployed, with
+full post-merge live re-verification, in the same session.** The
+operator ran the merge and deploy by hand from the primary checkout
+(this pass's own worktree isolation could not reach it) -
+`git merge --ff-only worktree-round7` (`19a4e01` -> `7fad203`, no
+divergence, no conflicts), then `sudo /usr/local/bin/
+piratebox_deploy.sh`, then a manual install of the updated OLED daemon
+(`sudo install` + `systemctl restart piratebox-oled.service`). A
+follow-up session then independently verified the result rather than
+trusting the operator's report at face value: live
+`/var/www/html/includes/VERSION` reads
+`7fad203efe49c6930be4d16bd204dcc372aabf82`, matching `HEAD` exactly
+(the operator had first checked the wrong path, `/var/www/html/
+VERSION`, which has never existed in this project - the real location
+is `includes/VERSION`, confirmed against this file's own §1 in the
+project's `CLAUDE.md`). Byte-compared 18 round-7 files (the OLED
+daemon, all 3 new PHP pages, catalog.json, search-index.json, both
+i18n dictionaries, all 6 mechanical/electronics/materials data files,
+radio guides/sources, both new OSHA PDFs, and 4 figure images) between
+repo and live paths - **zero deployment drift**. Full five-suite
+regression re-run post-deploy: 287/287. `tools/
+check_library_catalog.py`: 40/40. Homepage, `/utility/`, `/utility/
+mechanical/`, `/utility/electronics/`, `/utility/materials/`, both new
+OSHA PDFs, and the lever figure all confirmed 200 via the real nginx/
+php-fpm stack; Materials page content and its Document Library
+cross-link to the NIOSH entry confirmed rendering. OLED daemon
+confirmed byte-identical live, and its journal showed the old process
+stopping cleanly via SIGTERM and the new one starting clean, with its
+own startup log line now announcing the personality-mode feature -
+direct proof the new code is what's actually running. All four Core
+services (hostapd/dnsmasq/nginx/php8.4-fpm) plus
+`piratebox-oled.service` and `piratebox-button.service` confirmed
+active and enabled, zero failed units. `vcgencmd get_throttled` still
+reads `0x50005` with `undervoltage_now: true` in `status.json` -
+unchanged, confirming round 7 neither caused nor worsened the
+pre-existing, already-acknowledged power condition. The worktree and
+its branch were then removed (`ExitWorktree`, after independently
+confirming `main`, `worktree-round7`, and `HEAD` were all identical at
+`7fad203` - no work was at risk) - `git worktree list` and `git branch
+--list` both confirmed clean afterward. `main` left clean with no
+uncommitted changes.
+
