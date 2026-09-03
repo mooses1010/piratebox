@@ -3672,6 +3672,23 @@
     ]
   },
   {
+    "title": "Multimeter & Measurement Basics",
+    "section": "fieldtools",
+    "section_label": "Field Tools",
+    "url": "/utility/fieldtools/units/",
+    "snippet": "Continuity, DC voltage, resistance, and current measurement basics, with a labeled VOM diagram - not a live/mains-circuit procedure.",
+    "keywords": [
+      "multimeter",
+      "vom",
+      "volt-ohm-milliammeter",
+      "continuity",
+      "voltage measurement",
+      "resistance measurement",
+      "test equipment",
+      "electrical measurement"
+    ]
+  },
+  {
     "title": "Coordinate Converter",
     "section": "fieldtools",
     "section_label": "Field Tools",
