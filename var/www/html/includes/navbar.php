@@ -5,6 +5,7 @@
 // need the mode (e.g. index.php) also require it themselves - PHP's
 // require_once guards against loading it twice.
 require_once __DIR__ . '/mode.php';
+require_once __DIR__ . '/i18n.php';
 $piratebox_mode = piratebox_get_mode();
 
 // Same six links/targets in both modes - only the ORDER changes, so
@@ -16,20 +17,22 @@ if ($piratebox_mode === PIRATEBOX_MODE_EMERGENCY) {
     $navOrder = ['files', 'upload', 'chat', 'messages', 'bulletin', 'help', 'utility'];
 }
 
+// Labels are translated (see includes/i18n.php); hrefs/badge IDs are
+// not - those are structural, not language-dependent.
 $navItems = [
-    'files'    => '<a href="/">Files</a>',
-    'upload'   => '<a href="/#upload-form">Upload</a>',
-    'chat'     => '<a href="/chat.php">Chat<span id="badge-chat" class="badge"></span></a>',
-    'messages' => '<a href="/messages.php">Logbook<span id="badge-messages" class="badge"></span></a>',
-    'bulletin' => '<a href="/bulletin.php">Bulletin<span id="badge-bulletin" class="badge"></span></a>',
-    'help'     => '<a href="/help.php">Help</a>',
-    'utility'  => '<a href="/utility/">Utility</a>',
+    'files'    => '<a href="/">' . htmlspecialchars(piratebox_t('nav.files')) . '</a>',
+    'upload'   => '<a href="/#upload-form">' . htmlspecialchars(piratebox_t('nav.upload')) . '</a>',
+    'chat'     => '<a href="/chat.php">' . htmlspecialchars(piratebox_t('nav.chat')) . '<span id="badge-chat" class="badge"></span></a>',
+    'messages' => '<a href="/messages.php">' . htmlspecialchars(piratebox_t('nav.messages')) . '<span id="badge-messages" class="badge"></span></a>',
+    'bulletin' => '<a href="/bulletin.php">' . htmlspecialchars(piratebox_t('nav.bulletin')) . '<span id="badge-bulletin" class="badge"></span></a>',
+    'help'     => '<a href="/help.php">' . htmlspecialchars(piratebox_t('nav.help')) . '</a>',
+    'utility'  => '<a href="/utility/">' . htmlspecialchars(piratebox_t('nav.utility')) . '</a>',
 ];
 ?>
 <?php if ($piratebox_mode === PIRATEBOX_MODE_EMERGENCY): ?>
     <div class="mode-banner">
         <div class="help-note">
-            <p><strong>Emergency Mode</strong> - this is a local offline network. No Internet access is required or provided.</p>
+            <p><strong><?= htmlspecialchars(piratebox_t('emergency.banner_title')) ?></strong> - <?= htmlspecialchars(piratebox_t('emergency.banner_text')) ?></p>
         </div>
     </div>
 <?php endif; ?>
@@ -43,5 +46,6 @@ $navItems = [
         <?php foreach ($navOrder as $key): ?>
             <li><?= $navItems[$key] ?></li>
         <?php endforeach; ?>
+        <li><?= piratebox_render_language_switcher() ?></li>
     </ul>
 </nav>

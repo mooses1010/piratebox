@@ -688,6 +688,59 @@ img,
     color: #8c8dff;
 }
 
+/* Trust statement (2026-09-03) - deliberately understated: a footer
+   line, not a banner. Same muted footer color/weight as everything
+   else here, just a quiet link through to the fuller Trust &
+   Transparency section on the Help page - see docs/OPERATIONAL-
+   DECISIONS.md "Trust/Transparency Statement" for why this exists and
+   why it stays this small. */
+.site-footer .footer-trust {
+    margin-top: 0.5rem;
+    opacity: 0.85;
+}
+
+.site-footer .footer-trust a {
+    text-decoration: none;
+}
+
+.site-footer .footer-trust a:hover {
+    text-decoration: underline;
+}
+
+/* Language switcher (2026-09-03) - lightweight multilingual foundation,
+   see includes/i18n.php. Small and unobtrusive in the nav, both
+   options always visible so returning to English is always one click,
+   never hidden behind a menu keyed to the current language. */
+.lang-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    color: #606085;
+    padding: 0.4rem 0.6rem;
+}
+
+.lang-switcher a {
+    color: #8c8dff;
+}
+
+.lang-switcher .lang-current {
+    color: #e8e8f0;
+    font-weight: 600;
+}
+
+/* Help page: Trust & Transparency section reuses .help-section's own
+   layout - no new section-level styling needed, just labeled subheads
+   inside it. */
+.trust-item {
+    margin-bottom: 1.25rem;
+}
+
+.trust-item h3 {
+    margin-bottom: 0.25rem;
+    font-size: 1rem;
+}
+
 /* Help / About page */
 .help-section {
     max-width: 700px;

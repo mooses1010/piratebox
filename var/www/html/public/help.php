@@ -3,11 +3,13 @@ declare(strict_types=1);
 session_start();
 require_once __DIR__ . '/../includes/mode.php';
 require_once __DIR__ . '/../includes/device_id.php';
+require_once __DIR__ . '/../includes/i18n.php';
 $piratebox_mode = piratebox_get_mode();
 $piratebox_device_id = piratebox_get_device_id();
+$piratebox_locale = piratebox_get_locale();
 ?>
 <!doctype html>
-<html lang="en">
+<html lang="<?= htmlspecialchars($piratebox_locale) ?>">
 
 <head>
     <meta charset="utf-8">
@@ -27,13 +29,13 @@ $piratebox_device_id = piratebox_get_device_id();
     </section>
 
     <section class="help-section">
-        <h2>Connect</h2>
+        <h2><?= htmlspecialchars(piratebox_t('help.connect_heading')) ?></h2>
         <ol class="help-steps">
-            <li>Join the Wi-Fi network named <strong>"PirateBox"</strong>. It's open - no password.</li>
-            <li>If a "sign in to network" page appears, open it.</li>
-            <li>If nothing opens automatically, open any web browser and type in the address:
+            <li><?= htmlspecialchars(piratebox_t('help.connect_step1')) ?></li>
+            <li><?= htmlspecialchars(piratebox_t('help.connect_step2')) ?></li>
+            <li><?= htmlspecialchars(piratebox_t('help.connect_step3')) ?>
                 <br><span class="help-url">http://piratebox/</span>
-                <br><span class="muted">If that doesn't open, try <span class="help-url">http://10.0.0.1/</span></span>
+                <br><span class="muted"><?= htmlspecialchars(piratebox_t('help.connect_step3_fallback')) ?> <span class="help-url">http://10.0.0.1/</span></span>
             </li>
         </ol>
 
@@ -66,6 +68,41 @@ $piratebox_device_id = piratebox_get_device_id();
             </table>
         </div>
         <p class="muted">If a "sign in to network" page didn't appear automatically, see the Android/Samsung and Apple/Windows/Linux notes below for what to do.</p>
+    </section>
+
+    <section class="help-section" id="trust">
+        <h2><?= htmlspecialchars(piratebox_t('help.trust_heading')) ?></h2>
+        <p><?= htmlspecialchars(piratebox_t('help.trust_intro')) ?></p>
+
+        <div class="trust-item">
+            <h3><?= htmlspecialchars(piratebox_t('help.trust_no_https_title')) ?></h3>
+            <p><?= htmlspecialchars(piratebox_t('help.trust_no_https_body')) ?></p>
+        </div>
+
+        <div class="trust-item">
+            <h3><?= htmlspecialchars(piratebox_t('help.trust_no_cloud_title')) ?></h3>
+            <p><?= htmlspecialchars(piratebox_t('help.trust_no_cloud_body')) ?></p>
+        </div>
+
+        <div class="trust-item">
+            <h3><?= htmlspecialchars(piratebox_t('help.trust_captive_title')) ?></h3>
+            <p><?= htmlspecialchars(piratebox_t('help.trust_captive_body')) ?></p>
+        </div>
+
+        <div class="trust-item">
+            <h3><?= htmlspecialchars(piratebox_t('help.trust_stats_title')) ?></h3>
+            <p><?= htmlspecialchars(piratebox_t('help.trust_stats_body')) ?></p>
+        </div>
+
+        <div class="trust-item">
+            <h3><?= htmlspecialchars(piratebox_t('help.trust_id_title')) ?></h3>
+            <p><?= htmlspecialchars(piratebox_t('help.trust_id_body')) ?></p>
+        </div>
+
+        <div class="trust-item">
+            <h3><?= htmlspecialchars(piratebox_t('help.trust_content_title')) ?></h3>
+            <p><?= htmlspecialchars(piratebox_t('help.trust_content_body')) ?></p>
+        </div>
     </section>
 
     <section class="help-section">

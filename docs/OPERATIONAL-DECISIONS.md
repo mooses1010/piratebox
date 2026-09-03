@@ -6,6 +6,87 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Trust/Transparency Statement + Lightweight Multilingual Foundation
+
+**Decision date:** 2026-09-03. Two small, bounded site-level additions
+made alongside Reference Library Round 6, per explicit instruction not
+to let them become their own projects or displace the library work.
+
+**Trust statement:** a stranger joining an unfamiliar open Wi-Fi
+network has reasonable cause to wonder what it's actually doing.
+Added a short, subtle line to the shared footer (`includes/
+footer.php`, shown on every page) - "**Nothing up our sleeve.** This
+box does what it says, and nothing behind your back." - linking to a
+new "Trust & Transparency" section on the Help page
+(`help.php#trust`). Deliberately NOT a banner or a security-scare
+disclaimer - same muted styling as the rest of the footer.
+
+**Every claim in that section was verified against this device's
+actual configuration before being written, not assumed from the
+desired architecture:**
+- *No HTTPS/encryption interception* - confirmed no `ssl_certificate`
+  or port-443 config anywhere in nginx; this device literally never
+  terminates TLS, so there's no cert to install and no way for it to
+  inspect encrypted traffic. Matches the existing Android/Samsung help
+  note ("you do not need to install any certificate").
+- *No cloud account* - architecturally true by construction (no
+  external API calls anywhere in the codebase for core functionality).
+- *Captive-portal redirect is local-only* - confirmed
+  `/etc/dnsmasq.conf`'s `dhcp-option=114` points at
+  `http://10.0.0.1/.well-known/captive-portal`, served by nginx on
+  this same device, nothing external.
+- *Aggregate-only connection stats* - read `piratebox_get_connection_
+  stats()` directly: hourly counts/peaks only, no MAC address, device
+  name, or per-visitor record anywhere in `data/connection-stats.json`
+  or `status.json`.
+- *Device ID isn't hardware-derived* - `tools/generate_device_id.sh`'s
+  own header states it draws from `/dev/urandom`, explicitly not from
+  any MAC address, Pi serial, storage serial, or hostname.
+- *No persistent visitor-tracking cookie* - confirmed no `setcookie()`
+  calls anywhere before this decision; the only cookie was PHP's
+  default ephemeral session cookie (CSRF token only, no identity).
+
+**Lightweight multilingual foundation (`includes/i18n.php`):** one
+canonical site, no per-language copies. Translatable strings live in
+flat `data/i18n/<locale>.json` dictionaries (`en.json` is canonical/
+fallback); `piratebox_t('key')` looks up the current locale, falls
+back to English on a missing key, and falls back to the raw key on a
+genuinely missing string (a visible bug marker, not a silent blank).
+Locale selection precedence, manual always winning: an explicit
+`?lang=` click (sets a plain, non-tracking 1-year preference cookie,
+`piratebox_lang`) > that cookie on later requests > `Accept-Language`
+header parsing on a first visit with no cookie yet (also becomes
+sticky via the same cookie) > English default. A small "&#127760; EN /
+ES" switcher is in the nav on every page, both options always visible
+so returning to English is never more than one click.
+
+**Bounded scope, per instruction - this is architecture-plus-a-
+representative-slice, not a full site translation:** English and
+Spanish are populated for nav labels (7 items), the Emergency Mode
+banner, the footer (including the new trust statement), and the Help
+page's Connect steps and full Trust & Transparency section - the
+content a stranger is most likely to need in an emergency before they
+can read English well. The Reference Library's retained source
+documents, Chat/Bulletin/Logbook user content, and the deterministic
+Field Tools' calculation logic were deliberately NOT touched -
+retained documents stay in their original/authoritative language (an
+agency's own official translated edition, if one exists and is
+separately redistributable, would be a distinct catalog entry, not a
+machine translation presented as equivalent), and user-generated
+content is never silently machine-translated. Extending translated
+coverage to more pages later is adding keys to the two JSON files and
+calling `piratebox_t()` in the template - no architecture change
+needed.
+
+**Verified, not assumed:** full five-suite regression (287/287)
+unaffected by the shared `navbar.php`/`footer.php` change; 9 diverse
+pages spot-checked (home, chat, logbook, bulletin, help, and four
+Utility pages) all still return 200 with no PHP warnings; explicit
+`?lang=es`, cookie persistence across a later request with no query
+param, `Accept-Language` auto-detection, and a manual override
+correctly beating a conflicting `Accept-Language` header were all
+tested directly via `curl`, not just reasoned about.
+
 ## QR Code Order Fixed to Match Actual First-Time-Visitor Sequence
 
 **Decision date:** 2026-09-02. The operator noticed during real-device
