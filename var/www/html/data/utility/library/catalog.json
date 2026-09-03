@@ -117,6 +117,39 @@
     ]
   },
   {
+    "id": "noaa-thunderstorm-tornado-lightning-guide",
+    "title": "Thunderstorms, Tornadoes, Lightning... A Preparedness Guide",
+    "category": "reference",
+    "description": "NOAA National Weather Service preparedness guide covering thunderstorms, tornadoes, lightning, straight-line winds, flash floods, and hail - what makes each hazard dangerous, watch-vs-warning terminology, and specific life-saving actions for each, including a dedicated section on tornado safety in schools.",
+    "tags": ["thunderstorm", "tornado", "lightning", "severe weather", "flash flood", "hail", "weather safety", "noaa", "nws"],
+    "file": "noaa-thunderstorm-tornado-lightning-guide.pdf",
+    "file_type": "pdf",
+    "file_size": "13.9 MB",
+    "source": "National Weather Service / NOAA, U.S. Department of Commerce",
+    "date_version": "NOAA/PA 201051",
+    "provenance_notes": "Source: https://www.weather.gov/media/owlie/ttl6-10.pdf - retrieved 2026-09-02. NWS/NOAA-authored public safety guide, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Verified 20 pages via pdfinfo; content inspected via pdftotext to confirm it's substantive safety guidance (watch/warning distinctions, specific sheltering actions per hazard), not a thin brochure, before retaining. Complements the existing Sky Watcher Cloud Chart (cloud identification) with hazard-specific safety actions - the cloud chart identifies what you're looking at, this guide covers what to do about it.",
+    "related_pages": [
+      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"},
+      {"url": "/utility/radio/#emergency-monitoring-quick-reference", "label": "Radio: Severe Weather Monitoring"}
+    ]
+  },
+  {
+    "id": "nist-sp811-si-units-guide",
+    "title": "Guide for the Use of the International System of Units (SI)",
+    "category": "reference",
+    "description": "NIST's authoritative guide to the SI (metric) system: base and derived units, prefixes, and a comprehensive Appendix B conversion-factors table between US customary/imperial units and SI units, plus rules for correct unit usage and rounding. Fills a general-purpose measurement/conversion reference gap - useful well beyond any single subject page.",
+    "tags": ["units", "si units", "metric", "conversion", "measurement", "nist", "unit conversion"],
+    "file": "nist-sp811-si-units-guide.pdf",
+    "file_type": "pdf",
+    "file_size": "1.9 MB",
+    "source": "National Institute of Standards and Technology (NIST), U.S. Department of Commerce",
+    "date_version": "NIST Special Publication 811, 2008 Edition (2nd printing, November 2008)",
+    "provenance_notes": "Source: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication811e2008.pdf - retrieved 2026-09-02, hosted directly by NIST itself (nvlpubs.nist.gov), no third-party mirror needed. Authored by NIST staff (Ambler Thompson and Barry N. Taylor) as part of official duties, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Verified 90 pages via pdfinfo; content inspected via pdftotext confirming a full Appendix B conversion-factors table plus SI base/derived unit definitions and prefix tables, not just introductory text.",
+    "related_pages": [
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+    ]
+  },
+  {
     "id": "cdc-make-water-safe-emergency",
     "title": "Make Water Safe During an Emergency",
     "category": "emergency-firstaid",

@@ -560,6 +560,90 @@ catalog.py` clean (14/14), search index rebuilt (184 entries), `php
 **Library footprint:** 14 documents, ~25 MB total (was ~22 MB) -
 still trivial against the 128GB card.
 
+### 3i. Deep bookshelf pass, round 3 (2026-09-02)
+
+Third source-investigation pass, per explicit instruction that the
+library is "nowhere near the desired eventual depth." Investigated
+across Measurement/Math, Outdoor/Field (survival), Weather, Radio/RF,
+and two non-US candidates. Retained what passed verification,
+rejected two on distribution grounds worth documenting carefully
+(both looked promising at first glance), deferred two on access.
+
+**Retained (2 new documents, ~15.8 MB):**
+
+| Document | Source | Basis | Category | Scope |
+|---|---|---|---|---|
+| Guide for the Use of the International System of Units (SI), NIST SP 811 | NIST, 2008 Ed., 90pp, 1.9 MB | PD (17 U.S.C. Sec. 105), hosted directly by nist.gov itself | `reference` | Universal (SI is an international standard) |
+| Thunderstorms, Tornadoes, Lightning... A Preparedness Guide | NWS/NOAA, ~2010, 20pp, 13.9 MB | PD (17 U.S.C. Sec. 105) | `reference` | US-specific framing (NWS watch/warning terms) but hazard content is broadly applicable |
+
+NIST SP 811 fills the "Measurement/Math/General Technical" priority
+subject the mission brief called out as unaddressed - its Appendix B
+conversion-factors table (US customary <-> SI) is genuinely useful
+well beyond any single subject page, so it's linked from Field Tools
+Units rather than a narrower page. The NOAA guide complements the
+existing Sky Watcher Cloud Chart (identifies clouds) with hazard-
+specific safety actions (what to do about severe weather) - checked
+via pdftotext for substance before retaining, not assumed useful from
+its title alone.
+
+**Investigated and REJECTED - distribution restriction, not just
+copyright (both worth recording in detail):**
+- **FM 3-05.70 (FM 21-76), Survival, May 2002** - the current/best-
+  known edition of the classic Army Survival Manual, and a tempting
+  obvious pick for Outdoor/Field. Its Wikimedia Commons page carries
+  a standard PD tag. But its own cover page, read directly via
+  pdftotext, states: "DISTRIBUTION RESTRICTION: Distribution
+  authorized to U.S. Government agencies and their contractors only
+  ... Other requests for this document must be referred to
+  Commander..." plus a destruction notice. Unlike every other DoD
+  manual in this library (all marked "approved for public release;
+  distribution is unlimited"), this specific manual is NOT cleared
+  for public redistribution regardless of its underlying copyright
+  status - a real distinction between "this text is technically
+  public-domain" and "DoD authorizes republishing this specific
+  document," and exactly the kind of check the mission asked for
+  rather than assuming government-authored implies redistributable.
+  Not retained.
+- **FM 21-76, Survival, October 1957 edition** - the older edition,
+  investigated as a fallback after the above rejection. Its own cover
+  page states plainly: "This manual contains copyrighted material" -
+  a self-declared exception to the usual DoD-manual PD status (almost
+  certainly third-party illustrations licensed for the original
+  printing only). Not retained. **Net result: the Outdoor/Field
+  survival-manual gap stays open, honestly** - no verified-clean
+  edition was found this round rather than substituting a
+  lower-quality but "safe" alternative.
+
+**Investigated and DEFERRED - access, not licensing:**
+- **Canada's "Your Emergency Preparedness Guide: 72 hours" (Public
+  Safety Canada)** - a promising non-US candidate (national guide,
+  ~similar shape to the already-retained UK Cabinet Office document),
+  but the direct PDF URL from Government of Canada Publications
+  redirected to an HTML catalog page (in French) rather than serving
+  the file - not chased further with alternate URL guessing this
+  round. Worth revisiting.
+- **FCC Part 97 (Amateur Radio Service rules, 47 CFR Part 97)** - a
+  clean, self-evidently public-domain fit for Radio/RF (US federal
+  regulation text) that would round out the mission's explicit "do
+  not substitute copyrighted ARRL material" instruction with a truly
+  free source. Not retained this round: govinfo.gov serves the full
+  Title 47 Volume 5 CFR (hundreds of pages covering every FCC-
+  regulated service, not just amateur radio) with no conveniently
+  isolated Part 97 PDF, and eCFR.gov is a live database, not a static
+  document. Extracting just Part 97 cleanly needs more page-boundary
+  work than this round budgeted for - not attempted further, not
+  called blocked on licensing grounds (it isn't).
+
+Verification: catalog.json validates, tools/check_library_catalog.py
+clean (16/16), search index rebuilt (186 entries), full five-suite
+regression still 287/287, both new documents smoke-tested via php -S
+(both PDFs 200, both category cross-links render live), `/utility/
+about/` reads "Document Library: INSTALLED (16)".
+
+**Library footprint:** 16 documents, ~41 MB total (was ~25 MB) -
+still trivial against the 128GB card; still curated per-item, not
+bulk-acquired to hit a size or count target.
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |
