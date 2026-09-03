@@ -76,5 +76,11 @@
   "utility.also.chat": "Chat",
   "utility.also.logbook": "Logbook",
   "utility.also.help": "Help / About this network",
-  "utility.also.status": "Status"
+  "utility.also.status": "Status",
+  "theme.switcher_label": "Theme / Appearance",
+  "theme.default": "PirateBox (Default)",
+  "theme.terminal": "Terminal",
+  "theme.amber": "Amber CRT",
+  "theme.lowlight": "Low Light",
+  "theme.pirate": "Pirate"
 }

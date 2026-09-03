@@ -6,6 +6,7 @@
 // require_once guards against loading it twice.
 require_once __DIR__ . '/mode.php';
 require_once __DIR__ . '/i18n.php';
+require_once __DIR__ . '/theme.php';
 $piratebox_mode = piratebox_get_mode();
 
 // Same six links/targets in both modes - only the ORDER changes, so
@@ -47,5 +48,6 @@ $navItems = [
             <li><?= $navItems[$key] ?></li>
         <?php endforeach; ?>
         <li><?= piratebox_render_language_switcher() ?></li>
+        <li><?= piratebox_render_theme_switcher() ?></li>
     </ul>
 </nav>

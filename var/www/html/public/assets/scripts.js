@@ -1,4 +1,77 @@
+// Lightweight theme system (round 8). Runs immediately, NOT inside the
+// DOMContentLoaded handler below, specifically so it executes before
+// <body> is parsed/painted - this script tag loads synchronously in
+// <head> on every page, so document.documentElement (<html>) already
+// exists by the time this runs, but nothing has been drawn yet. That
+// ordering is what avoids a flash of the default theme before
+// switching to a saved one.
+//
+// 100% client-side and privacy-preserving by construction: the only
+// state is one localStorage key, in this browser, on this device -
+// there is no cookie, no server-side render branch, no account, and a
+// choice made here can never affect what any other visitor sees. An
+// invalid, missing, or inaccessible (private-browsing / storage
+// disabled) value simply leaves no data-theme attribute set, which
+// means the plain :root tokens in styles.css apply - the default
+// PirateBox appearance is always the safe fallback, never a broken or
+// blank page. See docs/OPERATIONAL-DECISIONS.md "Lightweight Theme
+// System" for the full design.
+var PIRATEBOX_THEMES = ['default', 'terminal', 'amber', 'lowlight', 'pirate'];
+var PIRATEBOX_THEME_KEY = 'piratebox_theme';
+
+(function () {
+    try {
+        var saved = localStorage.getItem(PIRATEBOX_THEME_KEY);
+        if (saved && PIRATEBOX_THEMES.indexOf(saved) !== -1 && saved !== 'default') {
+            document.documentElement.setAttribute('data-theme', saved);
+        }
+    } catch (e) {
+        // Fall back to the default theme silently - never break the page
+        // over a cosmetic preference.
+    }
+})();
+
 document.addEventListener('DOMContentLoaded', function () {
+    // Theme switcher (round 8) - the <select> itself is rendered by
+    // includes/navbar.php (so its option labels go through the same
+    // i18n as everything else in the navbar); this just syncs its
+    // displayed value to whatever was applied above and wires changes
+    // back into localStorage + the live data-theme attribute. No page
+    // reload needed - the CSS custom properties re-cascade instantly.
+    var themeSelect = document.getElementById('themeSelect');
+    if (themeSelect) {
+        var current = 'default';
+        try {
+            var savedTheme = localStorage.getItem(PIRATEBOX_THEME_KEY);
+            if (savedTheme && PIRATEBOX_THEMES.indexOf(savedTheme) !== -1) {
+                current = savedTheme;
+            }
+        } catch (e) {
+            // Storage unavailable - leave the switcher on "default",
+            // matching the appearance actually being shown.
+        }
+        themeSelect.value = current;
+
+        themeSelect.addEventListener('change', function () {
+            var choice = themeSelect.value;
+            if (PIRATEBOX_THEMES.indexOf(choice) === -1) {
+                choice = 'default';
+            }
+            if (choice === 'default') {
+                document.documentElement.removeAttribute('data-theme');
+            } else {
+                document.documentElement.setAttribute('data-theme', choice);
+            }
+            try {
+                localStorage.setItem(PIRATEBOX_THEME_KEY, choice);
+            } catch (e) {
+                // Can't persist (private browsing/storage disabled) - the
+                // choice still applies for the rest of this page view,
+                // it just won't be remembered on the next one.
+            }
+        });
+    }
+
     // Username Persistence
     const nameInputs = document.querySelectorAll('input[name="name"]');
     const savedName = localStorage.getItem('piratebox_username');

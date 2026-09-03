@@ -1,7 +1,33 @@
+:root {
+    /* Default (PirateBox) theme tokens (round 8). A theme is just a
+       redefinition of these same custom properties under
+       [data-theme="..."] - see the "Lightweight theme system" block
+       near the end of this file for the other themes. Theme selection
+       itself is entirely client-side (localStorage + a tiny script in
+       assets/scripts.js, no server-side state) - see
+       docs/OPERATIONAL-DECISIONS.md "Lightweight Theme System" for the
+       full design and why that's a different mechanism than i18n's
+       cookie-based locale, even though the two features are presented
+       together in the navbar. */
+    --bg-page: #181821;
+    --bg-panel: #292938;
+    --bg-panel-hover: #343455;
+    --bg-input: #000;
+    --text-primary: #ddd9e8;
+    --text-on-accent: #fff;
+    --text-muted: #606085;
+    --accent: #8c8dff;
+    --accent-hover: #a0a1ff;
+    --border-subtle: #343a40;
+    --color-warning: #ffb347;
+    --color-danger: #ff4444;
+    --color-success: #4ade80;
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Noto Sans, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-    background: #181821;
-    color: #ddd9e8;
+    background: var(--bg-page);
+    color: var(--text-primary);
     margin: 0;
     padding: 1rem;
     line-height: 1.5;
@@ -19,13 +45,13 @@ h2 {
 }
 
 .muted {
-    color: #606085 !important;
+    color: var(--text-muted) !important;
 }
 
 .badge {
     display: none;
-    background-color: #ff4444;
-    color: #fff;
+    background-color: var(--color-danger);
+    color: var(--text-on-accent);
     border-radius: 10px;
     padding: 2px 6px;
     font-size: 0.7rem;
@@ -36,7 +62,7 @@ h2 {
 
 /* Form Styling */
 form {
-    background: #292938;
+    background: var(--bg-panel);
     padding: 1.5rem;
     border-radius: 0;
     max-width: 600px;
@@ -54,23 +80,23 @@ textarea {
     font-size: 1rem;
     width: 96%;
     padding: 0.5rem;
-    border: 1px solid #8c8dff;
-    background: #000;
-    color: #8c8dff;
+    border: 1px solid var(--accent);
+    background: var(--bg-input);
+    color: var(--accent);
     border-radius: 0;
 }
 
 input[type="text"],
 textarea {
-    color: #ddd9e8;
+    color: var(--text-primary);
     resize: vertical;
 }
 
 button {
     font-family: inherit;
-    background: #8c8dff;
-    color: #fff;
-    border: 1px solid #8c8dff;
+    background: var(--accent);
+    color: var(--text-on-accent);
+    border: 1px solid var(--accent);
     padding: 0.75rem;
     font-size: 1rem;
     border-radius: 0;
@@ -81,8 +107,8 @@ button {
 }
 
 button:hover {
-    background: #a0a1ff;
-    color: #fff;
+    background: var(--accent-hover);
+    color: var(--text-on-accent);
     box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075)
 }
 
@@ -108,32 +134,32 @@ table {
 th,
 td {
     padding: 0.75rem;
-    border-bottom: 1px solid #343a40;
+    border-bottom: 1px solid var(--border-subtle);
     text-align: left;
 }
 
 th {
-    background: #292938;
-    color: #ddd9e8;
+    background: var(--bg-panel);
+    color: var(--text-primary);
     text-transform: uppercase;
-    border-bottom: 1px solid #343a40;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 a {
-    color: #8c8dff;
+    color: var(--accent);
     text-decoration: none;
 }
 
 a:hover {
     text-decoration: underline;
-    color: #a0a1ff;
+    color: var(--accent-hover);
 }
 
 .logo {
     display: block;
     margin: 0 auto 1rem auto;
     width: 100px;
-    filter: drop-shadow(0 0 5px #a0a1ff);
+    filter: drop-shadow(0 0 5px var(--accent-hover));
 }
 
 body.centered-page .logo {
@@ -142,7 +168,7 @@ body.centered-page .logo {
 
 #timer {
     font-weight: bold;
-    color: #fff;
+    color: var(--text-on-accent);
 }
 
 .search-container {
@@ -155,9 +181,9 @@ body.centered-page .logo {
     font-family: inherit;
     font-size: 1rem;
     padding: 0.5rem;
-    border: 1px solid #8c8dff;
-    background: #000;
-    color: #8c8dff;
+    border: 1px solid var(--accent);
+    background: var(--bg-input);
+    color: var(--accent);
     border-radius: 0;
     width: 250px;
 }
@@ -173,12 +199,12 @@ body.centered-page .logo {
 }
 
 button.upload-animation:disabled {
-    background-color: #8c8dff;
+    background-color: var(--accent);
     background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
     background-size: 40px 40px;
     animation: upload-stripes 1s linear infinite;
-    color: #fff;
-    border-color: #8c8dff;
+    color: var(--text-on-accent);
+    border-color: var(--accent);
     cursor: progress;
 }
 
@@ -188,14 +214,14 @@ button.upload-animation:disabled {
     right: 1rem;
     font-weight: bold;
     text-transform: uppercase;
-    background: #292938;
+    background: var(--bg-panel);
     padding: 0.5rem 1rem;
-    border: 1px solid #8c8dff;
+    border: 1px solid var(--accent);
 }
 
 .top-right-link:hover {
-    background: #8c8dff;
-    color: #fff;
+    background: var(--accent);
+    color: var(--text-on-accent);
     text-decoration: none;
 }
 
@@ -207,10 +233,10 @@ button.upload-animation:disabled {
 }
 
 .message-card {
-    background: #292938;
+    background: var(--bg-panel);
     padding: 1rem;
     margin-bottom: 1rem;
-    border-left: 4px solid #8c8dff;
+    border-left: 4px solid var(--accent);
     box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
 }
 
@@ -218,18 +244,18 @@ button.upload-animation:disabled {
     display: flex;
     justify-content: space-between;
     margin-bottom: 0.5rem;
-    border-bottom: 1px solid #343a40;
+    border-bottom: 1px solid var(--border-subtle);
     padding-bottom: 0.5rem;
 }
 
 .message-name {
     font-weight: bold;
-    color: #8c8dff;
+    color: var(--accent);
 }
 
 .message-time {
     font-size: 0.85rem;
-    color: #606085;
+    color: var(--text-muted);
 }
 
 .message-body {
@@ -240,7 +266,7 @@ button.upload-animation:disabled {
 .char-counter {
     text-align: right;
     font-size: 0.85rem;
-    color: #606085;
+    color: var(--text-muted);
     margin-top: -0.5rem;
 }
 
@@ -285,9 +311,9 @@ button.upload-animation:disabled {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #292938;
+    background-color: var(--bg-panel);
     padding: 0.5rem 1rem;
-    color: #ddd9e8;
+    color: var(--text-primary);
     margin-bottom: 20px;
     box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
 }
@@ -296,7 +322,7 @@ button.upload-animation:disabled {
     display: flex;
     align-items: center;
     text-decoration: none;
-    color: #ddd9e8;
+    color: var(--text-primary);
     font-size: 1.25rem;
     font-weight: bold;
 }
@@ -308,8 +334,8 @@ button.upload-animation:disabled {
 
 .navbar-toggler {
     background: none;
-    border: 1px solid #8c8dff;
-    color: #8c8dff;
+    border: 1px solid var(--accent);
+    color: var(--accent);
     font-size: 1.5rem;
     cursor: pointer;
     padding: 0.25rem 0.75rem;
@@ -329,12 +355,12 @@ button.upload-animation:disabled {
 }
 
 .navbar-menu a {
-    color: #ddd9e8;
+    color: var(--text-primary);
     text-decoration: none;
 }
 
 .navbar-menu a:hover {
-    color: #8c8dff;
+    color: var(--accent);
 }
 
 @media (max-width: 768px) {
@@ -420,11 +446,11 @@ ul#chat {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
-    background: #292938;
+    background: var(--bg-panel);
     border: none;
     box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
     scrollbar-width: thin;
-    scrollbar-color: #343a40 #181821;
+    scrollbar-color: var(--border-subtle) var(--bg-page);
 }
 
 ul#chat::-webkit-scrollbar {
@@ -432,32 +458,32 @@ ul#chat::-webkit-scrollbar {
 }
 
 ul#chat::-webkit-scrollbar-track {
-    background: #181821;
+    background: var(--bg-page);
 }
 
 ul#chat::-webkit-scrollbar-thumb {
-    background: #343a40;
+    background: var(--border-subtle);
 }
 
 ul#chat li {
     margin: 0;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #343a40;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 ul#chat li small {
     display: block;
     font-size: 0.85rem;
-    color: #606085;
+    color: var(--text-muted);
 }
 
 ul#chat li.pending {
-    color: #aaa;
+    color: var(--text-muted);
 }
 
 .chat-name {
     font-weight: bold;
-    color: #8c8dff;
+    color: var(--accent);
 }
 
 #chat-form .char-counter {
@@ -485,7 +511,7 @@ ul#chat li.pending {
 }
 
 .stat-card {
-    background: #292938;
+    background: var(--bg-panel);
     padding: 1rem;
     display: flex;
     flex-direction: column;
@@ -496,7 +522,7 @@ ul#chat li.pending {
 .stat-label {
     text-transform: uppercase;
     font-size: 0.75rem;
-    color: #606085;
+    color: var(--text-muted);
     font-weight: bold;
 }
 
@@ -507,11 +533,11 @@ ul#chat li.pending {
 
 .stat-sub {
     font-size: 0.8rem;
-    color: #606085;
+    color: var(--text-muted);
 }
 
 .status-ok {
-    color: #4ade80;
+    color: var(--color-success);
 }
 
 /* Post-Stage-32: subtle homepage connection indicator - deliberately
@@ -522,7 +548,7 @@ ul#chat li.pending {
 }
 
 .status-bad {
-    color: #ff4444;
+    color: var(--color-danger);
 }
 
 .admin-actions {
@@ -562,11 +588,11 @@ ul#chat li.pending {
     padding: 0.5rem 1rem;
     text-align: center;
     font-size: 0.85rem;
-    color: #606085;
+    color: var(--text-muted);
 }
 
 .storage-notice.low {
-    color: #ffb347;
+    color: var(--color-warning);
     font-weight: bold;
 }
 
@@ -574,8 +600,8 @@ ul#chat li.pending {
 .upload-progress {
     width: 100%;
     height: 0.5rem;
-    background: #000;
-    border: 1px solid #8c8dff;
+    background: var(--bg-input);
+    border: 1px solid var(--accent);
     margin-top: 0.5rem;
     overflow: hidden;
 }
@@ -583,7 +609,7 @@ ul#chat li.pending {
 .upload-progress-bar {
     height: 100%;
     width: 0%;
-    background: #8c8dff;
+    background: var(--accent);
     transition: width 0.2s ease;
 }
 
@@ -611,7 +637,7 @@ img,
 }
 
 :focus-visible {
-    outline: 2px solid #a0a1ff;
+    outline: 2px solid var(--accent-hover);
     outline-offset: 2px;
 }
 
@@ -620,8 +646,8 @@ img,
     max-width: 700px;
     margin: 0 auto 1.5rem auto;
     padding: 1.25rem 1.5rem;
-    background: #292938;
-    border-left: 4px solid #8c8dff;
+    background: var(--bg-panel);
+    border-left: 4px solid var(--accent);
     box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
 }
 
@@ -636,7 +662,7 @@ img,
 }
 
 .hero .hero-tagline {
-    color: #8c8dff;
+    color: var(--accent);
     font-weight: bold;
     text-transform: uppercase;
     font-size: 0.85rem;
@@ -653,17 +679,17 @@ img,
 .hero-actions a {
     display: inline-block;
     padding: 0.5rem 1rem;
-    background: #181821;
-    border: 1px solid #8c8dff;
-    color: #ddd9e8;
+    background: var(--bg-page);
+    border: 1px solid var(--accent);
+    color: var(--text-primary);
     text-transform: uppercase;
     font-weight: bold;
     font-size: 0.85rem;
 }
 
 .hero-actions a:hover {
-    background: #8c8dff;
-    color: #fff;
+    background: var(--accent);
+    color: var(--text-on-accent);
     text-decoration: none;
 }
 
@@ -675,17 +701,17 @@ img,
     padding: 1rem;
     text-align: center;
     font-size: 0.8rem;
-    color: #606085;
-    border-top: 1px solid #292938;
+    color: var(--text-muted);
+    border-top: 1px solid var(--bg-panel);
 }
 
 .site-footer a {
-    color: #606085;
+    color: var(--text-muted);
 }
 
 .site-footer .footer-url {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    color: #8c8dff;
+    color: var(--accent);
 }
 
 /* Trust statement (2026-09-03) - deliberately understated: a footer
@@ -716,17 +742,36 @@ img,
     align-items: center;
     gap: 0.3rem;
     font-size: 0.85rem;
-    color: #606085;
+    color: var(--text-muted);
     padding: 0.4rem 0.6rem;
 }
 
 .lang-switcher a {
-    color: #8c8dff;
+    color: var(--accent);
 }
 
 .lang-switcher .lang-current {
-    color: #e8e8f0;
+    color: var(--text-primary);
     font-weight: 600;
+}
+
+/* Theme switcher (round 8) - sits next to .lang-switcher in the navbar,
+   styled to match rather than look like a separate control. */
+.theme-switcher {
+    font-family: inherit;
+    font-size: 0.8rem;
+    background: var(--bg-panel);
+    color: var(--text-muted);
+    border: 1px solid var(--border-subtle);
+    padding: 0.3rem 0.4rem;
+    min-height: 0;
+    border-radius: 0;
+}
+
+.theme-switcher:hover,
+.theme-switcher:focus {
+    color: var(--text-primary);
+    border-color: var(--accent);
 }
 
 /* Help page: Trust & Transparency section reuses .help-section's own
@@ -750,7 +795,7 @@ img,
 
 .help-section h2 {
     text-align: left;
-    border-bottom: 1px solid #292938;
+    border-bottom: 1px solid var(--bg-panel);
     padding-bottom: 0.5rem;
 }
 
@@ -765,23 +810,23 @@ img,
 .help-url {
     display: inline-block;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    background: #000;
-    color: #8c8dff;
+    background: var(--bg-input);
+    color: var(--accent);
     padding: 0.25rem 0.5rem;
-    border: 1px solid #8c8dff;
+    border: 1px solid var(--accent);
     font-size: 1.1rem;
     user-select: all;
 }
 
 .help-note {
-    background: #292938;
-    border-left: 4px solid #ffb347;
+    background: var(--bg-panel);
+    border-left: 4px solid var(--color-warning);
     padding: 1rem;
     margin: 1rem 0;
 }
 
 .help-note strong {
-    color: #ffb347;
+    color: var(--color-warning);
 }
 
 /* World Reference Map - the SVG itself uses light map colors
@@ -825,7 +870,7 @@ img,
 .qr-caption {
     text-align: center;
     font-size: 0.8rem;
-    color: #606085;
+    color: var(--text-muted);
     margin-top: 0.4rem;
     max-width: 160px;
 }
@@ -842,16 +887,16 @@ img,
 
 .list-controls label {
     font-size: 0.85rem;
-    color: #606085;
+    color: var(--text-muted);
 }
 
 #fileSort {
     font-family: inherit;
     font-size: 0.9rem;
     padding: 0.4rem;
-    border: 1px solid #8c8dff;
-    background: #000;
-    color: #8c8dff;
+    border: 1px solid var(--accent);
+    background: var(--bg-input);
+    color: var(--accent);
 }
 
 th.sortable {
@@ -860,13 +905,13 @@ th.sortable {
 }
 
 th.sortable .sort-indicator {
-    color: #8c8dff;
+    color: var(--accent);
     margin-left: 0.25rem;
 }
 
 .empty-state {
     text-align: center;
-    color: #606085;
+    color: var(--text-muted);
     padding: 2rem 1rem;
 }
 
@@ -904,8 +949,8 @@ ul#chat li.empty-state {
     font-size: 0.7rem;
     letter-spacing: 0.05em;
     padding: 0.15rem 0.5rem;
-    border: 1px solid #606085;
-    color: #606085;
+    border: 1px solid var(--text-muted);
+    color: var(--text-muted);
 }
 
 .maintenance-zone {
@@ -916,13 +961,13 @@ ul#chat li.empty-state {
 }
 
 .maintenance-zone .admin-section-heading .section-tag {
-    border-color: #ff4444;
-    color: #ff4444;
+    border-color: var(--color-danger);
+    color: var(--color-danger);
 }
 
 .maintenance-warning {
     text-align: center;
-    color: #ffb347;
+    color: var(--color-warning);
     max-width: 600px;
     margin: 0 auto 1rem auto;
     font-size: 0.85rem;
@@ -949,9 +994,9 @@ ul#chat li.empty-state {
     align-items: center;
     text-align: center;
     gap: 0.4rem;
-    background: #292938;
-    color: #ddd9e8;
-    border-left: 4px solid #8c8dff;
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    border-left: 4px solid var(--accent);
     padding: 1.5rem 1rem;
     box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
     text-decoration: none;
@@ -960,8 +1005,8 @@ ul#chat li.empty-state {
 }
 
 .utility-card:hover {
-    background: #343455;
-    color: #fff;
+    background: var(--bg-panel-hover);
+    color: var(--text-on-accent);
     text-decoration: none;
 }
 
@@ -974,16 +1019,16 @@ ul#chat li.empty-state {
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-    color: #8c8dff;
+    color: var(--accent);
 }
 
 .utility-card:hover .utility-card-title {
-    color: #a0a1ff;
+    color: var(--accent-hover);
 }
 
 .utility-card-desc {
     font-size: 0.8rem;
-    color: #aaa;
+    color: var(--text-muted);
 }
 
 /* Utility sub-pages: breadcrumb back-link + "not built yet" note */
@@ -992,11 +1037,11 @@ ul#chat li.empty-state {
 }
 
 .utility-placeholder-note {
-    border-left-color: #606085;
+    border-left-color: var(--text-muted);
 }
 
 .utility-placeholder-note strong {
-    color: #a0a1ff;
+    color: var(--accent-hover);
 }
 
 /* -------------------------------------------------
@@ -1027,10 +1072,10 @@ ul#chat li.empty-state {
     position: sticky;
     top: 0;
     z-index: 5;
-    background: #181821;
+    background: var(--bg-page);
     padding: 0.75rem 0;
     margin-bottom: 1rem;
-    border-bottom: 1px solid #292938;
+    border-bottom: 1px solid var(--bg-panel);
 }
 
 #radioSearch {
@@ -1039,9 +1084,9 @@ ul#chat li.empty-state {
     width: 100%;
     box-sizing: border-box;
     padding: 0.6rem 0.75rem;
-    border: 1px solid #8c8dff;
-    background: #000;
-    color: #ddd9e8;
+    border: 1px solid var(--accent);
+    background: var(--bg-input);
+    color: var(--text-primary);
     border-radius: 0;
     margin-bottom: 0.6rem;
 }
@@ -1056,9 +1101,9 @@ ul#chat li.empty-state {
     font-family: inherit;
     font-size: 0.8rem;
     padding: 0.35rem 0.7rem;
-    background: #292938;
-    color: #ddd9e8;
-    border: 1px solid #343a40;
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
     cursor: pointer;
     min-height: 0;
     text-transform: uppercase;
@@ -1066,18 +1111,18 @@ ul#chat li.empty-state {
 }
 
 .radio-chip:hover {
-    border-color: #8c8dff;
+    border-color: var(--accent);
 }
 
 .radio-chip.active {
-    background: #8c8dff;
-    border-color: #8c8dff;
-    color: #fff;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-on-accent);
 }
 
 .radio-no-results {
     text-align: center;
-    color: #606085;
+    color: var(--text-muted);
     padding: 1.5rem 1rem;
 }
 
@@ -1089,15 +1134,15 @@ ul#chat li.empty-state {
     text-align: left;
     text-transform: none;
     font-size: 1.1rem;
-    color: #8c8dff;
-    border-bottom: 1px solid #292938;
+    color: var(--accent);
+    border-bottom: 1px solid var(--bg-panel);
     padding-bottom: 0.4rem;
     margin: 0 0 0.6rem 0;
 }
 
 .radio-entry {
-    background: #292938;
-    border-left: 4px solid #8c8dff;
+    background: var(--bg-panel);
+    border-left: 4px solid var(--accent);
     margin-bottom: 0.6rem;
     box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
 }
@@ -1118,7 +1163,7 @@ ul#chat li.empty-state {
 
 .radio-entry summary::before {
     content: "▸";
-    color: #8c8dff;
+    color: var(--accent);
     font-size: 0.8rem;
     margin-right: 0.1rem;
 }
@@ -1129,22 +1174,22 @@ ul#chat li.empty-state {
 
 .radio-entry-name {
     font-weight: bold;
-    color: #ddd9e8;
+    color: var(--text-primary);
     flex: 1 1 auto;
 }
 
 .radio-entry-freq {
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    color: #8c8dff;
+    color: var(--accent);
     font-size: 0.9rem;
 }
 
 .radio-entry-mode-badge {
     font-size: 0.75rem;
     text-transform: uppercase;
-    background: #181821;
-    border: 1px solid #606085;
-    color: #aaa;
+    background: var(--bg-page);
+    border: 1px solid var(--text-muted);
+    color: var(--text-muted);
     padding: 0.15rem 0.5rem;
 }
 
@@ -1157,14 +1202,14 @@ ul#chat li.empty-state {
 
 .radio-tx-badge.tx-licensed {
     background: #3a2f14;
-    color: #ffb347;
-    border: 1px solid #ffb347;
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning);
 }
 
 .radio-tx-badge.tx-open {
     background: #14301f;
-    color: #4ade80;
-    border: 1px solid #4ade80;
+    color: var(--color-success);
+    border: 1px solid var(--color-success);
 }
 
 .radio-entry-detail {
@@ -1176,11 +1221,11 @@ ul#chat li.empty-state {
 }
 
 .radio-entry-tx-note {
-    color: #ffb347;
+    color: var(--color-warning);
 }
 
 .radio-entry-tx-note strong {
-    color: #ffb347;
+    color: var(--color-warning);
 }
 
 .radio-channel-table {
@@ -1189,8 +1234,8 @@ ul#chat li.empty-state {
 
 .radio-entry-source {
     font-size: 0.75rem;
-    color: #606085;
-    border-top: 1px solid #343a40;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-subtle);
     padding-top: 0.5rem;
     margin-top: 0.75rem !important;
 }
@@ -1201,22 +1246,22 @@ ul#chat li.empty-state {
 }
 
 .radio-confidence.confidence-high {
-    color: #4ade80;
+    color: var(--color-success);
 }
 
 .radio-confidence.confidence-medium {
-    color: #ffb347;
+    color: var(--color-warning);
 }
 
 .radio-confidence.confidence-low {
-    color: #ff4444;
+    color: var(--color-danger);
 }
 
 .radio-spectrum-wrap {
     max-width: 100%;
     overflow-x: auto;
     margin: 0.5rem 0 1.5rem 0;
-    background: #292938;
+    background: var(--bg-panel);
     padding: 0.75rem;
 }
 
@@ -1230,7 +1275,7 @@ ul#chat li.empty-state {
 .radio-spectrum-caption {
     text-align: center;
     font-size: 0.75rem;
-    color: #606085;
+    color: var(--text-muted);
     margin: -0.75rem 0 1.5rem 0;
 }
 
@@ -1264,7 +1309,7 @@ ul#chat li.empty-state {
 .doc-figure {
     flex: 1 1 260px;
     max-width: 340px;
-    background: #292938;
+    background: var(--bg-panel);
     padding: 0.5rem;
 }
 
@@ -1284,7 +1329,7 @@ ul#chat li.empty-state {
 
 .doc-figure figcaption .doc-figure-source {
     display: block;
-    color: #606085;
+    color: var(--text-muted);
     margin-top: 0.2rem;
 }
 
@@ -1311,13 +1356,13 @@ ul#chat li.empty-state {
 }
 
 .search-result-link:hover .radio-entry-name {
-    color: #a0a1ff;
+    color: var(--accent-hover);
     text-decoration: underline;
 }
 
 .search-result-snippet {
     margin: 0.4rem 0 0 0;
-    color: #aaa;
+    color: var(--text-muted);
     font-size: 0.9rem;
 }
 
@@ -1328,11 +1373,11 @@ ul#chat li.empty-state {
    red/alarm color.
    ------------------------------------------------- */
 .hero-emergency {
-    border-left-color: #ffb347;
+    border-left-color: var(--color-warning);
 }
 
 .hero-emergency .hero-tagline {
-    color: #ffb347;
+    color: var(--color-warning);
 }
 
 /* -------------------------------------------------
@@ -1349,14 +1394,14 @@ select {
     font-family: inherit;
     font-size: 1rem;
     padding: 0.5rem;
-    border: 1px solid #8c8dff;
-    background: #000;
-    color: #ddd9e8;
+    border: 1px solid var(--accent);
+    background: var(--bg-input);
+    color: var(--text-primary);
     border-radius: 0;
 }
 
 .fieldtools-tool {
-    background: #292938;
+    background: var(--bg-panel);
     padding: 1rem;
     margin: 1rem 0;
     max-width: 700px;
@@ -1386,6 +1431,105 @@ select {
 .fieldtools-result {
     font-size: 1.1rem;
     font-weight: bold;
-    color: #8c8dff;
+    color: var(--accent);
     margin: 0.5rem 0 0 0;
+}
+
+/* -------------------------------------------------------------------
+   Lightweight theme system (round 8). Each theme is nothing but a
+   redefinition of the same tokens declared on :root above - no
+   duplicated component rules, no separate stylesheet/page per theme.
+   Applied via a data-theme attribute on <html>, set client-side only
+   (assets/scripts.js) from a value saved in this browser's own
+   localStorage - there is no server-side theme state, no cookie, no
+   account, and a theme choice on one device/browser never affects any
+   other visitor. An invalid/missing value simply means no attribute is
+   set, which means plain :root above applies - the default PirateBox
+   look is always the safe fallback. See docs/OPERATIONAL-DECISIONS.md
+   "Lightweight Theme System" for the full design and the exact reasons
+   this differs from includes/i18n.php's cookie-based approach.
+
+   Deliberately a small, curated set (four) rather than many gimmick
+   variants - each was chosen to still meet basic text/background
+   contrast, not just "look different." Emergency Mode's own styling
+   (.hero-emergency, .status-bad, etc.) touches none of these selectors
+   directly - it already reads through --color-warning/--color-danger/
+   --color-success like everything else, so it automatically gets a
+   theme-appropriate warning treatment in every theme below without any
+   theme needing its own separate emergency override.
+   ------------------------------------------------------------------- */
+
+/* Terminal - restrained green-on-dark phosphor aesthetic. */
+:root[data-theme="terminal"] {
+    --bg-page: #04120a;
+    --bg-panel: #071a0e;
+    --bg-panel-hover: #0e2a17;
+    --bg-input: #000;
+    --text-primary: #3ddc72;
+    --text-on-accent: #00170a;
+    --text-muted: #2f6b45;
+    --accent: #4dff88;
+    --accent-hover: #8dffb8;
+    --border-subtle: #1f4a2c;
+    --color-warning: #ffd166;
+    --color-danger: #ff6b6b;
+    --color-success: #4dff88;
+}
+
+/* Amber CRT - restrained amber-on-dark phosphor aesthetic. */
+:root[data-theme="amber"] {
+    --bg-page: #140d02;
+    --bg-panel: #1f1504;
+    --bg-panel-hover: #2e2008;
+    --bg-input: #000;
+    --text-primary: #ffb000;
+    --text-on-accent: #1a0f00;
+    --text-muted: #7a5220;
+    --accent: #ffcf66;
+    --accent-hover: #ffe0a0;
+    --border-subtle: #4a3410;
+    --color-warning: #ffcf66;
+    --color-danger: #ff6b4d;
+    --color-success: #b5d94c;
+}
+
+/* Low Light - dim, warm, low-blue-light appearance for night-friendly
+   use. Still meets basic contrast (this is "dim," not "illegible in
+   the dark") - see the round-8 accessibility check in
+   docs/OPERATIONAL-DECISIONS.md. */
+:root[data-theme="lowlight"] {
+    --bg-page: #100d0a;
+    --bg-panel: #1c1613;
+    --bg-panel-hover: #261e19;
+    --bg-input: #000;
+    --text-primary: #c9b8a8;
+    --text-on-accent: #1c1210;
+    --text-muted: #6b5f52;
+    --accent: #d99a5b;
+    --accent-hover: #e8b47e;
+    --border-subtle: #3a2f27;
+    --color-warning: #d9a34a;
+    --color-danger: #c2634a;
+    --color-success: #8fae6b;
+}
+
+/* Pirate / Classic - a tasteful light parchment-and-ink theme, kept
+   deliberately readable rather than becoming a joke UI: real ink-brown
+   text on real parchment, not a costume font or clutter. The only
+   light theme in the set, which is itself useful variety (bright-room/
+   daylight use) beyond just being in character. */
+:root[data-theme="pirate"] {
+    --bg-page: #f4ecd8;
+    --bg-panel: #fbf6ea;
+    --bg-panel-hover: #efe2c5;
+    --bg-input: #fffdf7;
+    --text-primary: #3a2a1a;
+    --text-on-accent: #fdf6e8;
+    --text-muted: #8a7454;
+    --accent: #6b3a1f;
+    --accent-hover: #8b4a28;
+    --border-subtle: #c9b48a;
+    --color-warning: #a5691a;
+    --color-danger: #8b2e2e;
+    --color-success: #4a6b3a;
 }

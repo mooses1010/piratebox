@@ -6,6 +6,95 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Lightweight Theme System
+
+**Decision date:** 2026-09-03, Round 8. A small, curated set of
+presentation-only appearance variants for the public UI, explicitly
+scoped to avoid becoming a settings dashboard or a UI-framework
+adoption.
+
+**Why this is architecturally NOT modeled on `includes/i18n.php`, even
+though the two selectors sit side by side in the navbar:** i18n has to
+be resolved server-side because it changes what *text* the server
+sends - there's no way to pick a locale in the browser after the HTML
+has already been generated in the wrong language. A theme changes
+nothing about the HTML or its content, only which CSS custom-property
+*values* apply to that same markup - a presentation-only concern with
+no reason to touch PHP, sessions, or cookies at all. So there is no
+`piratebox_get_theme()`, no theme cookie, no server-side render
+branch, and no new PHP file holding logic (`includes/theme.php` exists
+only to keep the theme-id -> label list in one place for
+`navbar.php`'s `<select>`, not to make any decision). The entire
+mechanism - reading a saved choice, applying it, persisting a new one
+- lives in `assets/scripts.js`, using one `localStorage` key
+(`piratebox_theme`) and a `data-theme` attribute on `<html>`.
+
+**Privacy properties, by construction rather than by policy:** the
+only state is that one browser-local key, in that one browser, on that
+one device. It is never sent to the server (no cookie, no query
+parameter, no fetch), never visible to any other visitor, and doesn't
+survive a private-browsing session or a different browser on the same
+device - exactly the "no accounts, no tracking/profile system" scoping
+this round's instructions asked for, and a deliberately different
+mechanism from i18n's cookie (which *is* sent to the server on every
+request, because the server needs to know which dictionary to read).
+
+**Implementation:**
+- `var/www/html/public/assets/styles.css`: every theme-relevant
+  structural color (page/panel backgrounds, primary/muted text, the
+  accent color and its hover state, input backgrounds, borders, and
+  the three status colors - warning/danger/success) was converted from
+  a hardcoded hex value to a `:root` custom property, holding exactly
+  the previous hardcoded value as the default. A handful of
+  intentionally-fixed colors were left alone on purpose: the world
+  reference map's own light basemap colors (a map should look like a
+  map regardless of theme), the QR-code and scanned-document-figure
+  white backgrounds (need real white for scannability/paper fidelity),
+  the four fixed Bulletin Board category pill colors (decorative
+  category coding, not theme chrome), and the admin panel's
+  `.danger-button`/`.maintenance-zone` deep-red styling (this round's
+  instruction scoped theming to the *public* UI; no visitor ever sees
+  the admin panel, and an operator's admin session shouldn't have its
+  destructive-action coloring change based on a visitor-facing
+  preference toggle anyway).
+- Four additional themes are defined as `:root[data-theme="..."]`
+  blocks at the end of the same file, each nothing but a redefinition
+  of those same tokens: `terminal` (green-on-dark), `amber`
+  (amber-on-dark CRT), `lowlight` (dim, warm, low-blue-light for
+  night-friendly use), and `pirate` (a tasteful light parchment-and-ink
+  theme - deliberately readable, not a costume font). No theme
+  duplicates a single component rule.
+- `assets/scripts.js`: theme application runs *before* the
+  `DOMContentLoaded` handler, at the top of the file - this script
+  loads synchronously in every page's `<head>`, so `document.
+  documentElement` already exists by the time it runs but nothing has
+  been painted yet, which avoids a flash of the default theme before
+  switching to a saved one. Every `localStorage` access is wrapped in
+  `try`/`catch` (private browsing or disabled storage throws rather
+  than returning null in some browsers) - failure always falls back to
+  the plain default theme, never a broken page.
+- `includes/navbar.php` renders the `<select>` (via `includes/
+  theme.php`'s `piratebox_render_theme_switcher()`) with no
+  server-known "current" value; `scripts.js` sets its displayed value
+  from `localStorage` on load. With JavaScript disabled, the select
+  simply shows its first option and does nothing when changed - an
+  inert, safe fallback rather than a broken control.
+
+**Emergency Mode:** deliberately does NOT reset or override a visitor's
+chosen theme - per instruction, activating Emergency Mode must not
+change a browser-local preference the visitor set for themselves.
+Emergency Mode's own visual treatment (`.hero-emergency`, `.status-
+bad`, etc.) already reads through the same `--color-warning`/
+`--color-danger`/`--color-success` tokens as everything else, so it
+automatically gets a theme-appropriate warning treatment in every
+theme without any theme needing its own separate emergency override.
+
+**Accessibility:** all five themes (four dark, one light) were chosen
+for real text/background contrast, not just a different hue -
+including the two brightest accents (Terminal's green, Amber's amber)
+being used as light-text-on-dark rather than the reverse, which is
+where a "glowing on black" aesthetic most often loses readability.
+
 ## Trust/Transparency Statement + Lightweight Multilingual Foundation
 
 **Decision date:** 2026-09-03. Two small, bounded site-level additions

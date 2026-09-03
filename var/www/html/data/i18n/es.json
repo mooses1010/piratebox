@@ -76,5 +76,11 @@
   "utility.also.chat": "Chat",
   "utility.also.logbook": "Bitácora",
   "utility.also.help": "Ayuda / Acerca de esta red",
-  "utility.also.status": "Estado"
+  "utility.also.status": "Estado",
+  "theme.switcher_label": "Tema / Apariencia",
+  "theme.default": "PirateBox (Predeterminado)",
+  "theme.terminal": "Terminal",
+  "theme.amber": "CRT Ámbar",
+  "theme.lowlight": "Luz Tenue",
+  "theme.pirate": "Pirata"
 }
