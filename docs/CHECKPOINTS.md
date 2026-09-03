@@ -761,6 +761,7 @@ confirming `main`, `worktree-round7`, and `HEAD` were all identical at
 uncommitted changes.
 
 | Round 8: UX discoverability + lightweight theme system + OLED instrument-panel polish + NTP root-cause diagnosis + bounded reference growth | `56048bc` on `worktree-round8` (not yet merged to `main`) | *(no `~/piratebox-backups/` snapshot - content/code pass, to be merged and deployed via the normal `piratebox_deploy.sh` workflow)* |
+| Round 9: theme selector regression fix (Priority 0) + bounded reference/search/i18n work | `9e6d9f3` on `main` | *(no `~/piratebox-backups/` snapshot - content/code pass, merged via `git merge --ff-only` from `f4e4812` and deployed via `piratebox_deploy.sh`)* |
 
 **Pre-merge state, 2026-09-03:** built and fully tested on an isolated
 worktree branch across seven commits (`56ecd40` round-7 checkpoint
@@ -874,4 +875,106 @@ content/code change is deployed). Once that commit is fast-forwarded
 into `main` and confirmed reachable, the worktree and its branch are
 safe to remove - no further live verification needed, since nothing
 under `var/www/html/` changes.
+
+## Round 9: closed post-power-outage, `9e6d9f3` on `main`
+
+**Priority 0 - theme selector regression, root-caused and fixed:**
+the operator reported real use didn't match round 8's own passing
+verification: picking a theme changed the dropdown's own text but not
+the page, and the choice was lost on the next page load. Root cause
+(full trace in `docs/OPERATIONAL-DECISIONS.md` "Round 9: Theme
+Selector Regression"): `/etc/nginx/sites-available/default` set no
+`Cache-Control` on `/assets/` at all, so a browser that had visited
+before round 8 could keep silently serving its OLD cached
+`scripts.js`/`styles.css`. Fix: a `location ^~ /assets/` block with
+`Cache-Control: no-cache`, forcing revalidation on every use. New
+`tools/test_theme_system.php` (18 assertions) covers the structural
+invariants a browser test would need true.
+
+**Real-browser verification: PASSED.** One false alarm along the way
+(an operator report right after this round's commit, later traced to
+testing from a stale/old browser tab - not a reproducible defect; no
+extra debugging work happened chasing it, since the corrective prompt
+describing it was never actually sent). The operator then ran fresh
+tests directly against both supported origins, `http://10.0.0.1/` and
+`http://piratebox/`: selecting a theme visibly changes the page, all
+five themes are visibly distinct, on both origins. Recorded here as
+the actual, final confirmation this bug is fixed - the deterministic
+suite established every statically-checkable precondition, but the
+operator's own browser test is what proved it works.
+
+**A genuine discrepancy - found before the outage, independently
+re-confirmed after it, still open:** the operator reported running
+`sudo cp etc/nginx/sites-available/default
+/etc/nginx/sites-available/default`, `nginx -t` (passed), and
+`systemctl reload nginx`. This was checked twice - once during the
+original round-9 closure pass (byte diff + `curl`), and again from
+scratch during the post-power-outage recovery below - and both times:
+**the live `/etc/nginx/sites-available/default` does NOT contain round
+9's `location ^~ /assets/` block.** It is byte-for-byte the pre-round-9
+112-line file, not the round-9 134-line one, and `/assets/scripts.js`
+serves with no `Cache-Control` header at all (confirmed via `curl -sI`
+against both `http://127.0.0.1/` and `http://10.0.0.1/`). The live
+file's own mtime (13:35:17 PDT) lands 8 seconds *before* this round's
+`piratebox_deploy.sh` run (`VERSION` timestamp 13:35:25 PDT) - so the
+`cp` step did run at roughly the right time, but whatever it copied
+was not round 9's `etc/nginx/sites-available/default` content. Cause
+not established (possibly a stale/wrong working directory in the
+operator's manual step). **This does not call the real-browser
+theme-verification result into question** - that test passed because
+the underlying JS/CSS/PHP mechanism (verified by
+`tools/test_theme_system.php`) was always correct; the missing header
+only affects whether a *returning* visitor's cached browser picks up a
+*future* deploy promptly. It does mean the specific preventive fix
+this round diagnosed is **still not live**. Nginx config changes are
+outside this session's sudo automation (only `piratebox_deploy.sh` and
+`set_piratebox_mode.sh` are NOPASSWD) and outside general system-config
+authority per `CLAUDE.md` - **this remains a genuine open operator
+action**, not something to silently mark done.
+
+**Round 9's content/code work, independently re-verified after the
+outage:** `main` HEAD and `/var/www/html/includes/VERSION` both read
+`9e6d9f3` - full match, no drift. Spot-checked `var/www/html/` files
+(both i18n dictionaries, search-index.json, materials reference/
+sources) byte-identical repo vs. live. Full five-suite regression plus
+the theme suite re-run from scratch: 305/305 (55+27+162+21+22+18).
+`tools/check_library_catalog.py`: 42/42. Materials and Search pages
+both confirmed live 200 via the real nginx/php-fpm stack. Travel Mode
+confirmed `OFF` live (`{"travel_mode": false}`).
+
+**Post-power-outage recovery (2026-09-03, same day):** an unexpected
+household power outage hit mid-write of what would have been this
+same closing commit, in the `round9` worktree
+(`.claude/worktrees/round9`, branch `worktree-round9`). Four git loose
+objects (the commit and its tree/blob dependencies) were left as
+zero-byte files on disk - `git fsck` confirmed corruption, and that
+worktree's branch ref (`b4daf1c...`) is unreadable. **No round-9 code
+or content was lost**: the worktree's own `HEAD` reflog cleanly ends at
+`9e6d9f3`, identical to `main`'s HEAD and to the operator's own
+pre-outage account of the worktree tip - the interrupted commit was
+purely this closing docs entry, nothing under `var/www/html/`. Its
+intended text survived as an uncommitted, uncorrupted working-tree file
+(`docs/CHECKPOINTS.md` in the round9 worktree, since working-tree files
+are plain files, not git objects) and was used as a starting point here
+- but every substantive claim in it (the nginx discrepancy above, the
+regression/catalog counts, VERSION/drift, live 200s) was independently
+re-verified from scratch post-outage rather than trusted as-is, per
+this project's own recovery discipline. A full recursive diff of the
+round9 worktree against `main` turned up nothing else uncommitted
+besides this one file. Session/services health after the resulting
+cold boot: `systemctl --failed` empty; all six services (`hostapd`/
+`dnsmasq`/`nginx`/`php8.4-fpm`/`piratebox-oled.service`/
+`piratebox-button.service`) active and enabled; `timedatectl` reports
+`System clock synchronized: yes` with NTP active (`RTC time: n/a` -
+still no hardware RTC, as expected, unchanged, not touched);
+`vcgencmd get_throttled` reads `0x50005`, the same known pre-existing
+undervoltage condition as prior rounds - acknowledged, not attempted,
+per standing instruction. With containment established (all real
+round-9 commits reachable from `main`; nothing else uncommitted in the
+worktree), the `round9` worktree and its branch are safe to remove via
+the normal worktree-cleanup procedure.
+
+**Do not begin Round 10 from this entry** - the live nginx discrepancy
+above is a real open item for the operator, not a blocker recorded as
+if it were code work still to do.
 
