@@ -92,5 +92,14 @@
   "landing.explore.reference_desc": "Radio, maps, mechanical/electronics, materials, computing, field tools & more",
   "landing.explore.more_link": "See everything this PirateBox can do →",
   "help.trust_prefs_title": "Language and appearance choices stay with you, not on this device",
-  "help.trust_prefs_body": "Picking a visual theme saves one small preference in this browser's own local storage on this device only - it is never sent to this PirateBox at all, and disappears if you clear this browser's site data. Picking a language saves a similar small preference in a plain cookie, sent back to this PirateBox only so it knows which language to reply in - never shared with any other visitor, never linked to any account, because there is no account and no cookie tracks anything beyond that one setting."
+  "help.trust_prefs_body": "Picking a visual theme saves one small preference in this browser's own local storage on this device only - it is never sent to this PirateBox at all, and disappears if you clear this browser's site data. Picking a language saves a similar small preference in a plain cookie, sent back to this PirateBox only so it knows which language to reply in - never shared with any other visitor, never linked to any account, because there is no account and no cookie tracks anything beyond that one setting.",
+  "search.heading": "Search",
+  "search.intro": "One search box across Radio, Emergency, First Aid, Maps, Local Information, and the Document Library - %d indexed items, entirely offline. Results link straight to the answer.",
+  "search.placeholder": "Search: NOAA, 40 meter, generator, bleeding, hypothermia, GPS, manual...",
+  "search.aria_label": "Search everything",
+  "search.chip_all": "All",
+  "search.no_results": "No matches. Try a different search term or choose \"All\".",
+  "search.index_not_built": "Search index not built yet - run tools/build_search_index.py.",
+  "search.utility_library_link": "Utility Library",
+  "search.take_with_you_link": "Take This With You"
 }

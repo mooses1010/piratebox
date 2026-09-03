@@ -92,5 +92,14 @@
   "landing.explore.reference_desc": "Radio, mapas, mecánica/electrónica, materiales, computación, herramientas de campo y más",
   "landing.explore.more_link": "Ver todo lo que este PirateBox puede hacer →",
   "help.trust_prefs_title": "Las preferencias de idioma y apariencia se quedan contigo, no en este dispositivo",
-  "help.trust_prefs_body": "Elegir un tema visual guarda una pequeña preferencia solo en el almacenamiento local de este navegador en este dispositivo - nunca se envía a este PirateBox, y desaparece si borras los datos del sitio en este navegador. Elegir un idioma guarda una preferencia similar en una simple cookie, enviada de vuelta a este PirateBox únicamente para que sepa en qué idioma responder - nunca se comparte con ningún otro visitante, nunca se vincula a ninguna cuenta, porque no existe ninguna cuenta y esa cookie no rastrea nada más allá de esa única configuración."
+  "help.trust_prefs_body": "Elegir un tema visual guarda una pequeña preferencia solo en el almacenamiento local de este navegador en este dispositivo - nunca se envía a este PirateBox, y desaparece si borras los datos del sitio en este navegador. Elegir un idioma guarda una preferencia similar en una simple cookie, enviada de vuelta a este PirateBox únicamente para que sepa en qué idioma responder - nunca se comparte con ningún otro visitante, nunca se vincula a ninguna cuenta, porque no existe ninguna cuenta y esa cookie no rastrea nada más allá de esa única configuración.",
+  "search.heading": "Buscar",
+  "search.intro": "Un solo cuadro de búsqueda para Radio, Emergencia, Primeros Auxilios, Mapas, Información Local y la Biblioteca de Documentos - %d elementos indexados, completamente sin conexión. Los resultados enlazan directo a la respuesta.",
+  "search.placeholder": "Buscar: NOAA, 40 metros, generador, sangrado, hipotermia, GPS, manual...",
+  "search.aria_label": "Buscar en todo",
+  "search.chip_all": "Todo",
+  "search.no_results": "Sin coincidencias. Prueba un término de búsqueda diferente o elige \"Todo\".",
+  "search.index_not_built": "El índice de búsqueda aún no se ha creado - ejecuta tools/build_search_index.py.",
+  "search.utility_library_link": "Biblioteca de Utilidad",
+  "search.take_with_you_link": "Llévatelo Contigo"
 }

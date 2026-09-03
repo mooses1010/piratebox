@@ -88,26 +88,26 @@ function ref_search_blob(array $fields): string
     <?php require_once __DIR__ . '/../../../includes/navbar.php'; ?>
 
     <div class="radio-page">
-        <h1>Search</h1>
-        <p class="utility-breadcrumb"><a href="/utility/">&larr; Utility Library</a></p>
+        <h1><?= htmlspecialchars(piratebox_t('search.heading')) ?></h1>
+        <p class="utility-breadcrumb"><a href="/utility/">&larr; <?= htmlspecialchars(piratebox_t('search.utility_library_link')) ?></a></p>
 
-        <p>One search box across Radio, Emergency, First Aid, Maps, Local Information, and the Document Library - <?= count($index) ?> indexed items, entirely offline. Results link straight to the answer.</p>
+        <p><?= htmlspecialchars(sprintf(piratebox_t('search.intro'), count($index))) ?></p>
 
         <div class="radio-search-bar">
-            <input type="text" id="radioSearch" placeholder="Search: NOAA, 40 meter, generator, bleeding, hypothermia, GPS, manual..." aria-label="Search everything">
+            <input type="text" id="radioSearch" placeholder="<?= htmlspecialchars(piratebox_t('search.placeholder')) ?>" aria-label="<?= htmlspecialchars(piratebox_t('search.aria_label')) ?>">
             <div class="radio-chip-row" id="radioChips" role="group" aria-label="Filter by section">
-                <button type="button" class="radio-chip active" data-group="all">All</button>
+                <button type="button" class="radio-chip active" data-group="all"><?= htmlspecialchars(piratebox_t('search.chip_all')) ?></button>
                 <?php foreach ($sectionLabels as $key => $label): ?>
                     <button type="button" class="radio-chip" data-group="<?= htmlspecialchars($key) ?>"><?= htmlspecialchars($label) ?></button>
                 <?php endforeach; ?>
             </div>
         </div>
 
-        <p class="radio-no-results" id="radioNoResults" hidden>No matches. Try a different search term or choose "All".</p>
+        <p class="radio-no-results" id="radioNoResults" hidden><?= htmlspecialchars(piratebox_t('search.no_results')) ?></p>
 
         <div id="radioResults">
             <?php if (empty($index)): ?>
-                <p class="empty-state">Search index not built yet - run tools/build_search_index.py.</p>
+                <p class="empty-state"><?= htmlspecialchars(piratebox_t('search.index_not_built')) ?></p>
             <?php else: ?>
                 <?php foreach ($index as $r): ?>
                     <?php $search = ref_search_blob([$r['title'] ?? '', $r['snippet'] ?? '', $r['keywords'] ?? [], $r['section'] ?? '']); ?>
@@ -124,8 +124,8 @@ function ref_search_blob(array $fields): string
         </div>
 
         <div class="hero-actions">
-            <a href="/utility/">Utility Library</a>
-            <a href="/utility/download/">Take This With You</a>
+            <a href="/utility/"><?= htmlspecialchars(piratebox_t('search.utility_library_link')) ?></a>
+            <a href="/utility/download/"><?= htmlspecialchars(piratebox_t('search.take_with_you_link')) ?></a>
         </div>
     </div>
 
