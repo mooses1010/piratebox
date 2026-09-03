@@ -278,5 +278,101 @@
     "related_pages": [
       {"url": "/utility/emergency/#wildfire-smoke", "label": "Emergency: Wildfire & Smoke"}
     ]
+  },
+  {
+    "id": "cdc-infant-formula-emergency",
+    "title": "How to Prepare and Store Powdered Infant Formula During an Emergency",
+    "category": "emergency-firstaid",
+    "description": "Current CDC step-by-step guidance for safely preparing powdered infant formula when tap water is unsafe (natural disaster, drinking-water outage): using bottled/boiled/disinfected water, exact measurement, storage/discard timing, and a clear warning to prefer ready-to-feed formula for infants under 2 months, premature, or immunocompromised. Fills a genuine gap - infant/child feeding safety - not covered by any other retained document.",
+    "tags": ["infant formula", "baby formula", "feeding infants", "emergency water", "cdc", "infant safety"],
+    "file": "cdc-infant-formula-emergency.pdf",
+    "file_type": "pdf",
+    "file_size": "2.4 MB",
+    "source": "Centers for Disease Control and Prevention (CDC)",
+    "date_version": "CS 356349-A, last updated December 10, 2024",
+    "provenance_notes": "Source: https://www.cdc.gov/nutrition/emergencies-infant-feeding/downloads/pages/prepare-and-store-powdered-infant-formula-iycf-e-h.pdf - retrieved 2026-09-02. CDC-authored public health guidance, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Retained in preference to an older (2008) CDC general food/water safety factsheet found during the same search: that older document's water-treatment guidance overlaps with the already-retained, more detailed EPA disinfection document, and its brief infant-formula mention is superseded by this dedicated, currently-maintained (Dec 2024) CDC guidance - retaining the current specific document instead of the older general one, per instruction that high-stakes content must be current.",
+    "related_pages": [
+      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"}
+    ]
+  },
+  {
+    "id": "aidr-community-recovery-handbook",
+    "title": "Community Recovery (Australian Disaster Resilience Handbook 2)",
+    "category": "emergency-firstaid",
+    "description": "Australian Institute for Disaster Resilience handbook on what happens after a disaster: social/psychological recovery, financial and built-environment recovery, and how communities organize recovery efforts. Complements this library's existing before/during-disaster material (all US and UK sources) with substantive after-the-fact guidance, and is this library's second clearly-licensed non-US source.",
+    "tags": ["disaster recovery", "community recovery", "psychosocial recovery", "australia", "emergency management"],
+    "file": "aidr-community-recovery-handbook.pdf",
+    "file_type": "pdf",
+    "file_size": "4.2 MB",
+    "source": "Australian Institute for Disaster Resilience, on behalf of the Australian Government Department of Home Affairs",
+    "date_version": "Handbook 2, third edition, 2018",
+    "provenance_notes": "Source: https://knowledge.aidr.org.au/media/5634/community-recovery-handbook.pdf - retrieved 2026-09-02. The document's own copyright page states: \"All material presented in this publication is provided under a Creative Commons Attribution 4.0 International Public License\", with the standard exceptions (Commonwealth Coat of Arms, agency logos/trademarks, any material specifically marked as excluded) - confirmed by reading the actual PDF text, not assumed from the publisher's general reputation. Some content is written for emergency-management professionals/coordinators rather than individual readers, but the social/psychosocial recovery sections are directly useful to anyone affected by a disaster.",
+    "related_pages": [
+      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"}
+    ]
+  },
+  {
+    "id": "nasa-rp1228-fastener-design-manual",
+    "title": "Fastener Design Manual (NASA RP-1228)",
+    "category": "mechanical-repair",
+    "description": "NASA's authoritative reference on threaded fasteners: material selection, platings/lubricants, corrosion, locking methods, washers/inserts, thread types and classes, torque formulas, fatigue loading, grip length, head styles, and fastener strength, plus rivets and lockbolts. Establishes the new Mechanical & Basic Repair area of the library with a genuinely deep, non-hazardous reference (understanding fasteners, not performing certified repairs).",
+    "tags": ["fasteners", "screws", "bolts", "nuts", "torque", "washers", "rivets", "nasa", "mechanical"],
+    "file": "nasa-rp1228-fastener-design-manual.pdf",
+    "file_type": "pdf",
+    "file_size": "5.1 MB",
+    "source": "National Aeronautics and Space Administration (NASA), Lewis Research Center",
+    "date_version": "NASA Reference Publication 1228, March 1990",
+    "provenance_notes": "Source: https://ntrs.nasa.gov/api/citations/19900009424/downloads/19900009424.pdf - retrieved 2026-09-02. Authored by a NASA employee (Richard T. Barrett) as part of official duties, work of the US federal government, public domain under 17 U.S.C. Sec. 105. NASA's own STI/NTRS disclaimers page states: \"Documents available from this Web site are not protected by copyright unless noted\" and \"U.S. government works may contain privately created, copyrighted works... used under license\" as the only exception - this specific document carries no such notice (unlike the 1957 Army Survival Manual rejected this same round, which explicitly states it contains copyrighted material). Widely mirrored by independent engineering sites, consistent with an unrestricted document.",
+    "related_pages": [
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+    ]
+  },
+  {
+    "id": "gutenberg-wentworth-plane-geometry",
+    "title": "Plane Geometry (Wentworth, 1899)",
+    "category": "reference",
+    "description": "A classic, complete plane geometry textbook - lines, angles, triangles, circles, polygons, area/proportion, and geometric construction with straightedge and compass - proofs and constructions whose validity hasn't changed since publication. Retained as a historical public-domain work for a durable, non-safety-critical subject (geometry), clearly dated rather than presented as current.",
+    "tags": ["geometry", "mathematics", "historical", "plane geometry", "construction", "proofs"],
+    "file": "gutenberg-wentworth-plane-geometry.pdf",
+    "file_type": "pdf",
+    "file_size": "2.9 MB",
+    "source": "George Albert Wentworth, via Project Gutenberg",
+    "date_version": "Originally published 1899; this Project Gutenberg edition digitized 2010 (eBook #33063)",
+    "provenance_notes": "Source: https://www.gutenberg.org/ebooks/33063 (PDF: https://www.gutenberg.org/files/33063/33063-pdf.pdf) - retrieved 2026-09-02. Original 1899 work is public domain by US copyright term (published before 1929); Project Gutenberg's own terms explicitly permit redistribution of its public-domain e-texts. HISTORICAL WORK, clearly dated as such: retained because geometric proofs and constructions are timeless (unlike medicine, food/water safety, or electrical codes, explicitly excluded from historical retention this round), not because it is free.",
+    "related_pages": [
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+    ]
+  },
+  {
+    "id": "neets-module10-wave-propagation-antennas",
+    "title": "Introduction to Wave Propagation, Transmission Lines, and Antennas (NEETS Module 10)",
+    "category": "radio",
+    "description": "Navy self-study training module on RF fundamentals: how radio waves propagate, transmission line theory and characteristic impedance, standing waves/SWR, impedance matching, and antenna types and behavior. Fills the Radio/RF depth gap beyond the frequency-allocation chart with real technical fundamentals, without touching any copyrighted ARRL material.",
+    "tags": ["radio wave propagation", "transmission lines", "antennas", "impedance", "swr", "rf fundamentals", "navy", "neets"],
+    "file": "neets-module10-wave-propagation-antennas.pdf",
+    "file_type": "pdf",
+    "file_size": "2.4 MB",
+    "source": "United States Navy (Naval Education and Training Professional Development and Technology Center)",
+    "date_version": "NAVEDTRA 14182, September 1998",
+    "provenance_notes": "Source: https://archive.org/details/NEETSModule10 (direct: https://archive.org/download/NEETSModule10/NEETSModule10.pdf) - retrieved 2026-09-02. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same two-part standard (PD + the document's own release statement) used for every DoD manual in this library. One module of a ~24-module Navy self-study series (NEETS) confirmed clean PD - other modules (DC/AC fundamentals, semiconductors, digital logic) are a viable source for future rounds rather than bulk-imported here.",
+    "related_pages": [
+      {"url": "/utility/radio/", "label": "Radio Reference"}
+    ]
+  },
+  {
+    "id": "neets-module13-number-systems-logic",
+    "title": "Introduction to Number Systems and Logic (NEETS Module 13)",
+    "category": "computing",
+    "description": "Navy self-study training module on binary/octal/hexadecimal number systems, conversions between them, binary arithmetic and binary-coded decimal, Boolean algebra, and logic gates/circuits - the foundational digital-computing concepts behind all modern networking and computing equipment. Establishes the new Computing & Digital Fundamentals area of the library.",
+    "tags": ["binary", "hexadecimal", "boolean algebra", "logic gates", "number systems", "digital logic", "navy", "neets"],
+    "file": "neets-module13-number-systems-logic.pdf",
+    "file_type": "pdf",
+    "file_size": "1.1 MB",
+    "source": "United States Navy (Naval Education and Training Professional Development and Technology Center)",
+    "date_version": "NAVEDTRA 14185, September 1998",
+    "provenance_notes": "Source: https://archive.org/details/NEETSModule13 (direct: https://archive.org/download/NEETSModule13/NEETSModule13.pdf) - retrieved 2026-09-02. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text). Content (binary/hex representation, Boolean logic) is durable and still directly applicable despite the 1998 publication date - not treated as historical, since the underlying digital-logic concepts are current computing fundamentals, not superseded technique.",
+    "related_pages": [
+      {"url": "/utility/computing/", "label": "Computing Reference"}
+    ]
   }
 ]

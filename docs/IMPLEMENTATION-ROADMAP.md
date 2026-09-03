@@ -656,6 +656,114 @@ Solver). catalog.json re-validated (17/17), search index rebuilt (187
 entries), full regression still 287/287, smoke-tested (200, cross-
 link renders). **Library footprint: 17 documents, ~41 MB total.**
 
+### 3j. Deep bookshelf pass, round 4: global, computing, mechanical, RF (2026-09-02)
+
+Fourth source-investigation pass, addressing the specific gaps named
+at the end of round 3: global/non-US coverage, Radio/RF depth,
+Computing/Networking depth, and Mechanical/Repair (previously a total
+gap). Also resolved a stale/superseded-content question in Food
+Safety.
+
+**Retained (6 new documents, ~17.9 MB):**
+
+| Document | Source | Basis | Category | Scope |
+|---|---|---|---|---|
+| How to Prepare and Store Powdered Infant Formula During an Emergency | CDC, Dec 2024, 2pp, 2.4MB | PD (17 U.S.C. Sec. 105) | `emergency-firstaid` | Universal technique, US-sourced |
+| Community Recovery (AIDR Handbook 2) | Australian Institute for Disaster Resilience, 2018 3rd ed., 148pp, 4.2MB | CC BY 4.0 (confirmed via the document's own copyright page) | `emergency-firstaid` | Universal principles, Australian institutional framing |
+| Fastener Design Manual (NASA RP-1228) | NASA, March 1990, 100pp, 5.1MB | PD (17 U.S.C. Sec. 105), no adverse notice found | `mechanical-repair` (**new category**) | Universal (fastener engineering is not jurisdiction-specific) |
+| Plane Geometry (Wentworth) | 1899, via Project Gutenberg, 326pp, 2.9MB | PD (pre-1929 publication + Gutenberg's own redistribution terms) | `reference` | Universal, explicitly marked historical |
+| NEETS Module 10: Wave Propagation, Transmission Lines, and Antennas | US Navy, Sept 1998, 276pp, 2.4MB | PD (17 U.S.C. Sec. 105 + the document's own "approved for public release" statement) | `radio` | Universal RF theory |
+| NEETS Module 13: Number Systems and Logic | US Navy, Sept 1998, 218pp, 1.1MB | PD (same basis as Module 10) | `computing` (**new category**) | Universal (binary/Boolean logic is timeless) |
+
+Two new Document Library categories added (`categories.json`):
+`mechanical-repair` ("Mechanical & Basic Repair") and `computing`
+("Computing & Digital Fundamentals") - both previously had zero
+retained documents despite existing subject pages
+(`/utility/computing/`) or being explicitly named as priority gaps
+(Mechanical/Repair had no subject page at all; the NASA fastener
+manual is cross-linked from Field Tools Units instead, since a new
+subject page wasn't warranted for one document).
+
+**Global/non-US progress:** the AIDR Community Recovery handbook is
+the library's second non-US source (after the UK OGL guide), and the
+first under a Creative Commons license rather than a Crown-copyright-
+style government licence - verified by reading the document's own
+copyright page rather than assumed from AIDR's institutional
+reputation. Two other jurisdictions investigated and NOT resolved
+this round, recorded honestly rather than silently dropped:
+- **Canada** (Public Safety Canada's "Your Emergency Preparedness
+  Guide") - tried three different URL structures this round (a
+  guessed publications.gc.ca PDF path, the getprepared.gc.ca
+  publications catalog page, and the getprepared.gc.ca homepage) -
+  all three now redirect into an HTML-only canada.ca hazard-by-hazard
+  page structure with no PDF found. Likely retired as a downloadable
+  PDF in favor of accessible HTML. **DEFERRED - access**, not chased
+  with further URL-guessing this round per instruction not to hammer
+  dead links.
+- **New Zealand** (Civil Defence "Get Ready") - the main site
+  (getready.govt.nz) returned HTTP 403 to automated fetches; the
+  household-plan resources found are fillable HTML forms/PDF
+  templates, not a substantive downloadable guide. **DEFERRED -
+  access.**
+
+**Radio/RF progress:** NEETS Module 10 directly addresses propagation,
+transmission lines, characteristic impedance, SWR, and antennas -
+genuine technical depth beyond the frequency-allocation chart, with
+zero ARRL material involved. FCC Part 97 was not re-attempted this
+round (already recorded as a real, specific extraction problem in
+round 3, not a licensing question - re-litigating it wouldn't change
+the outcome without new information). The broader NEETS series (~24
+modules total, confirmed clean PD via two modules now retained) is
+recorded as a strong source for future DC/AC fundamentals,
+semiconductor, and test-equipment modules rather than bulk-imported
+now.
+
+**Computing/Networking progress:** investigated NIST SP 800-12 Rev 1
+("An Introduction to Information Security") as a candidate - rejected
+as a mismatch: it's a security-controls handbook, not a networking-
+fundamentals reference, and retaining it under "Computing/Networking"
+would misrepresent its content. NEETS Module 13 (binary/hex/Boolean
+logic/gates) was retained instead as a better-fitting, equally-PD
+foundational match for the specific gap named (character encoding/
+checksum concepts rest on exactly this material). Genuine remaining
+gap: nothing retained yet on TCP/IP, subnetting, DNS, DHCP, Ethernet,
+or Wi-Fi specifically - recorded as **NOT YET ATTEMPTED**, not
+blocked; the existing Computing page's structured reference content
+already covers these at an explanatory level, so this is a "no source
+document yet" gap, not a missing-topic gap.
+
+**Mechanical/Repair progress:** NASA RP-1228 opens this previously-
+untouched area with a genuinely deep, safety-appropriate reference
+(fastener engineering, not hazardous repair procedure). Hand tools,
+bearings, lubrication, adhesives, and measuring-tool references
+remain **NOT YET ATTEMPTED** - a real, honestly-recorded gap for a
+future round, not treated as complete after one document.
+
+**Food Safety resolved (not a new document, a correction):**
+investigated USDA FSIS (blocked, HTTP 403, not re-hammered) and an
+older (2008) CDC food/water safety factsheet found during the same
+search. Read the 2008 document's full text: its water-treatment
+guidance overlaps with the already-retained EPA disinfection document,
+and its brief infant-formula section is superseded by CDC's own
+current (Dec 2024) dedicated guidance - retained the current specific
+document (see table above) instead of the older general one, per the
+explicit instruction that high-stakes content must stay current.
+**REJECTED - superseded/redundant** for the 2008 document; not
+retained.
+
+Verification: catalog.json validates, tools/check_library_catalog.py
+clean (23/23), search index rebuilt (193 entries), full five-suite
+regression still 287/287, all 6 new documents and their category
+cross-links (Emergency x2, Field Tools Units x2, Radio, Computing)
+smoke-tested via php -S (all 200, all cross-links render, both new
+category chips - Computing & Digital Fundamentals, Mechanical & Basic
+Repair - render correctly on the Document Library page), `/utility/
+about/` reads "Document Library: INSTALLED (23)".
+
+**Library footprint:** 23 documents, ~59 MB total (was ~41 MB) -
+still a small fraction of the 128GB card; still curated per-item, not
+bulk-acquired.
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |
