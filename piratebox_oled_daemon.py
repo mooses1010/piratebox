@@ -94,6 +94,37 @@
 #   SupplementaryGroups=i2c for /dev/i2c-1 access - never root, never
 #   www-data, requests no sudo grant of any kind (this daemon has no
 #   action to escalate to, unlike the shutdown button).
+#
+# PERSONALITY MODE (added round 7, 2026-09-03) - a small, bounded fun
+# layer while the OLED sits exposed on the desk with no enclosure yet:
+#   - A tiny procedurally-drawn skull-and-crossbones plus a rotating
+#     one-line quip, shown as a fifth page inserted sparingly into the
+#     rotation (every PERSONALITY_EVERY_N_CYCLES full cycles of the
+#     four serious pages - roughly every several minutes, not every
+#     few seconds). It replaces one "status" page slot for one
+#     PAGE_SECONDS interval, then rotation continues exactly as before.
+#   - A one-shot "a client joined" quip when status.json's wifi_clients
+#     count goes up since the last redraw - reusing the exact same
+#     aggregate counter the Status page already reads, not a new signal
+#     or any per-client tracking.
+#   - A one-shot uptime-milestone quip (1 day, 1 week) the first time
+#     this process observes /proc/uptime crossing that threshold.
+#   - ALL personality frames are gated by personality_allowed() below:
+#     suppressed entirely in Emergency Mode, whenever status.json is
+#     stale/missing, whenever any of the four Core services
+#     (hostapd/dnsmasq/nginx/php8.4-fpm) is down, or whenever
+#     power.undervoltage_now is true. A serious health/degraded
+#     condition always wins - the display falls straight through to
+#     the Health page instead of ever showing a quip while something
+#     is actually wrong.
+#   - Zero new state files: the "have I shown this milestone/
+#     celebration yet" bookkeeping lives in plain Python variables in
+#     main()'s own loop, not written to disk anywhere - it resets on
+#     every service restart, which is fine for a cosmetic feature and
+#     keeps the "no unnecessary SD card writes" contract intact.
+#   - No animation loop, no external image/font asset, no new
+#     dependency: the skull is drawn with a handful of Pillow
+#     primitives (ellipses/lines) already used by every other page.
 
 import json
 import logging
@@ -129,6 +160,21 @@ FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 # looked up, per docs/HARDWARE-INTEGRATION-DESIGN.md §5's own content
 # plan ("already known/fixed... no lookup needed").
 AP_IP_ADDRESS = "10.0.0.1"
+
+# Personality mode (see header note above): shown once every this many
+# full rotations of the four serious pages - deliberately "occasional,"
+# not "every cycle." At PAGE_SECONDS=8s x 4 pages = 32s per rotation,
+# 6 rotations is roughly 3 minutes between quips.
+PERSONALITY_EVERY_N_CYCLES = 6
+
+QUIPS = [
+    "All quiet on the high seas.",
+    "No leaks detected below decks.",
+    "Charts and compass both in order.",
+    "Powder's dry, crew's accounted for.",
+    "Fair winds, following seas.",
+    "Nothin' to report, cap'n.",
+]
 
 logging.basicConfig(
     level=logging.INFO,
@@ -332,12 +378,71 @@ def render_health(draw, font, status, stale: bool) -> None:
             draw.text((0, 48), "! POWER: UNDERVOLTAGE", font=font, fill="white")
 
 
+def personality_allowed(mode: str, status, stale: bool) -> bool:
+    """Gate for every personality frame (the occasional quip page, the
+    connection celebration, and the uptime milestone). A serious
+    condition always wins: Emergency Mode, a stale/missing status
+    snapshot, any Core service down, or active undervoltage all
+    suppress personality frames entirely - the display falls straight
+    through to a normal serious page instead. This is checked fresh
+    every time a personality frame would be shown, not cached, so a
+    condition that appears *during* the personality-quiet window takes
+    effect on the very next redraw."""
+    if mode == "emergency":
+        return False
+    if stale or not isinstance(status, dict):
+        return False
+    services = status.get("services", {})
+    if any(v is not True for v in services.values()):
+        return False
+    if status.get("power", {}).get("undervoltage_now") is True:
+        return False
+    return True
+
+
+def draw_skull_and_crossbones(draw, x: int, y: int) -> None:
+    """A small (~28x28px) skull-and-crossbones, drawn with plain Pillow
+    primitives - no external image file, no font glyph, nothing beyond
+    what every other page on this display already uses."""
+    # Cranium
+    draw.ellipse((x, y, x + 24, y + 20), outline="white", fill="white")
+    # Eye sockets (punched out in black)
+    draw.ellipse((x + 4, y + 6, x + 10, y + 13), fill="black")
+    draw.ellipse((x + 14, y + 6, x + 20, y + 13), fill="black")
+    # Nose
+    draw.polygon([(x + 12, y + 13), (x + 10, y + 17), (x + 14, y + 17)], fill="black")
+    # Jaw/teeth
+    draw.rectangle((x + 4, y + 19, x + 20, y + 24), outline="white", fill="white")
+    for tx in range(x + 6, x + 20, 3):
+        draw.line((tx, y + 19, tx, y + 24), fill="black")
+    # Crossbones behind/below
+    draw.line((x - 4, y + 28, x + 28, y + 20), fill="white", width=2)
+    draw.line((x - 4, y + 20, x + 28, y + 28), fill="white", width=2)
+
+
+def render_personality(draw, font, quip: str) -> None:
+    draw_skull_and_crossbones(draw, 2, 4)
+    draw.text((38, 8), "PIRATEBOX", font=font, fill="white")
+    draw.text((38, 20), "OK", font=font, fill="white")
+    draw.text((0, 40), quip, font=font, fill="white")
+
+
+def render_celebration(draw, font, client_count) -> None:
+    draw_skull_and_crossbones(draw, 2, 4)
+    draw.text((38, 8), "AHOY!", font=font, fill="white")
+    draw.text((0, 40), f"A client boarded! ({client_count} aboard)", font=font, fill="white")
+
+
+def render_milestone(draw, font, message: str) -> None:
+    draw_skull_and_crossbones(draw, 2, 4)
+    draw.text((38, 8), "MILESTONE", font=font, fill="white")
+    draw.text((0, 40), message, font=font, fill="white")
+
+
 PAGE_ORDER = ["status", "time", "network", "health"]
 
 
-def render_page(device, font, page: str) -> None:
-    status, stale = read_status_json()
-    mode = read_mode()
+def render_page(device, font, page: str, status, stale: bool, mode: str, extra=None) -> None:
     with canvas(device) as draw:
         if page == "status":
             render_status(draw, font, mode, status, stale)
@@ -347,6 +452,12 @@ def render_page(device, font, page: str) -> None:
             render_network(draw, font, status, stale)
         elif page == "health":
             render_health(draw, font, status, stale)
+        elif page == "personality":
+            render_personality(draw, font, extra["quip"])
+        elif page == "celebration":
+            render_celebration(draw, font, extra["client_count"])
+        elif page == "milestone":
+            render_milestone(draw, font, extra["message"])
 
 
 def load_font():
@@ -383,13 +494,22 @@ def main() -> int:
     font = load_font()
     log.info(
         "Started. I2C bus %d address 0x%02X, %.0fs refresh, %.0fs/page "
-        "(auto-rotating - no cycle button wired yet), %d-page cycle.",
+        "(auto-rotating - no cycle button wired yet), %d-page cycle, "
+        "personality quip every %d rotations (suppressed in Emergency "
+        "Mode or any degraded condition).",
         I2C_PORT, I2C_ADDRESS, REFRESH_SECONDS, PAGE_SECONDS, len(PAGE_ORDER),
+        PERSONALITY_EVERY_N_CYCLES,
     )
 
     page_index = 0
     seconds_on_current_page = 0.0
     device = None
+
+    # Personality-mode bookkeeping - deliberately plain in-memory state,
+    # never written to disk (see the header note above).
+    rotation_count = 0
+    last_wifi_clients = None
+    milestones_shown = set()
 
     while not stop:
         if device is None:
@@ -399,8 +519,45 @@ def main() -> int:
                 continue
             log.info("OLED initialized successfully.")
 
+        status, stale = read_status_json()
+        mode = read_mode()
+        allowed = personality_allowed(mode, status, stale)
+
+        # One-shot frames (connection celebration, uptime milestone) can
+        # preempt whatever would otherwise show, but only ever a plain
+        # data read - no new tracking, no per-client information kept.
+        one_shot = None
+        if allowed and not stale and isinstance(status, dict):
+            current_clients = status.get("wifi_clients")
+            if isinstance(current_clients, int):
+                if last_wifi_clients is not None and current_clients > last_wifi_clients:
+                    one_shot = ("celebration", {"client_count": current_clients})
+                last_wifi_clients = current_clients
+        if one_shot is None and allowed:
+            uptime_days = read_uptime_seconds() / 86400.0
+            for threshold, label in ((1, "1 day"), (7, "1 week")):
+                if uptime_days >= threshold and threshold not in milestones_shown:
+                    milestones_shown.add(threshold)
+                    one_shot = ("milestone", {"message": f"Underway for {label}!"})
+                    break
+
+        if one_shot is not None:
+            page, extra = one_shot
+        elif (
+            page_index == 0
+            and rotation_count > 0
+            and rotation_count % PERSONALITY_EVERY_N_CYCLES == 0
+            and allowed
+        ):
+            # The whole "status" slot for this rotation becomes a
+            # personality slot instead - occasional, not constant.
+            quip = QUIPS[(rotation_count // PERSONALITY_EVERY_N_CYCLES - 1) % len(QUIPS)]
+            page, extra = "personality", {"quip": quip}
+        else:
+            page, extra = PAGE_ORDER[page_index], None
+
         try:
-            render_page(device, font, PAGE_ORDER[page_index])
+            render_page(device, font, page, status, stale, mode, extra=extra)
         except Exception as exc:
             # A real write/communication failure - the display was
             # likely unplugged mid-run. Drop back to the retry-init
@@ -416,6 +573,8 @@ def main() -> int:
         if seconds_on_current_page >= PAGE_SECONDS:
             page_index = (page_index + 1) % len(PAGE_ORDER)
             seconds_on_current_page = 0.0
+            if page_index == 0:
+                rotation_count += 1
 
     return 0
 

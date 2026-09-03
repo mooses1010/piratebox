@@ -562,3 +562,55 @@ sequence and verification): `piratebox_oled_daemon.py` installed to
 `/etc/systemd/system/`, `piratebox-gpio` added to the `i2c` group,
 service enabled and started, confirmed rendering all four pages in
 rotation on the physical display.
+
+## 13. Personality/idle mode (added round 7, 2026-09-03)
+
+The enclosure is not built yet, so the OLED sits exposed on the desk.
+`piratebox_oled_daemon.py` gained a small, explicitly bounded
+personality layer on top of the four serious pages above - this is a
+side feature while the hardware is visible, not an OLED redesign, and
+the serious pages (§5-§12) are unchanged and remain the priority.
+
+**What it does:** roughly once every 6 full page rotations (~3
+minutes), the normally-scheduled "status" slot is replaced for that
+one rotation by a short pirate-flavored quip next to a small
+procedurally-drawn skull-and-crossbones (plain Pillow `ellipse`/
+`polygon`/`rectangle`/`line` calls - no image asset, no new font, no
+animation library). Two one-shot frames can briefly preempt whatever
+is showing: a "client boarded" frame when `status.json`'s
+`wifi_clients` count rises, and a one-time uptime milestone message at
+1 day and 1 week of continuous runtime.
+
+**Gated, every single time, by `personality_allowed()`** - checked
+fresh on every tick, never cached: refuses to show anything frivolous
+whenever mode is Emergency, `status.json` is stale, any Core service
+is down, or `undervoltage_now` is true. This was verified against this
+Pi's own currently-live status (`0x50005`, `undervoltage_now: true`,
+the open condition tracked in `docs/CAPABILITY-REGISTRY.md`) - the
+gate correctly suppresses all personality behavior under the exact
+real degraded condition this hardware is in right now, not just a
+synthetic test case.
+
+**Zero new state:** the rotation counter, last-seen client count, and
+which milestones have already fired all live in plain local variables
+inside `main()`'s loop - nothing is written to disk, so a service
+restart simply resets the "occasional" timer and re-allows milestones
+that already fired this run. No new tracking of individual clients or
+devices was added; the celebration frame reads the same aggregate
+`wifi_clients` count the status page already displays.
+
+**Everything else about the daemon is unchanged:** same retry/degraded
+behavior on lost hardware, same unprivileged `piratebox-gpio` account,
+same read-only access to already-world-readable files, same trivial
+CPU/RAM footprint (one extra dict lookup and, at most, a few more
+Pillow draw calls per tick - no added polling, no new files touched).
+Core has no dependency on this daemon before or after this change.
+
+Tested offline (module functions exercised directly against an
+in-memory image, including the gating checks above) rather than by
+running a second process against the physical I2C bus, since
+`piratebox-oled.service` was already active on this device at the time
+and a duplicate process opening the same bus was avoidable risk for no
+real benefit. Installing the updated daemon onto the running Pi still
+requires the operator's usual `sudo install` + `systemctl restart`
+step (this session cannot run `sudo`) - see `docs/CHECKPOINTS.md`.
