@@ -1076,6 +1076,57 @@ integration. Materials/Chemistry still has only one strong document
 (NIOSH); global-source diversity improved (2 -> 3 non-US documents)
 but remains thin relative to the collection's US-federal majority.
 
+### 3n. Deep bookshelf pass, round 7 + round 8 gap-driven follow-up (2026-09-03)
+
+Round 7 (own commits, no roadmap row added at the time - closed
+retroactively here, same pattern as `docs/CHECKPOINTS.md`'s round-6
+gap): 3 new reference pages closing long-open gaps - Mechanical &
+Repair (8 entries, 3 figures), Electronics (6 entries, 1 figure),
+Materials & Chemical Safety (6 entries; 2 new OSHA QuickCards - GHS
+pictograms, SDS structure - downloaded alongside the pre-existing
+NIOSH guide). Two new Radio guides (SWR/impedance matching, microwave/
+waveguide). Utility hub page given a full Spanish translation layer.
+Library: 38 -> 40 documents, ~281 MB. DOT/PHMSA Emergency Response
+Guidebook researched and deferred (Akamai bot wall).
+
+Round 8 (bounded, gap-driven per explicit instruction not to make this
+another acquisition-only round):
+- **ERG deferral re-checked, not re-attempted blindly**: tried a
+  genuinely different host (`rosap.ntl.bts.gov`, DOT's own National
+  Transportation Library/ROSA P repository) rather than hammering
+  `phmsa.dot.gov` again - also Akamai-blocked (403, same CDN vendor,
+  different property). Confirms this is a broader bot-wall pattern, not
+  a fluke of one host; deferral stands, not worth further attempts
+  without a genuinely different (non-Akamai) route.
+- **Computing/USB-serial/encoding gap partially closed**: `text-
+  encoding-basics` now cites RFC 20 (ASCII format for Network
+  Interchange, IETF, 1969) as its primary source instead of the
+  generic `general-networking-education` - a real, freely-redistributable,
+  authoritative standard directly on-topic. `usb-serial-basics` gained
+  a secondary citation to the already-retained NEETS Module 13 (digital
+  logic/number systems) - a partial, honest grounding (digital-signal
+  representation, not USB/RS-232 specifically). No public-domain
+  USB-IF-equivalent or RS-232-specific standard was found (USB-IF's own
+  spec and TIA-232-F are both proprietary/licensed) - this narrower gap
+  remains open, not misrepresented as closed.
+- **Global-source diversity checked, not padded**: one UK candidate
+  (Cabinet Office/UKHSA "Emergency Preparedness, Resilience and
+  Response Concept of Operations," Open Government Licence v3.0 -
+  confirmed clearly licensed) was found and **rejected on fitness, not
+  licensing** - it's an internal governance/process framework document,
+  not a practical reference a visitor could use, and this project does
+  not lower its usefulness bar just to move a country-diversity count.
+  No addition made; still flat at round 7's level.
+- **Materials/Chemistry**: no further documents added this round -
+  audited but no new genuinely useful, safely-scoped PD candidate
+  identified in the time available; remains a real, acknowledged gap
+  for a future round.
+- **OLED instrument-panel redesign** (not a library change, but the
+  same round): see `docs/HARDWARE-INTEGRATION-DESIGN.md` §14.
+- **NTP/time root-cause diagnosis**: see `docs/RTC-TIME-READINESS-
+  DESIGN.md` §0 and §6 above - a config bug, not unreachability;
+  genuine operator-sudo gate, not resolved by this session.
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |
@@ -1103,9 +1154,10 @@ but remains thin relative to the collection's US-federal majority.
 
 | Feature | Status | Evidence | Next action | Docs |
 |---|---|---|---|---|
-| Time-source status (RTC/NTP/fake-hwclock detection) | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Live: `rtc_detected: false, ntp_synchronized: false, fake_hwclock_installed: false` - all honestly reported | none | RTC-TIME-READINESS-DESIGN.md |
+| Time-source status (RTC/NTP/fake-hwclock detection) | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Live: `rtc_detected: false, ntp_synchronized: false, fake_hwclock_installed: false` - all honestly reported; reporting mechanism itself needs zero code changes once NTP is fixed below (round 8) | none | RTC-TIME-READINESS-DESIGN.md |
+| NTP sync (root cause found, round 8) | BLOCKED BY OPERATOR SUDO | `/etc/systemd/timesyncd.conf`'s `NTP=` line is a malformed, duplicated hostname (`time.cloudflare.comtime.cloudflare.com`) that fails DNS resolution - confirmed live. `eth0` (management interface) has a real, working Internet path, contradicting the Stage 28 assumption that no uplink existed | operator runs the one-line `sed` fix + `systemctl restart` documented in RTC-TIME-READINESS-DESIGN.md §0 | RTC-TIME-READINESS-DESIGN.md §0 |
 | Hardware RTC (DS3231) | BLOCKED BY HARDWARE | PLANNED (chip chosen), not purchased | operator purchase decision | CAPABILITY-REGISTRY.md |
-| `fake-hwclock` software fallback | BLOCKED BY OPERATOR DECISION | CANDIDATE; needs an explicit package-install go-ahead (project rule: never install packages without one) | ask operator for go-ahead if wanted | RTC-TIME-READINESS-DESIGN.md, Stage 28 |
+| `fake-hwclock` software fallback | NOT RECOMMENDED (round 8) | Superseded by the NTP fix above - a reachable NTP source makes "last known time" the wrong fix, not just an unapproved one | none - re-evaluate only if the NTP fix somehow can't be applied | RTC-TIME-READINESS-DESIGN.md, Stage 28 |
 | Undervoltage/power monitoring | IMPLEMENTED+DEPLOYED+LIVE-VERIFIED | Live `power.undervoltage_now: true` on current supply - honestly surfaced, diagnosis message present | operator's own PSU/cable investigation (hardware, not software) | POWER-UPS-DESIGN.md |
 | UPS/battery hardware | DOCUMENTED ONLY | CANDIDATE, requirements only | BLOCKED BY HARDWARE + purchase decision | POWER-UPS-DESIGN.md |
 

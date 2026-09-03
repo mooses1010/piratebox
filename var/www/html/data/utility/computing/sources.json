@@ -19,5 +19,19 @@
     "url": null,
     "retrieved": "2026-09-02",
     "note": "Widely-taught networking/computing concepts (Wi-Fi terminology, Ethernet/cabling, USB/serial, checksums/hashes, text encoding) not tied to one specific regulatory citation - the same pattern already used elsewhere in this project (e.g. Maps' general-nav-education, Radio's general-rf-education)."
+  },
+  "ietf-rfc20-ascii": {
+    "name": "RFC 20 (ASCII format for Network Interchange)",
+    "publisher": "IETF (Internet Engineering Task Force) / Vint Cerf, 1969",
+    "url": "https://www.rfc-editor.org/rfc/rfc20.txt",
+    "retrieved": "2026-09-03",
+    "note": "The original IETF standard defining ASCII for network interchange - directly grounds this page's ASCII coverage. Citation-only (same pattern as ietf-rfc1918/iana-port-registry below) - a 128-character 7-bit table has not changed since 1969, nothing to re-fetch. Does not itself cover Unicode/UTF-8 (which postdates it by decades) - general-networking-education remains the secondary source for that half of the entry."
+  },
+  "neets13-number-systems-logic": {
+    "name": "Introduction to Number Systems and Logic (NEETS Module 13)",
+    "publisher": "US Navy (NAVEDTRA)",
+    "url": "/utility/library/#neets-module13-number-systems-logic",
+    "retrieved": "2026-09-03",
+    "note": "Already retained in the Document Library (not computing-specific, but the only retained source touching how binary/digital signaling represents data) - grounds usb-serial-basics' underlying digital-logic concept, not USB or RS-232 specifically. No dedicated public-domain USB/RS-232 standard was found this round (USB-IF's own specification and TIA-232-F are both proprietary/licensed, not freely redistributable) - see docs/IMPLEMENTATION-ROADMAP.md round 8 for what was checked and rejected."
   }
 }
