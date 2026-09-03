@@ -602,3 +602,24 @@ as open/degraded per instruction, not something this checkpoint
 resolves. See `docs/CAPABILITY-REGISTRY.md`'s "Undervoltage / power-
 quality monitoring" entry for the full history.
 
+| Deep bookshelf pass, round 5: 12 new documents (navigation/celestial, electronics x5, radio, math/physics x2, materials/chemistry, computing/networking x2, mechanical), 2 figure extractions, new `materials-chemistry` category | `c0af00e` on `worktree-library-round5` (not yet merged to `main`) | *(no `~/piratebox-backups/` snapshot - content/code pass, to be merged and deployed via the normal `piratebox_deploy.sh` workflow)* |
+
+**Pre-merge state, 2026-09-03:** built and fully tested on an isolated
+worktree branch across two commits (`f331e0e`, `c0af00e`). Explicitly
+did NOT touch the OLED implementation, the undervoltage/power finding,
+or RTC/time-confidence work - all three correctly out of scope for
+this pass. catalog.json validated, `tools/check_library_catalog.py`
+clean (36/36), search index rebuilt (206 entries), full five-suite
+regression 287/287, all 12 new documents and both new figures smoke-
+tested via `php -S` against the worktree (all downloads 200, all
+Related Documents cross-links render on their target pages, both
+figure images 200, new `materials-chemistry` and previously-empty
+`pi-linux-networking` category chips render). One real licensing
+rejection recorded (USDA Complete Guide to Home Canning - grant-funded
+cooperative work, no explicit PD/reproduction statement found) rather
+than assumed retainable. Library footprint: 36 documents, ~271 MB
+total (was 24 documents, ~67 MB, at the start of this pass) - see
+`docs/IMPLEMENTATION-ROADMAP.md` §3l for the full document-by-document
+record. Merge/deploy and live re-verification recorded separately once
+completed.
+
