@@ -550,5 +550,37 @@
     "related_pages": [
       {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
     ]
+  },
+  {
+    "id": "neets-module03-circuit-protection-measurement",
+    "title": "Introduction to Circuit Protection, Control, and Measurement (NEETS Module 3)",
+    "category": "electronics",
+    "description": "Navy self-study training module on fuses/circuit breakers, switches/relays, and electrical measuring instruments beyond the basic multimeter (meter movements, ammeter/voltmeter/ohmmeter shunts and multipliers, wattmeters, and the safety practices around using them). Rounds out the DC-fundamentals (Module 1) and test-equipment (Module 16) coverage with the protection/control layer between them.",
+    "tags": ["fuses", "circuit breakers", "switches", "relays", "electrical measurement", "navy", "neets"],
+    "file": "neets-module03-circuit-protection-measurement.pdf",
+    "file_type": "pdf",
+    "file_size": "2.3 MB",
+    "source": "United States Navy (Naval Education and Training Professional Development and Technology Center)",
+    "date_version": "NAVEDTRA 14175, September 1998",
+    "provenance_notes": "Source: https://archive.org/details/NEETSModule03 (direct: https://archive.org/download/NEETSModule03/NEETSModule03.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every NEETS module already retained.",
+    "related_pages": [
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+    ]
+  },
+  {
+    "id": "neets-module07-solid-state-devices",
+    "title": "Introduction to Solid-State Devices and Power Supplies (NEETS Module 7)",
+    "category": "electronics",
+    "description": "Navy self-study training module on semiconductor fundamentals: diodes, transistors (bipolar and field-effect), rectifier circuits, and power supply filtering/regulation. The solid-state complement to Module 1's DC fundamentals - covers the components that make up virtually all modern electronics, from the ground up.",
+    "tags": ["semiconductors", "diodes", "transistors", "rectifiers", "power supplies", "navy", "neets"],
+    "file": "neets-module07-solid-state-devices.pdf",
+    "file_type": "pdf",
+    "file_size": "2.4 MB",
+    "source": "United States Navy (Naval Education and Training Professional Development and Technology Center)",
+    "date_version": "NAVEDTRA 14179, September 1998",
+    "provenance_notes": "Source: https://archive.org/details/NEETSModule07 (direct: https://archive.org/download/NEETSModule07/NEETSModule07.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every NEETS module already retained.",
+    "related_pages": [
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+    ]
   }
 ]

@@ -947,6 +947,19 @@ still under 0.3% of the 128GB card; still curated per-item, still
 rejecting on real licensing findings rather than assuming government-
 published means government-authored-and-PD.
 
+**Two more retained this same round**, rounding out Electronics
+coverage between the DC-fundamentals and test-equipment modules
+already retained: NEETS Module 3 (Introduction to Circuit Protection,
+Control, and Measurement - fuses, breakers, switches, relays,
+meter-shunt/multiplier theory) and NEETS Module 7 (Introduction to
+Solid-State Devices and Power Supplies - diodes, transistors,
+rectifiers, power supply filtering/regulation), both US Navy NAVEDTRA,
+September 1998, same "approved for public release" basis as every
+other NEETS module here. catalog.json re-validated (36/36), search
+index rebuilt (206 entries), full regression still 287/287,
+smoke-tested (both 200, both cross-links render on Field Tools Units).
+**Library footprint: 36 documents, ~271 MB total.**
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |
