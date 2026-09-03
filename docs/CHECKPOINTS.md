@@ -570,3 +570,35 @@ files were installed by hand, per above):**
   live installation, `capability_state` suite specifically 55/55, no
   assertion broke by the new `oled` classification logic).
 
+**Merged to `main` and deployed 2026-09-03 - this is now the durable
+known-good recovery point for the OLED bring-up**, not just a worktree
+checkpoint. `worktree-oled-i2c-bringup` (`c5d4e99`, `31248d8`) fast-
+forward merged cleanly into `main` (`2821af7` -> `31248d8`, no
+divergence, no conflicts). `sudo /usr/local/bin/piratebox_deploy.sh`
+run from `main` - Travel Mode quarantine re-applied (mode OFF), web
+tree synced. Live `includes/VERSION` now correctly stamped to
+`31248d8ab8a98045c0a0b3c1345bf92e5396381e`, matching `HEAD` exactly.
+Re-verified after merge+deploy, not assumed carried over from the
+pre-merge checks: `capability_state.php` byte-identical repo/live;
+`piratebox_oled_daemon.py`, `piratebox_status_helper.sh`, and the
+`piratebox-oled.service` unit file (all installed by hand before the
+merge, from the worktree) all confirmed byte-identical to their
+now-merged `main` copies - **zero deployment drift**.
+`piratebox-oled.service` still active/enabled, same PID, journal still
+clean (the deploy only touches `var/www/html/` - it does not and
+should not restart unrelated services). `piratebox-button.service` and
+all four Core services (hostapd/dnsmasq/nginx/php8.4-fpm) confirmed
+active. Full five-suite regression re-run post-deploy: 287/287. Live
+About page's capability count still correctly reads 4/9 Operational.
+Homepage 200. The worktree and its branch were then removed
+(`git worktree remove` + `git branch -d`) - safe, since every commit
+on it is now reachable from `main`.
+
+**Remaining known-open, deliberately not addressed by this pass:**
+undervoltage/throttling remains active on this power source
+(`vcgencmd get_throttled` still reads `0x50005` post-merge, unchanged) -
+this is a hardware power-supply-headroom issue, explicitly preserved
+as open/degraded per instruction, not something this checkpoint
+resolves. See `docs/CAPABILITY-REGISTRY.md`'s "Undervoltage / power-
+quality monitoring" entry for the full history.
+
