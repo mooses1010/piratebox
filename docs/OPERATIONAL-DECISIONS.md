@@ -6,6 +6,38 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## QR Code Order Fixed to Match Actual First-Time-Visitor Sequence
+
+**Decision date:** 2026-09-02. The operator noticed during real-device
+testing that Help's two QR codes were presented backwards relative to
+what a first-time visitor actually needs: the page showed "open
+PirateBox" (the URL QR) before "join the Wi-Fi" (the network QR),
+even though joining the Wi-Fi is the step that has to happen first for
+the URL QR to be useful at all - the numbered text steps immediately
+above the QR row already had the right order (join Wi-Fi, then open a
+browser), only the QR row itself was reversed.
+
+**Fixed in `help.php`**: swapped the two `<div>` blocks (Wi-Fi QR now
+first, URL QR second) and added explicit "1 - Connect to the
+'PirateBox' Wi-Fi" / "2 - Open PirateBox" captions so the sequence is
+unambiguous even without reading the numbered steps above. **No QR
+payloads were regenerated** - both existing images/strings
+(`WIFI:T:nopass;S:PirateBox;;` and `http://piratebox/`) were already
+correct; this was a presentation-order fix only. `http://10.0.0.1/`
+remains the documented fallback in the same section, unchanged.
+
+**Audited every other place these QR codes/order are referenced**
+(per instruction) and found only one other place order was encoded at
+all: `installer_pi_zero_trixie.sh`'s `qrencode` generation lines,
+reordered to match (Wi-Fi generated first) for source-reading
+consistency only - generation order has no effect on the two
+independently-named output files, so this was cosmetic, not a
+functional fix. `README.md`'s "WiFi QR Code" section already leads
+with the Wi-Fi QR ("plus a second one for the direct URL") and needed
+no change. `piratebox_deploy.sh`'s two `--exclude` lines and
+`docs/OPERATIONAL-DECISIONS.md`'s existing historical entries are
+plain file references with no ordering semantics - left as-is.
+
 ## Admin Panel Auth Readiness (discoverability, not a mechanism change)
 
 **Decision date:** 2026-09-02. The operator tried `/admin/`, hit nginx's

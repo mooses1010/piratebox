@@ -191,8 +191,8 @@ chmod 0755 /var/www/html/data
 # or add a password, update the WIFI: string below to match.
 echo "    Generating QR codes..."
 if command -v qrencode >/dev/null 2>&1; then
-    qrencode -o /var/www/html/public/assets/qr-url.png -s 6 -m 2 "http://piratebox/"
     qrencode -o /var/www/html/public/assets/qr-wifi.png -s 6 -m 2 "WIFI:T:nopass;S:PirateBox;;"
+    qrencode -o /var/www/html/public/assets/qr-url.png -s 6 -m 2 "http://piratebox/"
     chown www-data:www-data /var/www/html/public/assets/qr-url.png /var/www/html/public/assets/qr-wifi.png
 else
     echo "    WARNING: qrencode not found - QR images will be missing from the Help page."

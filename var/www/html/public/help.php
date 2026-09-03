@@ -40,15 +40,15 @@ $piratebox_device_id = piratebox_get_device_id();
         <div class="qr-row">
             <div>
                 <div class="qr-card">
-                    <img src="assets/qr-url.png" alt="QR code linking to http://piratebox/" width="160" height="160">
+                    <img src="assets/qr-wifi.png" alt="QR code to join the open PirateBox Wi-Fi network" width="160" height="160">
                 </div>
-                <p class="qr-caption">Scan to open PirateBox (once connected to the Wi-Fi)</p>
+                <p class="qr-caption"><strong>1 &mdash; Connect to the "PirateBox" Wi-Fi</strong><br>Scan to join (open network, no password)</p>
             </div>
             <div>
                 <div class="qr-card">
-                    <img src="assets/qr-wifi.png" alt="QR code to join the open PirateBox Wi-Fi network" width="160" height="160">
+                    <img src="assets/qr-url.png" alt="QR code linking to http://piratebox/" width="160" height="160">
                 </div>
-                <p class="qr-caption">Scan to join the "PirateBox" Wi-Fi network</p>
+                <p class="qr-caption"><strong>2 &mdash; Open PirateBox</strong><br>Scan once connected to the Wi-Fi above</p>
             </div>
         </div>
     </section>
