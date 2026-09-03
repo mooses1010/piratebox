@@ -644,6 +644,18 @@ about/` reads "Document Library: INSTALLED (16)".
 still trivial against the 128GB card; still curated per-item, not
 bulk-acquired to hit a size or count target.
 
+**One more retained this same round:** Controlling Electrical Hazards
+(OSHA 3075, 2002), 71pp, 379KB - public domain (carries its own "This
+publication is in the public domain and may be reproduced fully or
+partially without permission" statement on p.1). The full-length
+booklet behind the already-retained OSHA electrical-safety QuickCard:
+real depth on shock/burn mechanics, insulation/guarding/grounding,
+GFCIs, static electricity, and lockout/tagout - not a restatement of
+the one-page card. Same related_pages (Field Tools Units, Ohm's Law
+Solver). catalog.json re-validated (17/17), search index rebuilt (187
+entries), full regression still 287/287, smoke-tested (200, cross-
+link renders). **Library footprint: 17 documents, ~41 MB total.**
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |
