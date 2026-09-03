@@ -61,7 +61,7 @@ it is.**
 | Built-in `wlan0` (production AP) | Core | INSTALLED, CURRENT SCOPE | Integrated |
 | TP-Link TL-WN722N v2/v3 | - | INSTALLED (physically present); REJECTED as AP candidate | Attachable |
 | ALFA AWUS036NHA (AR9271) | - | REJECTED as AP candidate (never purchased) | n/a |
-| ALFA AWUS036ACM (MT7612U) | Core (if adopted) | INSTALLED (evaluation) - AP capability empirically verified, isolated-AP hardware test passed, operator RF verification pending | Attachable today; would become semi-permanent if adopted |
+| ALFA AWUS036ACM (MT7612U) | Core (if adopted) | INSTALLED (evaluation) - hardware/driver/AP-association VALIDATED (3x proven WPA2 handshake, live station confirmed); not yet the production AP | Attachable today; would become semi-permanent if adopted |
 | ALFA ARS-N19 antenna | Core (if AWUS036ACM adopted) | OWNED / INCOMING (operator-asserted this session - see note) | Attachable |
 | GPIO25 shutdown button | Core | INSTALLED, CURRENT SCOPE | Integrated |
 | Toggle switch (Normal/Emergency, GPIO17) | Operational | OWNED / INCOMING | Integrated (planned) |
@@ -153,16 +153,27 @@ it is.**
   production AP; until then it's an evaluation candidate. **Not yet
   adopted - `wlan0` remains the production AP.**
 - **State (2026-09-03, AWUS036ACM Hardware Validation Round):**
-  physically connected, detected, driver bound, and AP capability
-  **empirically verified** (not merely advertised-list-assumed):
-  `iw phy` correctly listed `AP` as a supported interface mode, and a
-  live `hostapd` instance on an isolated test SSID (`PirateBox-ALFA-
-  Test`, 2.4GHz channel 6, WPA2-PSK) reached `AP-ENABLED` and beaconed
-  stably with no new USB/driver errors. **Operator RF verification
-  (a real client associating, from a phone/laptop) is the one
-  remaining gate before this can be called fully hardware-tested** -
-  see `docs/OPERATIONAL-DECISIONS.md` "AWUS036ACM Hardware Validation
-  Round" for the full evidence and exact gate.
+  physically connected, detected, driver bound, and hardware/driver/AP-
+  association **VALIDATED** - `iw phy` correctly listed `AP` as a
+  supported interface mode, and a live `hostapd` instance on an
+  isolated test SSID (`PirateBox-ALFA-Test`, 2.4GHz channel 6,
+  WPA2-PSK) reached `AP-ENABLED` and beaconed stably. The operator then
+  tested from a phone and a laptop: `hostapd`'s own log shows a real
+  client completing the full WPA2 4-way handshake **three independent
+  times**, and one client was observed live, still connected
+  (`authenticated: yes`, `associated: yes`, `authorized: yes`, signal
+  -17 to -25 dBm). A client-side "Couldn't connect" message on the
+  phone was traced to the test network's intentional absence of a DHCP
+  server (each client disconnected itself shortly *after* a completed
+  handshake - the standard mobile-OS DHCP-timeout abort pattern, not an
+  authentication/radio rejection) - a full DHCP/IP-layer test was
+  deliberately not performed, since doing so would have required
+  touching production `dnsmasq` or installing a second DHCP
+  implementation, and it was not needed to answer the 802.11/WPA2
+  association question this round exists to settle. **Still not the
+  production AP - `wlan0` continues in that role.** See
+  `docs/OPERATIONAL-DECISIONS.md` "AWUS036ACM Hardware Validation
+  Round" for the full evidence.
 - **Identity, confirmed live (not assumed from the purchase):** USB ID
   `0e8d:7612` (MediaTek Inc. MT7612U 802.11a/b/g/n/ac Wireless
   Adapter), enumerates as `wlan1` on this Pi today. USB2 480M

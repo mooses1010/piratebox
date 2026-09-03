@@ -90,23 +90,66 @@ demonstrates independent of full IP connectivity. `wlan0`/production
 hostapd were confirmed untouched and still serving `PirateBox`
 throughout.
 
-**Operator RF gate - the one remaining step:** this entry does **not**
-claim the ALFA is validated for production use. A real client
-associating from a phone/laptop, observed by the operator, is the
-step that actually proves it (see the isolated-test-AP requirements
-below) - not attempted by this session, since it requires a human with
-a wireless device. Recommendation as of this entry: **promising, not
-yet validated** - hardware identification, driver, empirical AP-mode
-capability, and a short supervised soak all passed clean; the one
-insertion-time power event is noted but not disqualifying (single,
-self-resolved, not repeated); full validation is pending the operator
-RF test.
+**Operator RF gate - resolved.** The operator tested the isolated
+`PirateBox-ALFA-Test` AP from a phone and a laptop. The phone's own UI
+reported "Couldn't connect to network," which first looked like an
+association failure - but `hostapd`'s own log told a different, more
+precise story: the client completed authentication, association, and
+the **full WPA2 4-way handshake** (`EAPOL-4WAY-HS-COMPLETED`) three
+independent times (two different randomized client MACs, consistent
+with normal per-network MAC-privacy behavior on modern phones). One of
+those clients was observed live via `iw station dump` while still
+connected: `authenticated: yes`, `associated: yes`, `authorized: yes`,
+signal **-17 to -25 dBm** (excellent, expected at close range), zero
+tx/rx retries or failures. Each client disconnected itself shortly
+*after* its handshake completed - the signature of a phone's own
+DHCP-timeout abort behavior, not a security or radio rejection. This
+test network deliberately had no DHCP server. A same-style temporary,
+isolated DHCP responder was attempted (`dnsmasq --bind-interfaces`,
+scoped to `wlan1` only) specifically to rule this in or out further,
+but it failed to bind - dnsmasq's DHCP component claims the wildcard
+socket regardless of `--bind-interfaces`, and the production `dnsmasq`
+instance already holds it. Completing a real DHCP/IP-layer test would
+have required either editing production `dnsmasq`'s config or
+installing a second DHCP implementation - both explicitly ruled out by
+the operator for this round, and neither was needed: the 802.11/WPA2
+association-layer question this round exists to answer was already
+settled, independently, three times over, before DHCP ever entered the
+picture. **The phone's "Couldn't connect" message is recorded
+accurately as client-side behavior following a successful WPA2
+association on an intentionally DHCP-less test network - not as an
+AWUS036ACM authentication or radio failure.**
+
+Post-test verification, after cleanly tearing the test AP down
+(`hostapd` stopped, test IP removed, `wlan1` back to a bare `type
+managed` state with no IP): zero new `mt76x2u`/USB events appear in
+`dmesg` anywhere across the association attempts, the failed DHCP-bind
+attempt, or the teardown itself - the only USB reset/disconnect
+activity in the entire session remains the single insertion-time event
+recorded above. `vcgencmd get_throttled` is still `0x50005`, unchanged
+throughout. `wlan0`/production `hostapd` and all six Core/OLED/button
+services were re-confirmed active and unaffected; `systemctl --failed`
+is empty.
+
+**Recommendation, final for this round: hardware, driver, and
+802.11/WPA2 AP-association capability VALIDATED for a future
+migration decision.** `wlan0` remains the production PirateBox AP -
+this entry does not adopt the ALFA, and does not claim a full
+DHCP/IP-layer or multi-client/throughput test was performed (it
+deliberately wasn't - see above). A future migration decision should
+still budget for: standing up real DHCP service on whichever interface
+ends up serving clients (a normal, expected production step, not a
+defect found here), persistent interface naming so USB enumeration
+order can't silently swap radio roles, and the same power caveat
+carried forward from this round.
 
 **Explicitly not done this round, per instruction:** no production
 migration, no `hostapd`/`dnsmasq`/`dhcpcd`/NetworkManager production
-config edits, no 5GHz test (blocked by regulatory domain as above), no
-persistent interface naming/udev rule, no attempt to fix the chronic
-undervoltage condition, no AWUS036ACM antenna swap (ARS-N19 not
+config edits (the one attempted temporary DHCP responder failed to
+bind and touched nothing), no second DHCP implementation installed, no
+5GHz test (blocked by regulatory domain as above), no persistent
+interface naming/udev rule, no attempt to fix the chronic undervoltage
+condition, no AWUS036ACM antenna swap (ARS-N19 not
 involved - stock dual-band antennas only, per instruction).
 
 ## Round 9: Theme Selector Regression - Root Cause and Fix
