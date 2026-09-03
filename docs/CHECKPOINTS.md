@@ -623,3 +623,44 @@ total (was 24 documents, ~67 MB, at the start of this pass) - see
 record. Merge/deploy and live re-verification recorded separately once
 completed.
 
+**Closing this out (2026-09-03): round 5 WAS in fact fast-forward
+merged (`ebf59a3` -> `c54415d`) and deployed via `piratebox_deploy.sh`
+in the same session, with a full post-merge live re-verification
+(VERSION match, zero deployment drift including the 128MB Bowditch
+file, 287/287 regression, all 12 documents + both figures 200 via the
+real nginx/php-fpm stack, Core/OLED/button services all confirmed
+active) - this follow-up note was simply never added back to this
+file at the time. Recorded now so this entry doesn't read as
+permanently unfinished; `c54415d` is the correct known-good point, not
+just the pre-merge worktree tip.
+
+| Deep bookshelf pass, round 6 (global source + RF depth + mining Bowditch) + trust statement + lightweight multilingual foundation (EN/ES) | `043ab8f` on `worktree-round6` (not yet merged to `main`) | *(no `~/piratebox-backups/` snapshot - content/code pass, to be merged and deployed via the normal `piratebox_deploy.sh` workflow)* |
+
+**Pre-merge state, 2026-09-03:** built and fully tested on an isolated
+worktree branch across two commits (`bf90905` trust/i18n, `043ab8f`
+library round 6). Explicitly did NOT touch the OLED implementation,
+the undervoltage/power finding, RTC/time work, the AWUS036ACM
+migration, or the GPIO shutdown button - all correctly out of scope.
+Library: 2 new documents (UK National Risk Register 2025, NEETS
+Module 11), 2 new figures mined from the already-retained Bowditch
+(not a new download) added to the Maps page. Site-level: a subtle
+trust statement in the shared footer linking to a new Trust &
+Transparency section on the Help page, every claim in it verified
+against actual configuration (no HTTPS anywhere in nginx, no
+setcookie() calls prior to this change, aggregate-only connection
+stats, non-hardware-derived device ID, local-only captive portal) -
+not assumed from the desired architecture; and a bounded English/
+Spanish multilingual foundation (`includes/i18n.php`, flat JSON
+dictionaries, manual-choice-wins locale precedence) applied to nav
+labels, the Emergency Mode banner, the footer, and the Help page's
+Connect + Trust sections - not a full site translation. catalog.json
+validated, `tools/check_library_catalog.py` clean (38/38), search
+index rebuilt (208 entries), full five-suite regression 287/287
+(unaffected by the shared navbar.php/footer.php change - confirmed via
+9 spot-checked diverse pages all still 200 with no PHP warnings). See
+`docs/IMPLEMENTATION-ROADMAP.md` §3m and `docs/OPERATIONAL-
+DECISIONS.md` ("Trust/Transparency Statement + Lightweight
+Multilingual Foundation") for the full record. Merge/deploy and live
+re-verification recorded immediately below, in the same session this
+time.
+
