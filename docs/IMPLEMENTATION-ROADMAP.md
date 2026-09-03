@@ -831,6 +831,25 @@ changed pages, full five-suite regression still 287/287, both changes
 smoke-tested via php -S (tornado figure renders + image 200 on
 Emergency; both OSHA documents now render on Ohm's Law Solver, 200).
 
+**One more retained this same round:** Basic Machines (NAVEDTRA
+14037, Feb 1994), 178pp, 8.2MB - public domain (same "approved for
+public release" basis as every other Navy/DoD manual here). Covers
+all six simple machines (lever, wheel and axle, block and tackle,
+gears, wedge, inclined plane/screw), mechanical advantage, gear
+ratios, and friction/bearings/lubrication - content-checked via
+pdftotext before retaining, not assumed from the title. Directly
+complements the Fastener Design Manual with the mechanical-principle
+side of the new Mechanical & Basic Repair category. A second
+candidate, "Tools and Their Uses" (NAVEDTRA 14256, covers hand tools
+and measuring tools/calipers - the other half of this priority list)
+was investigated but its known mirrors (maritime.org direct link,
+archive.org catalog search) didn't resolve to a working PDF this
+round - **DEFERRED - access**, not chased further with more mirror
+guessing. catalog.json re-validated (24/24), search index rebuilt
+(194 entries), full regression still 287/287, smoke-tested (200,
+cross-link renders on Field Tools Units). **Library footprint: 24
+documents, ~67 MB total.**
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |

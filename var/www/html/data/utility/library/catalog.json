@@ -374,5 +374,21 @@
     "related_pages": [
       {"url": "/utility/computing/", "label": "Computing Reference"}
     ]
+  },
+  {
+    "id": "navedtra14037-basic-machines",
+    "title": "Basic Machines (NAVEDTRA 14037)",
+    "category": "mechanical-repair",
+    "description": "Navy self-study training course on the six simple machines (lever, wheel and axle, block and tackle, gears, wedge, inclined plane/screw) and their combinations in real mechanical devices - mechanical advantage, gear ratios, and friction/bearings/lubrication. Directly complements the Fastener Design Manual with the mechanical-principle side of Mechanical & Basic Repair.",
+    "tags": ["simple machines", "levers", "gears", "block and tackle", "mechanical advantage", "bearings", "lubrication", "navy", "mechanical"],
+    "file": "navedtra14037-basic-machines.pdf",
+    "file_type": "pdf",
+    "file_size": "8.2 MB",
+    "source": "United States Navy (Naval Education and Training Professional Development and Technology Center)",
+    "date_version": "NAVEDTRA 14037, February 1994",
+    "provenance_notes": "Source: https://www.constructionknowledge.net/public_domain_documents/Div_1_General/Basic_Skills/Basic%20Machines%20NAVEDTRA%2014037%201994.pdf - retrieved 2026-09-02. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every DoD/Navy manual in this library. Content inspected via pdftotext confirming genuine, comprehensive coverage of all six simple machines plus bearings/lubrication, not a superficial overview.",
+    "related_pages": [
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+    ]
   }
 ]
