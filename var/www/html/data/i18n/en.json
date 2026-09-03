@@ -82,5 +82,13 @@
   "theme.terminal": "Terminal",
   "theme.amber": "Amber CRT",
   "theme.lowlight": "Low Light",
-  "theme.pirate": "Pirate"
+  "theme.pirate": "Pirate",
+  "landing.sides_heading": "Two Ways to Use This PirateBox",
+  "landing.connect_heading": "Connect & Share",
+  "landing.connect_desc": "Talk with whoever else is connected right now and share files with them - no accounts, nothing saved anywhere else.",
+  "landing.explore_heading": "Explore & Reference",
+  "landing.explore_desc": "A substantial offline knowledge library and toolkit - available any time, not just during an outage, and it works exactly the same with no Internet connection anywhere nearby.",
+  "landing.explore.reference_title": "Offline Reference Library",
+  "landing.explore.reference_desc": "Radio, maps, mechanical/electronics, materials, computing, field tools & more",
+  "landing.explore.more_link": "See everything this PirateBox can do →"
 }

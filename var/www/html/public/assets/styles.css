@@ -1031,6 +1031,71 @@ ul#chat li.empty-state {
     color: var(--text-muted);
 }
 
+/* -------------------------------------------------
+   Landing-page discoverability (round 8): the "two
+   sides of PirateBox" section on the normal-mode
+   homepage. Reuses .utility-grid/.utility-card (just
+   scaled down via .landing-mini-grid) rather than
+   inventing a second card style.
+   ------------------------------------------------- */
+.landing-sides {
+    max-width: 900px;
+    margin: 0 auto 2rem auto;
+    padding: 0 1rem;
+}
+
+.landing-sides h2 {
+    margin-bottom: 1rem;
+}
+
+.landing-sides-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.landing-side {
+    background: var(--bg-panel);
+    border-left: 4px solid var(--accent);
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+}
+
+.landing-side h3 {
+    margin-top: 0;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    font-size: 1.05rem;
+}
+
+.landing-side p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.landing-mini-grid {
+    max-width: none;
+    margin: 1rem 0 0 0;
+    padding: 0;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.6rem;
+}
+
+.landing-mini-grid .utility-card {
+    min-height: 4.5rem;
+    padding: 0.75rem 0.5rem;
+}
+
+.landing-mini-grid .utility-card-icon {
+    font-size: 1.4rem;
+}
+
+.landing-sides-more {
+    text-align: center;
+    margin-top: 1.25rem;
+}
+
 /* Utility sub-pages: breadcrumb back-link + "not built yet" note */
 .utility-breadcrumb {
     margin-bottom: 1rem;

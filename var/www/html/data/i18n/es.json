@@ -82,5 +82,13 @@
   "theme.terminal": "Terminal",
   "theme.amber": "CRT Ámbar",
   "theme.lowlight": "Luz Tenue",
-  "theme.pirate": "Pirata"
+  "theme.pirate": "Pirata",
+  "landing.sides_heading": "Dos Formas de Usar Este PirateBox",
+  "landing.connect_heading": "Conectar y Compartir",
+  "landing.connect_desc": "Habla con quien más esté conectado ahora mismo y comparte archivos con ellos - sin cuentas, sin guardar nada en ningún otro lugar.",
+  "landing.explore_heading": "Explorar y Consultar",
+  "landing.explore_desc": "Una biblioteca de conocimiento y caja de herramientas sin conexión considerable - disponible en cualquier momento, no solo durante un corte de servicio, y funciona exactamente igual sin ninguna conexión a Internet cercana.",
+  "landing.explore.reference_title": "Biblioteca de Referencia Sin Conexión",
+  "landing.explore.reference_desc": "Radio, mapas, mecánica/electrónica, materiales, computación, herramientas de campo y más",
+  "landing.explore.more_link": "Ver todo lo que este PirateBox puede hacer →"
 }

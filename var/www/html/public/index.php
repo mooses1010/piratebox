@@ -5,6 +5,7 @@ require_once __DIR__ . '/../includes/config.php';
 require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/mode.php';
 require_once __DIR__ . '/../includes/metrics.php';
+require_once __DIR__ . '/../includes/i18n.php';
 
 $piratebox_mode = piratebox_get_mode();
 $connStats = piratebox_get_connection_stats();
@@ -156,7 +157,7 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
         <?= $piratebox_mode === PIRATEBOX_MODE_EMERGENCY ? '<h2>PirateBox</h2>' : '<h1>PirateBox</h1>' ?>
         <p>This is a local, offline network - no Internet connection is used or required. Share files, chat, and leave messages with anyone else connected to this Wi-Fi.</p>
         <?php if ($piratebox_mode !== PIRATEBOX_MODE_EMERGENCY): ?>
-            <p>This PirateBox also carries an offline reference library - maps, radio references, first-aid and emergency guidance, manuals, and search - available any time, not just during an outage. See <a href="/whatcanidohere.php">What can I do here?</a> for the full list, or switch to Emergency Mode by physical switch to prioritize that material. <span class="muted">PirateBox is not an official emergency service.</span></p>
+            <p>Switch to Emergency Mode by physical switch to prioritize outage/disaster material. <span class="muted">PirateBox is not an official emergency service.</span></p>
         <?php endif; ?>
         <div class="hero-actions">
             <a href="#upload-form">Upload a file</a>
@@ -165,6 +166,72 @@ $lowStorage = $freeBytes !== false && $freeBytes < (PIRATEBOX_MIN_FREE_BYTES * 2
             <a href="help.php">Help</a>
         </div>
     </div>
+
+    <?php if ($piratebox_mode !== PIRATEBOX_MODE_EMERGENCY): ?>
+        <!-- Landing-page discoverability (round 8): a first-time visitor
+             could previously only discover the offline reference library
+             by noticing the "Utility" navbar link or a sentence of hero
+             text. This section makes the site's two major halves visible
+             immediately, without listing every one of the ~14 Utility
+             categories here - each side links to a handful of
+             representative destinations plus one door into the rest
+             ("Offline Reference Library" -> /utility/, itself a full
+             category grid). Deliberately absent from Emergency Mode:
+             that mode already reorders its own card grid above to lead
+             with Emergency/First Aid/Radio/Maps/Search/Library, so this
+             generic two-sided framing would be redundant there, not
+             additive. -->
+        <section class="landing-sides">
+            <h2><?= htmlspecialchars(piratebox_t('landing.sides_heading')) ?></h2>
+            <div class="landing-sides-grid">
+                <div class="landing-side">
+                    <h3><?= htmlspecialchars(piratebox_t('landing.connect_heading')) ?></h3>
+                    <p><?= htmlspecialchars(piratebox_t('landing.connect_desc')) ?></p>
+                    <div class="utility-grid landing-mini-grid">
+                        <a class="utility-card" href="/chat.php">
+                            <span class="utility-card-icon" aria-hidden="true">💬</span>
+                            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('nav.chat')) ?></span>
+                        </a>
+                        <a class="utility-card" href="/bulletin.php">
+                            <span class="utility-card-icon" aria-hidden="true">📌</span>
+                            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('nav.bulletin')) ?></span>
+                        </a>
+                        <a class="utility-card" href="/messages.php">
+                            <span class="utility-card-icon" aria-hidden="true">📜</span>
+                            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('nav.messages')) ?></span>
+                        </a>
+                        <a class="utility-card" href="#files">
+                            <span class="utility-card-icon" aria-hidden="true">📁</span>
+                            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('nav.files')) ?></span>
+                        </a>
+                    </div>
+                </div>
+                <div class="landing-side">
+                    <h3><?= htmlspecialchars(piratebox_t('landing.explore_heading')) ?></h3>
+                    <p><?= htmlspecialchars(piratebox_t('landing.explore_desc')) ?></p>
+                    <div class="utility-grid landing-mini-grid">
+                        <a class="utility-card" href="/utility/emergency/">
+                            <span class="utility-card-icon" aria-hidden="true">🚨</span>
+                            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.emergency.title')) ?></span>
+                        </a>
+                        <a class="utility-card" href="/utility/">
+                            <span class="utility-card-icon" aria-hidden="true">📚</span>
+                            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('landing.explore.reference_title')) ?></span>
+                        </a>
+                        <a class="utility-card" href="/utility/maps/">
+                            <span class="utility-card-icon" aria-hidden="true">🗺️</span>
+                            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.maps.title')) ?></span>
+                        </a>
+                        <a class="utility-card" href="/utility/search/">
+                            <span class="utility-card-icon" aria-hidden="true">🔍</span>
+                            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.search.title')) ?></span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <p class="landing-sides-more"><a href="/utility/"><?= htmlspecialchars(piratebox_t('landing.explore.more_link')) ?></a></p>
+        </section>
+    <?php endif; ?>
 
     <?php if (!empty($msg)): ?>
         <p style="text-align:center;"><strong><?= htmlspecialchars($msg) ?></strong></p>
