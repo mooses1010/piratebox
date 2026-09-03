@@ -1374,6 +1374,121 @@
     ]
   },
   {
+    "title": "Levers & Mechanical Advantage",
+    "section": "mechanical",
+    "section_label": "Mechanical & Repair Reference",
+    "url": "/utility/mechanical/#levers-mechanical-advantage",
+    "snippet": "Every lever trades force for distance, or distance for force - never both at once.",
+    "keywords": [
+      "lever",
+      "fulcrum",
+      "mechanical advantage",
+      "first class",
+      "second class",
+      "third class"
+    ]
+  },
+  {
+    "title": "Pulleys & Block and Tackle",
+    "section": "mechanical",
+    "section_label": "Mechanical & Repair Reference",
+    "url": "/utility/mechanical/#pulleys-block-tackle",
+    "snippet": "More rope through more pulleys means less force needed - but more rope to pull.",
+    "keywords": [
+      "pulley",
+      "block and tackle",
+      "mechanical advantage",
+      "rigging"
+    ]
+  },
+  {
+    "title": "Fastener Basics: Screws, Bolts & Nuts",
+    "section": "mechanical",
+    "section_label": "Mechanical & Repair Reference",
+    "url": "/utility/mechanical/#fastener-basics",
+    "snippet": "\"Screw\" and \"bolt\" aren't interchangeable - the difference is how the fastener is meant to be tightened.",
+    "keywords": [
+      "screw",
+      "bolt",
+      "nut",
+      "thread pitch",
+      "fastener",
+      "head drive"
+    ]
+  },
+  {
+    "title": "Torque Concepts",
+    "section": "mechanical",
+    "section_label": "Mechanical & Repair Reference",
+    "url": "/utility/mechanical/#torque-concepts",
+    "snippet": "Torque is a twisting force applied at a distance - and \"tight enough\" has a real upper limit, not just a lower one.",
+    "keywords": [
+      "torque",
+      "torque wrench",
+      "tightening",
+      "over-tightening",
+      "under-tightening"
+    ]
+  },
+  {
+    "title": "Bearings & Lubrication",
+    "section": "mechanical",
+    "section_label": "Mechanical & Repair Reference",
+    "url": "/utility/mechanical/#bearings-lubrication",
+    "snippet": "A bearing's whole job is turning sliding friction into much lower rolling friction - and it fails when that stops happening.",
+    "keywords": [
+      "bearing",
+      "ball bearing",
+      "roller bearing",
+      "lubrication",
+      "grease",
+      "oil",
+      "friction"
+    ]
+  },
+  {
+    "title": "Common Hand Tools: Choosing the Right One",
+    "section": "mechanical",
+    "section_label": "Mechanical & Repair Reference",
+    "url": "/utility/mechanical/#hand-tool-overview",
+    "snippet": "Most hand-tool damage and injuries come from using the almost-right tool instead of stopping to find the right one.",
+    "keywords": [
+      "hand tools",
+      "screwdriver",
+      "wrench",
+      "pliers",
+      "tool safety",
+      "tool damage"
+    ]
+  },
+  {
+    "title": "Mechanical Measurement: Calipers & Micrometers",
+    "section": "mechanical",
+    "section_label": "Mechanical & Repair Reference",
+    "url": "/utility/mechanical/#measuring-tools",
+    "snippet": "A steel rule measures to about 1/64 inch by eye; calipers and micrometers measure far more precisely than that.",
+    "keywords": [
+      "caliper",
+      "vernier caliper",
+      "micrometer",
+      "precision measurement",
+      "measuring tools"
+    ]
+  },
+  {
+    "title": "A Practical Approach to Mechanical Troubleshooting",
+    "section": "mechanical",
+    "section_label": "Mechanical & Repair Reference",
+    "url": "/utility/mechanical/#practical-troubleshooting",
+    "snippet": "Find out what actually changed before you start taking things apart.",
+    "keywords": [
+      "troubleshooting",
+      "repair",
+      "diagnosis",
+      "field repair"
+    ]
+  },
+  {
     "title": "Subnet",
     "section": "glossary",
     "section_label": "Glossary",

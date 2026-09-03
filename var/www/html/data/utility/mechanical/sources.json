@@ -1,0 +1,33 @@
+{
+  "basic-machines": {
+    "name": "Basic Machines (NAVEDTRA 14037), US Navy",
+    "url": "/utility/library/#navedtra14037-basic-machines",
+    "retrieved": "2026-09-03",
+    "note": "Cross-checked against this retained public-domain manual's own coverage of the six simple machines - written originally for this reference, not transcribed."
+  },
+  "tools-and-their-uses": {
+    "name": "Tools and Their Uses (NAVEDTRA 14256), US Navy",
+    "url": "/utility/library/#navedtra14256-tools-and-their-uses",
+    "retrieved": "2026-09-03",
+    "note": "Cross-checked against this retained public-domain manual's hand-tool and measuring-tool chapters - written originally for this reference, not transcribed."
+  },
+  "nasa-fastener-manual": {
+    "name": "Fastener Design Manual (NASA RP-1228)",
+    "url": "/utility/library/#nasa-rp1228-fastener-design-manual",
+    "retrieved": "2026-09-03",
+    "note": "Cross-checked against this retained public-domain manual's fastener/thread/torque coverage - written originally for this reference. Some of this manual's own tables (e.g. its specific bolt-torque table) are reprinted from a third-party commercial source and were not used as a basis for anything here - see docs/IMPLEMENTATION-ROADMAP.md's round-6 entry for that finding."
+  },
+  "fm5-125-rigging": {
+    "name": "Rigging Techniques, Procedures, and Applications (FM 5-125), US Army",
+    "url": "/utility/library/#dod-fm-5-125-rigging",
+    "retrieved": "2026-09-03",
+    "note": "Cross-checked for rope/rigging-specific mechanical-advantage context - written originally for this reference, not transcribed."
+  },
+  "general-mechanical-reference": {
+    "name": "General mechanical/tool-use technique (cross-checked against multiple technical references)",
+    "publisher": null,
+    "url": null,
+    "retrieved": "2026-09-03",
+    "note": "Basic mechanical concepts and general tool-safety practice are long-established, non-proprietary technique with no single owner - written originally for this reference, cross-checked against the retained sources above rather than copied from any one of them."
+  }
+}

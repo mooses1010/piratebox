@@ -260,7 +260,8 @@
     "date_version": "FM 5-125, 3 October 1995, with Change 1 (23 February 2001)",
     "provenance_notes": "Source: https://archive.org/details/RiggingTechniquesProceduresAndApplicationsFM51252001 - retrieved 2026-09-02. Investigated in an earlier session but not retained: the archive.org item page carried no explicit rights tag, and without a PDF tool installed the manual's own cover/distribution statement couldn't be checked directly, so it was left unretained rather than assumed. Now that poppler-utils is installed, the PDF was downloaded and its text extracted directly with pdftotext: it carries its own 'DISTRIBUTION RESTRICTION: Approved for public release; distribution is unlimited' statement and is signed by the Army Chief of Staff - a Department of the Army field manual, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Verified 169 pages, 3,816,989 bytes.",
     "related_pages": [
-      {"url": "/utility/outdoor/", "label": "Outdoor/Field: Knots Reference"}
+      {"url": "/utility/outdoor/", "label": "Outdoor/Field: Knots Reference"},
+      {"url": "/utility/mechanical/", "label": "Mechanical & Repair: Pulleys & Block and Tackle"}
     ]
   },
   {
@@ -324,7 +325,8 @@
     "date_version": "NASA Reference Publication 1228, March 1990",
     "provenance_notes": "Source: https://ntrs.nasa.gov/api/citations/19900009424/downloads/19900009424.pdf - retrieved 2026-09-02. Authored by a NASA employee (Richard T. Barrett) as part of official duties, work of the US federal government, public domain under 17 U.S.C. Sec. 105. NASA's own STI/NTRS disclaimers page states: \"Documents available from this Web site are not protected by copyright unless noted\" and \"U.S. government works may contain privately created, copyrighted works... used under license\" as the only exception - this specific document carries no such notice (unlike the 1957 Army Survival Manual rejected this same round, which explicitly states it contains copyrighted material). Widely mirrored by independent engineering sites, consistent with an unrestricted document.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"},
+      {"url": "/utility/mechanical/", "label": "Mechanical & Repair: Fasteners, Threads & Torque"}
     ]
   },
   {
@@ -386,9 +388,10 @@
     "file_size": "8.2 MB",
     "source": "United States Navy (Naval Education and Training Professional Development and Technology Center)",
     "date_version": "NAVEDTRA 14037, February 1994",
-    "provenance_notes": "Source: https://www.constructionknowledge.net/public_domain_documents/Div_1_General/Basic_Skills/Basic%20Machines%20NAVEDTRA%2014037%201994.pdf - retrieved 2026-09-02. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every DoD/Navy manual in this library. Content inspected via pdftotext confirming genuine, comprehensive coverage of all six simple machines plus bearings/lubrication, not a superficial overview.",
+    "provenance_notes": "Source: https://www.constructionknowledge.net/public_domain_documents/Div_1_General/Basic_Skills/Basic%20Machines%20NAVEDTRA%2014037%201994.pdf - retrieved 2026-09-02. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every DoD/Navy manual in this library. Content inspected via pdftotext confirming genuine, comprehensive coverage of all six simple machines plus bearings/lubrication, not a superficial overview. Two figures (the three lever classes, and a block-and-tackle diagram, pp. 1-2 to 1-3 and 7-3) were selectively extracted to the new Mechanical & Repair reference page in round 7.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"},
+      {"url": "/utility/mechanical/", "label": "Mechanical & Repair: Simple Machines"}
     ]
   },
   {
@@ -530,9 +533,10 @@
     "file_size": "18.3 MB",
     "source": "United States Navy (Naval Education and Training Program Management Support Activity)",
     "date_version": "NAVEDTRA 14256, June 1992",
-    "provenance_notes": "Source: https://archive.org/details/tools_202001 (direct: https://archive.org/download/tools_202001/tools.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every Navy/DoD manual in this library.",
+    "provenance_notes": "Source: https://archive.org/details/tools_202001 (direct: https://archive.org/download/tools_202001/tools.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every Navy/DoD manual in this library. A vernier/slide caliper diagram (p. 6-3) was selectively extracted to the new Mechanical & Repair reference page in round 7.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"},
+      {"url": "/utility/mechanical/", "label": "Mechanical & Repair: Hand Tools & Measurement"}
     ]
   },
   {

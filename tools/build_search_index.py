@@ -109,6 +109,14 @@ for t in load("outdoor", "reference.json"):
         t.get("summary", ""), t.get("keywords"),
     ))
 
+# --- Mechanical & Repair (round 7) ------------------------------------------
+for t in load("mechanical", "reference.json"):
+    index.append(entry(
+        t.get("title", ""), "mechanical", "Mechanical & Repair Reference",
+        f"/utility/mechanical/#{t.get('id', '')}",
+        t.get("summary", ""), t.get("keywords"),
+    ))
+
 # --- Glossary ---------------------------------------------------------------
 for t in load("glossary", "terms.json"):
     index.append(entry(

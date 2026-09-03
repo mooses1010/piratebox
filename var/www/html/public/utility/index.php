@@ -69,6 +69,11 @@ session_start();
             <span class="utility-card-title">Outdoor &amp; Field</span>
             <span class="utility-card-desc">Knots and hitches for basic field utility - not a life-safety/climbing reference</span>
         </a>
+        <a class="utility-card" href="/utility/mechanical/">
+            <span class="utility-card-icon" aria-hidden="true">🔧</span>
+            <span class="utility-card-title">Mechanical &amp; Repair</span>
+            <span class="utility-card-desc">Simple machines, fasteners/torque, bearings, hand tools &amp; measurement basics</span>
+        </a>
         <a class="utility-card" href="/utility/about/">
             <span class="utility-card-icon" aria-hidden="true">ℹ️</span>
             <span class="utility-card-title">About This PirateBox</span>

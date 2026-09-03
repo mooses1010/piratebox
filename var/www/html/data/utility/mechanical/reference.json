@@ -1,0 +1,158 @@
+[
+  {
+    "id": "levers-mechanical-advantage",
+    "category": "simple-machines",
+    "title": "Levers & Mechanical Advantage",
+    "summary": "Every lever trades force for distance, or distance for force - never both at once.",
+    "quick_actions": [
+      "A lever has three parts: the fulcrum (pivot point), the effort (force applied), and the resistance (the load being moved).",
+      "First-class lever: fulcrum is between the effort and the resistance (a seesaw, a crowbar, pliers). Can multiply force or multiply speed/distance, depending on which side of the fulcrum is longer.",
+      "Second-class lever: the resistance is between the fulcrum and the effort (a wheelbarrow, a bottle opener, a nutcracker). Always multiplies force - you always have a mechanical advantage greater than 1.",
+      "Third-class lever: the effort is between the fulcrum and the resistance (a broom, a fishing rod, your own forearm lifting a weight). Always multiplies speed/distance at the cost of force - you always need more effort than the resistance you're moving.",
+      "Mechanical advantage = the ratio of resistance to effort. A machine never creates energy - it only trades force against distance, so a bigger mechanical advantage always means moving your end of the lever farther than the load moves."
+    ],
+    "diagram": {
+      "image": "basic-machines-fig1-1-1-2-1-3-levers.png",
+      "alt": "Three diagrams: a simple lever labeled with fulcrum/effort/resistance, the three classes of levers shown side by side with a sailor demonstrating each, and a diagram showing oars as levers with the oarlock as the fulcrum",
+      "caption": "Figures 1-1 to 1-3. A simple lever, the three lever classes side by side, and oars as a familiar first-class-lever example.",
+      "source_line": "Source: <em>Basic Machines</em> (NAVEDTRA 14037), pp. 1-2 to 1-3 (public domain)"
+    },
+    "more_info": "A crowbar (first class) and a wheelbarrow (second class) both multiply force, but a fishing rod (third class) multiplies the speed of the tip at the cost of needing more force at your hand than the fish actually pulls back with - that trade-off is the whole point of a third-class lever, not a flaw in it.",
+    "keywords": ["lever", "fulcrum", "mechanical advantage", "first class", "second class", "third class"],
+    "source_id": "basic-machines",
+    "confidence": "high"
+  },
+  {
+    "id": "pulleys-block-tackle",
+    "category": "simple-machines",
+    "title": "Pulleys & Block and Tackle",
+    "summary": "More rope through more pulleys means less force needed - but more rope to pull.",
+    "quick_actions": [
+      "A single fixed pulley changes the direction of a pull (pull down to lift up) but gives no mechanical advantage - the force in equals the force out.",
+      "A movable pulley (attached to the load itself) gives a mechanical advantage of 2 - half the force needed, but you pull twice the length of rope.",
+      "A block and tackle (multiple pulleys combined) multiplies this further: the mechanical advantage roughly equals the number of rope segments actually supporting the moving block.",
+      "The trade-off is always the same as with any simple machine: whatever force you save, you pay back in distance. A 5:1 block and tackle needing 1/5 the force means pulling 5 times the length of rope through your hands.",
+      "Real block-and-tackle systems lose some of this advantage to friction in the pulleys - the more pulleys/wraps, the more friction loss, which is why very high-ratio systems are less efficient in practice than the simple math suggests."
+    ],
+    "diagram": {
+      "image": "basic-machines-fig7-5-block-tackle.png",
+      "alt": "A sailor pulling a rope through a block-and-tackle pulley system to lift a heavy crate",
+      "caption": "Figure 7-5. A block and tackle makes work easier - five rope segments supporting the load give a mechanical advantage of about 5.",
+      "source_line": "Source: <em>Basic Machines</em> (NAVEDTRA 14037), p. 7-3 (public domain)"
+    },
+    "more_info": "For actual rope/rigging work rather than just the physics concept, see the full Rigging Techniques manual in the Document Library below - it covers real block/tackle hardware, rope types, and load ratings that this conceptual overview doesn't.",
+    "keywords": ["pulley", "block and tackle", "mechanical advantage", "rigging"],
+    "source_id": "basic-machines",
+    "secondary_source_id": "fm5-125-rigging",
+    "confidence": "high"
+  },
+  {
+    "id": "fastener-basics",
+    "category": "fasteners",
+    "title": "Fastener Basics: Screws, Bolts & Nuts",
+    "summary": "\"Screw\" and \"bolt\" aren't interchangeable - the difference is how the fastener is meant to be tightened.",
+    "quick_actions": [
+      "A bolt is designed to be tightened by turning a nut (or a tapped hole) while the bolt head itself doesn't rotate - torque is applied at the nut end.",
+      "A screw is designed to be tightened by turning the fastener's own head, cutting or engaging threads directly in the material it's driven into (wood screws, sheet-metal screws) or into a pre-tapped hole (machine screws).",
+      "Thread pitch is the distance between adjacent threads - a coarser (bigger) pitch drives in faster and resists stripping in soft materials; a finer pitch holds more tightly and resists loosening under vibration.",
+      "Matching threads matters more than matching size alone: a fastener with the right diameter but the wrong thread pitch or standard (e.g. metric vs. inch, or a fine vs. coarse series at the same diameter) will not thread in correctly, even if it starts to catch.",
+      "Common head-drive types (slotted, Phillips, hex/Allen, Torx) each need their own matching driver - forcing the wrong driver into a head is one of the most common ways to strip a fastener before it's even fully seated."
+    ],
+    "more_info": "Locking methods (lock washers, nylon-insert lock nuts, thread-locking compound, cotter pins on castellated nuts) exist because plain threads can back themselves loose under vibration - choosing one is about matching the locking method to how much vibration/reuse the joint will actually see, not just picking whichever is on hand.",
+    "keywords": ["screw", "bolt", "nut", "thread pitch", "fastener", "head drive"],
+    "source_id": "nasa-fastener-manual",
+    "secondary_source_id": "tools-and-their-uses",
+    "confidence": "high"
+  },
+  {
+    "id": "torque-concepts",
+    "category": "fasteners",
+    "title": "Torque Concepts",
+    "summary": "Torque is a twisting force applied at a distance - and \"tight enough\" has a real upper limit, not just a lower one.",
+    "quick_actions": [
+      "Torque = force x distance from the pivot (the fastener's center). A longer wrench handle gives more torque for the same hand force - which is exactly why \"cheater bars\" on a wrench are risky: they can easily exceed what a fastener or the material around it can safely take.",
+      "Under-tightening a fastener risks it loosening under vibration or load; over-tightening risks stripping the threads, snapping the fastener, or crushing/damaging whatever it's clamping - both directions are real failure modes, not just the obvious one.",
+      "A torque wrench measures and limits how much torque you actually apply, instead of relying on \"feel\" - genuinely important on anything with a manufacturer-specified torque value (engine/mechanical components, wheel lug nuts, anything structural).",
+      "Torque specifications assume specific conditions (clean/dry threads unless \"lubricated\" is specified, a specific thread condition) - the same torque wrench reading can clamp very differently on a dry vs. an oiled thread, which is why torque specs and lubrication instructions are always given together, not separately.",
+      "When no torque spec is available: snug plus a modest additional turn is a reasonable default for small fasteners in non-critical applications - but there is no substitute for a real spec on anything safety-critical or structural."
+    ],
+    "more_info": "This is a concept overview, not a substitute for a manufacturer's actual torque specification table - always use the specified value and lubrication condition for anything where getting it wrong has real consequences.",
+    "keywords": ["torque", "torque wrench", "tightening", "over-tightening", "under-tightening"],
+    "source_id": "nasa-fastener-manual",
+    "confidence": "high"
+  },
+  {
+    "id": "bearings-lubrication",
+    "category": "mechanisms",
+    "title": "Bearings & Lubrication",
+    "summary": "A bearing's whole job is turning sliding friction into much lower rolling friction - and it fails when that stops happening.",
+    "quick_actions": [
+      "A plain (sleeve/bushing) bearing is just a low-friction surface a shaft slides against - simple and cheap, but higher friction than a rolling-element bearing and more dependent on adequate lubrication to avoid direct metal-to-metal contact.",
+      "A ball or roller bearing replaces sliding friction with rolling friction using hardened balls or rollers between an inner and outer race - lower friction and less heat than a plain bearing under the same load, but more sensitive to contamination (dirt/grit) and to being overloaded sideways (radially) versus along its axis, depending on the bearing type.",
+      "Lubricant does three jobs at once: reduces friction between moving surfaces, carries heat away from the contact point, and helps flush out or suspend small contamination particles rather than letting them grind into the surfaces.",
+      "Grease vs. oil: grease stays in place (good for a bearing that's hard to reseal or re-lubricate often), while oil flows and can be filtered/circulated/cooled - the right choice depends on the mechanism's own design, not a general rule that one is always better.",
+      "Warning signs of bearing trouble: unusual noise (grinding, squealing), noticeable heat, visible play/wobble in a shaft that should be firm, or discolored/gritty-feeling lubricant - any of these is worth investigating before the bearing fails completely, since a bearing that's already making noise is usually well past the point of simple relubrication fixing it."
+    ],
+    "more_info": "Using the wrong grease/oil type (or none at all) is one of the most common causes of premature mechanical failure in field equipment - when in doubt, the equipment's own manual and its specified lubricant type take priority over a generic substitute.",
+    "keywords": ["bearing", "ball bearing", "roller bearing", "lubrication", "grease", "oil", "friction"],
+    "source_id": "basic-machines",
+    "confidence": "high"
+  },
+  {
+    "id": "hand-tool-overview",
+    "category": "hand-tools",
+    "title": "Common Hand Tools: Choosing the Right One",
+    "summary": "Most hand-tool damage and injuries come from using the almost-right tool instead of stopping to find the right one.",
+    "quick_actions": [
+      "Screwdrivers: match both the drive type (slotted, Phillips, etc.) and the size - a too-small driver in a screw head is a common cause of stripping it, and a too-large one can damage the surrounding material.",
+      "Wrenches: a properly-fitting wrench (correct size, fully seated on the fastener) distributes force across the full flat of a bolt/nut; a loose or mis-sized wrench concentrates force on the corners and rounds them off - after which every other tool has a harder time gripping it too.",
+      "Pliers are for gripping and bending, not for turning fasteners in place of a wrench - pliers' serrated jaws chew up a fastener's corners quickly, which is exactly the damage that then makes the fastener need pliers again next time.",
+      "Never use a wrench, screwdriver, or any hand tool as a hammer, pry bar, or chisel unless it's specifically designed for that (some screwdrivers are rated for light prying; most are not) - tools used outside their design intent are a common source of both tool breakage and injury.",
+      "A damaged tool (mushroomed chisel/punch head, bent screwdriver tip, cracked handle) should be repaired or replaced before its next use, not \"used carefully\" - tool failure under force is unpredictable and often throws debris."
+    ],
+    "more_info": "The full Tools and Their Uses manual in the Document Library below covers the complete range of hand tools (levels, squares, gages, vises, clamps, pliers/tongs, screwdrivers, wrenches) in far more depth than this overview attempts.",
+    "keywords": ["hand tools", "screwdriver", "wrench", "pliers", "tool safety", "tool damage"],
+    "source_id": "tools-and-their-uses",
+    "confidence": "high"
+  },
+  {
+    "id": "measuring-tools",
+    "category": "hand-tools",
+    "title": "Mechanical Measurement: Calipers & Micrometers",
+    "summary": "A steel rule measures to about 1/64 inch by eye; calipers and micrometers measure far more precisely than that.",
+    "quick_actions": [
+      "Slide calipers give a quick outside or inside measurement read directly off a sliding scale - fast, but limited to the precision you can read by eye off that scale (typically to about 1/64 inch or 0.5mm).",
+      "Vernier calipers add a second, finer sliding scale (the vernier) that lets you read much more precisely than a plain scale alone - typically to 0.001 inch or 0.02mm - by finding which vernier line most closely aligns with a main-scale line.",
+      "A micrometer uses a precisely-machined screw thread (commonly 40 threads per inch) so that one full turn of the thimble corresponds to an exact, known linear distance - this lets it measure even more precisely than a vernier caliper, typically to 0.001 inch or better.",
+      "\"Outside\" measurements (across the outside of an object) and \"inside\" measurements (across an internal bore or gap) need the tool's outside jaws/anvils or inside jaws/rods respectively - the same instrument often does both, but not with the same set of jaws.",
+      "Zero the tool (check that fully closed jaws read exactly zero) before trusting a precision measurement - a caliper or micrometer that doesn't zero correctly will be consistently off by that same error on every reading until it's corrected or accounted for."
+    ],
+    "diagram": {
+      "image": "tools-uses-p31-calipers.png",
+      "alt": "Diagrams of slide calipers and vernier calipers in use, with numbered labels for the locking screws, movable jaw, vernier scale, and IN/OUT markings, showing both outside and inside measurement techniques",
+      "caption": "Slide calipers and vernier calipers, outside and inside measurement, with parts labeled.",
+      "source_line": "Source: <em>Tools and Their Uses</em> (NAVEDTRA 14256), p. 6-3 (public domain)"
+    },
+    "more_info": "Reading a vernier scale or a micrometer thimble accurately takes some practice - the full manual in the Document Library below has a dedicated, illustrated \"reading\" walkthrough for each type that this overview doesn't attempt to replace.",
+    "keywords": ["caliper", "vernier caliper", "micrometer", "precision measurement", "measuring tools"],
+    "source_id": "tools-and-their-uses",
+    "confidence": "high"
+  },
+  {
+    "id": "practical-troubleshooting",
+    "category": "practical-repair",
+    "title": "A Practical Approach to Mechanical Troubleshooting",
+    "summary": "Find out what actually changed before you start taking things apart.",
+    "quick_actions": [
+      "Start with what's different: what changed right before the problem started (a new noise, a recent repair, a specific event)? A problem that appeared suddenly usually has a specific, findable cause; one that's developed gradually usually points to wear or a slowly-worsening condition instead.",
+      "Check the simple, likely things before the complex, unlikely ones: a loose connection, an empty tank, a tripped breaker, or a disconnected linkage account for a large share of real-world mechanical problems and take seconds to rule out.",
+      "Isolate before you disassemble: can you narrow the problem to one system or component through observation/testing, rather than opening up everything that could conceivably be involved? Unnecessary disassembly adds new opportunities for something to go back together wrong.",
+      "Keep track of what you remove and in what order, especially fasteners of different lengths/threads from different locations - a phone photo before disassembly, or a simple sketch, is often faster than trying to remember afterward.",
+      "Know when to stop: a repair that requires specialized tools, parts, or safety equipment you don't have, or that involves a system where a mistake is genuinely dangerous (pressurized systems, electrical mains, structural load-bearing components), is a stopping point, not a challenge to push through."
+    ],
+    "more_info": "This is a general problem-solving approach, not a substitute for a specific piece of equipment's own service manual - when one exists and is available, it takes priority over general troubleshooting principles.",
+    "keywords": ["troubleshooting", "repair", "diagnosis", "field repair"],
+    "source_id": "general-mechanical-reference",
+    "confidence": "medium"
+  }
+]
