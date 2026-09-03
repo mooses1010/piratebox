@@ -808,3 +808,70 @@ re-verification (including installing the updated OLED daemon) to be
 recorded separately once completed, per the same operator-gated
 workflow round 7 used.
 
+**Closing this out (2026-09-03): round 8 WAS merged, deployed, and its
+NTP fix applied, with full post-merge live re-verification, in the
+same session.** The operator ran the same operator-gated sequence
+round 7 used, from the primary checkout: `git merge --ff-only
+worktree-round8` (`7fad203` -> `149acac`, no divergence, no
+conflicts), `sudo /usr/local/bin/piratebox_deploy.sh`, then installed
+the updated OLED daemon (`sudo install` + `systemctl restart
+piratebox-oled.service`). Separately, the operator applied round 8's
+own NTP diagnosis: `sudo sed -i` correcting `/etc/systemd/
+timesyncd.conf`'s malformed `NTP=` line, then `systemctl restart
+systemd-timesyncd`.
+
+A follow-up session then independently verified all of it rather than
+trusting the operator's report at face value:
+- **Provenance**: live `/var/www/html/includes/VERSION` reads
+  `149acaca4acf706911a0e6a215fb5de2f3bbc73b`, matching `main`'s `HEAD`
+  exactly.
+- **Zero deployment drift**: byte-compared every round-8 changed file
+  (styles.css, scripts.js, index.php, help.php, navbar.php, theme.php,
+  both i18n dictionaries, both computing data files, catalog.json,
+  search-index.json) between the repo and its live path - all
+  identical.
+- **NTP fix confirmed live, not just reported**: `timedatectl status`
+  now reads `System clock synchronized: yes`; `/etc/systemd/
+  timesyncd.conf`'s `NTP=` line now reads the corrected
+  `time.cloudflare.com` (no more duplication);
+  `/run/piratebox/status.json`'s `time_source.ntp_synchronized` is now
+  `true` - exactly the "zero PirateBox code changes needed" result
+  round 8's diagnosis predicted. `rtc_detected` remains honestly
+  `false` - no hardware RTC exists or is claimed anywhere.
+- **OLED**: `/usr/local/bin/piratebox_oled_daemon.py` confirmed
+  byte-identical to the repo's round-8 copy; journal shows a clean
+  restart with no errors/warnings/tracebacks since install.
+  `personality_allowed()` was re-run against this Pi's own real,
+  current `status.json` (imported directly from the live installed
+  file, not a copy) and still correctly returns `False` - personality
+  mode remains suppressed under the real, unchanged `0x50005`
+  undervoltage condition. The Health page's boxed warning was
+  confirmed to actually render against that same live data. The
+  operator separately, physically observed the new OLED display and
+  reported the redesign "looks really cool" - real-hardware visual
+  acceptance, not just a code-level check.
+- **Landing page, themes, i18n**: `/`'s "Two Ways to Use This
+  PirateBox" section, its Connect & Share / Explore & Reference cards
+  and links, all five theme `<option>`s, the Spanish landing section
+  (`?lang=es`), and the new Help page trust item all confirmed
+  rendering via the real nginx/php-fpm stack (not just `php -S`).
+- **All six services** (`hostapd`/`dnsmasq`/`nginx`/`php8.4-fpm`/
+  `piratebox-oled.service`/`piratebox-button.service`) confirmed
+  active and enabled, zero failed units. Travel Mode confirmed `OFF`
+  live, matching the deploy's own "quarantine re-applied (mode: OFF)"
+  report.
+- Full five-suite regression re-run post-deploy: 287/287.
+  `tools/check_library_catalog.py`: 40/40 - the round-8 computing
+  citation upgrades were data-only (no new catalog documents), and the
+  live catalog confirms exactly 40.
+
+This closing record itself lands as one more commit on
+`worktree-round8` (docs-only, no change anywhere under `var/www/html/`
+- per the project's own VERSION semantics, this does not need a
+redeploy, and `VERSION` correctly continues to name `149acac`, the
+commit actually reflected in the live web tree, until some future real
+content/code change is deployed). Once that commit is fast-forwarded
+into `main` and confirmed reachable, the worktree and its branch are
+safe to remove - no further live verification needed, since nothing
+under `var/www/html/` changes.
+
