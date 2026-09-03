@@ -6,6 +6,92 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Regulatory Domain Correction + ALFA Post-Regulatory Validation Round
+
+**Decision date:** 2026-09-03, immediately following the External AP
+Architecture + Production Migration Readiness Round (`e5c3ee3`). Full
+evidence in `docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md` §6 and §16 - this
+entry is a summary/index. **`wlan0` remains the production PirateBox
+AP throughout - not migrated.**
+
+**Regulatory domain: fixed, and more complicated than expected.** The
+operator ran `sudo raspi-config nonint do_wifi_country US`.
+Independently verified rather than trusted from its exit status: the
+persistent half worked (`/boot/firmware/cmdline.txt` correctly updated
+to `US`), but the **live-apply half did not** - `iw reg get` still read
+`country 00` afterward. Reproduced this failure twice (once via
+`raspi-config`'s own internal call, once via a direct manual `sudo iw
+reg set US` retry) with rfkill, a missing/corrupt regulatory database,
+and a timing fluke all ruled out as causes. A **reboot** - not
+originally anticipated as necessary - was required to exercise the
+boot-time application path, which worked cleanly (single clean ALFA
+enumeration, zero new USB/SD errors, power baseline unchanged).
+Post-reboot, independently verified: `iw reg get` reads `country US:
+DFS-FCC`, a genuine FCC ruleset. `CURRENT-WORK.md` was written before
+requesting the reboot (per this repo's own interruption-prone-action
+convention) and deleted once this round closed.
+
+**5GHz capability: mapped and validated under the corrected domain.**
+Non-DFS (legal now): 36, 40, 44, 48 (UNII-1), 149, 153, 157, 161, 165
+(UNII-3). DFS-required: 52-144 (UNII-2/2e) - correctly gated, not
+enabled. Genuine 2x2 VHT confirmed, max 80MHz width. A bounded,
+isolated, temporary 5GHz AP (`PirateBox-ALFA-5G-Test`, channel 36 - a
+non-DFS channel chosen deliberately, per instruction never DFS merely
+to prove DFS works) reached `AP-ENABLED`. The operator's phone showed
+the SSID and, after entering the password, displayed the same generic
+"Couldn't connect to network" message seen during the 2.4GHz round -
+judged, per that round's own established lesson, against the AP-side
+evidence rather than the phone's wording: `hostapd`'s log shows the
+client completing full authentication, association, and the WPA2
+4-way handshake **twice** (matching the operator's own confirmation
+re-attempt), each followed by a client-side disconnect shortly after -
+the same DHCP-timeout abort pattern, not an authentication/radio
+failure. **Operator RF gate: PASSED**, per the operator's own explicit
+instruction to treat successful AP-side WPA2 evidence as sufficient
+despite the phone's generic post-handshake wording. DHCP was
+deliberately not added to this test network either, for the same
+reason established in the prior round (would require touching
+production `dnsmasq`'s shared socket or installing new software, and
+wasn't needed to answer the question this test exists to answer). Zero
+new `mt76`/USB/SD errors across the entire test window; power baseline
+unchanged; production `wlan0` confirmed unaffected throughout and after
+a clean teardown.
+
+**VALIDATED 5GHZ CAPABILITY ≠ 5GHZ PRODUCTION DEFAULT.** Band strategy
+is unchanged from the prior round: 2.4GHz stays the default/primary
+band (phone compatibility, range, emergency/public accessibility, this
+Pi's USB2 bottleneck all still apply) - 5GHz remains a legitimate,
+now-proven, optional future profile, not something this or a future
+migration silently defaults to.
+
+**Power-readiness handoff (not solved here, per instruction):** the
+known `0x50005` condition is unchanged across three separate rounds of
+real load now (Hardware Validation soak, this round's reboot, this
+round's 5GHz test) - one ALFA-correlated event on record total (the
+original insertion-time disconnect), never repeated. That's a
+reasonably good sign for short, supervised, single-client use - not
+evidence of 24/7 readiness. Before trusting the ALFA in production,
+this project should collect: an extended multi-hour soak, *multiple
+simultaneously* associated clients (every test to date has been one
+client at a time, sequentially), sustained ordinary (not synthetic-
+stress) traffic, and continuous power/USB/SD monitoring across that
+whole window watching specifically for the known baseline bits getting
+*worse* under real multi-client load - none of which exists yet.
+
+**Staged migration architecture verified undamaged:** radio-provider
+auto-detection still resolves to `wlan0` live; `tools/
+migrate_visitor_ap_to_alfa.sh`, `tools/
+rollback_visitor_ap_to_onboard.sh`, the udev rule, and the
+NetworkManager conf extension are all confirmed unchanged and still
+not installed/executed anywhere live. Regression: 313/313 → 313/313
+(unchanged - this round re-ran the existing suite to confirm the prior
+round's work survived; it did). Catalog unchanged, 42/42.
+
+**Explicitly not done this round, per instruction:** no production
+migration, no production `wlan0`/`dnsmasq` edit, no DHCP added to
+either isolated test network, no ARS-N19 test, no runtime radio
+failover, no second permanent PirateBox network, no power repair.
+
 ## External AP Architecture + Production Migration Readiness Round
 
 **Decision date:** 2026-09-03, immediately following the AWUS036ACM

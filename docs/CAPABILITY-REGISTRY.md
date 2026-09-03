@@ -61,7 +61,7 @@ it is.**
 | Built-in `wlan0` (production AP) | Core | INSTALLED, CURRENT SCOPE | Integrated |
 | TP-Link TL-WN722N v2/v3 | - | INSTALLED (physically present); REJECTED as AP candidate | Attachable |
 | ALFA AWUS036NHA (AR9271) | - | REJECTED as AP candidate (never purchased) | n/a |
-| ALFA AWUS036ACM (MT7612U) | Core (if adopted) | INSTALLED (evaluation) - hardware/driver/AP-association VALIDATED; migration architecture/readiness designed and staged (stable `pb-ap` naming, role model, migration+rollback scripts) but NOT installed/enabled; still not the production AP | Attachable today; would become semi-permanent if adopted |
+| ALFA AWUS036ACM (MT7612U) | Core (if adopted) | INSTALLED (evaluation) - hardware/driver/2.4+5GHz AP-association VALIDATED under a corrected US regulatory domain; migration architecture/readiness designed and staged but NOT installed/enabled; still not the production AP | Attachable today; would become semi-permanent if adopted |
 | ALFA ARS-N19 antenna | Core (if AWUS036ACM adopted) | OWNED / INCOMING (operator-asserted this session - see note) | Attachable |
 | GPIO25 shutdown button | Core | INSTALLED, CURRENT SCOPE | Integrated |
 | Toggle switch (Normal/Emergency, GPIO17) | Operational | OWNED / INCOMING | Integrated (planned) |
@@ -187,6 +187,23 @@ it is.**
   remains production. See that document in full, especially its "Exact
   operator gate for eventual migration" section, before treating any of
   this as ready to run.
+- **Regulatory domain + 5GHz validation (2026-09-03, Regulatory Domain
+  Correction + ALFA Post-Regulatory Validation Round):** the `UM`/`US`
+  typo above is now **fixed and independently verified** -
+  `iw reg get` reads `country US: DFS-FCC`. Fixing it needed more than
+  the one documented command: the live-apply half (`iw reg set`) proved
+  genuinely broken on this system (reproduced twice), and a **reboot**
+  was required to exercise the boot-time path, which worked. Under the
+  corrected domain, **5GHz AP capability is now VALIDATED** - legal
+  non-DFS channels 36/40/44/48 and 149/153/157/161/165, genuine 2x2 VHT
+  to 80MHz, and a bounded isolated test (`PirateBox-ALFA-5G-Test`,
+  channel 36) reached `AP-ENABLED` with a real client completing the
+  WPA2 4-way handshake twice (judged from `hostapd`'s own log, not the
+  phone's generic post-handshake UI wording - the same DHCP-timeout
+  artifact already understood from the 2.4GHz test). **VALIDATED 5GHZ
+  CAPABILITY ≠ 5GHZ PRODUCTION DEFAULT** - the band strategy is
+  unchanged, 2.4GHz stays primary, and `wlan0` remains the production
+  AP untouched throughout both this and the prior round.
 - **Identity, confirmed live (not assumed from the purchase):** USB ID
   `0e8d:7612` (MediaTek Inc. MT7612U 802.11a/b/g/n/ac Wireless
   Adapter), enumerates as `wlan1` on this Pi today. USB2 480M

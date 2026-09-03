@@ -306,6 +306,94 @@ sudo iw reg set US
 Neither of these was run by this session. **Stopped here, per
 instruction, with exact commands** - this is an operator action.
 
+### Resolved: Regulatory Domain Correction + ALFA Post-Regulatory Validation Round (2026-09-03)
+
+The operator ran `sudo raspi-config nonint do_wifi_country US`.
+Independently verified, not trusted from the command's exit status:
+
+- `/boot/firmware/cmdline.txt` correctly updated to
+  `cfg80211.ieee80211_regdom=US` - the persistent half worked.
+- `nmcli radio wifi` became `enabled` (the documented side effect) -
+  harmless, since `pb-ap` didn't exist yet to be exposed and `wlan0`
+  stayed excluded throughout - **a real-world confirmation that staging
+  the `pb-ap` NetworkManager exclusion ahead of time (see
+  "NetworkManager ownership" above) was the right call**, not
+  theoretical caution.
+- **The live-apply half did NOT work**, reproduced twice independently
+  (once via `raspi-config`'s own internal `iw reg set US` call, once
+  via a direct manual retry by this session immediately after): both
+  returned success, neither changed `iw reg get`, which kept reading
+  `country 00`. Ruled out as causes: rfkill (neither radio blocked),
+  a missing/corrupt regulatory database (files present, correctly
+  linked, no load-failure in `dmesg`), and a one-time timing fluke
+  (reproduced twice, in different NetworkManager/rfkill states).
+
+This meant the standard "one command, done" expectation didn't hold on
+this system - a **reboot was genuinely required**, not merely
+convenient, to exercise the boot-time application path (which runs at
+`cfg80211` module init, before any of the state that was blocking the
+live path existed). This session preserved recovery state
+(`CURRENT-WORK.md`, deleted once this round closed) and confirmed
+Ethernet management access before asking for it, per instruction.
+
+**After the reboot, independently re-verified:** `iw reg get` now
+reads `global / country US: DFS-FCC` - a genuine FCC ruleset, not the
+world fallback. The reboot itself was clean: single clean ALFA
+enumeration (no disconnect/reconnect cycle, unlike the very first
+hot-plug insertion event recorded in the Hardware Validation Round),
+zero new SD/USB errors, `vcgencmd get_throttled` unchanged at `0x50005`
+(the same known pre-existing condition), production `wlan0` came back
+healthy with all six services active.
+
+**Actual measured ALFA capabilities under the corrected domain**
+(`iw phy0 info` - phy numbering itself shifted across the reboot, from
+`phy#3` to `phy#0`, while the `wlan0`/`wlan1` interface *names* held
+stable this particular reboot - a live reminder of exactly the
+enumeration fragility the staged `pb-ap` udev rule exists to close):
+
+- **2.4GHz:** channels 1-11 permitted (23 dBm); channels 12-14 now
+  genuinely `disabled` (not merely `no IR` as under world/00) - correct
+  US behavior. HT20/HT40, MCS 0-15, unchanged from before.
+- **5GHz, non-DFS (legal to transmit on immediately):** **36, 40, 44,
+  48** (UNII-1) and **149, 153, 157, 161, 165** (UNII-3), all 20 dBm,
+  no radar-detection or no-IR flags.
+- **5GHz, DFS-required:** 52-144 (UNII-2/2e), all flagged `(radar
+  detection)` - correctly gated, not enabled by this round.
+- **Not available under this ruleset:** 169/173/177, flagged `(no
+  IR)` - outside what this domain permits to initiate radiation on.
+- **VHT/2x2, confirmed genuine:** RX/TX MCS 0-9 on both 1 and 2
+  streams, max channel width 80MHz (not 160/80+80) - the MT7612U's own
+  ceiling, unchanged by the regulatory fix (a capability limit, not a
+  regulatory one).
+
+**Bounded isolated 5GHz AP test - performed, passed:** temporary
+`hostapd` (config/PID in job tmp only, never `/etc/hostapd/`), SSID
+`PirateBox-ALFA-5G-Test`, **channel 36** (a legal non-DFS choice, per
+instruction never a DFS channel merely to prove DFS works), WPA2-PSK,
+20MHz width. Reached `AP-ENABLED`. The operator's phone saw the SSID,
+entered the password, and got the same generic "Couldn't connect to
+network" message seen during the 2.4GHz test - and, per the lesson
+already learned there, that wording was judged against the AP-side
+evidence rather than taken at face value: `hostapd`'s own log shows
+the client completing full authentication, association, and the
+**WPA2 4-way handshake twice** (`EAPOL-4WAY-HS-COMPLETED`, two
+attempts, matching the operator's own "re-attempted once to confirm"),
+each followed by a client-side disconnect shortly after - the same
+DHCP-timeout abort pattern as before, not an authentication or radio
+failure. Zero new `mt76`/USB/SD errors across the entire test window;
+`vcgencmd get_throttled` unchanged. Production `wlan0` confirmed
+unaffected throughout and after. **DHCP was deliberately not added
+this round either** - the 802.11/WPA2 question this test exists to
+answer was already settled by the handshake evidence, and adding a
+parallel DHCP responder was already established (Hardware Validation
+Round) to require touching production `dnsmasq`'s shared socket or
+installing new software - neither appropriate just to make a phone's
+UI wording look nicer.
+
+**Recommendation, this round: 5GHz AP capability is now legally and
+technically VALIDATED on this hardware** (non-DFS channels 36-48 and
+149-165) - **this does not change the production band strategy below.**
+
 ### 2.4 vs 5GHz production strategy
 
 **Recommendation: 2.4GHz remains the default/primary band**, not
@@ -329,15 +417,20 @@ constraints point the same direction as the project's own mission:
   areas; 5GHz has more clean channels but shorter range) - not treated
   as decisive either way here.
 
-**5GHz's place: optional, not default.** A future higher-throughput or
-advanced-deployment profile (e.g. a dedicated event setup with fewer
-walls, more clients, less range need) is a legitimate future use,
-worth the genuine 2x2 VHT capability this hardware has - but it should
-be an explicit alternate profile an operator opts into, not something
-this round or a future migration silently defaults to. **Not
-implemented this round** - blocked cleanly by the regulatory-domain gap
-above regardless (no 5GHz channel is legal to transmit on until that's
-fixed), so there is nothing to prematurely default to yet.
+**5GHz's place: optional, not default - unchanged even now that it's
+validated.** The Regulatory Domain Correction round proved real,
+legal, working 5GHz AP capability on this hardware (non-DFS channels
+36-48 and 149-165, genuine 2x2 VHT, a real client completing WPA2
+association twice) - **VALIDATED 5GHZ CAPABILITY ≠ 5GHZ PRODUCTION
+DEFAULT.** The reasoning above (phone compatibility, range/penetration,
+emergency/public accessibility, the Pi's USB2 bottleneck already
+capping whatever throughput advantage 802.11ac could offer) did not
+change just because the regulatory blocker did. A future higher-
+throughput or advanced-deployment profile is a legitimate future use of
+this now-proven capability - but it remains an explicit alternate
+profile an operator opts into, not something a migration silently
+defaults to. **Production `wlan0`'s band/channel was not touched by
+either round** - this stays purely a capability finding.
 
 ---
 
@@ -703,22 +796,93 @@ project's existing per-subsystem-doc convention (`POWER-UPS-DESIGN.md`,
 
 ---
 
+## 16. Regulatory Domain Correction + ALFA Post-Regulatory Validation Round (2026-09-03)
+
+Follow-on round, immediately after this document's initial version.
+**Corrected the regulatory domain and validated 5GHz capability -
+production migration status is unchanged: `wlan0` remains the
+PirateBox AP.**
+
+**Regulatory domain: fixed, verified, understood.** The `UM`/`US`
+boot-parameter typo this document originally reported is now corrected
+(`sudo raspi-config nonint do_wifi_country US`, operator-run). This
+session discovered and documented something the original finding
+didn't know: the standard **live-apply** half of that fix (`iw reg
+set`) is genuinely broken on this system - reproduced twice
+independently, with rfkill, a missing regdb, and a timing fluke all
+ruled out as causes. A **reboot** (not previously anticipated as
+necessary) was required to exercise the boot-time application path,
+which worked cleanly. Post-reboot, `iw reg get` correctly reads
+`country US: DFS-FCC` - a real FCC ruleset, independently verified, not
+inferred from the fix command's exit status. See "Resolved: Regulatory
+Domain Correction..." under "Regulatory domain" above for the full
+evidence chain.
+
+**5GHz capability: validated, not defaulted-to.** Full channel mapping
+performed under the corrected domain (non-DFS 36-48 and 149-165, DFS
+52-144, genuine 2x2 VHT up to 80MHz). A bounded, isolated, temporary
+5GHz AP (`PirateBox-ALFA-5G-Test`, channel 36, non-DFS per instruction)
+reached `AP-ENABLED`, and a real client completed the WPA2 4-way
+handshake twice, judged from `hostapd`'s own log rather than the
+phone's generic "Couldn't connect" wording (the same DHCP-timeout
+artifact already understood from the 2.4GHz round). **VALIDATED 5GHZ
+CAPABILITY ≠ 5GHZ PRODUCTION DEFAULT** - the band strategy in this
+document is unchanged: 2.4GHz stays primary.
+
+**Power-readiness handoff, for whenever the undervoltage condition is
+addressed separately (not this round, not solved here):**
+
+The known `0x50005` condition remains completely unchanged across
+*three* separate rounds of real load now - the original Hardware
+Validation soak, this round's reboot, and this round's 5GHz test - with
+exactly one ALFA-correlated event on record (the original insertion-
+time disconnect, still never repeated). That is a reasonably good sign,
+but it is evidence of **short, supervised, single-client** tests, not
+of 24/7 production readiness. Once the power supply is addressed, the
+evidence this project should collect before trusting the ALFA in
+production (unchanged from section 8's gate, restated here as the
+concrete next step): an extended multi-hour soak, multiple
+*simultaneously* associated clients (every test so far has been
+strictly one client at a time, sequential), sustained ordinary traffic
+(file transfer/chat, not synthetic stress), and continuous `dmesg`/
+`vcgencmd get_throttled` monitoring across that whole window looking
+specifically for **new** transitions beyond the already-known baseline
+bits - not just an absence of adapter resets, but confirmation the
+`0x50005` bits themselves never get *worse* under real multi-client
+load. None of that is available yet, on this or any prior round, and
+none of it should be inferred from today's clean single-client results.
+
+**Regression:** 313/313 → 313/313 (unchanged - no new radio-role/
+provider logic this round; this round's own verification re-ran the
+existing suite to confirm the External AP Architecture round's staged
+work was undamaged, and it wasn't). Catalog unchanged, 42/42.
+
+**Explicitly not done this round, per instruction:** no production
+migration, no production `wlan0`/`dnsmasq` edit, no DHCP added to
+either isolated test network, no ARS-N19 test, no runtime radio
+failover, no second permanent PirateBox network, no power repair.
+
+---
+
 ## Exact operator gate for eventual migration
 
 Everything above is preparation. The actual migration requires a human
 to, in order:
 
 1. Read this entire document (not just the gate list).
-2. Fix the regulatory domain (`sudo raspi-config nonint do_wifi_country
-   US`, or the two-command manual equivalent in "Regulatory domain"
-   above) - a real, pre-existing bug, unrelated to but blocking a
-   legal 5GHz option and worth fixing regardless of migration timing.
+2. ~~Fix the regulatory domain~~ - **done** (2026-09-03, this round).
+   `iw reg get` independently confirmed reading `country US: DFS-FCC`
+   after a reboot. No further regulatory action needed before
+   migration.
 3. Install the two staged system files (udev rule, NetworkManager
    conf) - each independently safe/inert until `pb-ap` exists and/or
-   NetworkManager's wifi radio is re-enabled.
+   NetworkManager's wifi radio is re-enabled (already re-enabled, as of
+   this round - see "Regulatory domain" above; still no live exposure,
+   since `pb-ap` doesn't exist until the udev rule is installed).
 4. Decide, deliberately, that the power-aware gate's evidence bar
-   (section 8) has actually been met - not merely that hardware
-   validation passed.
+   (section 8, restated in section 16's power-readiness handoff above)
+   has actually been met - not merely that hardware and 5GHz
+   validation passed. **Still not met as of this round.**
 5. Run `sudo PIRATEBOX_MIGRATION_CONFIRMED=yes-I-read-the-design-doc
    tools/migrate_visitor_ap_to_alfa.sh` and complete the Operator test
    steps in section 12.
