@@ -17,103 +17,103 @@ session_start();
     <?php require_once __DIR__ . '/../../includes/navbar.php'; ?>
 
     <div class="hero">
-        <div class="hero-tagline">Local Offline Network</div>
-        <h1>Offline Utility Library</h1>
-        <p>No Internet connection is used or required - this network never leaves this device. Everything below is stored locally on this PirateBox: radio references, emergency and first-aid information, maps, manuals, and search all work the same with or without a working Internet connection anywhere nearby.</p>
-        <p class="muted">This is an addition to the regular PirateBox file-sharing network, not a replacement for it - Files, Chat, and the Logbook are all still here too.</p>
+        <div class="hero-tagline"><?= htmlspecialchars(piratebox_t('utility.hero_tagline')) ?></div>
+        <h1><?= htmlspecialchars(piratebox_t('utility.hero_heading')) ?></h1>
+        <p><?= htmlspecialchars(piratebox_t('utility.hero_intro')) ?></p>
+        <p class="muted"><?= htmlspecialchars(piratebox_t('utility.hero_muted')) ?></p>
     </div>
 
     <div class="utility-grid">
         <a class="utility-card" href="/utility/radio/">
             <span class="utility-card-icon" aria-hidden="true">📻</span>
-            <span class="utility-card-title">Radio</span>
-            <span class="utility-card-desc">Bands, frequencies, modes &amp; antenna basics for a wideband receiver</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.radio.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.radio.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/emergency/">
             <span class="utility-card-icon" aria-hidden="true">🚨</span>
-            <span class="utility-card-title">Emergency</span>
-            <span class="utility-card-desc">Power outages, storms, floods, heat/cold &amp; other outage guidance</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.emergency.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.emergency.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/firstaid/">
             <span class="utility-card-icon" aria-hidden="true">🩹</span>
-            <span class="utility-card-title">First Aid</span>
-            <span class="utility-card-desc">Basic conservative first-aid reference - not a substitute for care</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.firstaid.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.firstaid.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/maps/">
             <span class="utility-card-icon" aria-hidden="true">🗺️</span>
-            <span class="utility-card-title">Maps</span>
-            <span class="utility-card-desc">A world reference map, coordinates/GPS basics, and a local/regional map catalog</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.maps.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.maps.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/local/">
             <span class="utility-card-icon" aria-hidden="true">📍</span>
-            <span class="utility-card-title">Local Info</span>
-            <span class="utility-card-desc">Hospitals, shelters, emergency contacts &amp; repeaters for this area</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.local.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.local.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/fieldtools/">
             <span class="utility-card-icon" aria-hidden="true">🧰</span>
-            <span class="utility-card-title">Field Tools</span>
-            <span class="utility-card-desc">Time/date, unit conversion &amp; coordinate calculators for offline field use</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.fieldtools.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.fieldtools.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/computing/">
             <span class="utility-card-icon" aria-hidden="true">🖧</span>
-            <span class="utility-card-title">Computing &amp; Networking</span>
-            <span class="utility-card-desc">IP addressing, DNS/DHCP, ports, Wi-Fi, cabling, USB/serial &amp; checksums</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.computing.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.computing.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/glossary/">
             <span class="utility-card-icon" aria-hidden="true">📖</span>
-            <span class="utility-card-title">Glossary</span>
-            <span class="utility-card-desc">Quick definitions for terms used across this library, with links to the fuller reference</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.glossary.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.glossary.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/outdoor/">
             <span class="utility-card-icon" aria-hidden="true">🪢</span>
-            <span class="utility-card-title">Outdoor &amp; Field</span>
-            <span class="utility-card-desc">Knots and hitches for basic field utility - not a life-safety/climbing reference</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.outdoor.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.outdoor.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/mechanical/">
             <span class="utility-card-icon" aria-hidden="true">🔧</span>
-            <span class="utility-card-title">Mechanical &amp; Repair</span>
-            <span class="utility-card-desc">Simple machines, fasteners/torque, bearings, hand tools &amp; measurement basics</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.mechanical.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.mechanical.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/electronics/">
             <span class="utility-card-icon" aria-hidden="true">🔌</span>
-            <span class="utility-card-title">Electronics</span>
-            <span class="utility-card-desc">Voltage/current/power, AC vs. DC, semiconductors, circuit protection &amp; switches/relays</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.electronics.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.electronics.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/materials/">
             <span class="utility-card-icon" aria-hidden="true">⚗️</span>
-            <span class="utility-card-title">Materials &amp; Chemical Safety</span>
-            <span class="utility-card-desc">GHS pictograms, Safety Data Sheets, hazard recognition &amp; safe handling basics</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.materials.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.materials.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/about/">
             <span class="utility-card-icon" aria-hidden="true">ℹ️</span>
-            <span class="utility-card-title">About This PirateBox</span>
-            <span class="utility-card-desc">What this device is, what's installed, and its current health</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.about.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.about.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/library/">
             <span class="utility-card-icon" aria-hidden="true">📚</span>
-            <span class="utility-card-title">Document Library</span>
-            <span class="utility-card-desc">Manuals and reference documents stored on this device</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.library.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.library.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/search/">
             <span class="utility-card-icon" aria-hidden="true">🔍</span>
-            <span class="utility-card-title">Search</span>
-            <span class="utility-card-desc">One search box across everything in the Utility Library</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.search.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.search.desc')) ?></span>
         </a>
         <a class="utility-card" href="/utility/download/">
             <span class="utility-card-icon" aria-hidden="true">⬇️</span>
-            <span class="utility-card-title">Take This With You</span>
-            <span class="utility-card-desc">Download reference material to use after you disconnect</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.download.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.download.desc')) ?></span>
         </a>
     </div>
 
     <section class="help-section">
-        <h2>Also on this PirateBox</h2>
+        <h2><?= htmlspecialchars(piratebox_t('utility.also_heading')) ?></h2>
         <div class="hero-actions">
-            <a href="/">Files</a>
-            <a href="/chat.php">Chat</a>
-            <a href="/messages.php">Logbook</a>
-            <a href="/help.php">Help / About this network</a>
-            <a href="/utility/status/">Status</a>
+            <a href="/"><?= htmlspecialchars(piratebox_t('utility.also.files')) ?></a>
+            <a href="/chat.php"><?= htmlspecialchars(piratebox_t('utility.also.chat')) ?></a>
+            <a href="/messages.php"><?= htmlspecialchars(piratebox_t('utility.also.logbook')) ?></a>
+            <a href="/help.php"><?= htmlspecialchars(piratebox_t('utility.also.help')) ?></a>
+            <a href="/utility/status/"><?= htmlspecialchars(piratebox_t('utility.also.status')) ?></a>
         </div>
     </section>
 
