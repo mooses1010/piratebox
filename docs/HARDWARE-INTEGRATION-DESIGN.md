@@ -614,3 +614,94 @@ and a duplicate process opening the same bus was avoidable risk for no
 real benefit. Installing the updated daemon onto the running Pi still
 requires the operator's usual `sudo install` + `systemctl restart`
 step (this session cannot run `sudo`) - see `docs/CHECKPOINTS.md`.
+
+## 14. Instrument-panel polish (round 8, 2026-09-03)
+
+Round 7's four serious pages (Status/Time/Network/Health) worked but
+looked like plain debug text dumps. This round improves how they
+present, without changing what they're allowed to show or when -
+personality mode (§13) is unchanged, including its gating.
+
+**Philosophy, stated once so it governs every choice below:** mostly
+static information plus brief, meaningful motion. Animation exists to
+communicate an actual state change, never just because it's possible.
+
+**What changed, all still plain Pillow primitives, no new
+dependency:**
+- **Header bar**: every serious page now opens with an inverted
+  (white-bar, black-text) title strip carrying a small ~10x10px
+  procedural icon (a diamond for Status, a clock face for Time, a
+  small antenna for Network, a heartbeat zigzag for Health) and a
+  heartbeat dot in the top-right corner that flips filled/hollow every
+  redraw tick - proof the loop is alive and refreshing, not frozen,
+  without adding any new data source (it's driven by the daemon's own
+  existing per-tick counter).
+- **Status page**: a small Wi-Fi bars glyph (filled when at least one
+  client is associated, outline when none are) replaces a bare number
+  as the "is anyone connected" glance. The client count itself briefly
+  renders inverted (measured via `draw.textbbox` so the box fits any
+  digit count) for the couple of redraws right after it increases -
+  this pulse is plain operational information, so it is **not**
+  personality-gated and still fires in Emergency Mode or under a
+  degraded condition, unlike the separate, gated "celebration" page
+  personality mode already had.
+- **Network page**: a small filled/hollow dot per Core service next to
+  its (truncated) name, alongside the existing "N/4 up" text - a
+  glance shows *which* service is down, not just the count.
+- **Health page**: the storage line gained a compact horizontal
+  used-space bar next to the existing free/total text. The undervoltage
+  warning (unchanged condition/wording) is now boxed - a warning should
+  look different from routine information, not just say so in smaller
+  words. Verified this box actually renders against this Pi's own real,
+  current `0x50005` condition, not just a synthetic fixture.
+- **Page-change wipe**: a brief (~150ms, four extra frame writes)
+  horizontal slide plays when the display auto-advances from one
+  serious page to the next in the normal rotation - the only recurring
+  motion in the whole daemon, and it only ever fires on an actual page
+  change (once per `PAGE_SECONDS`, currently 8s), never on a same-page
+  data refresh (every `REFRESH_SECONDS`, 3s) and never for a one-shot
+  frame (personality/celebration/milestone/mode-transition), which all
+  still swap instantly. Implemented by bypassing `luma.core.render.
+  canvas()` for a lower-level `device.display(image)` call so two
+  already-rendered frames (previous/next) can be cropped and pasted
+  into a handful of intermediate composites - no animation library, no
+  persistent per-frame state, each transition is a short, self-
+  contained burst of extra I2C writes that ends before the next
+  `REFRESH_SECONDS` tick.
+- **Mode-transition banner (new)**: a brief, full-screen, inverted
+  frame ("EMERGENCY MODE / ACTIVATED" or "NORMAL MODE / RESTORED")
+  appears exactly once, the moment this daemon observes `MODE_FILE`'s
+  value actually change. Deliberately **not** personality-gated - which
+  mode is active is serious operational information, so this still
+  shows in Emergency Mode and under a degraded condition (arguably more
+  important then, not less).
+
+**Refactor this required:** `render_page()` (round 7) drew directly
+into a `canvas(device)`-managed image and returned nothing. It's now
+`build_frame(...)`, a pure function that returns a standalone `PIL.
+Image` without touching the display, plus a separate `display_frame
+(device, new_img, old_img, transition)` that does the actual write
+(with or without the wipe). This split is what makes the wipe possible
+(it needs both the outgoing and incoming frame at once) and, as a side
+benefit, makes `build_frame()` trivially unit-testable offline - no
+real device object needed, just anything with `.mode`/`.size`
+attributes matching the real `ssd1306`.
+
+**Unaffected by this round, confirmed rather than assumed:**
+`personality_allowed()`'s gating logic is byte-for-byte unchanged from
+round 7 and was re-tested against this Pi's own real, current
+undervoltage condition - still correctly suppresses every personality
+frame. The retry/degraded-hardware behavior, the unprivileged
+`piratebox-gpio` service account, and Core's total independence from
+this daemon are all untouched. CPU/RAM cost remains trivial - the wipe
+adds at most 4 extra small (128x64, 1-bit) frame writes once every 8
+seconds, not a continuous loop.
+
+**Tested offline** the same way round 7's personality mode was: a fake
+device object (`.mode`/`.size` only, no real I2C) exercising
+`build_frame()` for every page type (including stale/missing status),
+the pulse effect, `display_frame()`'s frame-count with and without the
+transition, and `personality_allowed()` against this Pi's actual live
+`status.json`. Not yet installed on the running Pi - requires the
+operator's usual `sudo install` + `systemctl restart` step, same as
+every prior OLED daemon update.

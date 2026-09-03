@@ -37,3 +37,10 @@ var/www/html/public/assets/qr-wifi.png
 # and deliberately never committed - durable state belongs in git/docs, not
 # here. Fine for this to not exist most of the time.
 /CURRENT-WORK.md
+
+# Byte-compiled Python cache - piratebox_oled_daemon.py is this repo's
+# only Python file; nothing here should ever depend on committing its
+# .pyc, and py_compile/pytest-style checks regenerate this directory
+# incidentally during normal testing.
+__pycache__/
+

@@ -125,6 +125,43 @@
 #   - No animation loop, no external image/font asset, no new
 #     dependency: the skull is drawn with a handful of Pillow
 #     primitives (ellipses/lines) already used by every other page.
+#
+# INSTRUMENT-PANEL POLISH (round 8, 2026-09-03) - improves how the four
+# serious pages themselves present, without changing what they're
+# allowed to show or when. Philosophy: mostly static information plus
+# brief, meaningful motion - animation communicates a real state
+# change, it doesn't run just because it can.
+#   - Every serious page now has a small header bar (inverted, like an
+#     instrument label) with a tiny procedural icon and a heartbeat dot
+#     that flips every redraw tick - proof the loop is alive, not
+#     frozen, distinguishable from a genuinely stuck display.
+#   - Status page gains a small Wi-Fi bars glyph (filled = clients
+#     present, outline = none) and a brief inverted "pulse" on the
+#     client count for the couple of redraws right after it increases -
+#     this pulse is NOT personality-gated (it's plain operational
+#     information, so it still fires in Emergency Mode or a degraded
+#     state, unlike the separate, gated "celebration" quip page).
+#   - Network page gains a small filled/hollow dot per Core service
+#     instead of only a text count.
+#   - Health page gains a compact horizontal storage-used bar, and its
+#     undervoltage warning is now boxed for higher visual salience -
+#     still one line, still conditional, still never hidden by
+#     anything cosmetic.
+#   - A brief (~150ms, four-frame) horizontal wipe plays when the
+#     display auto-advances from one serious page to the next in the
+#     normal rotation - it does NOT play for one-shot frames
+#     (personality/celebration/milestone/mode-transition), keeping
+#     those as instant, simple swaps. This is the only recurring
+#     motion in the whole daemon, and it is tied to an actual page
+#     change (once per PAGE_SECONDS), not a constant/ambient effect.
+#   - A new one-shot mode-transition frame (brief, inverted, NOT
+#     personality-gated - shows in Emergency Mode and under a degraded
+#     condition, since "which mode is active" is exactly the kind of
+#     thing that matters most when something else is already wrong)
+#     appears the moment this daemon observes MODE_FILE's value
+#     actually change, in either direction.
+#   - None of this adds a new data source, a new file write, or a new
+#     dependency - same Pillow primitives, same read-only inputs.
 
 import json
 import logging
@@ -135,9 +172,8 @@ import sys
 import time
 
 from luma.core.interface.serial import i2c
-from luma.core.render import canvas
 from luma.oled.device import ssd1306
-from PIL import ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 I2C_PORT = 1
 I2C_ADDRESS = 0x3C
@@ -311,71 +347,180 @@ def format_duration(seconds: float) -> str:
     return f"{minutes}m"
 
 
+# --- Tiny procedural icons + instrument-panel chrome (round 8) --------
+# All plain Pillow primitives (ellipse/line/polygon/rectangle/arc) at
+# ~10x10px - no image asset, no icon font, nothing beyond what
+# draw_skull_and_crossbones already established as this project's
+# pattern for "small bitmap, drawn, not loaded."
+
+def icon_status(draw, x: int, y: int, color: str) -> None:
+    """Small diamond-with-center-dot - a generic "device/at a glance"
+    glyph for the Status page header."""
+    draw.polygon([(x + 5, y), (x + 10, y + 5), (x + 5, y + 10), (x, y + 5)], outline=color)
+    draw.ellipse((x + 4, y + 4, x + 6, y + 6), fill=color)
+
+
+def icon_clock(draw, x: int, y: int, color: str) -> None:
+    draw.ellipse((x, y, x + 10, y + 10), outline=color)
+    cx, cy = x + 5, y + 5
+    draw.line((cx, cy, cx, y + 1), fill=color)
+    draw.line((cx, cy, x + 8, cy + 2), fill=color)
+
+
+def icon_network(draw, x: int, y: int, color: str) -> None:
+    """Small antenna/mast glyph for the Network page header."""
+    draw.line((x + 4, y + 2, x + 4, y + 10), fill=color)
+    draw.line((x, y + 10, x + 8, y + 10), fill=color)
+    draw.arc((x - 2, y - 3, x + 10, y + 5), start=200, end=340, fill=color)
+
+
+def icon_health(draw, x: int, y: int, color: str) -> None:
+    """Small heartbeat/EKG zigzag for the Health page header."""
+    draw.line(
+        [(x, y + 6), (x + 2, y + 6), (x + 4, y), (x + 6, y + 10), (x + 8, y + 6), (x + 10, y + 6)],
+        fill=color,
+    )
+
+
+def icon_wifi_bars(draw, x: int, y: int, active: bool) -> None:
+    """Three ascending bars - filled when the AP has at least one
+    associated client right now, outline (present but idle) when it
+    doesn't. Binary rather than tiered by exact count: at this size a
+    3-level indicator reads as noise, "someone's connected or not"
+    is the one fact worth a glance."""
+    for i, h in enumerate((3, 6, 9)):
+        bx = x + i * 4
+        top = y + (9 - h)
+        if active:
+            draw.rectangle((bx, top, bx + 2, y + 9), fill="white")
+        else:
+            draw.rectangle((bx, top, bx + 2, y + 9), outline="white")
+
+
+def draw_bar(draw, x: int, y: int, w: int, h: int, frac: float) -> None:
+    """A compact horizontal progress/level bar - outline box, filled
+    left-to-right by frac (0..1, clamped)."""
+    frac = max(0.0, min(1.0, frac))
+    draw.rectangle((x, y, x + w, y + h), outline="white")
+    fill_w = int((w - 2) * frac)
+    if fill_w > 0:
+        draw.rectangle((x + 1, y + 1, x + 1 + fill_w, y + h - 1), fill="white")
+
+
+def header_bar(draw, title: str, font_small, icon_fn, alive_on: bool) -> None:
+    """The shared instrument-panel title bar every serious page now
+    opens with: inverted (white bar, black text/icon) for a clear
+    visual break between "page identity" and "page content" below it,
+    a small procedural icon, and a heartbeat dot in the top-right that
+    flips every redraw tick - the "is this actually alive" indicator,
+    always in the same place regardless of which page is showing."""
+    draw.rectangle((0, 0, 127, 11), fill="white")
+    icon_fn(draw, 2, 0, "black")
+    draw.text((14, 0), title, font=font_small, fill="black")
+    if alive_on:
+        draw.ellipse((120, 3, 125, 8), fill="black")
+    else:
+        draw.ellipse((120, 3, 125, 8), outline="black")
+
+
 # --- Page renderers -----------------------------------------------------
 # Each function draws exactly one page into the given ImageDraw context.
 # None of these touch the network, sudo, or any writable PirateBox state
 # - pure read-and-render.
 
-def render_status(draw, font, mode: str, status, stale: bool) -> None:
-    draw.text((0, 0), "PIRATEBOX", font=font, fill="white")
+def render_status(draw, font, font_small, mode: str, status, stale: bool, alive_on: bool, pulse: bool) -> None:
+    header_bar(draw, "PIRATEBOX", font_small, icon_status, alive_on)
     mode_label = "EMERGENCY" if mode == "emergency" else "NORMAL"
-    draw.text((0, 14), f"Mode: {mode_label}", font=font, fill="white")
-    draw.text((0, 28), f"SSID: {read_ssid()}", font=font, fill="white")
-    if stale or status is None:
-        draw.text((0, 42), "Clients: unknown", font=font, fill="white")
+    draw.text((0, 15), f"Mode: {mode_label}", font=font, fill="white")
+    draw.text((0, 27), f"SSID: {read_ssid()}", font=font, fill="white")
+    has_clients = not stale and isinstance(status, dict) and (status.get("wifi_clients") or 0) > 0
+    icon_wifi_bars(draw, 0, 40, has_clients)
+    label = "Clients: unknown" if (stale or status is None) else f"Clients: {status.get('wifi_clients', '?')}"
+    if pulse:
+        # Brief inverted "pulse" the couple of redraws right after the
+        # client count increases - plain operational information, NOT
+        # personality-gated (unlike the separate, gated "celebration"
+        # page), so it still fires in Emergency Mode or a degraded
+        # state. textbbox-measured so the box fits any digit count.
+        bbox = draw.textbbox((16, 40), label, font=font)
+        draw.rectangle((bbox[0] - 2, bbox[1] - 1, bbox[2] + 2, bbox[3] + 1), fill="white")
+        draw.text((16, 40), label, font=font, fill="black")
     else:
-        draw.text((0, 42), f"Clients: {status.get('wifi_clients', '?')}", font=font, fill="white")
+        draw.text((16, 40), label, font=font, fill="white")
 
 
-def render_time(draw, font, status, stale: bool) -> None:
+def render_time(draw, font, font_small, status, stale: bool, alive_on: bool) -> None:
+    header_bar(draw, "TIME", font_small, icon_clock, alive_on)
     now = time.localtime()
     utc = time.gmtime()
-    draw.text((0, 0), "TIME", font=font, fill="white")
-    draw.text((0, 12), f"Local {time.strftime('%I:%M:%S %p', now)}", font=font, fill="white")
-    draw.text((0, 24), f"UTC   {time.strftime('%H:%M:%S', utc)}", font=font, fill="white")
-    draw.text((0, 36), f"Date  {time.strftime('%Y-%m-%d', now)}", font=font, fill="white")
+    draw.text((0, 14), f"Local {time.strftime('%I:%M:%S %p', now)}", font=font, fill="white")
+    draw.text((0, 26), f"UTC   {time.strftime('%H:%M:%S', utc)}", font=font, fill="white")
+    draw.text((0, 38), f"Date  {time.strftime('%Y-%m-%d', now)}", font=font, fill="white")
     ts = (status or {}).get("time_source") if not stale and status else None
     if ts is None:
-        draw.text((0, 48), "Source: unknown", font=font, fill="white")
+        draw.text((0, 51), "Source: unknown", font=font_small, fill="white")
     else:
         rtc = "RTC" if ts.get("rtc_detected") else "no-RTC"
         ntp = "NTP-synced" if ts.get("ntp_synchronized") else "not synced"
-        draw.text((0, 48), f"{rtc}, {ntp}", font=font, fill="white")
+        draw.text((0, 51), f"{rtc}, {ntp}", font=font_small, fill="white")
 
 
-def render_network(draw, font, status, stale: bool) -> None:
-    draw.text((0, 0), "NETWORK", font=font, fill="white")
-    draw.text((0, 12), f"SSID: {read_ssid()}", font=font, fill="white")
-    draw.text((0, 24), f"IP:   {AP_IP_ADDRESS}", font=font, fill="white")
+def render_network(draw, font, font_small, status, stale: bool, alive_on: bool) -> None:
+    header_bar(draw, "NETWORK", font_small, icon_network, alive_on)
+    draw.text((0, 14), f"SSID: {read_ssid()}", font=font, fill="white")
+    draw.text((0, 26), f"IP:   {AP_IP_ADDRESS}", font=font, fill="white")
     if stale or status is None:
-        draw.text((0, 36), "Services: unknown", font=font, fill="white")
+        draw.text((0, 40), "Services: unknown", font=font, fill="white")
         return
     services = status.get("services", {})
-    ok = sum(1 for v in services.values() if v is True)
-    total = len(services) if services else 0
-    draw.text((0, 36), f"Services: {ok}/{total} up", font=font, fill="white")
-    down = [name for name, v in services.items() if v is not True]
-    if down:
-        draw.text((0, 48), f"Down: {','.join(down)[:20]}", font=font, fill="white")
+    # Small filled/hollow dot per service plus its (truncated) name,
+    # laid out in a fixed-width row - a glance shows which ones, not
+    # just how many, are up.
+    dx = 1
+    for name, ok in services.items():
+        if ok is True:
+            draw.ellipse((dx, 41, dx + 6, 47), fill="white")
+        else:
+            draw.ellipse((dx, 41, dx + 6, 47), outline="white")
+        draw.text((dx + 9, 38), name[:4], font=font_small, fill="white")
+        dx += 32
 
 
-def render_health(draw, font, status, stale: bool) -> None:
-    draw.text((0, 0), "HEALTH", font=font, fill="white")
-    draw.text((0, 12), f"Uptime: {format_duration(read_uptime_seconds())}", font=font, fill="white")
+def render_health(draw, font, font_small, status, stale: bool, alive_on: bool) -> None:
+    header_bar(draw, "HEALTH", font_small, icon_health, alive_on)
+    draw.text((0, 14), f"Uptime: {format_duration(read_uptime_seconds())}", font=font, fill="white")
+    draw.text((0, 26), "Storage:", font=font, fill="white")
     free, total = read_disk_free_total()
-    draw.text((0, 24), f"Storage: {format_bytes_gb(free)}/{format_bytes_gb(total)}", font=font, fill="white")
+    used_frac = 1.0 - (free / total) if total > 0 else 0.0
+    draw_bar(draw, 60, 27, 66, 8, used_frac)
     temp = read_cpu_temp_c()
     temp_str = f"{temp:.0f}C" if temp is not None else "unknown"
     emergency_s = read_emergency_runtime_seconds()
-    draw.text((0, 36), f"CPU: {temp_str}  Emerg: {format_duration(emergency_s)}", font=font, fill="white")
+    draw.text((0, 38), f"CPU: {temp_str}  Emerg: {format_duration(emergency_s)}", font=font, fill="white")
     # Power warning - conditional, one line, only when there's something
     # to say. Deliberately does NOT claim the OLED caused or is affected
     # by this; it is purely reporting the same power.undervoltage_now
-    # flag the Stats/About pages already surface.
+    # flag the Stats/About pages already surface. Boxed (round 8) for
+    # higher visual salience than plain text - a warning should look
+    # different from routine information, not just say so in words.
     if not stale and isinstance(status, dict):
         power = status.get("power", {})
         if power.get("undervoltage_now") is True:
-            draw.text((0, 48), "! POWER: UNDERVOLTAGE", font=font, fill="white")
+            draw.rectangle((0, 50, 127, 62), outline="white")
+            draw.text((3, 52), "! POWER: UNDERVOLTAGE", font=font_small, fill="white")
+
+
+def render_mode_transition(draw, font_big, new_mode: str) -> None:
+    """A brief, full-screen, inverted banner shown exactly once at the
+    moment this daemon observes the mode actually change - NOT
+    personality-gated (mode is serious operational information, so this
+    shows in Emergency Mode and under a degraded condition too, unlike
+    the gated "celebration"/"personality" frames)."""
+    draw.rectangle((0, 0, 127, 63), fill="white")
+    label = "EMERGENCY MODE" if new_mode == "emergency" else "NORMAL MODE"
+    sub = "ACTIVATED" if new_mode == "emergency" else "RESTORED"
+    draw.text((6, 16), label, font=font_big, fill="black")
+    draw.text((6, 36), sub, font=font_big, fill="black")
 
 
 def personality_allowed(mode: str, status, stale: bool) -> bool:
@@ -442,30 +587,82 @@ def render_milestone(draw, font, message: str) -> None:
 PAGE_ORDER = ["status", "time", "network", "health"]
 
 
-def render_page(device, font, page: str, status, stale: bool, mode: str, extra=None) -> None:
-    with canvas(device) as draw:
-        if page == "status":
-            render_status(draw, font, mode, status, stale)
-        elif page == "time":
-            render_time(draw, font, status, stale)
-        elif page == "network":
-            render_network(draw, font, status, stale)
-        elif page == "health":
-            render_health(draw, font, status, stale)
-        elif page == "personality":
-            render_personality(draw, font, extra["quip"])
-        elif page == "celebration":
-            render_celebration(draw, font, extra["client_count"])
-        elif page == "milestone":
-            render_milestone(draw, font, extra["message"])
+def build_frame(
+    device, page: str, font, font_small, font_big, status, stale: bool, mode: str,
+    alive_on: bool = True, pulse: bool = False, extra=None,
+):
+    """Renders exactly one page into a standalone PIL Image (device's
+    own mode/size) and returns it, WITHOUT writing it to the display.
+    Separated from actually displaying (see display_frame() below) so
+    main() can hold onto the previous frame and the newly-built one at
+    the same time - needed for the brief slide transition between
+    pages, which needs both images to composite intermediate frames
+    from. Building the image is pure/side-effect-free (safe to unit
+    test, and safe to call even when device is only used for its
+    .mode/.size, never actually written to)."""
+    img = Image.new(device.mode, device.size)
+    draw = ImageDraw.Draw(img)
+    if page == "status":
+        render_status(draw, font, font_small, mode, status, stale, alive_on, pulse)
+    elif page == "time":
+        render_time(draw, font, font_small, status, stale, alive_on)
+    elif page == "network":
+        render_network(draw, font, font_small, status, stale, alive_on)
+    elif page == "health":
+        render_health(draw, font, font_small, status, stale, alive_on)
+    elif page == "personality":
+        render_personality(draw, font, extra["quip"])
+    elif page == "celebration":
+        render_celebration(draw, font, extra["client_count"])
+    elif page == "milestone":
+        render_milestone(draw, font, extra["message"])
+    elif page == "mode_transition":
+        render_mode_transition(draw, font_big, extra["new_mode"])
+    return img
 
 
-def load_font():
+def display_frame(device, new_img, old_img=None, transition: bool = False) -> None:
+    """Writes new_img to the real display. If transition is True and a
+    previous frame (old_img) exists, plays a brief (~150ms, four extra
+    device.display() writes) horizontal wipe first - the only recurring
+    motion this daemon has, reserved for an actual page change in the
+    normal rotation (see main()'s own transition_wipe flag). Every
+    other call path (one-shot frames, same-page refreshes, the very
+    first frame after startup/reconnect) just writes new_img directly,
+    identical to how this daemon always displayed a frame before round
+    8's transition was added."""
+    if transition and old_img is not None:
+        w, h = device.size
+        steps = 4
+        for i in range(1, steps + 1):
+            offset = int(w * i / steps)
+            frame = Image.new(device.mode, (w, h))
+            frame.paste(old_img.crop((offset, 0, w, h)), (0, 0))
+            frame.paste(new_img.crop((0, 0, offset, h)), (w - offset, 0))
+            device.display(frame)
+            time.sleep(0.04)
+    device.display(new_img)
+
+
+def load_fonts():
+    """Three sizes of the same face - not a new dependency, just three
+    ImageFont objects from the font already used everywhere. 11pt for
+    normal body text (unchanged from before round 8), 9pt for one-line
+    secondary detail (the time-source line, service-name labels), 14pt
+    for the rare, brief mode-transition banner where bigger is the
+    point. All three fail together to PIL's built-in bitmap font if the
+    TTF is missing, so a missing font file degrades the display, it
+    never crashes the daemon."""
     try:
-        return ImageFont.truetype(FONT_PATH, 11)
+        return (
+            ImageFont.truetype(FONT_PATH, 11),
+            ImageFont.truetype(FONT_PATH, 9),
+            ImageFont.truetype(FONT_PATH, 14),
+        )
     except OSError:
         log.warning("Could not load %s, falling back to PIL default bitmap font.", FONT_PATH)
-        return ImageFont.load_default()
+        default = ImageFont.load_default()
+        return default, default, default
 
 
 def init_device():
@@ -491,7 +688,7 @@ def main() -> int:
     signal.signal(signal.SIGTERM, handle_term)
     signal.signal(signal.SIGINT, handle_term)
 
-    font = load_font()
+    font, font_small, font_big = load_fonts()
     log.info(
         "Started. I2C bus %d address 0x%02X, %.0fs refresh, %.0fs/page "
         "(auto-rotating - no cycle button wired yet), %d-page cycle, "
@@ -504,12 +701,25 @@ def main() -> int:
     page_index = 0
     seconds_on_current_page = 0.0
     device = None
+    last_image = None  # previous displayed frame, for the slide transition
+    tick = 0            # increments every redraw; drives the heartbeat dot
 
     # Personality-mode bookkeeping - deliberately plain in-memory state,
     # never written to disk (see the header note above).
     rotation_count = 0
     last_wifi_clients = None
     milestones_shown = set()
+
+    # Round-8 instrument-panel bookkeeping - also plain in-memory state,
+    # also never written to disk. Tracked separately from the
+    # personality-only last_wifi_clients above because these two must
+    # keep working even when personality_allowed() is False (Emergency
+    # Mode, a stale snapshot, a down service, or active undervoltage) -
+    # a client-count pulse and a mode-change banner are both plain
+    # operational information, not personality.
+    last_seen_clients_for_pulse = None
+    pulse_ticks_remaining = 0
+    last_mode_seen = None
 
     while not stop:
         if device is None:
@@ -518,9 +728,32 @@ def main() -> int:
                 time.sleep(RETRY_SECONDS)
                 continue
             log.info("OLED initialized successfully.")
+            last_image = None  # nothing to transition from after a reconnect
 
         status, stale = read_status_json()
         mode = read_mode()
+        tick += 1
+        alive_on = (tick % 2 == 0)
+
+        # Always-on, never personality-gated: a mode change is serious
+        # operational information that must still show in Emergency
+        # Mode or under a degraded condition.
+        mode_transition = mode if (last_mode_seen is not None and mode != last_mode_seen) else None
+        last_mode_seen = mode
+
+        # Always-on, never personality-gated: the client-count pulse.
+        # Shown for a couple of redraw ticks (not just one) so it's
+        # actually visible at REFRESH_SECONDS=3s, not a single blink.
+        if not stale and isinstance(status, dict):
+            current_clients = status.get("wifi_clients")
+            if isinstance(current_clients, int):
+                if last_seen_clients_for_pulse is not None and current_clients > last_seen_clients_for_pulse:
+                    pulse_ticks_remaining = 2
+                last_seen_clients_for_pulse = current_clients
+        pulse_now = pulse_ticks_remaining > 0
+        if pulse_ticks_remaining > 0:
+            pulse_ticks_remaining -= 1
+
         allowed = personality_allowed(mode, status, stale)
 
         # One-shot frames (connection celebration, uptime milestone) can
@@ -541,7 +774,12 @@ def main() -> int:
                     one_shot = ("milestone", {"message": f"Underway for {label}!"})
                     break
 
-        if one_shot is not None:
+        # Priority order: a real mode change always wins (never gated),
+        # then the personality one-shots (gated), then the occasional
+        # personality quip slot, then the normal serious rotation.
+        if mode_transition is not None:
+            page, extra = "mode_transition", {"new_mode": mode_transition}
+        elif one_shot is not None:
             page, extra = one_shot
         elif (
             page_index == 0
@@ -556,8 +794,20 @@ def main() -> int:
         else:
             page, extra = PAGE_ORDER[page_index], None
 
+        # The brief slide wipe (see display_frame()) is reserved for an
+        # actual page change in the normal rotation - seconds_on_current_
+        # page resets to 0.0 exactly on the redraw right after page_index
+        # advances, so this is true only on that one redraw, never on a
+        # same-page refresh and never for a one-shot/personality frame.
+        transition_wipe = page in PAGE_ORDER and seconds_on_current_page == 0.0 and last_image is not None
+
         try:
-            render_page(device, font, page, status, stale, mode, extra=extra)
+            new_image = build_frame(
+                device, page, font, font_small, font_big, status, stale, mode,
+                alive_on=alive_on, pulse=pulse_now, extra=extra,
+            )
+            display_frame(device, new_image, old_img=last_image, transition=transition_wipe)
+            last_image = new_image
         except Exception as exc:
             # A real write/communication failure - the display was
             # likely unplugged mid-run. Drop back to the retry-init
@@ -565,6 +815,7 @@ def main() -> int:
             # hardware becomes available" path, not an error exit.
             log.warning("Lost contact with OLED (%s) - will retry.", exc)
             device = None
+            last_image = None
             time.sleep(RETRY_SECONDS)
             continue
 
