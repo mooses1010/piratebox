@@ -434,3 +434,25 @@ correctly shows "Glossary: INSTALLED (28)", computed live.
 check_library_catalog.py` clean (8/8). Zero failed units. Full
 five-suite regression: 282/282.
 
+| Admin panel auth readiness (discoverability fix) + Outdoor & Field Reference (knots/hitches) + discoverability audit | `1b757ff` | *(none taken under the usual `~/piratebox-backups/` naming - built across 2 commits on an isolated worktree branch; the operator fast-forward merged `worktree-deep-library-continue7` into `main` (`188f7c5` -> `1b757ff`) and ran the deploy directly, then completed both required operator actions: ran `setup_admin_password.sh` to create the first admin account, and reinstalled the updated `piratebox_status_helper.sh` to `/usr/local/bin/`)* |
+
+**Deployed and live-verified 2026-09-02 (merged from a worktree
+branch, deploy + both operator actions completed by the operator;
+verified in this follow-up recovery pass):** `main`/HEAD confirmed at
+`1b757ff`, tree clean. Live `includes/VERSION` stamped to `1b757ff`,
+matching `HEAD`. `piratebox_status_helper.sh` confirmed byte-identical
+between the repo and the installed `/usr/local/bin/` copy. Live
+`/run/piratebox/status.json` confirmed the new `admin_auth.configured:
+true` field is present and correct (htpasswd file confirmed non-empty,
+44 bytes, by `ls -la` only - content never read). Live `/admin/` now
+correctly returns 401 (auth actively enforced, not the old always-
+locked-out empty-file state). `/utility/about/`'s Operational layer
+count correctly went from "2 of 9" (pre-checkpoint) to "3 of 9"
+working, reflecting `admin_panel` now classifying as `AVAILABLE` -
+without ever naming the capability on the public page. Outdoor & Field
+Reference live-verified: `/utility/outdoor/` returns 200 with all 8
+knots/hitches present; About page shows "Outdoor & Field Reference:
+INSTALLED (8)," computed live; live search index confirmed at 178
+entries. `tools/check_library_catalog.py` clean (8/8). Zero failed
+units. Full five-suite regression: 287/287.
+
