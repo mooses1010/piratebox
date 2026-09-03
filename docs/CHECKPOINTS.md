@@ -502,3 +502,71 @@ live. Zero failed units. Full five-suite regression: 287/287. Core
 services (nginx, php8.4-fpm, hostapd, dnsmasq) all active; homepage
 200.
 
+| OLED bring-up: I2C1 enabled, SSD1306 physically verified, `piratebox-oled.service` implemented and live | `c5d4e99` on `worktree-oled-i2c-bringup` (not yet merged to `main`) | *(no `~/piratebox-backups/` snapshot taken - this is a physical hardware bring-up in a live interactive session, not a content/code deploy through `piratebox_deploy.sh`. The four changed/new files were installed directly from the worktree via `sudo install` at the operator's hand, one command at a time: `/usr/local/bin/piratebox_oled_daemon.py` (new), `/usr/local/bin/piratebox_status_helper.sh` (updated), `/etc/systemd/system/piratebox-oled.service` (new), `/var/www/html/includes/capability_state.php` (updated) - followed by `daemon-reload` and `enable --now`. The git branch itself remains unmerged; `includes/VERSION` on the live site therefore still reflects the pre-OLED commit until the branch is eventually merged and deployed through the normal flow - a cosmetic tracking gap, not a functional one, called out explicitly rather than silently left)* |
+
+**Live-verified 2026-09-03, directly on this Pi (not a repo/live diff -
+files were installed by hand, per above):**
+- **I2C enablement:** `dtparam=i2c_arm=on` uncommented in `/boot/
+  firmware/config.txt` (backed up first as `config.txt.pre-i2c-bak`),
+  confirmed persistent across a real reboot. The `i2c-dev` kernel
+  module (missing initially - the config.txt line alone only brings up
+  the bus adapter, not the `/dev/i2c-*` nodes) loaded via `modprobe`
+  and persisted via `/etc/modules-load.d/i2c.conf`, no second reboot
+  needed for that half. `/dev/i2c-1` confirmed present, `crw-rw----
+  root:i2c`.
+- **Hardware verified, not assumed:** `i2cdetect -y 1` found the OLED
+  at `0x3C`, nothing else on the bus; bus 2 (internal, not physically
+  exposed) confirmed empty as a non-conflict sanity check. A real frame
+  (full-white flash, then a bordered test pattern) was written via
+  `luma.oled` and **visually confirmed by the operator** on the
+  physical screen before any daemon/service was built - an address
+  response alone was deliberately not treated as proof.
+- **Pre-existing abnormal episode investigated first, per instruction:**
+  immediately before this bring-up, the operator reconnected the OLED
+  wiring live (Pi powered on), then SSH became extremely slow and the
+  GPIO25 hold-to-shutdown did not trigger, ending in a hard power
+  cycle. On the next boot, before resuming I2C work: `piratebox-
+  button.service` came back up clean and healthy - no evidence of a
+  defect in it. No previous-boot journal was available to examine the
+  actual stall (`journalctl --list-boots` showed only the current boot
+  - `/var/log/journal` exists but was never actually initialized for
+  persistent storage on this system, a pre-existing gap, so the
+  volatile journal was lost on the hard power-cut). `vcgencmd
+  get_throttled` read `0x50005` on that fresh boot - **active
+  under-voltage and throttling, confirmed again by 4 separate kernel
+  "Undervoltage detected!" events in the first ~4 minutes of uptime** -
+  a real, currently-open power-supply-headroom issue, previously
+  flagged during the original GPIO25 bring-up
+  (`docs/CAPABILITY-REGISTRY.md`), now recurring seriously enough to
+  plausibly explain the stall (CPU throttling starving process
+  scheduling, not a software defect). Filesystem/systemd/dmesg
+  otherwise completely clean. **Explicitly not attributed to the OLED**
+  - the condition was present on this same boot before the OLED daemon
+  was even running, and the display's own current draw is a few mA.
+  Still unresolved on this power source as of this checkpoint.
+- **`piratebox-oled.service`:** installed, enabled, active. Journal
+  shows a single clean startup (`Started`, `OLED initialized
+  successfully`) with zero warnings or errors in the minutes following.
+  Runs as the existing `piratebox-gpio` account with
+  `SupplementaryGroups=i2c` (no `usermod` needed - granted at the
+  systemd-unit level, not the account's real `/etc/group` membership).
+- **Display content confirmed live and correct by direct operator
+  observation:** all four pages (Status/Time/Network/Health) cycling
+  correctly on the physical screen, matching
+  `docs/PHYSICAL-CONTROL-UX-DESIGN.md` §1's design.
+- **`status.json` confirmed carrying the new `hardware.
+  oled_service_active: true` field**, correctly separated from the
+  Core `services` object. **About page's live capability count moved
+  from 3/9 to 4/9 Operational capabilities available** - the expected,
+  and only, visible confirmation on the public page, which deliberately
+  never names individual capabilities.
+- **Nothing else disturbed:** `piratebox-button.service` (shutdown
+  button) confirmed active and unaffected throughout; `hostapd`/
+  `dnsmasq`/`nginx`/`php8.4-fpm` all confirmed active; heatsink fans are
+  purely hardware-wired (physical pins 4/6, no GPIO/software
+  involvement) and were never touched by any I2C configuration (I2C
+  only uses physical pins 1/3/5/14).
+- Full five-suite regression: 287/287 (run against the worktree before
+  live installation, `capability_state` suite specifically 55/55, no
+  assertion broke by the new `oled` classification logic).
+
