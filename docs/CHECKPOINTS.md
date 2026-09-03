@@ -475,3 +475,30 @@ units. Full five-suite regression: 287/287. Separately: `pdfinfo`/
 and working - the standing tooling blocker on first-aid/land-nav
 diagram extraction is closed.
 
+| Deep-library pass: 5 new documents (EPA water disinfection, FM 5-125 rigging, NIST SP811 SI units, NOAA severe weather, OSHA 3075 electrical), first-aid/land-nav/knot diagram extraction, Outdoor cross-link bugfix | `05c8d1b` | *(none taken under the usual `~/piratebox-backups/` naming - built across 5 commits on an isolated worktree branch; the operator fast-forward merged `worktree-deep-library-continue9` into `main` and ran the deploy directly)* |
+
+**Deployed and live-verified 2026-09-02:** `main`/HEAD confirmed at
+`05c8d1b`, tree clean. Live `includes/VERSION` stamped to
+`05c8d1be8b2b656299987ffd0505f9d169f9296d`, matching `HEAD` exactly.
+Repo/live byte identity confirmed on catalog.json, search-index.json,
+and all three changed page templates (firstaid/maps/outdoor index.php)
+via `diff -q` - all identical. Document Library catalog confirmed at
+17/17 (`tools/check_library_catalog.py` clean), retained-document
+footprint confirmed at 41MB on disk. All 5 newly retained documents
+(EPA Emergency Disinfection of Drinking Water, FM 5-125 Rigging
+Techniques, NIST SP811 SI Units Guide, NOAA Thunderstorms/Tornadoes/
+Lightning guide, OSHA 3075 Controlling Electrical Hazards) confirmed
+downloadable live (200, `application/pdf`) via the real nginx/php-fpm
+stack, not a dev server. Category-level Related Documents cross-links
+confirmed live: EPA + NOAA on Emergency, FM 5-125 on Outdoor, NIST +
+OSHA 3075 on Field Tools Units. New figures confirmed live: 5
+first-aid diagrams on `/utility/firstaid/`, 1 land-navigation terrain-
+features diagram on `/utility/maps/`, 6 knot-diagram blocks (5 unique
+images, one reused) on `/utility/outdoor/` - including the corrected
+FM 5-125 catalog cross-link (the earlier `#bowline`-fragment bug was
+fixed and re-verified live). Live search index at 187 entries. About
+page correctly shows "Document Library: INSTALLED (17)", computed
+live. Zero failed units. Full five-suite regression: 287/287. Core
+services (nginx, php8.4-fpm, hostapd, dnsmasq) all active; homepage
+200.
+
