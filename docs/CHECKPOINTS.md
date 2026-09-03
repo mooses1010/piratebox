@@ -664,3 +664,57 @@ Multilingual Foundation") for the full record. Merge/deploy and live
 re-verification recorded immediately below, in the same session this
 time.
 
+**Closing this out (2026-09-03, from round 7): round 6 WAS in fact
+fast-forward merged onto `main`** (`bf90905` -> `043ab8f`, both
+directly reachable from `main`, no separate merge commit needed) and
+deployed - `19a4e01` (the docs commit right above) is the current
+round-7 worktree's own fork point, confirming round 6's content is
+genuinely live. The promised merge/deploy follow-up note for round 6
+itself was simply never appended to this file at the time - the same
+gap pattern as round 5's, just one round later. Recorded now so this
+entry doesn't read as permanently unfinished, though the original
+post-merge live re-verification details from that session were not
+captured and aren't reconstructed here; round 7's own pre- and
+post-merge verification appears below.
+
+| Deep bookshelf pass, round 7 (Mechanical/Electronics/Materials reference pages + OLED personality mode + Utility hub i18n) | `0491710` on `worktree-round7` (not yet merged to `main`) | *(no `~/piratebox-backups/` snapshot - content/code pass, to be merged and deployed via the normal `piratebox_deploy.sh` workflow)* |
+
+**Pre-merge state, 2026-09-03:** built and fully tested on an isolated
+worktree branch across five commits (`038082b` Mechanical, `5ff1f7c`
+Electronics + Radio SWR/microwave, `d555be6` OLED personality mode,
+`d313835` Materials & Chemical Safety, `0491710` Utility hub i18n).
+Explicitly did NOT touch the undervoltage/power finding, RTC/time
+work, the AWUS036ACM migration, enclosure design, or add any new Field
+Tools/calculators - all correctly out of scope. Three new reference
+pages closing the round's most obvious gaps: `/utility/mechanical/`
+(8 entries, 2 figures from Basic Machines + 1 from Tools and Their
+Uses), `/utility/electronics/` (6 entries, 1 figure from NEETS Module
+7), `/utility/materials/` (6 entries; 2 new OSHA QuickCards downloaded
+- GHS Pictograms, SDS structure - alongside the pre-existing NIOSH
+Pocket Guide). Two new Radio guides (SWR/impedance matching, microwave/
+waveguide) grounded in already-retained NEETS Modules 10-11. A bounded
+OLED personality/idle layer added to `piratebox_oled_daemon.py` -
+gated by `personality_allowed()` on every tick, verified directly
+against this Pi's own live (still-open) undervoltage condition to
+confirm it correctly suppresses all frivolous behavior under a real
+degraded state, not just a synthetic one; not yet installed on the
+running Pi (requires the operator's own `sudo install` step). Utility
+hub page (`/utility/`) gained a full Spanish translation layer (~40
+new i18n keys) on top of round 6's foundation - all four locale-
+selection paths re-verified against the live page. One document
+researched and DEFERRED rather than force-added: the DOT/PHMSA
+Emergency Response Guidebook (2024), blocked by an Akamai bot wall on
+its primary host and an AWS WAF challenge on its ReliefWeb mirror -
+worth a future attempt via a different route, not repeatedly hammered
+this round. catalog.json validated, `tools/check_library_catalog.py`
+clean (40/40, was 38/38 at round start), search index rebuilt (232
+entries, was 224), full five-suite regression 287/287 throughout
+(unaffected by any of this round's changes - confirmed after each
+commit, not just once at the end). All three new pages, all four new/
+changed PDFs, and the i18n-translated hub page smoke-tested via
+`php -S` (all 200, Related Documents cross-links render, both locales
+render correctly). Library footprint: 40 documents, ~281 MB (was 38
+documents, ~281 MB - the two new OSHA QuickCards are small enough not
+to move the rounded total). Merge/deploy and live re-verification
+recorded immediately below, in the same session.
+
