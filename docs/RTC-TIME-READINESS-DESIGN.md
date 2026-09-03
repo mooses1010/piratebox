@@ -23,6 +23,119 @@ in this document's own findings needed correcting.
 
 ---
 
+## 0. Round 8 update (2026-09-03): the operator-observed wrong clock was a config bug, not unreachability
+
+**The operator reported the displayed clock being noticeably off.**
+Investigating that from scratch (not assuming §1/§2 below still holds)
+found something this document's original Stage 28 audit did not
+anticipate: **`eth0` (the management/wired interface) currently has a
+real, working Internet path** - `ip route` shows a default route via
+`192.168.1.1`, `/etc/resolv.conf` has working nameservers, and both
+DNS resolution (`getent hosts time.cloudflare.com` returns real
+addresses) and ICMP (`ping 1.1.1.1`, ~9-19ms RTT) succeed. §1/§2's
+"this Pi has no confirmed onward Internet uplink... NTP cannot ever
+actually sync in the field" was a correct description of this Pi's
+situation *at Stage 28's time*, but is no longer the operative fact -
+whether that's because the network topology changed since or because
+it was never actually tested end-to-end at Stage 28 wasn't
+determined, and doesn't change what to do next.
+
+**Root cause of the sync failure, found and confirmed:**
+`/etc/systemd/timesyncd.conf`'s `[Time]` section reads
+`NTP=time.cloudflare.comtime.cloudflare.com` - the string
+`time.cloudflare.com` appears twice with no space or separator between
+the copies, producing one malformed hostname instead of one valid one.
+`getent hosts time.cloudflare.comtime.cloudflare.com` fails to resolve
+(confirmed live, exit code 2) - `systemd-timesyncd` has been trying to
+sync against a domain that doesn't exist. `systemctl status
+systemd-timesyncd` confirms the service itself is `active` and
+otherwise healthy (no crash, no permission error) - `timedatectl`'s
+`System clock synchronized: no` is entirely explained by this one
+malformed line, not a deeper problem. The `#FallbackNTP=` line just
+below it has the identical corruption pattern (`time.cloudflare.
+com0.debian.pool.ntp.org...`, missing a separator) but is commented
+out, so it currently has no effect either way.
+
+There is no drop-in override - `systemd-analyze cat-config systemd/
+timesyncd.conf` confirms `/etc/systemd/timesyncd.conf` plus one
+harmless RPi-packaged `SaveIntervalSec=5m` drop-in is the complete,
+actually-effective configuration, so fixing the one file fixes the
+real behavior.
+
+**This is a standard-OS-mechanism, zero-network-risk fix** - it only
+changes what hostname `systemd-timesyncd` queries over the existing,
+already-configured `eth0` management interface; it does not touch
+`hostapd`, `dnsmasq`, `wlan0`, or anything the visitor-facing AP
+depends on. But it requires editing a system config file and
+restarting a systemd unit, which is outside this project's two narrow
+`NOPASSWD` sudoers grants (`piratebox_deploy.sh` and
+`set_piratebox_mode.sh` only - see `CLAUDE.md` §2) - **a genuine
+operator gate, not something this session can complete itself.**
+
+**Recommended fix, for the operator to run:**
+```
+sudo sed -i 's/^NTP=.*/NTP=time.cloudflare.com/' /etc/systemd/timesyncd.conf
+sudo systemctl restart systemd-timesyncd
+timedatectl status   # expect "System clock synchronized: yes" within
+                      # a few seconds to ~1 minute, given eth0's
+                      # confirmed live path to time.cloudflare.com
+```
+Optional cosmetic cleanup of the same corruption in the inactive
+`#FallbackNTP=` line (harmless to fix or leave, since it's commented
+out either way):
+```
+sudo sed -i 's/^#FallbackNTP=.*/FallbackNTP=0.debian.pool.ntp.org 1.debian.pool.ntp.org 2.debian.pool.ntp.org 3.debian.pool.ntp.org/' /etc/systemd/timesyncd.conf
+```
+
+**No PirateBox code needs to change for this fix to take effect.**
+`piratebox_status_helper.sh` already reads `timedatectl`'s live
+synchronized flag into `/run/piratebox/status.json`'s `time_source.
+ntp_synchronized` field (confirmed live: currently `false`, correctly
+and honestly reflecting the current broken state - not a bug in the
+reporting), `includes/fieldtools_time.php`'s
+`piratebox_get_time_source_status()` already surfaces that field
+as-is, and `piratebox_oled_daemon.py`'s Time page already renders
+`"{rtc}, {ntp}"` from the same field. Once the operator's fix lands,
+all three will correctly start reporting `NTP-synced` whenever `eth0`
+has connectivity, and correctly fall back to `not synced` the moment
+it doesn't (e.g. the Pi taken off the LAN into the field) - that
+graceful, honest fallback already works today (it's exactly what
+"`System clock synchronized: no`" is doing right now), so nothing
+about the "untrusted/no RTC" state's behavior needed fixing, only the
+config bug that was keeping this Pi stuck in it unnecessarily while
+plugged into a network that could have corrected it.
+
+**Restating this project's three conceptual time-confidence states in
+light of that** (unchanged in shape from what this project has always
+intended - see `docs/FIELD-TOOLS-DESIGN.md` §4 - just now achievable
+in the first state rather than permanently theoretical):
+
+1. **NTP synchronized** - achievable today, whenever `eth0` has a
+   working uplink, once the operator applies the fix above. Not
+   presented as available until it actually reports true.
+2. **RTC-backed but not presently NTP-synchronized** - **not currently
+   exposed anywhere as an available state, correctly**, since no
+   hardware RTC exists (`/sys/class/rtc/` empty, confirmed again this
+   session) and none of `rtc_detected`, `piratebox_status_helper.sh`,
+   or the OLED/Field Tools consumers claim otherwise. This stays
+   accurate/inert until a DS3231 (or similar) is actually installed -
+   see §3's still-current hardware option, unattempted this round per
+   "do not install RTC hardware" being explicitly out of scope for
+   round 8.
+3. **Untrusted / no RTC** - this Pi's actual, honestly-reported state
+   right now, and its correct fallback state the moment `eth0` is
+   disconnected even after the NTP fix - not a defect, the intended
+   honest-degradation behavior this whole document's design already
+   called for.
+
+**Explicitly not done this round, per instruction:** no `fake-hwclock`
+install (would only paper over a gap that a real, reachable NTP source
+can close outright - see §3's original reasoning, which favored
+`fake-hwclock` specifically for a Pi with *no* uplink; that premise no
+longer holds here), no hardcoded time, no RTC hardware purchase/wiring,
+no change to how Emergency Mode or offline operation behaves offline
+(a disconnected Pi still degrades to state 3 exactly as before).
+
 ## 1. Current state (verified live, this session)
 
 | Check | Result |
