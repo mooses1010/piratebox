@@ -1163,5 +1163,84 @@
         "label": "Materials & Chemical Safety Reference"
       }
     ]
+  },
+  {
+    "id": "nih-compatible-chemical-storage",
+    "title": "Fact Sheet on Compatible Chemical Storage (NIH)",
+    "category": "materials-chemistry",
+    "description": "A concise lettered Chemical Storage Group scheme (compatible organic/inorganic acids and bases, oxidizers, pyrophorics, etc.) for keeping incompatible chemicals safely separated, plus secondary-containment sizing guidance. Fills a real gap the round-7/8 Materials & Chemical Safety page could only describe in general terms without a dedicated compatibility-grouping source.",
+    "tags": [
+      "chemical storage",
+      "chemical compatibility",
+      "storage groups",
+      "secondary containment",
+      "lab safety",
+      "nih"
+    ],
+    "file": "nih-compatible-chemical-storage.pdf",
+    "file_type": "pdf",
+    "file_size": "259 KB",
+    "source": "National Institutes of Health (NIH), Office of Research Services, Division of Safety",
+    "date_version": "Reviewed 2025",
+    "provenance_notes": "Source: https://ors.od.nih.gov/sr/dohs/Documents/fact-sheet-on-compatible-chemical-storage.pdf - retrieved 2026-09-03. Authored by NIH's own Division of Safety in the course of official duties - work of the US federal government, public domain under 17 U.S.C. Sec. 105 (same standard applied to every other retained federal document in this library). No copyright notice or third-party content found in the document.",
+    "related_pages": [
+      {
+        "url": "/utility/materials/",
+        "label": "Materials & Chemical Safety Reference"
+      }
+    ]
+  },
+  {
+    "id": "nih-chemical-segregation-storage",
+    "title": "Chemical Segregation and Storage (NIH)",
+    "category": "materials-chemistry",
+    "description": "A practical overview of the three fundamentals of safe chemical storage - maintaining an inventory, identifying hazards via labels/SDS, and understanding compatibility - plus a storage-area inspection checklist (container integrity, signs of chemical degradation, improper storage). Complements the shorter Compatible Chemical Storage fact sheet above with the reasoning behind it.",
+    "tags": [
+      "chemical storage",
+      "chemical segregation",
+      "sds",
+      "ghs",
+      "lab safety",
+      "nih"
+    ],
+    "file": "nih-chemical-segregation-storage.pdf",
+    "file_type": "pdf",
+    "file_size": "666 KB",
+    "source": "National Institutes of Health (NIH), Office of Research Services, Division of Safety",
+    "date_version": "Reviewed 2026",
+    "provenance_notes": "Source: https://ors.od.nih.gov/sr/dohs/Documents/chemical-segregation-and-storage.pdf - retrieved 2026-09-03. Authored by NIH's own Division of Safety in the course of official duties - work of the US federal government, public domain under 17 U.S.C. Sec. 105. No copyright notice or third-party content found in the document.",
+    "related_pages": [
+      {
+        "url": "/utility/materials/",
+        "label": "Materials & Chemical Safety Reference"
+      }
+    ]
+  },
+  {
+    "id": "cdc-water-safety-emergency",
+    "title": "Making Water Safe in an Emergency (CDC)",
+    "category": "emergency-firstaid",
+    "description": "Practical emergency water-treatment guidance: boiling (including altitude adjustment), chemical disinfection with exact bleach/iodine/chlorine-dioxide dosing, portable filtration pore-size guidance, and clear warnings about what boiling/disinfection cannot fix (fuel, toxic chemicals, radioactive contamination). Directly useful, globally-applicable field knowledge - opens water/sanitation coverage in this library.",
+    "tags": [
+      "water safety",
+      "water treatment",
+      "boiling water",
+      "disinfection",
+      "emergency preparedness",
+      "sanitation",
+      "cdc"
+    ],
+    "file": "cdc-water-safety-emergency-ihs-mirror.pdf",
+    "file_type": "pdf",
+    "file_size": "1.1 MB",
+    "source": "Centers for Disease Control and Prevention (CDC), Water, Sanitation, & Hygiene (WASH)-related Emergencies & Outbreaks program",
+    "date_version": "Retrieved 2026-09-03; underlying CDC guidance undated/rolling",
+    "provenance_notes": "Original source: https://www.cdc.gov/water-emergency/about/index.html (CDC's own site returns HTTP 403 to automated/non-browser requests - an Akamai bot-wall, the same pattern already documented for the DOT/PHMSA Emergency Response Guidebook deferral). This exact copy was retrieved from a mirror hosted by the Indian Health Service (IHS, also a US federal HHS agency) at https://www.ihs.gov/california/tasks/sites/default/assets/File/DEHS%20Portal/Making%20Water%20Safe%20in%20an%20Emergency%20_%20Water,%20Sanitation,%20%26%20Hygiene-related%20Emergencies%20%26%20and%20Outbreaks%20_%20Healthy%20Water%20_%20CDC.pdf - a browser-printed capture of the same public CDC webpage (PDF metadata shows a Chrome/Skia print-to-PDF producer), not an official CDC-issued PDF file. Content verified complete and faithful via pdftotext (6 pages, no missing sections, no third-party content overlaid) before retaining. The underlying content is unambiguously a work of the US federal government (CDC) regardless of capture method - public domain under 17 U.S.C. Sec. 105.",
+    "related_pages": [
+      {
+        "url": "/utility/emergency/",
+        "label": "Emergency / Outage Reference"
+      }
+    ]
   }
 ]

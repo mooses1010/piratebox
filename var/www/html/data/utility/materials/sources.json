@@ -23,6 +23,18 @@
         "retrieved": "2026-09-03",
         "note": "Cross-referenced for the general labeling/lockout-tagout safe-handling discipline it shares with chemical safe-handling practice."
     },
+    "nih-compatible-chemical-storage": {
+        "name": "Fact Sheet on Compatible Chemical Storage (NIH)",
+        "url": "/utility/library/#nih-compatible-chemical-storage",
+        "retrieved": "2026-09-03",
+        "note": "Basis for the chemical storage group scheme below - a real compatibility-grouping source this page lacked before round 9."
+    },
+    "nih-chemical-segregation-storage": {
+        "name": "Chemical Segregation and Storage (NIH)",
+        "url": "/utility/library/#nih-chemical-segregation-storage",
+        "retrieved": "2026-09-03",
+        "note": "Basis for the storage-area inspection/degradation-signs guidance below."
+    },
     "general-materials-reference": {
         "name": "General engineering/materials-science reference",
         "url": "",

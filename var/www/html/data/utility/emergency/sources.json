@@ -187,5 +187,12 @@
     "url": null,
     "retrieved": "2026-09-01",
     "note": "Practical synthesis (e.g. phone/battery conservation, PirateBox-specific communications guidance) not tied to one specific regulatory/agency citation - common-sense preparedness practice."
+  },
+  "cdc-water-safety-emergency": {
+    "name": "Making Water Safe in an Emergency (CDC)",
+    "publisher": "CDC, Water, Sanitation, & Hygiene (WASH)-related Emergencies & Outbreaks program",
+    "url": "/utility/library/#cdc-water-safety-emergency",
+    "retrieved": "2026-09-03",
+    "note": "Basis for the chemical-disinfection dosing and filtration guidance below - retrieved via an IHS mirror since cdc.gov blocks automated requests; see the catalog entry's own provenance_notes for the full detail."
   }
 }

@@ -1096,6 +1096,22 @@
     ]
   },
   {
+    "title": "Chemical Water Disinfection (Bleach, Iodine, Tablets)",
+    "section": "emergency",
+    "section_label": "Emergency / Outage Reference",
+    "url": "/utility/emergency/#water-disinfection-chemical",
+    "snippet": "When boiling isn't possible, unscented household bleach, iodine, or chlorine dioxide tablets can disinfect small quantities of water - with real limits.",
+    "keywords": [
+      "water disinfection",
+      "bleach water",
+      "iodine water",
+      "chlorine dioxide",
+      "water filtration",
+      "giardia",
+      "cryptosporidium"
+    ]
+  },
+  {
     "title": "Get Professional Help - Check, Call, Care",
     "section": "firstaid",
     "section_label": "First Aid Reference",
@@ -1707,6 +1723,20 @@
       "lockout tagout",
       "ventilation",
       "labeling discipline"
+    ]
+  },
+  {
+    "title": "Chemical Storage Groups: Keeping Incompatibles Apart",
+    "section": "materials",
+    "section_label": "Materials & Chemical Safety Reference",
+    "url": "/utility/materials/#chemical-storage-groups",
+    "snippet": "A lettered scheme (compatible organic/inorganic acids, bases, oxidizers, pyrophorics, and more) for grouping chemicals so incompatible ones never share a shelf, plus what to look for when inspecting a storage area.",
+    "keywords": [
+      "chemical storage",
+      "storage groups",
+      "secondary containment",
+      "chemical segregation",
+      "incompatible chemicals"
     ]
   },
   {
@@ -3460,6 +3490,91 @@
       "Department",
       "of",
       "Labor"
+    ]
+  },
+  {
+    "title": "Fact Sheet on Compatible Chemical Storage (NIH)",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/#nih-compatible-chemical-storage",
+    "snippet": "A concise lettered Chemical Storage Group scheme (compatible organic/inorganic acids and bases, oxidizers, pyrophorics, etc.) for keeping incompatible chemicals safely separated, plus secondary-containment sizing guidance. Fills a real gap the round-7/8 Materials & Chemical Safety page could only describe in general terms without a dedicated compatibility-grouping source.",
+    "keywords": [
+      "chemical storage",
+      "chemical compatibility",
+      "storage groups",
+      "secondary containment",
+      "lab safety",
+      "nih",
+      "National",
+      "Institutes",
+      "of",
+      "Health",
+      "NIH",
+      "Office",
+      "of",
+      "Research",
+      "Services",
+      "Division",
+      "of",
+      "Safety"
+    ]
+  },
+  {
+    "title": "Chemical Segregation and Storage (NIH)",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/#nih-chemical-segregation-storage",
+    "snippet": "A practical overview of the three fundamentals of safe chemical storage - maintaining an inventory, identifying hazards via labels/SDS, and understanding compatibility - plus a storage-area inspection checklist (container integrity, signs of chemical degradation, improper storage). Complements the shorter Compatible Chemical Storage fact sheet above with the reasoning behind it.",
+    "keywords": [
+      "chemical storage",
+      "chemical segregation",
+      "sds",
+      "ghs",
+      "lab safety",
+      "nih",
+      "National",
+      "Institutes",
+      "of",
+      "Health",
+      "NIH",
+      "Office",
+      "of",
+      "Research",
+      "Services",
+      "Division",
+      "of",
+      "Safety"
+    ]
+  },
+  {
+    "title": "Making Water Safe in an Emergency (CDC)",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/#cdc-water-safety-emergency",
+    "snippet": "Practical emergency water-treatment guidance: boiling (including altitude adjustment), chemical disinfection with exact bleach/iodine/chlorine-dioxide dosing, portable filtration pore-size guidance, and clear warnings about what boiling/disinfection cannot fix (fuel, toxic chemicals, radioactive contamination). Directly useful, globally-applicable field knowledge - opens water/sanitation coverage in this library.",
+    "keywords": [
+      "water safety",
+      "water treatment",
+      "boiling water",
+      "disinfection",
+      "emergency preparedness",
+      "sanitation",
+      "cdc",
+      "Centers",
+      "for",
+      "Disease",
+      "Control",
+      "and",
+      "Prevention",
+      "CDC",
+      "Water",
+      "Sanitation",
+      "Hygiene",
+      "WASH",
+      "related",
+      "Emergencies",
+      "Outbreaks",
+      "program"
     ]
   },
   {

@@ -35,19 +35,71 @@
     ],
     "table_caption": "Beaufort scale (international standard, not US-specific)",
     "table": [
-      {"force": "0 - Calm", "speed": "<1 mph / <1 kt", "observed_on_land": "Smoke rises vertically; calm"},
-      {"force": "1 - Light air", "speed": "1-3 mph / 1-3 kt", "observed_on_land": "Smoke drift shows wind direction; vanes still"},
-      {"force": "2 - Light breeze", "speed": "4-7 mph / 4-6 kt", "observed_on_land": "Wind felt on face; leaves rustle"},
-      {"force": "3 - Gentle breeze", "speed": "8-12 mph / 7-10 kt", "observed_on_land": "Leaves and small twigs in constant motion; light flags extend"},
-      {"force": "4 - Moderate breeze", "speed": "13-18 mph / 11-16 kt", "observed_on_land": "Dust and loose paper lift; small branches move"},
-      {"force": "5 - Fresh breeze", "speed": "19-24 mph / 17-21 kt", "observed_on_land": "Small trees in leaf begin to sway"},
-      {"force": "6 - Strong breeze", "speed": "25-31 mph / 22-27 kt", "observed_on_land": "Large branches move; wind whistles in wires"},
-      {"force": "7 - Near gale", "speed": "32-38 mph / 28-33 kt", "observed_on_land": "Whole trees in motion; walking against wind is hard"},
-      {"force": "8 - Gale", "speed": "39-46 mph / 34-40 kt", "observed_on_land": "Twigs break off trees; walking is difficult"},
-      {"force": "9 - Strong gale", "speed": "47-54 mph / 41-47 kt", "observed_on_land": "Structural damage to roofing/signs becomes possible"},
-      {"force": "10 - Storm", "speed": "55-63 mph / 48-55 kt", "observed_on_land": "Trees uprooted; considerable structural damage"},
-      {"force": "11 - Violent storm", "speed": "64-72 mph / 56-63 kt", "observed_on_land": "Widespread damage (rare inland)"},
-      {"force": "12 - Hurricane force", "speed": "73+ mph / 64+ kt", "observed_on_land": "Severe/extensive damage"}
+      {
+        "force": "0 - Calm",
+        "speed": "<1 mph / <1 kt",
+        "observed_on_land": "Smoke rises vertically; calm"
+      },
+      {
+        "force": "1 - Light air",
+        "speed": "1-3 mph / 1-3 kt",
+        "observed_on_land": "Smoke drift shows wind direction; vanes still"
+      },
+      {
+        "force": "2 - Light breeze",
+        "speed": "4-7 mph / 4-6 kt",
+        "observed_on_land": "Wind felt on face; leaves rustle"
+      },
+      {
+        "force": "3 - Gentle breeze",
+        "speed": "8-12 mph / 7-10 kt",
+        "observed_on_land": "Leaves and small twigs in constant motion; light flags extend"
+      },
+      {
+        "force": "4 - Moderate breeze",
+        "speed": "13-18 mph / 11-16 kt",
+        "observed_on_land": "Dust and loose paper lift; small branches move"
+      },
+      {
+        "force": "5 - Fresh breeze",
+        "speed": "19-24 mph / 17-21 kt",
+        "observed_on_land": "Small trees in leaf begin to sway"
+      },
+      {
+        "force": "6 - Strong breeze",
+        "speed": "25-31 mph / 22-27 kt",
+        "observed_on_land": "Large branches move; wind whistles in wires"
+      },
+      {
+        "force": "7 - Near gale",
+        "speed": "32-38 mph / 28-33 kt",
+        "observed_on_land": "Whole trees in motion; walking against wind is hard"
+      },
+      {
+        "force": "8 - Gale",
+        "speed": "39-46 mph / 34-40 kt",
+        "observed_on_land": "Twigs break off trees; walking is difficult"
+      },
+      {
+        "force": "9 - Strong gale",
+        "speed": "47-54 mph / 41-47 kt",
+        "observed_on_land": "Structural damage to roofing/signs becomes possible"
+      },
+      {
+        "force": "10 - Storm",
+        "speed": "55-63 mph / 48-55 kt",
+        "observed_on_land": "Trees uprooted; considerable structural damage"
+      },
+      {
+        "force": "11 - Violent storm",
+        "speed": "64-72 mph / 56-63 kt",
+        "observed_on_land": "Widespread damage (rare inland)"
+      },
+      {
+        "force": "12 - Hurricane force",
+        "speed": "73+ mph / 64+ kt",
+        "observed_on_land": "Severe/extensive damage"
+      }
     ],
     "more_info": "Developed by Francis Beaufort in 1805 and adopted internationally by the World Meteorological Organization - this is a global standard, not a US-specific scale, even though the specific table above is NOAA's own published presentation of it. Useful whenever an anemometer isn't available: matching what you actually see to a Force number gives a genuine, communicable wind-speed estimate.",
     "keywords": [
@@ -168,7 +220,7 @@
     "summary": "Recognize heat exhaustion vs. heat stroke - heat stroke is a 911 emergency.",
     "quick_actions": [
       "Heat exhaustion: heavy sweating, cold/pale/clammy skin, dizziness, nausea - move to cool space, sip water, loosen clothing.",
-      "Heat stroke: hot/red/dry skin, confusion, body temp above 103°F - call 911 immediately, cool the person by any means while waiting.",
+      "Heat stroke: hot/red/dry skin, confusion, body temp above 103\u00b0F - call 911 immediately, cool the person by any means while waiting.",
       "If AC is out, find a library, mall, or official cooling center.",
       "Check on elderly neighbors and anyone without AC - they're at highest risk."
     ],
@@ -192,7 +244,7 @@
     "summary": "Hypothermia and frostbite both need warmth first - know the signs.",
     "quick_actions": [
       "Frostbite: numbness, white/grayish-yellow, firm/waxy skin - rewarm gradually in warm (not hot) water, don't rub.",
-      "Hypothermia (temp below 95°F is an emergency): shivering, confusion, slurred speech - warm the chest/neck/head/groin first, keep dry.",
+      "Hypothermia (temp below 95\u00b0F is an emergency): shivering, confusion, slurred speech - warm the chest/neck/head/groin first, keep dry.",
       "Never use a gas stove/oven to heat a room - carbon monoxide risk (see Carbon Monoxide topic).",
       "Limit time outdoors; dress in layers; keep a battery-powered CO detector working."
     ],
@@ -352,7 +404,7 @@
     "summary": "When in doubt, throw it out.",
     "quick_actions": [
       "A closed fridge keeps food cold ~4 hours; a full freezer ~48 hours (24 hours if half-full).",
-      "Discard perishable food held above 40°F for 2+ hours, or anything with an unusual smell, color, or texture.",
+      "Discard perishable food held above 40\u00b0F for 2+ hours, or anything with an unusual smell, color, or texture.",
       "Keep an appliance thermometer in the fridge/freezer to know the actual temperature if the outage is long.",
       "When power returns, check temperatures before deciding what's safe to keep."
     ],
@@ -568,17 +620,50 @@
     ],
     "table_caption": "Representative primary emergency numbers by country/region (not exhaustive)",
     "table": [
-      {"country_region": "United States, Canada, Mexico", "number": "911"},
-      {"country_region": "European Union (all member states)", "number": "112"},
-      {"country_region": "United Kingdom", "number": "999 (or 112)"},
-      {"country_region": "Australia", "number": "000"},
-      {"country_region": "New Zealand", "number": "111 (or 112)"},
-      {"country_region": "Japan", "number": "110 police / 119 fire &amp; ambulance"},
-      {"country_region": "China", "number": "110 police / 119 fire / 120 ambulance"},
-      {"country_region": "India", "number": "112"},
-      {"country_region": "Russia", "number": "112 (or 102)"},
-      {"country_region": "Brazil", "number": "190 police / 192 ambulance / 193 fire"},
-      {"country_region": "South Africa", "number": "10111 (or 112 from a mobile)"}
+      {
+        "country_region": "United States, Canada, Mexico",
+        "number": "911"
+      },
+      {
+        "country_region": "European Union (all member states)",
+        "number": "112"
+      },
+      {
+        "country_region": "United Kingdom",
+        "number": "999 (or 112)"
+      },
+      {
+        "country_region": "Australia",
+        "number": "000"
+      },
+      {
+        "country_region": "New Zealand",
+        "number": "111 (or 112)"
+      },
+      {
+        "country_region": "Japan",
+        "number": "110 police / 119 fire &amp; ambulance"
+      },
+      {
+        "country_region": "China",
+        "number": "110 police / 119 fire / 120 ambulance"
+      },
+      {
+        "country_region": "India",
+        "number": "112"
+      },
+      {
+        "country_region": "Russia",
+        "number": "112 (or 102)"
+      },
+      {
+        "country_region": "Brazil",
+        "number": "190 police / 192 ambulance / 193 fire"
+      },
+      {
+        "country_region": "South Africa",
+        "number": "10111 (or 112 from a mobile)"
+      }
     ],
     "more_info": "This is a curated set of major/representative countries, not a complete list - always confirm the actual local number for wherever you are (a hotel, airport, or embassy can usually tell you immediately). The Local Information section of this PirateBox may also have this box's own local emergency numbers configured, if the operator has set that up.",
     "keywords": [
@@ -616,6 +701,33 @@
       "nps"
     ],
     "source_id": "nps-ten-essentials",
+    "secondary_source_id": null,
+    "confidence": "high",
+    "source_note": null
+  },
+  {
+    "id": "water-disinfection-chemical",
+    "category": "essentials",
+    "title": "Chemical Water Disinfection (Bleach, Iodine, Tablets)",
+    "summary": "When boiling isn't possible, unscented household bleach, iodine, or chlorine dioxide tablets can disinfect small quantities of water - with real limits.",
+    "quick_actions": [
+      "Plain, unscented household chlorine bleach (5-9% sodium hypochlorite, no added scents/dyes/cleaners) works: about 8 drops (roughly 1/8 teaspoon) per gallon of clear water, stirred and left to stand 30 minutes before use.",
+      "If the water is cloudy, filter it first through a clean cloth, paper towel, or coffee filter, or let it settle and draw off the clear water - cloudy water needs more disinfectant and is harder to treat reliably.",
+      "Chlorine dioxide tablets and iodine are alternatives, each with their own dosing on the product label - follow the product's own instructions rather than guessing a dose.",
+      "Chemical disinfection is weaker than boiling against the parasites Cryptosporidium and Giardia - boiling remains the more reliable method whenever it's possible.",
+      "None of this makes water safe if it is contaminated with fuel, other toxic chemicals, or radioactive material - use a different water source instead, and contact the local health department for guidance."
+    ],
+    "more_info": "A portable filter rated for very small pore sizes (look for \"absolute pore size of 1 micron or smaller\" on the label) can also remove many pathogens, though not viruses - combining filtration with a chemical disinfectant step covers more ground than either alone.",
+    "keywords": [
+      "water disinfection",
+      "bleach water",
+      "iodine water",
+      "chlorine dioxide",
+      "water filtration",
+      "giardia",
+      "cryptosporidium"
+    ],
+    "source_id": "cdc-water-safety-emergency",
     "secondary_source_id": null,
     "confidence": "high",
     "source_note": null
