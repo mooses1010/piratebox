@@ -75,6 +75,12 @@
       "In a vehicle: don't try to outrun a tornado - get low, buckle in, cover your head."
     ],
     "more_info": "A basement or an ICC-500/FEMA-criteria safe room is best. If no shelter is available, avoid vehicles and mobile homes, which offer little protection.",
+    "diagram": {
+      "image": "noaa-p6-tornado-fiction-fact.png",
+      "alt": "NOAA table titled Tornado Fiction and Fact, correcting common myths about lakes/rivers/mountains, buildings exploding, opening windows, highway overpasses, and mobile home bathrooms, alongside weather radar images showing a hook echo and tornado detection",
+      "caption": "Tornado Fiction and Fact.",
+      "source_line": "Source: NOAA/NWS, <em>Thunderstorms, Tornadoes, Lightning... A Preparedness Guide</em>, p. 6 (public domain)"
+    },
     "keywords": [
       "tornado",
       "twister",

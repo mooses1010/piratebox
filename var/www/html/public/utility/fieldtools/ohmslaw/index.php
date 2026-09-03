@@ -17,6 +17,14 @@ session_start();
 // written to any PirateBox data file.
 
 require_once __DIR__ . '/../../../../includes/ohms_law.php';
+require_once __DIR__ . '/../../../../includes/library_links.php';
+
+// Cross-link to the Document Library - metadata-driven, see includes/
+// library_links.php. Two catalog entries (OSHA electrical-safety
+// QuickCard and OSHA 3075) already named this page in their own
+// related_pages, but this page never called the render function -
+// found and fixed during the round-4 category-page audit.
+$libraryLinksHtml = piratebox_render_library_links_html(piratebox_get_library_entries_for_page('/utility/fieldtools/ohmslaw/'));
 
 $v = $_POST['voltage'] ?? '';
 $i = $_POST['current'] ?? '';
@@ -57,6 +65,8 @@ function ohms_fmt(float $n): string
         <div class="help-note">
             <p><strong>DC resistive-circuit arithmetic only, not a substitute for the National Electrical Code or a qualified electrician.</strong> This does not account for AC reactance/impedance, and does not cover live-mains work - see Field Tools Units' own Electrical Quick Reference caveat for that boundary.</p>
         </div>
+
+        <?= $libraryLinksHtml ?>
 
         <form method="post" action="" id="ohms-form">
             <div class="fieldtools-tool" id="ft-ohms-tool">

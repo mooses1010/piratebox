@@ -764,6 +764,73 @@ about/` reads "Document Library: INSTALLED (23)".
 still a small fraction of the 128GB card; still curated per-item, not
 bulk-acquired.
 
+### 3k. Exploit-the-PDFs pass 2, and a category-page audit (2026-09-02)
+
+Continuation of the same round: inspected the newly-retained NOAA
+weather guide and NASA fastener manual for high-value figures, and
+re-confirmed the knot-diagram gap; then audited every subject page's
+Document Library wiring, since the library has grown enough (12 to 23
+documents this session) that a wiring gap would now be easy to miss.
+
+**Weather visual added:** NOAA's "Tornado Fiction and Fact" table
+(p.6 of the newly-retained preparedness guide) - myth-busting content
+(lakes/mountains don't protect you, buildings don't "explode," don't
+open windows, highway overpasses are dangerous, mobile home bathrooms
+aren't safe) that materially adds to the existing tornado entry's
+core actions rather than repeating them. Added via a new `diagram`
+field on the `tornado` topic in `data/utility/emergency/topics.json`
+and generic rendering support in `emergency/index.php`, reusing the
+same `.doc-figure` pattern from Outdoor/Maps/Firstaid.
+
+**Mechanical visual - investigated, deliberately NOT extracted:**
+inspected the NASA Fastener Design Manual for a diagram/table to pair
+with the new Mechanical & Basic Repair category. Found the single
+most obviously useful candidate - Table V, Bolt Torque - carries its
+own footnote: "Reprinted from Machine Design, Nov. 19, 1987. Copyright
+1987 by Penton Publishing, Inc." The adjacent Tables VI-VIII are
+similarly credited "[From ref. 8]" / "[From ref. 15]" to other
+commercial sources. This is exactly the caveat NASA's own NTRS
+disclaimer page warns about ("U.S. government works may contain
+privately created, copyrighted works... used under license") -
+found by actually reading the page rather than assuming a NASA
+report's content is uniformly NASA's own. The full PDF remains
+retained/downloadable (NASA's own NTRS distributes the identical
+complete file), but no individual page from it was re-published as a
+standalone image this round - the risk of embedded third-party
+content in this specific document wasn't fully ruled out for the
+earlier figures either (locknut/washer diagrams carry manufacturer-
+name footnotes of unclear copyright significance), so none were used.
+**A genuinely useful, safely-verified mechanical diagram remains a
+NOT YET ATTEMPTED gap.**
+
+**Knot gap re-confirmed, not resolved:** searched FM 5-125's full
+text again (now that the whole manual is retained, not just excerpts)
+for Taut-Line Hitch or Trucker's Hitch equivalents - neither appears
+anywhere in the manual (confirmed via full-text search, not
+assumption). The manual's "Rolling Hitch" serves a similar adjustable-
+hitch purpose but is a different knot with different geometry from a
+Taut-Line Hitch - substituting it would misrepresent the existing
+text entry and was correctly not done. **Gap stays honest and open.**
+
+**Category-page audit:** checked every subject page (Emergency,
+Firstaid, Maps, Outdoor, Radio, Computing, and all seven Field Tools
+subpages) for whether it actually calls `piratebox_get_library_
+entries_for_page()` for its own URL. Found one real, previously-
+invisible gap: **`/utility/fieldtools/ohmslaw/` had zero Document
+Library wiring**, despite two catalog entries (both OSHA electrical
+documents) already naming it in their own `related_pages` - the
+cross-link was silently rendering nothing. Fixed by wiring in the
+same function every other page uses; the other Field Tools subpages
+(checksum, subnet, morse, wavelength) checked clean - no catalog
+entry currently names them, so their lack of wiring isn't yet a bug.
+
+Verification: catalog.json/topics.json validate, tools/check_library_
+catalog.py clean (23/23, unchanged - no new documents this pass),
+search index rebuilt (193 entries, unchanged), php -l clean on both
+changed pages, full five-suite regression still 287/287, both changes
+smoke-tested via php -S (tornado figure renders + image 200 on
+Emergency; both OSHA documents now render on Ohm's Law Solver, 200).
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |

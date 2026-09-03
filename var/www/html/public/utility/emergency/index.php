@@ -182,6 +182,14 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $secondaryId
                                     </div>
                                     <p class="radio-spectrum-caption">Standardized ICAO/FAA ground-to-air visual signal code, publicly documented and internationally recognized (not owned by any single organization) - build each symbol at least 8 feet across from any available material (rocks, logs, tarps, footprints in snow/sand) so it reads clearly from the air. PirateBox-authored diagram of this public standard.</p>
                                 <?php endif; ?>
+                                <?php if (!empty($t['diagram'])): ?>
+                                    <div class="doc-figure-gallery">
+                                        <figure class="doc-figure" style="max-width:480px;">
+                                            <img src="/utility/emergency/images/<?= rawurlencode($t['diagram']['image']) ?>" alt="<?= htmlspecialchars($t['diagram']['alt']) ?>" loading="lazy">
+                                            <figcaption><?= htmlspecialchars($t['diagram']['caption']) ?><span class="doc-figure-source"><?= $t['diagram']['source_line'] ?></span></figcaption>
+                                        </figure>
+                                    </div>
+                                <?php endif; ?>
                                 <?php if (!empty($t['more_info'])): ?>
                                     <p><?= htmlspecialchars($t['more_info']) ?></p>
                                 <?php endif; ?>
