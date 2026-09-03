@@ -136,7 +136,7 @@ error by itself, just a prompt to do the same file-level check.
 | Reference content organization (Universal/National/Regional/Local/Live), Reference Packs | `docs/REFERENCE-CONTENT-DESIGN.md` |
 | GPIO/hardware wiring, current pin status | `docs/HARDWARE-INTEGRATION-DESIGN.md` §2 (the one live wiring map) |
 | Physical buttons / toggle / OLED UX design | `docs/PHYSICAL-CONTROL-UX-DESIGN.md` |
-| Power / UPS / undervoltage design | `docs/POWER-UPS-DESIGN.md`; live reading: `/run/piratebox/status.json`, `vcgencmd get_throttled` |
+| Power / UPS / undervoltage design | **`docs/POWER-INTEGRITY-DIAGNOSIS.md`** - root-cause diagnosis of the current chronic `0x50005` condition (start here for "why is it undervolting"). `docs/POWER-UPS-DESIGN.md` - future UPS/battery requirements only, not diagnosis. Live reading: `/run/piratebox/status.json`, `vcgencmd get_throttled`. |
 | RTC / time readiness | `docs/RTC-TIME-READINESS-DESIGN.md` |
 | Field Tools (time/date, unit conversion, coordinates) | `docs/FIELD-TOOLS-DESIGN.md` |
 | Travel Mode | `docs/TRAVEL-MODE-DESIGN.md` |

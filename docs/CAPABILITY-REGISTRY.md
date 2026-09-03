@@ -422,11 +422,36 @@ it is.**
   `docs/HARDWARE-INTEGRATION-DESIGN.md` §12 for the full record. Still
   unresolved on this power source; still no UPS/power hardware decision
   made.
-- **Retention:** currently reports live/current state only, no
-  persisted undervoltage-event history. A future "undervoltage events
-  since last review" count (`docs/DEVICE-MEMORY-DESIGN.md` §3's
-  illustrative summary) would be Operational History (§4 there) - low
-  sensitivity, summary-class, not designed/built now.
+- **Root-cause diagnosis (2026-09-03, Power Integrity Diagnosis +
+  Undervoltage Root-Cause Round):** full investigation in
+  `docs/POWER-INTEGRITY-DIAGNOSIS.md` - independently reconfirmed the
+  bit semantics from this system's own `man vcgencmd` (bits 0/2 are
+  *current*-condition, not just sticky), found the condition is
+  chronic and *currently active* every time it's been checked across
+  weeks of project history, and found a real, previously-unrecorded
+  oscillation pattern (rapid detect/normalise flipping) during this
+  round's own boot. Evidence points toward the external supply/cable
+  path (downstream Pi-regulated rails stay nominal while the input-side
+  detector trips - the fingerprint of an upstream, not on-Pi, headroom
+  deficit) - not proven without a physical A/B supply swap, which
+  wasn't performed. **Confirmed the AWUS036ACM does not materially
+  worsen this** (identical `0x50005` before/after/throughout every ALFA
+  test on both bands). Investigated and could not confirm a fan-stall
+  root cause - physically plausible as a contributing transient, but
+  undervoltage demonstrably occurs with no fan interaction, ruling it
+  out as sole cause. This round is diagnosis only - nothing physical
+  was changed, and the AWUS036ACM production migration's power-aware
+  gate remains unmet.
+- **Retention:** live/current state (`status.json`) plus a real,
+  already-existing persisted counter - `var/www/html/data/
+  device-history.json`'s `undervoltage_daily` (daily-bucketed event
+  counts, e.g. 5 events recorded for the UTC-day spanning this round's
+  own checks). **Correction to this entry's own prior claim** ("no
+  persisted undervoltage-event history... not designed/built now") -
+  that was stale; this persistence already exists live, found during
+  this round's diagnosis. `boot_events` in the same file remains an
+  empty array - not currently populated from real boot transitions,
+  unfixed, noted for a future pass.
 
 ### UPS / battery hardware
 

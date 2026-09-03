@@ -6,6 +6,14 @@ implemented. This defines what future power hardware must satisfy, for
 the operator to evaluate candidate products against later - it does not
 pick one.
 
+**For the current wall-power path's chronic undervoltage condition
+(`0x50005`) - root-cause diagnosis, event timeline, failure-class
+ranking, and the fan-stall question - see
+`docs/POWER-INTEGRITY-DIAGNOSIS.md`.** That document is about *today's*
+actual supply; this one is about *future* UPS/battery requirements. A
+future UPS sits downstream of whatever supply issue that document
+finds - it doesn't substitute for resolving one.
+
 ## 1. The two operating scenarios this hardware must support
 
 **At home (stationary):**

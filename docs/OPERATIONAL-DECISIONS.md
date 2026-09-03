@@ -6,6 +6,87 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Power Integrity Diagnosis + Undervoltage Root-Cause Round
+
+**Decision date:** 2026-09-03, immediately following the Regulatory
+Domain Correction round (`fda4332`). Full evidence in the new
+`docs/POWER-INTEGRITY-DIAGNOSIS.md` - this entry is a summary/index.
+**Diagnosis only - nothing physical was changed.** No supply, cable,
+connector, fan, or GPIO wiring was touched.
+
+**Bit semantics, independently reconfirmed from this system's own `man
+vcgencmd`:** `0x50005` = bits 0, 2 (current under-voltage, current
+throttling), 16, 18 (the same, historically) all set. **This is an
+actively, currently under-volting condition at every check performed
+this round - not merely a sticky historical flag**, a distinction
+worth stating precisely since it's easy to misread as "just remembers
+an old event."
+
+**New finding this round - an oscillation pattern:** this boot's
+`dmesg` shows continuous under-voltage for its first ~19 minutes, then
+four rapid detect/normalise flips within about 80 seconds (16:09-
+16:10), with no correlated USB, thermal, or session-activity event
+found to explain the trigger - recorded honestly as unexplained, not
+attributed to anything. The pattern (long stable-bad period, then
+rapid flipping) is consistent with a rail sitting very close to the
+firmware's detection threshold.
+
+**Consistent cross-session signature, now formally established:**
+every time this has been checked - Stage 29's original observation, the
+OLED-reconnection episode, and every check this round - downstream
+Pi-regulated rails (core, sdram) read nominal and the CPU stays
+unthrottled at full frequency while the input-side under-voltage
+detector trips. This fingerprint points toward the external supply/
+cable path (upstream of the Pi's own regulation), not a failed onboard
+regulator - ranked, not proven, in `docs/POWER-INTEGRITY-DIAGNOSIS.md`
+§4; a physical A/B supply/cable swap is the test that would actually
+confirm it, not performed this round.
+
+**Fan-stall question, answered:** physically plausible as a
+contributing transient on an already-marginal rail (real stall/restart
+current dynamics for small DC fans), but **not established as the root
+cause** - undervoltage was observed continuously and during the
+unexplained oscillation with no known fan interaction at either time.
+Not tested by deliberately stalling a fan, per instruction.
+
+**ALFA confirmed not the cause:** `0x50005` is identical before the
+ALFA was ever purchased, immediately after first connection, and
+throughout every subsequent AP/association test on both bands. The one
+ALFA-correlated event on record (original insertion disconnect) never
+repeated across everything since.
+
+**Filesystem/storage:** clean - zero ext4/I/O errors this boot, 105G
+free, root filesystem writable. No SD-specific health telemetry is
+available on this card (no `mmc-utils`/`smartctl` installed - not
+installed this round, package installs require separate operator
+go-ahead).
+
+**Correction to a stale claim found during this round:**
+`docs/CAPABILITY-REGISTRY.md`'s undervoltage-monitoring entry
+previously said "no persisted undervoltage-event history... not
+designed/built now" - that was wrong as of this round's check: `data/
+device-history.json`'s `undervoltage_daily` counter is real and
+already recording live data (5 events, current UTC-day bucket). Fixed
+in that entry directly, and in `docs/IMPLEMENTATION-ROADMAP.md`'s
+matching row, which previously said this write path was "unobserved."
+
+**No persistent journal exists across reboots** - still true, still a
+pre-existing gap first flagged during the OLED bring-up session,
+still not fixed this round (a system-level config change, gated).
+
+**Operator action recommended, not performed:** read the wall brick's
+printed output rating and the cable type (`docs/
+POWER-INTEGRITY-DIAGNOSIS.md` §8), then consider a physical A/B swap
+to a known-good Raspberry-Pi-specific supply/cable (§9) as the test
+that would actually confirm or rule out the leading hypothesis. This
+document does not purchase, replace, or physically touch anything.
+
+**AWUS036ACM production migration:** still blocked. This round adds
+real diagnostic depth but does not constitute the extended soak that
+gate requires - and that soak should not be attempted on a supply
+already showing a chronic headroom deficit, per instruction not to run
+a heavy test on a known-undervolting Pi.
+
 ## Regulatory Domain Correction + ALFA Post-Regulatory Validation Round
 
 **Decision date:** 2026-09-03, immediately following the External AP
