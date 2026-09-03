@@ -117,6 +117,14 @@ for t in load("mechanical", "reference.json"):
         t.get("summary", ""), t.get("keywords"),
     ))
 
+# --- Electronics (round 7) --------------------------------------------------
+for t in load("electronics", "reference.json"):
+    index.append(entry(
+        t.get("title", ""), "electronics", "Electronics Reference",
+        f"/utility/electronics/#{t.get('id', '')}",
+        t.get("summary", ""), t.get("keywords"),
+    ))
+
 # --- Glossary ---------------------------------------------------------------
 for t in load("glossary", "terms.json"):
     index.append(entry(

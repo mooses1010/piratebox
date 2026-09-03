@@ -74,6 +74,11 @@ session_start();
             <span class="utility-card-title">Mechanical &amp; Repair</span>
             <span class="utility-card-desc">Simple machines, fasteners/torque, bearings, hand tools &amp; measurement basics</span>
         </a>
+        <a class="utility-card" href="/utility/electronics/">
+            <span class="utility-card-icon" aria-hidden="true">🔌</span>
+            <span class="utility-card-title">Electronics</span>
+            <span class="utility-card-desc">Voltage/current/power, AC vs. DC, semiconductors, circuit protection &amp; switches/relays</span>
+        </a>
         <a class="utility-card" href="/utility/about/">
             <span class="utility-card-icon" aria-hidden="true">ℹ️</span>
             <span class="utility-card-title">About This PirateBox</span>

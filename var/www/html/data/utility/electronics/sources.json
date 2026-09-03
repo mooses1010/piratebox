@@ -1,0 +1,37 @@
+{
+  "neets-dc-fundamentals": {
+    "name": "NEETS Module 1, Introduction to Matter, Energy, and Direct Current (US Navy)",
+    "publisher": null,
+    "url": "/utility/library/#neets-module01-matter-energy-dc",
+    "retrieved": "2026-09-03",
+    "note": "Cross-checked against this retained public-domain manual's DC circuit theory chapters - written originally for this reference, not transcribed."
+  },
+  "neets-solid-state": {
+    "name": "NEETS Module 7, Introduction to Solid-State Devices and Power Supplies (US Navy)",
+    "publisher": null,
+    "url": "/utility/library/#neets-module07-solid-state-devices",
+    "retrieved": "2026-09-03",
+    "note": "Cross-checked against this retained public-domain manual's diode/transistor chapters - written originally for this reference, not transcribed."
+  },
+  "neets-circuit-protection": {
+    "name": "NEETS Module 3, Introduction to Circuit Protection, Control, and Measurement (US Navy)",
+    "publisher": null,
+    "url": "/utility/library/#neets-module03-circuit-protection-measurement",
+    "retrieved": "2026-09-03",
+    "note": "Cross-checked against this retained public-domain manual's fuse/breaker/switch/relay chapters - written originally for this reference, not transcribed."
+  },
+  "neets-number-systems": {
+    "name": "NEETS Module 13, Introduction to Number Systems and Logic (US Navy)",
+    "publisher": null,
+    "url": "/utility/library/#neets-module13-number-systems-logic",
+    "retrieved": "2026-09-03",
+    "note": "Cross-checked against this retained public-domain manual's digital-logic chapters - written originally for this reference, not transcribed."
+  },
+  "general-electronics-reference": {
+    "name": "General electrical/electronics engineering fundamentals (cross-checked against multiple technical references)",
+    "publisher": null,
+    "url": null,
+    "retrieved": "2026-09-03",
+    "note": "AC circuit theory (sine waves, frequency, RMS) is long-established, non-proprietary technique with no single owner - written originally for this reference, cross-checked against the retained NEETS modules' own treatment of related DC/component theory rather than copied from any one source."
+  }
+}

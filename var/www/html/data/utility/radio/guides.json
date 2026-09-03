@@ -165,6 +165,37 @@
     ]
   },
   {
+    "id": "swr-impedance-matching",
+    "title": "SWR & Impedance Matching",
+    "body": "Standing Wave Ratio (SWR) measures how well an antenna's impedance matches the feed line and transmitter feeding it - a perfect match is 1:1; anything higher means some of the transmitted power is being reflected back toward the transmitter instead of radiating from the antenna. A high SWR wastes power, can distort the signal, and on many solid-state transmitters triggers automatic power reduction (foldback) to protect the final amplifier from the reflected energy - which is why persistently transmitting into a bad SWR match is a real way to damage a radio, not just a theoretical concern. Most practical antenna impedance problems come down to one of three things: the antenna is the wrong physical length for its intended frequency, the feed line itself has a fault (a kink, water intrusion, a bad connector), or the antenna's surroundings (proximity to metal, height above ground) are different from what it was designed/tuned for. An antenna tuner can present a transmitter with a good match even when the antenna itself is imperfect, but it does this by absorbing/reflecting the mismatch between the tuner and the antenna - it does not make the antenna itself radiate more efficiently, and does not fix a genuinely damaged antenna or feed line.",
+    "keywords": [
+      "swr",
+      "standing wave ratio",
+      "impedance",
+      "impedance matching",
+      "antenna tuner",
+      "reflected power",
+      "foldback"
+    ],
+    "confidence": "high",
+    "source_id": "neets-transmission-lines"
+  },
+  {
+    "id": "microwave-waveguide-basics",
+    "title": "Microwave & Waveguide Basics",
+    "body": "At high enough frequencies (roughly above 1 GHz, well into the microwave range used by radar, satellite links, and Wi-Fi), ordinary coaxial cable becomes increasingly lossy, and RF energy is instead often carried through a waveguide - a hollow metal tube (rectangular or circular) that guides electromagnetic waves along its length using its own conducting walls, rather than a center conductor and shield like coax. A waveguide has no theoretical lower size limit for a given frequency working, but each waveguide size has a practical cutoff frequency below which it stops effectively propagating energy at all - which is why waveguide hardware is frequency-specific in a way coax connectors aren't. Two classic vacuum-tube devices generate significant microwave power even in older/simpler equipment: the magnetron (used in radar transmitters and, not coincidentally, microwave ovens - both apply focused microwave energy, just to very different targets) and the klystron (used for higher-precision, more controllable microwave amplification, historically common in radar and satellite ground-station transmitters). Most consumer/amateur radio equipment never reaches frequencies where waveguide or these tube types matter, but they're the reason radar, satellite, and point-to-point microwave links look physically different from HF/VHF gear - solid horns and rectangular ducting instead of coax and wire antennas.",
+    "keywords": [
+      "microwave",
+      "waveguide",
+      "magnetron",
+      "klystron",
+      "radar",
+      "cutoff frequency"
+    ],
+    "confidence": "high",
+    "source_id": "neets-microwave"
+  },
+  {
     "id": "nato-phonetic-alphabet",
     "title": "NATO Phonetic Alphabet",
     "body": "The standard spelling alphabet used internationally on radio and telephone to make letters unambiguous over a noisy channel (e.g. 'B' and 'D' sound alike, but 'Bravo' and 'Delta' don't). Officially the ICAO/NATO phonetic alphabet, but effectively universal across amateur, aviation, marine, and public-safety radio worldwide - one of the few things every radio service agrees on. For digits, the plain number names are normally used, though aviation/military contexts sometimes use 'niner' for 9 and 'fife' for 5 specifically to avoid confusion with similar-sounding words over a poor connection.",

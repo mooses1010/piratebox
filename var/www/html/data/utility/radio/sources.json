@@ -68,5 +68,19 @@
     "url": null,
     "retrieved": "2026-09-01",
     "note": "Widely-taught RF/radio engineering concepts (modulation behavior, propagation, antenna theory, receiver technique) - not tied to a specific regulatory citation."
+  },
+  "neets-transmission-lines": {
+    "name": "NEETS Module 10, Introduction to Wave Propagation, Transmission Lines, and Antennas (US Navy)",
+    "publisher": null,
+    "url": "/utility/library/#neets-module10-wave-propagation-antennas",
+    "retrieved": "2026-09-03",
+    "note": "Cross-checked against this retained public-domain manual's transmission-line/impedance/SWR chapters - written originally for this reference, not transcribed."
+  },
+  "neets-microwave": {
+    "name": "NEETS Module 11, Microwave Principles (US Navy)",
+    "publisher": null,
+    "url": "/utility/library/#neets-module11-microwave-principles",
+    "retrieved": "2026-09-03",
+    "note": "Cross-checked against this retained public-domain manual's waveguide/microwave-oscillator coverage - written originally for this reference, not transcribed."
   }
 }

@@ -589,6 +589,37 @@
     ]
   },
   {
+    "title": "SWR & Impedance Matching",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#swr-impedance-matching",
+    "snippet": "Standing Wave Ratio (SWR) measures how well an antenna's impedance matches the feed line and transmitter feeding it - a perfect match is 1:1; anything higher me",
+    "keywords": [
+      "swr",
+      "standing wave ratio",
+      "impedance",
+      "impedance matching",
+      "antenna tuner",
+      "reflected power",
+      "foldback"
+    ]
+  },
+  {
+    "title": "Microwave & Waveguide Basics",
+    "section": "radio",
+    "section_label": "Radio Reference",
+    "url": "/utility/radio/#microwave-waveguide-basics",
+    "snippet": "At high enough frequencies (roughly above 1 GHz, well into the microwave range used by radar, satellite links, and Wi-Fi), ordinary coaxial cable becomes increa",
+    "keywords": [
+      "microwave",
+      "waveguide",
+      "magnetron",
+      "klystron",
+      "radar",
+      "cutoff frequency"
+    ]
+  },
+  {
     "title": "NATO Phonetic Alphabet",
     "section": "radio",
     "section_label": "Radio Reference",
@@ -1486,6 +1517,103 @@
       "repair",
       "diagnosis",
       "field repair"
+    ]
+  },
+  {
+    "title": "Voltage, Current, Resistance & Power",
+    "section": "electronics",
+    "section_label": "Electronics Reference",
+    "url": "/utility/electronics/#voltage-current-resistance-power",
+    "snippet": "Four quantities, one relationship (Ohm's Law) - understand these and most basic circuit behavior follows.",
+    "keywords": [
+      "voltage",
+      "current",
+      "resistance",
+      "power",
+      "ohm's law",
+      "watts",
+      "amps",
+      "volts"
+    ]
+  },
+  {
+    "title": "AC Fundamentals",
+    "section": "electronics",
+    "section_label": "Electronics Reference",
+    "url": "/utility/electronics/#ac-fundamentals",
+    "snippet": "Unlike DC, alternating current reverses direction on a regular cycle - which is exactly why AC voltage/current values need their own way of being expressed.",
+    "keywords": [
+      "ac",
+      "dc",
+      "alternating current",
+      "direct current",
+      "frequency",
+      "hertz",
+      "rms",
+      "transformer"
+    ]
+  },
+  {
+    "title": "Semiconductors: Diodes & Transistors",
+    "section": "electronics",
+    "section_label": "Electronics Reference",
+    "url": "/utility/electronics/#semiconductors-diodes-transistors",
+    "snippet": "A diode lets current flow one way only; a transistor uses a small current/voltage to control a much larger one.",
+    "keywords": [
+      "diode",
+      "transistor",
+      "led",
+      "npn",
+      "pnp",
+      "semiconductor",
+      "rectifier",
+      "integrated circuit"
+    ]
+  },
+  {
+    "title": "Circuit Protection: Fuses & Breakers",
+    "section": "electronics",
+    "section_label": "Electronics Reference",
+    "url": "/utility/electronics/#circuit-protection-fuses-breakers",
+    "snippet": "Both fuses and breakers exist to fail on purpose, safely, before a wire or component fails unsafely.",
+    "keywords": [
+      "fuse",
+      "circuit breaker",
+      "overcurrent",
+      "short circuit",
+      "overload",
+      "circuit protection"
+    ]
+  },
+  {
+    "title": "Switches & Relays",
+    "section": "electronics",
+    "section_label": "Electronics Reference",
+    "url": "/utility/electronics/#switches-relays",
+    "snippet": "A relay is just a switch that's controlled electrically instead of by hand.",
+    "keywords": [
+      "switch",
+      "relay",
+      "spst",
+      "spdt",
+      "normally open",
+      "normally closed",
+      "solid state relay"
+    ]
+  },
+  {
+    "title": "Analog vs. Digital Fundamentals",
+    "section": "electronics",
+    "section_label": "Electronics Reference",
+    "url": "/utility/electronics/#analog-vs-digital",
+    "snippet": "Analog represents a value as a continuously variable quantity; digital represents it as discrete on/off states.",
+    "keywords": [
+      "analog",
+      "digital",
+      "binary",
+      "hexadecimal",
+      "bit",
+      "signal"
     ]
   },
   {

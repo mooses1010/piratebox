@@ -4,7 +4,17 @@
     "title": "Map Reading and Land Navigation (FM 3-25.26 / FM 21-26)",
     "category": "maps",
     "description": "The US Army's full field manual on map reading and land navigation - topographic map symbols and marginal information, grid systems (UTM/MGRS in full detail), compass use, declination, terrain association, and both day and night navigation techniques. Directly complements this device's own coordinate-format and true-vs-magnetic-north reference with the complete authoritative procedure behind it.",
-    "tags": ["map reading", "land navigation", "utm", "mgrs", "compass", "declination", "topographic map", "terrain association", "military manual"],
+    "tags": [
+      "map reading",
+      "land navigation",
+      "utm",
+      "mgrs",
+      "compass",
+      "declination",
+      "topographic map",
+      "terrain association",
+      "military manual"
+    ],
     "file": "dod-fm-3-25-26-land-navigation.pdf",
     "file_type": "pdf",
     "file_size": "7.8 MB",
@@ -12,10 +22,22 @@
     "date_version": "FM 3-25.26, January 2005 (successor to FM 21-26)",
     "provenance_notes": "Source: https://archive.org/details/FM3-25x26 (direct file: archive.org/download/FM3-25x26/FM3-25x26.pdf) - retrieved 2026-09-02. A US Department of Defense work of the federal government, public domain under 17 U.S.C. Sec. 105 - confirmed via Internet Archive's own item metadata, which explicitly carries a 'Public Domain Mark 1.0' tag AND the manual's own distribution statement text ('Approved for public release, distribution is unlimited'), the same two-part confirmation standard used for FM 4-25.11. Verified 209 pages, 8,167,056 bytes - not a truncated/partial copy.",
     "related_pages": [
-      {"url": "/utility/maps/", "label": "Maps & Location Reference"},
-      {"url": "/utility/maps/#coordinate-formats", "label": "Maps: Coordinate Formats (DD, DMS, UTM, MGRS)"},
-      {"url": "/utility/maps/#true-vs-magnetic-north", "label": "Maps: True North vs. Magnetic North"},
-      {"url": "/utility/outdoor/", "label": "Outdoor & Field Reference"}
+      {
+        "url": "/utility/maps/",
+        "label": "Maps & Location Reference"
+      },
+      {
+        "url": "/utility/maps/#coordinate-formats",
+        "label": "Maps: Coordinate Formats (DD, DMS, UTM, MGRS)"
+      },
+      {
+        "url": "/utility/maps/#true-vs-magnetic-north",
+        "label": "Maps: True North vs. Magnetic North"
+      },
+      {
+        "url": "/utility/outdoor/",
+        "label": "Outdoor & Field Reference"
+      }
     ]
   },
   {
@@ -23,7 +45,14 @@
     "title": "United States Frequency Allocation Chart",
     "category": "radio",
     "description": "The official wall chart showing which service (broadcast, amateur, aviation, marine, federal, etc.) is allocated to every band from 3 kHz to 300 GHz - the authoritative big-picture answer to \"what's using this part of the spectrum,\" complementing this device's own per-service Radio Reference and signal-identification framework.",
-    "tags": ["frequency allocation", "spectrum chart", "radio spectrum", "band plan", "ntia", "fcc"],
+    "tags": [
+      "frequency allocation",
+      "spectrum chart",
+      "radio spectrum",
+      "band plan",
+      "ntia",
+      "fcc"
+    ],
     "file": "ntia-us-frequency-allocation-chart.pdf",
     "file_type": "pdf",
     "file_size": "267 KB",
@@ -31,7 +60,10 @@
     "date_version": "September 2025 edition (data as of March 2025)",
     "provenance_notes": "Source: https://commons.wikimedia.org/wiki/File:United_States_Frequency_Allocations_chart_-_September_2025.pdf (direct file: upload.wikimedia.org/wikipedia/commons/7/75/United_States_Frequency_Allocations_chart_-_September_2025.pdf) - retrieved 2026-09-02. A work of a US Department of Commerce employee made as part of official duties, public domain under 17 U.S.C. Sec. 105 per Wikimedia Commons' own file-page tag. Verified exact byte match (273,849 bytes) against Wikimedia's own listed file size.",
     "related_pages": [
-      {"url": "/utility/radio/", "label": "Radio Reference"}
+      {
+        "url": "/utility/radio/",
+        "label": "Radio Reference"
+      }
     ]
   },
   {
@@ -39,7 +71,13 @@
     "title": "Electrical Safety (OSHA QuickCard)",
     "category": "electronics",
     "description": "A concise official safety card on basic electrical hazards - shock, arc flash/blast, and safe work practices around electrical equipment. Pairs with this device's own Ohm's Law/AWG reference and multimeter-safety note with an authoritative original on the hazards themselves.",
-    "tags": ["electrical safety", "shock hazard", "arc flash", "osha", "electrical hazards"],
+    "tags": [
+      "electrical safety",
+      "shock hazard",
+      "arc flash",
+      "osha",
+      "electrical hazards"
+    ],
     "file": "osha-electrical-safety.pdf",
     "file_type": "pdf",
     "file_size": "39 KB",
@@ -47,8 +85,18 @@
     "date_version": "OSHA 3294 (2013), most recently revised 2024-02-07",
     "provenance_notes": "Source: https://www.osha.gov/sites/default/files/publications/electrical_safety.pdf - retrieved 2026-09-02. OSHA-authored safety publication, work of the US federal government, public domain under 17 U.S.C. Sec. 105 - confirmed against OSHA's own stated policy (a 1992 standard interpretation letter still linked from osha.gov: 'OSHA's rules are in the public domain and may be reproduced, fully or partially, without permission from OSHA'), with the standard caveat that agency logos/seals (not present in this card's actual content) are excepted.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Electrical Quick Reference"},
-      {"url": "/utility/fieldtools/ohmslaw/", "label": "Field Tools: Ohm's Law Solver"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Electrical Quick Reference"
+      },
+      {
+        "url": "/utility/fieldtools/ohmslaw/",
+        "label": "Field Tools: Ohm's Law Solver"
+      },
+      {
+        "url": "/utility/electronics/",
+        "label": "Electronics Reference"
+      }
     ]
   },
   {
@@ -56,7 +104,16 @@
     "title": "Controlling Electrical Hazards (OSHA 3075)",
     "category": "electronics",
     "description": "The full-length OSHA booklet behind the QuickCard above: how electricity flows, what causes shocks and burns, what to do if someone \"freezes\" to a live contact, insulation/guarding/grounding, GFCIs, static electricity, lockout/tagout, and safe work practices - real depth beyond a one-page summary.",
-    "tags": ["electrical safety", "shock hazard", "grounding", "gfci", "lockout tagout", "static electricity", "osha", "electrical hazards"],
+    "tags": [
+      "electrical safety",
+      "shock hazard",
+      "grounding",
+      "gfci",
+      "lockout tagout",
+      "static electricity",
+      "osha",
+      "electrical hazards"
+    ],
     "file": "osha3075-controlling-electrical-hazards.pdf",
     "file_type": "pdf",
     "file_size": "379 KB",
@@ -64,8 +121,18 @@
     "date_version": "OSHA 3075, 2002 (Revised)",
     "provenance_notes": "Source: https://www.osha.gov/sites/default/files/publications/osha3075.pdf - retrieved 2026-09-02. Carries its own explicit statement on p.1: \"This publication is in the public domain and may be reproduced fully or partially without permission.\" OSHA-authored, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Verified 71 pages via pdfinfo; content inspected via pdftotext confirming substantive coverage (not a thin restatement of the QuickCard) before retaining.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Electrical Quick Reference"},
-      {"url": "/utility/fieldtools/ohmslaw/", "label": "Field Tools: Ohm's Law Solver"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Electrical Quick Reference"
+      },
+      {
+        "url": "/utility/fieldtools/ohmslaw/",
+        "label": "Field Tools: Ohm's Law Solver"
+      },
+      {
+        "url": "/utility/electronics/",
+        "label": "Electronics Reference"
+      }
     ]
   },
   {
@@ -73,7 +140,14 @@
     "title": "Preparing for Emergencies: Guide for Communities",
     "category": "emergency-firstaid",
     "description": "The UK Cabinet Office's household/community emergency-preparedness guide - risk awareness, a household emergency plan, and a basic emergency kit list. A genuinely international counterpart to this library's otherwise US-federal-sourced emergency guidance, useful anywhere this device might travel, not just in the US.",
-    "tags": ["emergency preparedness", "uk", "cabinet office", "household emergency plan", "international", "community resilience"],
+    "tags": [
+      "emergency preparedness",
+      "uk",
+      "cabinet office",
+      "household emergency plan",
+      "international",
+      "community resilience"
+    ],
     "file": "uk-preparing-for-emergencies.pdf",
     "file_type": "pdf",
     "file_size": "285 KB",
@@ -81,7 +155,10 @@
     "date_version": "September 2016",
     "provenance_notes": "Source: https://assets.publishing.service.gov.uk/media/5a7f9482ed915d74e622b543/pfe_guide_for_communities.pdf - retrieved 2026-09-02. UK Crown copyright material published on gov.uk, released under the Open Government Licence v3.0 - confirmed as the DEFAULT licence for gov.uk content unless a page states otherwise ('all content available on www.gov.uk is available under the licence, unless otherwise stated'), permitting copying, publishing, distribution, and adaptation for commercial and non-commercial use, conditioned on attribution (given here: 'Contains public sector information licensed under the Open Government Licence v3.0 - Cabinet Office, 2016'). Distinct from the US-federal 17 U.S.C. Sec. 105 basis used elsewhere in this library - a permissive license grant, not a public-domain declaration, but functionally equivalent for this project's redistribution purposes.",
     "related_pages": [
-      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"}
+      {
+        "url": "/utility/emergency/",
+        "label": "Emergency / Outage Reference"
+      }
     ]
   },
   {
@@ -89,7 +166,14 @@
     "title": "Topographic Map Symbols",
     "category": "maps",
     "description": "The official USGS legend for topographic map symbols - contours, boundaries, vegetation, hydrography, transportation, and structures - the standard reference for reading a USGS topo map.",
-    "tags": ["topographic map", "map symbols", "legend", "usgs", "contour lines", "map reading"],
+    "tags": [
+      "topographic map",
+      "map symbols",
+      "legend",
+      "usgs",
+      "contour lines",
+      "map reading"
+    ],
     "file": "usgs-topographic-map-symbols.pdf",
     "file_type": "pdf",
     "file_size": "2.2 MB",
@@ -97,7 +181,10 @@
     "date_version": "USGS General Interest Publication",
     "provenance_notes": "Source: https://pubs.usgs.gov/gip/TopographicMapSymbols/topomapsymbols.pdf - retrieved 2026-09-02. USGS-authored work of the US federal government, public domain under 17 U.S.C. Sec. 105 (confirmed against USGS's own published copyright policy, usgs.gov/information-policies-and-instructions/copyrights-and-credits: \"USGS-authored or produced data and information are considered to be in the U.S. Public Domain\"). No non-USGS third-party imagery involved - this is a symbols legend, not a photo collection.",
     "related_pages": [
-      {"url": "/utility/maps/", "label": "Maps & Location Reference"}
+      {
+        "url": "/utility/maps/",
+        "label": "Maps & Location Reference"
+      }
     ]
   },
   {
@@ -105,7 +192,17 @@
     "title": "NIST Time and Frequency Services (NIST Special Publication 432)",
     "category": "reference",
     "description": "NIST's comprehensive reference on time and frequency measurement, calibration, and broadcast services (WWV/WWVB, GPS timing, NTP) - the authoritative technical background behind the time-confidence concepts this device's own Field Tools/status pages already surface.",
-    "tags": ["nist", "time", "frequency", "wwv", "wwvb", "gps timing", "ntp", "calibration", "time standards"],
+    "tags": [
+      "nist",
+      "time",
+      "frequency",
+      "wwv",
+      "wwvb",
+      "gps timing",
+      "ntp",
+      "calibration",
+      "time standards"
+    ],
     "file": "nist-sp432-time-frequency-services.pdf",
     "file_type": "pdf",
     "file_size": "1.9 MB",
@@ -113,7 +210,10 @@
     "date_version": "NIST Special Publication 432, 2002 Edition",
     "provenance_notes": "Source: https://www.nist.gov/document/sp432-02pdf (resolves to nist.gov/system/files/documents/calibrations/sp432-02.pdf) - retrieved 2026-09-02. NIST Special Publication series, authored by NIST employees (Lombardi et al.) as part of their official duties - public domain under 17 U.S.C. Sec. 105 (confirmed against NIST's own copyright policy page, nist.gov/open: works of NIST employees are not subject to US copyright; the Standard Reference Data Act exception does not apply to this narrative technical publication).",
     "related_pages": [
-      {"url": "/utility/fieldtools/time/", "label": "Field Tools: Time & Date"}
+      {
+        "url": "/utility/fieldtools/time/",
+        "label": "Field Tools: Time & Date"
+      }
     ]
   },
   {
@@ -121,7 +221,16 @@
     "title": "Sky Watcher Cloud Chart",
     "category": "reference",
     "description": "A visual cloud-identification chart (cirrus, cumulus, stratus, and their combinations/altitudes) for identifying cloud types by sight - useful alongside this device's severe-weather monitoring guidance.",
-    "tags": ["clouds", "cloud identification", "cloud chart", "weather", "sky watcher", "cumulus", "cirrus", "stratus"],
+    "tags": [
+      "clouds",
+      "cloud identification",
+      "cloud chart",
+      "weather",
+      "sky watcher",
+      "cumulus",
+      "cirrus",
+      "stratus"
+    ],
     "file": "noaa-nasa-sky-watcher-cloud-chart.pdf",
     "file_type": "pdf",
     "file_size": "2.5 MB",
@@ -129,8 +238,14 @@
     "date_version": "NOAA/NCEI english-language edition",
     "provenance_notes": "Source: https://www.ncei.noaa.gov/sites/default/files/sky-watcher-cloud-chart-noaa-nasa-english-version.pdf - retrieved 2026-09-02. Joint publication of two US federal agencies (NOAA and NASA) - public domain under 17 U.S.C. Sec. 105 (confirmed against NOAA's own copyright policy, library.noaa.gov: works of the US federal government are public domain; the caveat about non-federal co-authors, e.g. universities/Cooperative Institutes, does not apply here since both co-authoring agencies are federal).",
     "related_pages": [
-      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"},
-      {"url": "/utility/radio/#emergency-monitoring-quick-reference", "label": "Radio: Severe Weather Monitoring"}
+      {
+        "url": "/utility/emergency/",
+        "label": "Emergency / Outage Reference"
+      },
+      {
+        "url": "/utility/radio/#emergency-monitoring-quick-reference",
+        "label": "Radio: Severe Weather Monitoring"
+      }
     ]
   },
   {
@@ -138,7 +253,17 @@
     "title": "Thunderstorms, Tornadoes, Lightning... A Preparedness Guide",
     "category": "reference",
     "description": "NOAA National Weather Service preparedness guide covering thunderstorms, tornadoes, lightning, straight-line winds, flash floods, and hail - what makes each hazard dangerous, watch-vs-warning terminology, and specific life-saving actions for each, including a dedicated section on tornado safety in schools.",
-    "tags": ["thunderstorm", "tornado", "lightning", "severe weather", "flash flood", "hail", "weather safety", "noaa", "nws"],
+    "tags": [
+      "thunderstorm",
+      "tornado",
+      "lightning",
+      "severe weather",
+      "flash flood",
+      "hail",
+      "weather safety",
+      "noaa",
+      "nws"
+    ],
     "file": "noaa-thunderstorm-tornado-lightning-guide.pdf",
     "file_type": "pdf",
     "file_size": "13.9 MB",
@@ -146,8 +271,14 @@
     "date_version": "NOAA/PA 201051",
     "provenance_notes": "Source: https://www.weather.gov/media/owlie/ttl6-10.pdf - retrieved 2026-09-02. NWS/NOAA-authored public safety guide, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Verified 20 pages via pdfinfo; content inspected via pdftotext to confirm it's substantive safety guidance (watch/warning distinctions, specific sheltering actions per hazard), not a thin brochure, before retaining. Complements the existing Sky Watcher Cloud Chart (cloud identification) with hazard-specific safety actions - the cloud chart identifies what you're looking at, this guide covers what to do about it.",
     "related_pages": [
-      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"},
-      {"url": "/utility/radio/#emergency-monitoring-quick-reference", "label": "Radio: Severe Weather Monitoring"}
+      {
+        "url": "/utility/emergency/",
+        "label": "Emergency / Outage Reference"
+      },
+      {
+        "url": "/utility/radio/#emergency-monitoring-quick-reference",
+        "label": "Radio: Severe Weather Monitoring"
+      }
     ]
   },
   {
@@ -155,7 +286,15 @@
     "title": "Guide for the Use of the International System of Units (SI)",
     "category": "reference",
     "description": "NIST's authoritative guide to the SI (metric) system: base and derived units, prefixes, and a comprehensive Appendix B conversion-factors table between US customary/imperial units and SI units, plus rules for correct unit usage and rounding. Fills a general-purpose measurement/conversion reference gap - useful well beyond any single subject page.",
-    "tags": ["units", "si units", "metric", "conversion", "measurement", "nist", "unit conversion"],
+    "tags": [
+      "units",
+      "si units",
+      "metric",
+      "conversion",
+      "measurement",
+      "nist",
+      "unit conversion"
+    ],
     "file": "nist-sp811-si-units-guide.pdf",
     "file_type": "pdf",
     "file_size": "1.9 MB",
@@ -163,7 +302,10 @@
     "date_version": "NIST Special Publication 811, 2008 Edition (2nd printing, November 2008)",
     "provenance_notes": "Source: https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication811e2008.pdf - retrieved 2026-09-02, hosted directly by NIST itself (nvlpubs.nist.gov), no third-party mirror needed. Authored by NIST staff (Ambler Thompson and Barry N. Taylor) as part of official duties, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Verified 90 pages via pdfinfo; content inspected via pdftotext confirming a full Appendix B conversion-factors table plus SI base/derived unit definitions and prefix tables, not just introductory text.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Unit Converter"
+      }
     ]
   },
   {
@@ -171,7 +313,14 @@
     "title": "Make Water Safe During an Emergency",
     "category": "emergency-firstaid",
     "description": "CDC fact sheet on making water safe to drink after an emergency or disaster - boiling, chemical disinfection, and filtering, with the important limitation that fuel/chemical/radioactive contamination cannot be fixed by any of these methods.",
-    "tags": ["water safety", "boil water", "disinfection", "water treatment", "emergency water", "cdc"],
+    "tags": [
+      "water safety",
+      "boil water",
+      "disinfection",
+      "water treatment",
+      "emergency water",
+      "cdc"
+    ],
     "file": "cdc-make-water-safe-emergency.pdf",
     "file_type": "pdf",
     "file_size": "730 KB",
@@ -179,7 +328,10 @@
     "date_version": "CDC water-emergency fact sheet",
     "provenance_notes": "Source: https://www.cdc.gov/water-emergency/media/pdfs/make-water-safe-during-emergency-p.pdf - retrieved 2026-09-02. CDC-authored public health fact sheet, work of the US federal government, public domain under 17 U.S.C. Sec. 105 (confirmed against CDC's own copyright guidance: \"Most of the information on the CDC and ATSDR websites is not subject to copyright, is in the public domain\" - the caveat about contractor/grantee-developed or third-party-licensed material does not apply to this agency-authored fact sheet).",
     "related_pages": [
-      {"url": "/utility/emergency/#water-storage-safety", "label": "Emergency: Water Storage & Boil-Water Advisories"}
+      {
+        "url": "/utility/emergency/#water-storage-safety",
+        "label": "Emergency: Water Storage & Boil-Water Advisories"
+      }
     ]
   },
   {
@@ -187,7 +339,16 @@
     "title": "Emergency Disinfection of Drinking Water",
     "category": "emergency-firstaid",
     "description": "EPA two-page fact sheet with specific bleach-dosing measurements (drops per quart/liter/gallon at two different bleach concentrations), a granular calcium hypochlorite (HTH) method, and an iodine tincture method for disinfecting water when boiling isn't possible - concrete dosing detail that complements rather than duplicates the existing CDC water-safety fact sheet, which covers methods at a higher level without exact measurements.",
-    "tags": ["water safety", "water disinfection", "bleach", "chlorine", "calcium hypochlorite", "iodine", "emergency water", "epa"],
+    "tags": [
+      "water safety",
+      "water disinfection",
+      "bleach",
+      "chlorine",
+      "calcium hypochlorite",
+      "iodine",
+      "emergency water",
+      "epa"
+    ],
     "file": "epa-emergency-disinfection-drinking-water.pdf",
     "file_type": "pdf",
     "file_size": "737 KB",
@@ -195,7 +356,10 @@
     "date_version": "EPA 816-F-15-003, September 2017",
     "provenance_notes": "Source: https://www.epa.gov/sites/default/files/2015-07/documents/emergency_disinfection.pdf - retrieved 2026-09-02. EPA-authored public health fact sheet, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Deliberately re-evaluated (not auto-retained) against the already-retained CDC water-safety document by reading the actual text via pdftotext before deciding: this document adds specific actionable measurements the CDC sheet doesn't have (exact drops-per-volume bleach dosing at 6% and 8.25% concentrations, doubling guidance for cold/cloudy water, plus the HTH and iodine tincture alternative methods), so it is retained as a genuine complement, not a duplicate.",
     "related_pages": [
-      {"url": "/utility/emergency/#water-storage-safety", "label": "Emergency: Water Storage & Boil-Water Advisories"}
+      {
+        "url": "/utility/emergency/#water-storage-safety",
+        "label": "Emergency: Water Storage & Boil-Water Advisories"
+      }
     ]
   },
   {
@@ -203,7 +367,14 @@
     "title": "Family Emergency Communication Plan",
     "category": "emergency-firstaid",
     "description": "FEMA/Ready.gov's full fillable family emergency communication plan - household contact info, out-of-town contact, meeting places, school/work emergency plans, and important medical/insurance information in one printable document.",
-    "tags": ["family emergency plan", "communication plan", "fema", "ready.gov", "emergency contacts", "meeting place"],
+    "tags": [
+      "family emergency plan",
+      "communication plan",
+      "fema",
+      "ready.gov",
+      "emergency contacts",
+      "meeting place"
+    ],
     "file": "fema-family-emergency-communication-plan.pdf",
     "file_type": "pdf",
     "file_size": "1.0 MB",
@@ -211,7 +382,10 @@
     "date_version": "Ready.gov Family Emergency Communication Plan",
     "provenance_notes": "Source: https://www.ready.gov/sites/default/files/2020-03/family-emergency-communication-planning-document.pdf - retrieved 2026-09-02. FEMA-authored preparedness publication, public domain under 17 U.S.C. Sec. 105 (confirmed against FEMA's own copyright policy: \"Most material on FEMA.gov is free of copyright and may be copied and distributed without permission\"; Ready Campaign publications are explicitly made available for free public download/reproduction).",
     "related_pages": [
-      {"url": "/utility/emergency/#family-emergency-plan", "label": "Emergency: Family Emergency Communication Plan"}
+      {
+        "url": "/utility/emergency/#family-emergency-plan",
+        "label": "Emergency: Family Emergency Communication Plan"
+      }
     ]
   },
   {
@@ -219,7 +393,15 @@
     "title": "Food and Water Safety During Power Outages and Floods",
     "category": "emergency-firstaid",
     "description": "FDA consumer factsheet on keeping food and water safe during a power outage or flood - refrigerator/freezer safe-time thresholds, a food-safety decision guide (when to keep vs. discard), and water safety/treatment basics. A different USDA FSIS candidate on this same general topic was blocked by durable HTTP 403 bot protection; this FDA document independently covers the same subject and was confirmed directly accessible and public domain.",
-    "tags": ["food safety", "power outage", "refrigerator", "freezer", "flood", "water safety", "fda"],
+    "tags": [
+      "food safety",
+      "power outage",
+      "refrigerator",
+      "freezer",
+      "flood",
+      "water safety",
+      "fda"
+    ],
     "file": "fda-food-water-safety-power-outage.pdf",
     "file_type": "pdf",
     "file_size": "814 KB",
@@ -227,8 +409,14 @@
     "date_version": "FDA consumer factsheet, revised 2023-01-31",
     "provenance_notes": "Source: https://www.fda.gov/media/72124/download (from the FDA page 'Food and Water Safety During Power Outages and Floods') - retrieved 2026-09-02. FDA-authored consumer factsheet, work of the US federal government, public domain under 17 U.S.C. Sec. 105 (confirmed against FDA's own website policy: 'the contents of the FDA website...are not copyrighted. They are in the public domain and may be republished, reprinted and otherwise used freely by anyone without the need to obtain permission from FDA' - no third-party/licensed content indicated for this plain agency-authored factsheet).",
     "related_pages": [
-      {"url": "/utility/emergency/#food-safety-outage", "label": "Emergency: Food Safety During an Outage"},
-      {"url": "/utility/emergency/#power-outage", "label": "Emergency: When the Power Goes Out"}
+      {
+        "url": "/utility/emergency/#food-safety-outage",
+        "label": "Emergency: Food Safety During an Outage"
+      },
+      {
+        "url": "/utility/emergency/#power-outage",
+        "label": "Emergency: When the Power Goes Out"
+      }
     ]
   },
   {
@@ -236,7 +424,16 @@
     "title": "First Aid (FM 4-25.11 / NTRP 4-02.1 / AFMAN 44-163(I))",
     "category": "emergency-firstaid",
     "description": "The joint US military field manual on first aid - full step-by-step procedures with illustrations for airway/breathing/bleeding control, shock, fractures/splinting, burns, cold/heat injury, bites/stings, and evacuation/transport techniques. Addresses the visual-diagram gap the First Aid Reference page's own audit flagged (pressure points, tourniquets, fracture types, splinting, etc.) with an authoritative, fully redistributable original source, after Red Cross material was found not to be freely redistributable. Note: this manual does not include recovery-position content - checked directly via full-text search, not assumed.",
-    "tags": ["first aid", "bleeding control", "tourniquet", "splinting", "fractures", "burns", "field manual", "military first aid"],
+    "tags": [
+      "first aid",
+      "bleeding control",
+      "tourniquet",
+      "splinting",
+      "fractures",
+      "burns",
+      "field manual",
+      "military first aid"
+    ],
     "file": "dod-fm-4-25-11-first-aid.pdf",
     "file_type": "pdf",
     "file_size": "2.5 MB",
@@ -244,7 +441,10 @@
     "date_version": "FM 4-25.11 (FM 21-11), 23 December 2002, with Change 1 (15 July 2004)",
     "provenance_notes": "Source: https://commons.wikimedia.org/wiki/File:FM_4-25.11_(FM_21-11)_First_Aid_(Change_1).pdf (direct file: upload.wikimedia.org/wikipedia/commons/0/01/FM_4-25.11_%28FM_21-11%29_First_Aid_%28Change_1%29.pdf) - retrieved 2026-09-02. A US Department of Defense work of the federal government, public domain under 17 U.S.C. Sec. 105 (Wikimedia Commons' file page tags it PD-USGov-Military-Army/Navy/Air Force/Marines; the manual's own cover states 'Approved for public release; distribution is unlimited'). Verified 227 pages, 2,621,944 bytes, matching Wikimedia Commons' listed file size exactly - not a truncated/partial copy.",
     "related_pages": [
-      {"url": "/utility/firstaid/", "label": "First Aid Reference"}
+      {
+        "url": "/utility/firstaid/",
+        "label": "First Aid Reference"
+      }
     ]
   },
   {
@@ -252,7 +452,18 @@
     "title": "Rigging Techniques, Procedures, and Applications (FM 5-125)",
     "category": "outdoor-field",
     "description": "US Army field manual on rope, wire rope, and chain rigging: fiber/wire rope characteristics and care, knots/hitches/bends/splices/lashings, slings, blocks and tackle, chain hoists and winches, and rope ladders. Source for a small, verified set of correctly-depicted knot diagrams added to the Outdoor/Field knots reference, which previously had text-only entries specifically because no verified-correct diagram source had been confirmed.",
-    "tags": ["rigging", "knots", "hitches", "bends", "splices", "lashing", "rope", "wire rope", "blocks and tackle", "field manual"],
+    "tags": [
+      "rigging",
+      "knots",
+      "hitches",
+      "bends",
+      "splices",
+      "lashing",
+      "rope",
+      "wire rope",
+      "blocks and tackle",
+      "field manual"
+    ],
     "file": "dod-fm-5-125-rigging-techniques.pdf",
     "file_type": "pdf",
     "file_size": "3.7 MB",
@@ -260,8 +471,14 @@
     "date_version": "FM 5-125, 3 October 1995, with Change 1 (23 February 2001)",
     "provenance_notes": "Source: https://archive.org/details/RiggingTechniquesProceduresAndApplicationsFM51252001 - retrieved 2026-09-02. Investigated in an earlier session but not retained: the archive.org item page carried no explicit rights tag, and without a PDF tool installed the manual's own cover/distribution statement couldn't be checked directly, so it was left unretained rather than assumed. Now that poppler-utils is installed, the PDF was downloaded and its text extracted directly with pdftotext: it carries its own 'DISTRIBUTION RESTRICTION: Approved for public release; distribution is unlimited' statement and is signed by the Army Chief of Staff - a Department of the Army field manual, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Verified 169 pages, 3,816,989 bytes.",
     "related_pages": [
-      {"url": "/utility/outdoor/", "label": "Outdoor/Field: Knots Reference"},
-      {"url": "/utility/mechanical/", "label": "Mechanical & Repair: Pulleys & Block and Tackle"}
+      {
+        "url": "/utility/outdoor/",
+        "label": "Outdoor/Field: Knots Reference"
+      },
+      {
+        "url": "/utility/mechanical/",
+        "label": "Mechanical & Repair: Pulleys & Block and Tackle"
+      }
     ]
   },
   {
@@ -269,7 +486,14 @@
     "title": "Reduce Your Smoke Exposure (Wildfire Smoke Factsheet)",
     "category": "emergency-firstaid",
     "description": "EPA factsheet on reducing exposure to wildfire smoke - indoor/outdoor precautions, air cleaners, and who is at greater risk, developed through interagency collaboration including the US Forest Service.",
-    "tags": ["wildfire smoke", "smoke exposure", "air quality", "epa", "us forest service", "clean room"],
+    "tags": [
+      "wildfire smoke",
+      "smoke exposure",
+      "air quality",
+      "epa",
+      "us forest service",
+      "clean room"
+    ],
     "file": "epa-reduce-wildfire-smoke-exposure.pdf",
     "file_type": "pdf",
     "file_size": "346 KB",
@@ -277,7 +501,10 @@
     "date_version": "EPA wildfire smoke factsheet, 2026 edition",
     "provenance_notes": "Source: https://www.epa.gov/system/files/documents/2026-06/reduce-smoke-exposure-factsheet.pdf - retrieved 2026-09-02. EPA-authored public health factsheet, work of the US federal government, public domain under 17 U.S.C. Sec. 105 (confirmed against EPA's own copyright policy framework - covers works of the US Government distinctly from contractor/grantee-produced or third-party content, and this is a plain agency-authored factsheet, not either of those exceptions). Developed with US Forest Service/CDC/other agency input per EPA's own wildfire smoke guide materials, but authored/published by EPA.",
     "related_pages": [
-      {"url": "/utility/emergency/#wildfire-smoke", "label": "Emergency: Wildfire & Smoke"}
+      {
+        "url": "/utility/emergency/#wildfire-smoke",
+        "label": "Emergency: Wildfire & Smoke"
+      }
     ]
   },
   {
@@ -285,7 +512,14 @@
     "title": "How to Prepare and Store Powdered Infant Formula During an Emergency",
     "category": "emergency-firstaid",
     "description": "Current CDC step-by-step guidance for safely preparing powdered infant formula when tap water is unsafe (natural disaster, drinking-water outage): using bottled/boiled/disinfected water, exact measurement, storage/discard timing, and a clear warning to prefer ready-to-feed formula for infants under 2 months, premature, or immunocompromised. Fills a genuine gap - infant/child feeding safety - not covered by any other retained document.",
-    "tags": ["infant formula", "baby formula", "feeding infants", "emergency water", "cdc", "infant safety"],
+    "tags": [
+      "infant formula",
+      "baby formula",
+      "feeding infants",
+      "emergency water",
+      "cdc",
+      "infant safety"
+    ],
     "file": "cdc-infant-formula-emergency.pdf",
     "file_type": "pdf",
     "file_size": "2.4 MB",
@@ -293,7 +527,10 @@
     "date_version": "CS 356349-A, last updated December 10, 2024",
     "provenance_notes": "Source: https://www.cdc.gov/nutrition/emergencies-infant-feeding/downloads/pages/prepare-and-store-powdered-infant-formula-iycf-e-h.pdf - retrieved 2026-09-02. CDC-authored public health guidance, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Retained in preference to an older (2008) CDC general food/water safety factsheet found during the same search: that older document's water-treatment guidance overlaps with the already-retained, more detailed EPA disinfection document, and its brief infant-formula mention is superseded by this dedicated, currently-maintained (Dec 2024) CDC guidance - retaining the current specific document instead of the older general one, per instruction that high-stakes content must be current.",
     "related_pages": [
-      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"}
+      {
+        "url": "/utility/emergency/",
+        "label": "Emergency / Outage Reference"
+      }
     ]
   },
   {
@@ -301,7 +538,13 @@
     "title": "Community Recovery (Australian Disaster Resilience Handbook 2)",
     "category": "emergency-firstaid",
     "description": "Australian Institute for Disaster Resilience handbook on what happens after a disaster: social/psychological recovery, financial and built-environment recovery, and how communities organize recovery efforts. Complements this library's existing before/during-disaster material (all US and UK sources) with substantive after-the-fact guidance, and is this library's second clearly-licensed non-US source.",
-    "tags": ["disaster recovery", "community recovery", "psychosocial recovery", "australia", "emergency management"],
+    "tags": [
+      "disaster recovery",
+      "community recovery",
+      "psychosocial recovery",
+      "australia",
+      "emergency management"
+    ],
     "file": "aidr-community-recovery-handbook.pdf",
     "file_type": "pdf",
     "file_size": "4.2 MB",
@@ -309,7 +552,10 @@
     "date_version": "Handbook 2, third edition, 2018",
     "provenance_notes": "Source: https://knowledge.aidr.org.au/media/5634/community-recovery-handbook.pdf - retrieved 2026-09-02. The document's own copyright page states: \"All material presented in this publication is provided under a Creative Commons Attribution 4.0 International Public License\", with the standard exceptions (Commonwealth Coat of Arms, agency logos/trademarks, any material specifically marked as excluded) - confirmed by reading the actual PDF text, not assumed from the publisher's general reputation. Some content is written for emergency-management professionals/coordinators rather than individual readers, but the social/psychosocial recovery sections are directly useful to anyone affected by a disaster.",
     "related_pages": [
-      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"}
+      {
+        "url": "/utility/emergency/",
+        "label": "Emergency / Outage Reference"
+      }
     ]
   },
   {
@@ -317,7 +563,17 @@
     "title": "Fastener Design Manual (NASA RP-1228)",
     "category": "mechanical-repair",
     "description": "NASA's authoritative reference on threaded fasteners: material selection, platings/lubricants, corrosion, locking methods, washers/inserts, thread types and classes, torque formulas, fatigue loading, grip length, head styles, and fastener strength, plus rivets and lockbolts. Establishes the new Mechanical & Basic Repair area of the library with a genuinely deep, non-hazardous reference (understanding fasteners, not performing certified repairs).",
-    "tags": ["fasteners", "screws", "bolts", "nuts", "torque", "washers", "rivets", "nasa", "mechanical"],
+    "tags": [
+      "fasteners",
+      "screws",
+      "bolts",
+      "nuts",
+      "torque",
+      "washers",
+      "rivets",
+      "nasa",
+      "mechanical"
+    ],
     "file": "nasa-rp1228-fastener-design-manual.pdf",
     "file_type": "pdf",
     "file_size": "5.1 MB",
@@ -325,8 +581,14 @@
     "date_version": "NASA Reference Publication 1228, March 1990",
     "provenance_notes": "Source: https://ntrs.nasa.gov/api/citations/19900009424/downloads/19900009424.pdf - retrieved 2026-09-02. Authored by a NASA employee (Richard T. Barrett) as part of official duties, work of the US federal government, public domain under 17 U.S.C. Sec. 105. NASA's own STI/NTRS disclaimers page states: \"Documents available from this Web site are not protected by copyright unless noted\" and \"U.S. government works may contain privately created, copyrighted works... used under license\" as the only exception - this specific document carries no such notice (unlike the 1957 Army Survival Manual rejected this same round, which explicitly states it contains copyrighted material). Widely mirrored by independent engineering sites, consistent with an unrestricted document.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"},
-      {"url": "/utility/mechanical/", "label": "Mechanical & Repair: Fasteners, Threads & Torque"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Unit Converter"
+      },
+      {
+        "url": "/utility/mechanical/",
+        "label": "Mechanical & Repair: Fasteners, Threads & Torque"
+      }
     ]
   },
   {
@@ -334,7 +596,14 @@
     "title": "Plane Geometry (Wentworth, 1899)",
     "category": "reference",
     "description": "A classic, complete plane geometry textbook - lines, angles, triangles, circles, polygons, area/proportion, and geometric construction with straightedge and compass - proofs and constructions whose validity hasn't changed since publication. Retained as a historical public-domain work for a durable, non-safety-critical subject (geometry), clearly dated rather than presented as current.",
-    "tags": ["geometry", "mathematics", "historical", "plane geometry", "construction", "proofs"],
+    "tags": [
+      "geometry",
+      "mathematics",
+      "historical",
+      "plane geometry",
+      "construction",
+      "proofs"
+    ],
     "file": "gutenberg-wentworth-plane-geometry.pdf",
     "file_type": "pdf",
     "file_size": "2.9 MB",
@@ -342,7 +611,10 @@
     "date_version": "Originally published 1899; this Project Gutenberg edition digitized 2010 (eBook #33063)",
     "provenance_notes": "Source: https://www.gutenberg.org/ebooks/33063 (PDF: https://www.gutenberg.org/files/33063/33063-pdf.pdf) - retrieved 2026-09-02. Original 1899 work is public domain by US copyright term (published before 1929); Project Gutenberg's own terms explicitly permit redistribution of its public-domain e-texts. HISTORICAL WORK, clearly dated as such: retained because geometric proofs and constructions are timeless (unlike medicine, food/water safety, or electrical codes, explicitly excluded from historical retention this round), not because it is free.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Unit Converter"
+      }
     ]
   },
   {
@@ -350,7 +622,16 @@
     "title": "Introduction to Wave Propagation, Transmission Lines, and Antennas (NEETS Module 10)",
     "category": "radio",
     "description": "Navy self-study training module on RF fundamentals: how radio waves propagate, transmission line theory and characteristic impedance, standing waves/SWR, impedance matching, and antenna types and behavior. Fills the Radio/RF depth gap beyond the frequency-allocation chart with real technical fundamentals, without touching any copyrighted ARRL material.",
-    "tags": ["radio wave propagation", "transmission lines", "antennas", "impedance", "swr", "rf fundamentals", "navy", "neets"],
+    "tags": [
+      "radio wave propagation",
+      "transmission lines",
+      "antennas",
+      "impedance",
+      "swr",
+      "rf fundamentals",
+      "navy",
+      "neets"
+    ],
     "file": "neets-module10-wave-propagation-antennas.pdf",
     "file_type": "pdf",
     "file_size": "2.4 MB",
@@ -358,7 +639,10 @@
     "date_version": "NAVEDTRA 14182, September 1998",
     "provenance_notes": "Source: https://archive.org/details/NEETSModule10 (direct: https://archive.org/download/NEETSModule10/NEETSModule10.pdf) - retrieved 2026-09-02. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same two-part standard (PD + the document's own release statement) used for every DoD manual in this library. One module of a ~24-module Navy self-study series (NEETS) confirmed clean PD - other modules (DC/AC fundamentals, semiconductors, digital logic) are a viable source for future rounds rather than bulk-imported here.",
     "related_pages": [
-      {"url": "/utility/radio/", "label": "Radio Reference"}
+      {
+        "url": "/utility/radio/",
+        "label": "Radio Reference"
+      }
     ]
   },
   {
@@ -366,7 +650,16 @@
     "title": "Introduction to Number Systems and Logic (NEETS Module 13)",
     "category": "computing",
     "description": "Navy self-study training module on binary/octal/hexadecimal number systems, conversions between them, binary arithmetic and binary-coded decimal, Boolean algebra, and logic gates/circuits - the foundational digital-computing concepts behind all modern networking and computing equipment. Establishes the new Computing & Digital Fundamentals area of the library.",
-    "tags": ["binary", "hexadecimal", "boolean algebra", "logic gates", "number systems", "digital logic", "navy", "neets"],
+    "tags": [
+      "binary",
+      "hexadecimal",
+      "boolean algebra",
+      "logic gates",
+      "number systems",
+      "digital logic",
+      "navy",
+      "neets"
+    ],
     "file": "neets-module13-number-systems-logic.pdf",
     "file_type": "pdf",
     "file_size": "1.1 MB",
@@ -374,7 +667,10 @@
     "date_version": "NAVEDTRA 14185, September 1998",
     "provenance_notes": "Source: https://archive.org/details/NEETSModule13 (direct: https://archive.org/download/NEETSModule13/NEETSModule13.pdf) - retrieved 2026-09-02. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text). Content (binary/hex representation, Boolean logic) is durable and still directly applicable despite the 1998 publication date - not treated as historical, since the underlying digital-logic concepts are current computing fundamentals, not superseded technique.",
     "related_pages": [
-      {"url": "/utility/computing/", "label": "Computing Reference"}
+      {
+        "url": "/utility/computing/",
+        "label": "Computing Reference"
+      }
     ]
   },
   {
@@ -382,7 +678,17 @@
     "title": "Basic Machines (NAVEDTRA 14037)",
     "category": "mechanical-repair",
     "description": "Navy self-study training course on the six simple machines (lever, wheel and axle, block and tackle, gears, wedge, inclined plane/screw) and their combinations in real mechanical devices - mechanical advantage, gear ratios, and friction/bearings/lubrication. Directly complements the Fastener Design Manual with the mechanical-principle side of Mechanical & Basic Repair.",
-    "tags": ["simple machines", "levers", "gears", "block and tackle", "mechanical advantage", "bearings", "lubrication", "navy", "mechanical"],
+    "tags": [
+      "simple machines",
+      "levers",
+      "gears",
+      "block and tackle",
+      "mechanical advantage",
+      "bearings",
+      "lubrication",
+      "navy",
+      "mechanical"
+    ],
     "file": "navedtra14037-basic-machines.pdf",
     "file_type": "pdf",
     "file_size": "8.2 MB",
@@ -390,8 +696,14 @@
     "date_version": "NAVEDTRA 14037, February 1994",
     "provenance_notes": "Source: https://www.constructionknowledge.net/public_domain_documents/Div_1_General/Basic_Skills/Basic%20Machines%20NAVEDTRA%2014037%201994.pdf - retrieved 2026-09-02. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every DoD/Navy manual in this library. Content inspected via pdftotext confirming genuine, comprehensive coverage of all six simple machines plus bearings/lubrication, not a superficial overview. Two figures (the three lever classes, and a block-and-tackle diagram, pp. 1-2 to 1-3 and 7-3) were selectively extracted to the new Mechanical & Repair reference page in round 7.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"},
-      {"url": "/utility/mechanical/", "label": "Mechanical & Repair: Simple Machines"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Unit Converter"
+      },
+      {
+        "url": "/utility/mechanical/",
+        "label": "Mechanical & Repair: Simple Machines"
+      }
     ]
   },
   {
@@ -399,7 +711,16 @@
     "title": "American Practical Navigator (Bowditch)",
     "category": "reference",
     "description": "The classic, encyclopedic reference on navigation without electronics: piloting, dead reckoning, tides and currents, and full celestial navigation (sextant use, sight reduction, the nautical almanac, time and celestial coordinate systems). Genuinely one of the most valuable offline references imaginable for a device meant to help when GPS/electronics aren't available - teaches navigation methods that work with nothing but a sextant, a chronometer, and this book.",
-    "tags": ["navigation", "celestial navigation", "piloting", "dead reckoning", "sextant", "tides", "astronomy", "bowditch"],
+    "tags": [
+      "navigation",
+      "celestial navigation",
+      "piloting",
+      "dead reckoning",
+      "sextant",
+      "tides",
+      "astronomy",
+      "bowditch"
+    ],
     "file": "nga-bowditch-american-practical-navigator.pdf",
     "file_type": "pdf",
     "file_size": "128 MB",
@@ -407,7 +728,10 @@
     "date_version": "1966 edition",
     "provenance_notes": "Source: https://archive.org/details/bwb_W7-CRM-563 - retrieved 2026-09-03. Published by the U.S. Government Printing Office, work of the US federal government, public domain under 17 U.S.C. Sec. 105. This is the 1966 edition, not the current NGA Pub. 9 edition (attempts to locate a working direct download of the current edition from msi.nga.mil were unsuccessful this round) - noted explicitly as a historical edition. Sections on electronic/radio aids to navigation are dated (no GPS, era-specific radio direction-finding equipment); the celestial navigation, piloting, and tide/current theory - the core, most offline-relevant content - remain fully valid, since the underlying astronomy and mathematics haven't changed. A current-edition upgrade remains a reasonable future candidate if a working download source is found. Two figures (a sextant photograph and its practical-use diagrams, pp. 402-403) were selectively extracted to the Maps page - see docs/IMPLEMENTATION-ROADMAP.md for the selection reasoning.",
     "related_pages": [
-      {"url": "/utility/maps/", "label": "Maps & Location Reference"}
+      {
+        "url": "/utility/maps/",
+        "label": "Maps & Location Reference"
+      }
     ]
   },
   {
@@ -415,7 +739,15 @@
     "title": "Introduction to Matter, Energy, and Direct Current (NEETS Module 1)",
     "category": "electronics",
     "description": "Navy self-study training module on DC electrical fundamentals: atomic theory of electricity, conductors/insulators/semiconductors, static electricity, magnetism, and DC circuit theory (Ohm's law, series/parallel circuits, Kirchhoff's laws). The foundational module beneath the wave-propagation/antenna and test-equipment modules already retained.",
-    "tags": ["dc circuits", "ohm's law", "electricity fundamentals", "magnetism", "conductors", "navy", "neets"],
+    "tags": [
+      "dc circuits",
+      "ohm's law",
+      "electricity fundamentals",
+      "magnetism",
+      "conductors",
+      "navy",
+      "neets"
+    ],
     "file": "neets-module01-matter-energy-dc.pdf",
     "file_type": "pdf",
     "file_size": "6.7 MB",
@@ -423,7 +755,14 @@
     "date_version": "NAVEDTRA 14173A",
     "provenance_notes": "Source: https://archive.org/download/neetsmodules_202003/NEETS%20MOD%201%20NAVEDTRA%2014173A.pdf - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same two-part standard (PD + the document's own release statement) used for every DoD manual in this library, matching the already-retained NEETS Modules 10/13.",
     "related_pages": [
-      {"url": "/utility/fieldtools/ohmslaw/", "label": "Field Tools: Ohm's Law Solver"}
+      {
+        "url": "/utility/fieldtools/ohmslaw/",
+        "label": "Field Tools: Ohm's Law Solver"
+      },
+      {
+        "url": "/utility/electronics/",
+        "label": "Electronics Reference: Voltage/Current/Resistance/Power"
+      }
     ]
   },
   {
@@ -431,7 +770,16 @@
     "title": "Modulation (NEETS Module 12)",
     "category": "radio",
     "description": "Navy self-study training module on modulation principles: AM/FM/PM theory and waveforms, transmitter block diagrams, keying methods (on-off, frequency-shift, phase-shift), pulse modulation (PAM/PFM/PCM), and demodulation/detector circuits. Source for the carrier/modulation diagrams now on the Radio page's Modulation Types section.",
-    "tags": ["modulation", "am", "fm", "pm", "transmitters", "demodulation", "navy", "neets"],
+    "tags": [
+      "modulation",
+      "am",
+      "fm",
+      "pm",
+      "transmitters",
+      "demodulation",
+      "navy",
+      "neets"
+    ],
     "file": "neets-module12-modulation.pdf",
     "file_type": "pdf",
     "file_size": "1.6 MB",
@@ -439,7 +787,10 @@
     "date_version": "NAVEDTRA 14184, September 1998",
     "provenance_notes": "Source: https://archive.org/details/NEETSModule12 (direct: https://archive.org/download/NEETSModule12/NEETSModule12.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text).",
     "related_pages": [
-      {"url": "/utility/radio/", "label": "Radio Reference"}
+      {
+        "url": "/utility/radio/",
+        "label": "Radio Reference"
+      }
     ]
   },
   {
@@ -447,7 +798,17 @@
     "title": "Introduction to Test Equipment (NEETS Module 16)",
     "category": "electronics",
     "description": "Navy self-study training module on multimeters and other test equipment: analog (D'Arsonval movement) and digital meter theory, how voltmeters/ammeters/ohmmeters actually work internally, proper connection/measurement technique, and oscilloscope basics. Source for the labeled VOM diagram now on the Field Tools Units page's Multimeter & Measurement Basics section.",
-    "tags": ["multimeter", "vom", "test equipment", "oscilloscope", "voltmeter", "ammeter", "ohmmeter", "navy", "neets"],
+    "tags": [
+      "multimeter",
+      "vom",
+      "test equipment",
+      "oscilloscope",
+      "voltmeter",
+      "ammeter",
+      "ohmmeter",
+      "navy",
+      "neets"
+    ],
     "file": "neets-module16-test-equipment.pdf",
     "file_type": "pdf",
     "file_size": "1.9 MB",
@@ -455,7 +816,14 @@
     "date_version": "NAVEDTRA 14188, September 1998",
     "provenance_notes": "Source: https://archive.org/details/NEETSModule16 (direct: https://archive.org/download/NEETSModule16/NEETSModule16.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text).",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Unit Converter"
+      },
+      {
+        "url": "/utility/electronics/",
+        "label": "Electronics Reference"
+      }
     ]
   },
   {
@@ -463,7 +831,13 @@
     "title": "Calculus Made Easy (Thompson, 1910)",
     "category": "reference",
     "description": "A famously accessible introduction to differential and integral calculus - the ideas of rates of change and accumulation explained plainly, without the dense formalism of a typical modern textbook. Retained as a historical public-domain work for a durable, non-safety-critical subject (calculus, like geometry, hasn't changed since publication).",
-    "tags": ["calculus", "mathematics", "historical", "derivatives", "integrals"],
+    "tags": [
+      "calculus",
+      "mathematics",
+      "historical",
+      "derivatives",
+      "integrals"
+    ],
     "file": "gutenberg-thompson-calculus-made-easy.pdf",
     "file_type": "pdf",
     "file_size": "1.2 MB",
@@ -471,7 +845,10 @@
     "date_version": "Originally published 1910 (2nd edition); this Project Gutenberg edition (eBook #33283)",
     "provenance_notes": "Source: https://www.gutenberg.org/ebooks/33283 (PDF: https://www.gutenberg.org/files/33283/33283-pdf.pdf) - retrieved 2026-09-03. Original 1910 work is public domain by US copyright term (published before 1929); Project Gutenberg's own terms explicitly permit redistribution of its public-domain e-texts. HISTORICAL WORK, clearly dated as such, matching the same historical-retention basis already used for the Gutenberg Wentworth Plane Geometry text.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Unit Converter"
+      }
     ]
   },
   {
@@ -479,7 +856,15 @@
     "title": "NIOSH Pocket Guide to Chemical Hazards",
     "category": "materials-chemistry",
     "description": "Quick-reference safety information for hundreds of individual chemicals: exposure limits, physical/chemical properties, health effects, personal protective equipment, and first-aid measures. A safe general reference for identifying and understanding chemical hazards - not a set of hazardous procedures. Opens a new Materials & Chemical Safety Reference category.",
-    "tags": ["chemical hazards", "niosh", "exposure limits", "ppe", "msds", "chemical safety", "occupational health"],
+    "tags": [
+      "chemical hazards",
+      "niosh",
+      "exposure limits",
+      "ppe",
+      "msds",
+      "chemical safety",
+      "occupational health"
+    ],
     "file": "niosh-pocket-guide-chemical-hazards.pdf",
     "file_type": "pdf",
     "file_size": "6.0 MB",
@@ -487,7 +872,10 @@
     "date_version": "DHHS (NIOSH) Publication No. 2005-149, 3rd printing, September 2007",
     "provenance_notes": "Source: https://www.cdc.gov/niosh/docs/2005-149/pdfs/2005-149.pdf - retrieved 2026-09-03. Carries its own explicit statement: \"This document is in the public domain and may be freely copied or reprinted.\" NIOSH-authored, work of the US federal government, public domain under 17 U.S.C. Sec. 105.",
     "related_pages": [
-      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"}
+      {
+        "url": "/utility/emergency/",
+        "label": "Emergency / Outage Reference"
+      }
     ]
   },
   {
@@ -495,7 +883,16 @@
     "title": "Linux Fundamentals",
     "category": "pi-linux-networking",
     "description": "A practical, hands-on Linux system administration course: the shell, filesystem hierarchy, permissions, users/groups, processes, package management, and text processing. Aimed at novice Linux sysadmins - directly relevant to understanding and maintaining this PirateBox's own underlying Raspberry Pi OS. Fills the previously-empty Raspberry Pi / Linux / Networking category alongside the companion Linux Networking book below.",
-    "tags": ["linux", "sysadmin", "shell", "bash", "permissions", "filesystem", "users", "raspberry pi"],
+    "tags": [
+      "linux",
+      "sysadmin",
+      "shell",
+      "bash",
+      "permissions",
+      "filesystem",
+      "users",
+      "raspberry pi"
+    ],
     "file": "cobbaut-linux-fundamentals.pdf",
     "file_type": "pdf",
     "file_size": "6.7 MB",
@@ -503,7 +900,10 @@
     "date_version": "Publication date 2015-05-24",
     "provenance_notes": "Source: http://linux-training.be/linuxfun.pdf - retrieved 2026-09-03. The document's own copyright page states: \"Copyright 2007-2015 Netsec BVBA, Paul Cobbaut. Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.3 or any later version... with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.\" Retained unmodified (verbatim copying), which the GFDL permits outright; the full license text is included within the document itself, satisfying the GFDL's own notice-preservation requirement.",
     "related_pages": [
-      {"url": "/utility/computing/", "label": "Computing Reference"}
+      {
+        "url": "/utility/computing/",
+        "label": "Computing Reference"
+      }
     ]
   },
   {
@@ -511,7 +911,18 @@
     "title": "Linux Networking",
     "category": "pi-linux-networking",
     "description": "A practical Linux networking course: TCP/IP and IPv4 fundamentals, DNS, DHCP, SSH client/server, iptables firewalls, and Samba file sharing. Directly addresses the Computing/Networking depth gap (TCP/IP, DNS, DHCP) with a dedicated, hands-on-oriented book rather than a general overview.",
-    "tags": ["linux", "networking", "tcp/ip", "dns", "dhcp", "ssh", "iptables", "firewall", "samba", "raspberry pi"],
+    "tags": [
+      "linux",
+      "networking",
+      "tcp/ip",
+      "dns",
+      "dhcp",
+      "ssh",
+      "iptables",
+      "firewall",
+      "samba",
+      "raspberry pi"
+    ],
     "file": "cobbaut-linux-networking.pdf",
     "file_type": "pdf",
     "file_size": "5.8 MB",
@@ -519,7 +930,10 @@
     "date_version": "Publication date 2015-05-24",
     "provenance_notes": "Source: https://linux-training.be/linuxnet.pdf - retrieved 2026-09-03. Same GNU Free Documentation License 1.3 terms as the companion Linux Fundamentals book above (confirmed by reading this document's own copyright page, not assumed from the same-author/same-site relationship) - no Invariant Sections, no Front/Back-Cover Texts, full license text included in the document itself. Retained unmodified.",
     "related_pages": [
-      {"url": "/utility/computing/", "label": "Computing Reference"}
+      {
+        "url": "/utility/computing/",
+        "label": "Computing Reference"
+      }
     ]
   },
   {
@@ -527,7 +941,15 @@
     "title": "Tools and Their Uses (NAVEDTRA 14256)",
     "category": "mechanical-repair",
     "description": "Navy self-study training course on hand tools and precision measuring tools: types and proper uses of a large range of tools, safety practices, general care, and reading measuring scales/calipers/micrometers. Directly complements the Fastener Design Manual and Basic Machines with the hand-tool and measurement side of Mechanical & Basic Repair - a candidate deferred twice in earlier rounds on access grounds, successfully located this round.",
-    "tags": ["hand tools", "measuring tools", "calipers", "micrometers", "tool safety", "navy", "mechanical"],
+    "tags": [
+      "hand tools",
+      "measuring tools",
+      "calipers",
+      "micrometers",
+      "tool safety",
+      "navy",
+      "mechanical"
+    ],
     "file": "navedtra14256-tools-and-their-uses.pdf",
     "file_type": "pdf",
     "file_size": "18.3 MB",
@@ -535,8 +957,14 @@
     "date_version": "NAVEDTRA 14256, June 1992",
     "provenance_notes": "Source: https://archive.org/details/tools_202001 (direct: https://archive.org/download/tools_202001/tools.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every Navy/DoD manual in this library. A vernier/slide caliper diagram (p. 6-3) was selectively extracted to the new Mechanical & Repair reference page in round 7.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"},
-      {"url": "/utility/mechanical/", "label": "Mechanical & Repair: Hand Tools & Measurement"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Unit Converter"
+      },
+      {
+        "url": "/utility/mechanical/",
+        "label": "Mechanical & Repair: Hand Tools & Measurement"
+      }
     ]
   },
   {
@@ -544,7 +972,14 @@
     "title": "A First Course in Physics (Millikan & Gale, 1906)",
     "category": "reference",
     "description": "A comprehensive introductory physics textbook covering mechanics, heat, sound, light, magnetism, and electricity from first principles, with worked examples throughout. Co-authored by Robert Millikan, later a Nobel laureate in Physics. Retained as a historical public-domain work - the physical principles covered (Newton's laws, energy conservation, basic circuits, optics) remain valid; only the era-specific apparatus/units occasionally show their age.",
-    "tags": ["physics", "mechanics", "electricity", "optics", "historical", "textbook"],
+    "tags": [
+      "physics",
+      "mechanics",
+      "electricity",
+      "optics",
+      "historical",
+      "textbook"
+    ],
     "file": "millikan-gale-first-course-in-physics.pdf",
     "file_type": "pdf",
     "file_size": "23.4 MB",
@@ -552,7 +987,10 @@
     "date_version": "Originally published 1906",
     "provenance_notes": "Source: https://archive.org/details/bwb_Y0-DTD-909 - retrieved 2026-09-03. Original 1906 work is public domain by US copyright term (published before 1929). HISTORICAL WORK, clearly dated as such, same historical-retention basis as the already-retained Gutenberg geometry and calculus texts - retained because the underlying physics is durable, not because it is free.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Unit Converter"
+      }
     ]
   },
   {
@@ -560,7 +998,15 @@
     "title": "Introduction to Circuit Protection, Control, and Measurement (NEETS Module 3)",
     "category": "electronics",
     "description": "Navy self-study training module on fuses/circuit breakers, switches/relays, and electrical measuring instruments beyond the basic multimeter (meter movements, ammeter/voltmeter/ohmmeter shunts and multipliers, wattmeters, and the safety practices around using them). Rounds out the DC-fundamentals (Module 1) and test-equipment (Module 16) coverage with the protection/control layer between them.",
-    "tags": ["fuses", "circuit breakers", "switches", "relays", "electrical measurement", "navy", "neets"],
+    "tags": [
+      "fuses",
+      "circuit breakers",
+      "switches",
+      "relays",
+      "electrical measurement",
+      "navy",
+      "neets"
+    ],
     "file": "neets-module03-circuit-protection-measurement.pdf",
     "file_type": "pdf",
     "file_size": "2.3 MB",
@@ -568,7 +1014,14 @@
     "date_version": "NAVEDTRA 14175, September 1998",
     "provenance_notes": "Source: https://archive.org/details/NEETSModule03 (direct: https://archive.org/download/NEETSModule03/NEETSModule03.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every NEETS module already retained.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Unit Converter"
+      },
+      {
+        "url": "/utility/electronics/",
+        "label": "Electronics Reference: Circuit Protection & Switches/Relays"
+      }
     ]
   },
   {
@@ -576,7 +1029,15 @@
     "title": "Introduction to Solid-State Devices and Power Supplies (NEETS Module 7)",
     "category": "electronics",
     "description": "Navy self-study training module on semiconductor fundamentals: diodes, transistors (bipolar and field-effect), rectifier circuits, and power supply filtering/regulation. The solid-state complement to Module 1's DC fundamentals - covers the components that make up virtually all modern electronics, from the ground up.",
-    "tags": ["semiconductors", "diodes", "transistors", "rectifiers", "power supplies", "navy", "neets"],
+    "tags": [
+      "semiconductors",
+      "diodes",
+      "transistors",
+      "rectifiers",
+      "power supplies",
+      "navy",
+      "neets"
+    ],
     "file": "neets-module07-solid-state-devices.pdf",
     "file_type": "pdf",
     "file_size": "2.4 MB",
@@ -584,7 +1045,14 @@
     "date_version": "NAVEDTRA 14179, September 1998",
     "provenance_notes": "Source: https://archive.org/details/NEETSModule07 (direct: https://archive.org/download/NEETSModule07/NEETSModule07.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every NEETS module already retained.",
     "related_pages": [
-      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Unit Converter"}
+      {
+        "url": "/utility/fieldtools/units/",
+        "label": "Field Tools: Unit Converter"
+      },
+      {
+        "url": "/utility/electronics/",
+        "label": "Electronics Reference: Semiconductors"
+      }
     ]
   },
   {
@@ -592,7 +1060,15 @@
     "title": "Microwave Principles (NEETS Module 11)",
     "category": "radio",
     "description": "Navy self-study training module on microwave-frequency RF theory: waveguides, microwave oscillators (klystrons, magnetrons), and microwave amplifiers (TWTs). Extends the wave-propagation/antenna (Module 10) and modulation (Module 12) coverage into the microwave/UHF-and-above regime, where transmission-line theory gives way to waveguide theory.",
-    "tags": ["microwave", "waveguide", "klystron", "magnetron", "rf fundamentals", "navy", "neets"],
+    "tags": [
+      "microwave",
+      "waveguide",
+      "klystron",
+      "magnetron",
+      "rf fundamentals",
+      "navy",
+      "neets"
+    ],
     "file": "neets-module11-microwave-principles.pdf",
     "file_type": "pdf",
     "file_size": "4.4 MB",
@@ -600,7 +1076,10 @@
     "date_version": "NAVEDTRA 14183, September 1998",
     "provenance_notes": "Source: https://archive.org/details/NEETSModule11 (direct: https://archive.org/download/NEETSModule11/NEETSModule11.pdf) - retrieved 2026-09-03. Carries its own \"DISTRIBUTION STATEMENT A: Approved for public release; distribution is unlimited\" statement (confirmed by reading the actual PDF text), same standard used for every NEETS module already retained.",
     "related_pages": [
-      {"url": "/utility/radio/", "label": "Radio Reference"}
+      {
+        "url": "/utility/radio/",
+        "label": "Radio Reference"
+      }
     ]
   },
   {
@@ -608,15 +1087,25 @@
     "title": "National Risk Register (UK, 2025 edition)",
     "category": "emergency-firstaid",
     "description": "The UK government's own comprehensive assessment of the most serious risks it plans against: natural hazards (flooding, wildfire, earthquake, severe space weather, storms, heatwaves, drought, pandemic), infrastructure/technological failures, and security threats, each with a risk summary and preparedness guidance. Complements the existing US-centric emergency content and the already-retained UK Cabinet Office community guide with a broader, current UK government hazard framework - this library's third non-US document.",
-    "tags": ["risk assessment", "hazards", "uk", "civil emergency", "national risk register", "preparedness"],
+    "tags": [
+      "risk assessment",
+      "hazards",
+      "uk",
+      "civil emergency",
+      "national risk register",
+      "preparedness"
+    ],
     "file": "uk-national-risk-register-2025.pdf",
     "file_type": "pdf",
     "file_size": "4.7 MB",
     "source": "UK Cabinet Office",
     "date_version": "2025 edition",
-    "provenance_notes": "Source: https://assets.publishing.service.gov.uk/media/67b5f85732b2aab18314bbe4/National_Risk_Register_2025.pdf - retrieved 2026-09-03. The document's own final page states: \"© Crown copyright 2025. This publication is licensed under the terms of the Open Government Licence v3.0\" - confirmed by reading the actual PDF text, the same license basis already used for the UK Cabinet Office community-preparedness guide retained in an earlier round. Content inspected via pdftotext confirming substantive, broad hazard coverage (natural, technological, and security risks with individual summaries) before retaining, not assumed from the title.",
+    "provenance_notes": "Source: https://assets.publishing.service.gov.uk/media/67b5f85732b2aab18314bbe4/National_Risk_Register_2025.pdf - retrieved 2026-09-03. The document's own final page states: \"\u00a9 Crown copyright 2025. This publication is licensed under the terms of the Open Government Licence v3.0\" - confirmed by reading the actual PDF text, the same license basis already used for the UK Cabinet Office community-preparedness guide retained in an earlier round. Content inspected via pdftotext confirming substantive, broad hazard coverage (natural, technological, and security risks with individual summaries) before retaining, not assumed from the title.",
     "related_pages": [
-      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"}
+      {
+        "url": "/utility/emergency/",
+        "label": "Emergency / Outage Reference"
+      }
     ]
   }
 ]

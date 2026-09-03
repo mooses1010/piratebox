@@ -1,0 +1,110 @@
+[
+  {
+    "id": "voltage-current-resistance-power",
+    "category": "fundamentals",
+    "title": "Voltage, Current, Resistance & Power",
+    "summary": "Four quantities, one relationship (Ohm's Law) - understand these and most basic circuit behavior follows.",
+    "quick_actions": [
+      "Voltage (V, volts) is electrical \"pressure\" - the potential difference that pushes current through a circuit. It exists between two points even with no current flowing (an open circuit still has a voltage across the gap).",
+      "Current (I, amperes/amps) is the actual flow of charge through a circuit - it only flows when there's a complete path (a closed circuit) for it to flow around.",
+      "Resistance (R, ohms) opposes current flow, converting some electrical energy to heat. Everything has some resistance except a superconductor or a perfect (zero-resistance) wire, which doesn't exist in practice.",
+      "Power (P, watts) is the rate of energy use/conversion: P = V x I. This is why a high-voltage, low-current circuit and a low-voltage, high-current circuit can deliver the same power very differently - and why \"amps kill\" oversimplifies a real hazard that actually depends on the combination of voltage, current, path through the body, and duration.",
+      "Ohm's Law ties three of these together: V = I x R. Knowing any two lets you calculate the third - see the Ohm's Law Solver in Field Tools for the actual calculation."
+    ],
+    "more_info": "For the calculator itself (enter any two values, solve for the rest), see Field Tools' Ohm's Law Solver - this entry covers the concepts, that tool does the arithmetic.",
+    "keywords": ["voltage", "current", "resistance", "power", "ohm's law", "watts", "amps", "volts"],
+    "source_id": "neets-dc-fundamentals",
+    "confidence": "high"
+  },
+  {
+    "id": "ac-fundamentals",
+    "category": "fundamentals",
+    "title": "AC Fundamentals",
+    "summary": "Unlike DC, alternating current reverses direction on a regular cycle - which is exactly why AC voltage/current values need their own way of being expressed.",
+    "quick_actions": [
+      "Direct current (DC) flows in one direction only (a battery, most electronics internally). Alternating current (AC) periodically reverses direction, tracing a repeating waveform - almost always a sine wave for utility power.",
+      "Frequency (measured in hertz, Hz) is how many complete cycles happen per second - 60 Hz in North America, 50 Hz in most of the rest of the world, for utility power specifically.",
+      "RMS (root-mean-square) voltage/current is the AC equivalent of a steady DC value that would deliver the same average power - when someone says \"120V AC,\" they mean 120V RMS, even though the actual voltage is constantly changing and briefly peaks higher than that (about 170V for 120V RMS).",
+      "AC is used for power distribution specifically because transformers - which only work on AC - make it easy to step voltage up for efficient long-distance transmission (lower current at higher voltage means less resistive loss in the wire) and back down to a safe level for actual use.",
+      "Many electronic devices convert AC to DC internally (a power supply/adapter) because their actual circuitry needs a steady DC voltage to operate correctly - the \"wall wart\" on a charger is doing exactly this conversion."
+    ],
+    "more_info": "AC circuit behavior gets more complex than DC once you introduce components (capacitors, inductors) whose opposition to current changes with frequency - that deeper topic (reactance/impedance) is covered in the Radio Reference's own transmission-line material for the RF-specific case.",
+    "keywords": ["ac", "dc", "alternating current", "direct current", "frequency", "hertz", "rms", "transformer"],
+    "source_id": "general-electronics-reference",
+    "confidence": "high"
+  },
+  {
+    "id": "semiconductors-diodes-transistors",
+    "category": "components",
+    "title": "Semiconductors: Diodes & Transistors",
+    "summary": "A diode lets current flow one way only; a transistor uses a small current/voltage to control a much larger one.",
+    "quick_actions": [
+      "A diode is a two-terminal semiconductor device that allows current to flow easily in one direction (forward-biased) and blocks it in the other (reverse-biased) - the basic building block of AC-to-DC rectification and one-way current control.",
+      "An LED (light-emitting diode) is a diode that emits light when forward-biased - it still only conducts one way, and like any diode needs a current-limiting resistor in most circuits to avoid drawing excessive current and failing.",
+      "A transistor has three elements (emitter, base, collector in a bipolar transistor) and can amplify: a small current/voltage at the base controls a much larger current flowing between emitter and collector - this is the basic mechanism behind both analog amplification and digital switching.",
+      "Transistors are classified as NPN or PNP (bipolar) based on how their semiconductor layers are arranged, or as field-effect (FET/MOSFET) types that are controlled by voltage rather than current at the control terminal - different types suit different circuit roles, not one \"better\" type overall.",
+      "Integrated circuits (ICs/\"chips\") are simply many transistors (and other components) fabricated together on one piece of semiconductor material - the same underlying diode/transistor physics, just at a scale of thousands to billions of devices per chip."
+    ],
+    "diagram": {
+      "image": "neets7-fig2-1-transistor-types.png",
+      "alt": "Photograph of an assortment of physically different transistor packages arranged in a circle, showing the variety of case shapes and lead configurations",
+      "caption": "Figure 2-1. An assortment of different types of transistors - package shape varies widely, but the underlying three-terminal (emitter/base/collector) principle is the same.",
+      "source_line": "Source: NEETS Module 7, <em>Solid-State Devices and Power Supplies</em>, p. 62 (public domain)"
+    },
+    "more_info": "Physical transistor packages vary enormously (small signal transistors, power transistors with metal heat-sink tabs, tiny surface-mount packages) - the photo above shows several classic through-hole styles, but the same electrical principle applies regardless of package.",
+    "keywords": ["diode", "transistor", "led", "npn", "pnp", "semiconductor", "rectifier", "integrated circuit"],
+    "source_id": "neets-solid-state",
+    "confidence": "high"
+  },
+  {
+    "id": "circuit-protection-fuses-breakers",
+    "category": "protection",
+    "title": "Circuit Protection: Fuses & Breakers",
+    "summary": "Both fuses and breakers exist to fail on purpose, safely, before a wire or component fails unsafely.",
+    "quick_actions": [
+      "A fuse contains a metal element that melts and opens the circuit when current exceeds its rating for long enough - simple, cheap, and reliable, but it must be physically replaced after it blows (never with a higher-rated fuse than specified, which defeats its protective purpose).",
+      "A circuit breaker uses a mechanical or thermal mechanism to trip and open the circuit at excess current, and - unlike a fuse - can simply be reset once the problem is cleared, without needing a replacement part.",
+      "Both exist to protect the wiring and connected equipment from a fault (a short circuit or overload), not primarily to protect a person from shock - the circuit still has to actually be opened before the protection takes effect, which takes some finite time.",
+      "A fuse/breaker rating should match the wiring it protects, not just the load you intend to connect - undersizing nuisance-trips on normal loads; oversizing defeats the protection the wiring itself needs.",
+      "A fuse/breaker that trips repeatedly is telling you something real is wrong (an overload or a fault) - repeatedly resetting or replacing it without finding the actual cause risks the exact wiring/fire hazard the protection exists to prevent."
+    ],
+    "more_info": "See the Electrical Safety documents in the Document Library below for the full authoritative treatment of electrical hazard recognition and safe practice - this entry covers the protective-device concept, not complete safety procedure.",
+    "keywords": ["fuse", "circuit breaker", "overcurrent", "short circuit", "overload", "circuit protection"],
+    "source_id": "neets-circuit-protection",
+    "confidence": "high"
+  },
+  {
+    "id": "switches-relays",
+    "category": "protection",
+    "title": "Switches & Relays",
+    "summary": "A relay is just a switch that's controlled electrically instead of by hand.",
+    "quick_actions": [
+      "A switch makes or breaks a circuit path mechanically - SPST (single-pole, single-throw) is the simplest form: one circuit, on or off. SPDT, DPDT, and other designations describe how many separate circuits (\"poles\") and how many positions (\"throws\") a switch handles.",
+      "A relay uses a small electrical control current through a coil to mechanically operate a switch contact (or set of contacts) - this lets a low-power control circuit (a sensor, a small button, a microcontroller) safely switch a much higher-power circuit (a motor, a heater, mains power) without the control circuit ever touching the high-power one directly.",
+      "\"Normally open\" (NO) contacts are open (no connection) until the relay/switch is activated; \"normally closed\" (NC) contacts are the opposite - closed until activated. The same relay often has both types of contacts available for different uses.",
+      "Contact rating (voltage and current) matters as much as coil voltage when choosing a relay - a relay's contacts can be damaged or can weld shut if used beyond their rated switching current, especially with inductive loads (motors, solenoids) that produce a voltage spike when switched off.",
+      "A solid-state relay (SSR) does the same job as a mechanical relay using semiconductor switching instead of a moving contact - no mechanical wear or contact arcing, but different failure modes (typically failing shorted rather than open) worth knowing if one is in a safety-relevant circuit."
+    ],
+    "more_info": "Relays are the bridge between simple electrical control and the electromechanical control systems covered more fully in the Circuit Protection, Control, and Measurement manual in the Document Library below.",
+    "keywords": ["switch", "relay", "spst", "spdt", "normally open", "normally closed", "solid state relay"],
+    "source_id": "neets-circuit-protection",
+    "confidence": "high"
+  },
+  {
+    "id": "analog-vs-digital",
+    "category": "fundamentals",
+    "title": "Analog vs. Digital Fundamentals",
+    "summary": "Analog represents a value as a continuously variable quantity; digital represents it as discrete on/off states.",
+    "quick_actions": [
+      "An analog signal/value can be anything within a continuous range (a dial that can point anywhere, a voltage that can be any value between two limits) - it can represent very fine detail, but is also more susceptible to noise and drift accumulating undetected.",
+      "A digital signal/value only ever takes on a fixed set of discrete states - almost always binary (two states: on/off, high/low, 1/0) at the hardware level, though what those states represent (a number, a letter, a color) is built up from combinations of many binary digits (bits).",
+      "Binary, octal, and hexadecimal are just different ways of writing the same underlying binary values - hexadecimal in particular is common in computing because each hex digit maps to exactly 4 bits, making it a compact, human-readable stand-in for long binary strings.",
+      "Digital signals are more resistant to noise than analog ones because a digital receiver only needs to distinguish \"closer to 0\" from \"closer to 1,\" not reproduce an exact continuous value - this is a major reason digital systems have displaced analog ones for storage and long-distance transmission.",
+      "Real-world physical quantities (sound, light, temperature) are inherently analog - a digital system measuring or reproducing them always involves a conversion step (analog-to-digital or digital-to-analog) at some boundary, which is itself a source of quantization/rounding error, however small."
+    ],
+    "more_info": "For the actual binary/hex/octal number systems and Boolean logic gates behind digital electronics, see the Computing Reference page and the NEETS Number Systems and Logic manual in the Document Library below.",
+    "keywords": ["analog", "digital", "binary", "hexadecimal", "bit", "signal"],
+    "source_id": "neets-number-systems",
+    "confidence": "high"
+  }
+]
