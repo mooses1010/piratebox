@@ -24,7 +24,13 @@
       "toxic symbol"
     ],
     "source_id": "osha-pictogram-quickcard",
-    "confidence": "high"
+    "confidence": "high",
+    "diagram": {
+      "image": "osha3491-ghs-pictogram-grid.png",
+      "alt": "The nine GHS hazard pictograms in a labeled 3x3 grid: Health Hazard, Flame, Exclamation Mark, Gas Cylinder, Corrosion, Exploding Bomb, Flame Over Circle, Environment, and Skull and Crossbones, each with its associated hazard categories listed underneath",
+      "caption": "The nine GHS pictograms and what each represents, directly from OSHA's own QuickCard.",
+      "source_line": "Source: OSHA 3491 QuickCard, p.1 (public domain)"
+    }
   },
   {
     "id": "safety-data-sheets",
