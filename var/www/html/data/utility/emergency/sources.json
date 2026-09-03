@@ -188,11 +188,11 @@
     "retrieved": "2026-09-01",
     "note": "Practical synthesis (e.g. phone/battery conservation, PirateBox-specific communications guidance) not tied to one specific regulatory/agency citation - common-sense preparedness practice."
   },
-  "cdc-water-safety-emergency": {
-    "name": "Making Water Safe in an Emergency (CDC)",
+  "cdc-make-water-safe-emergency": {
+    "name": "Make Water Safe During an Emergency (CDC)",
     "publisher": "CDC, Water, Sanitation, & Hygiene (WASH)-related Emergencies & Outbreaks program",
-    "url": "/utility/library/#cdc-water-safety-emergency",
+    "url": "/utility/library/#cdc-make-water-safe-emergency",
     "retrieved": "2026-09-03",
-    "note": "Basis for the chemical-disinfection dosing and filtration guidance below - retrieved via an IHS mirror since cdc.gov blocks automated requests; see the catalog entry's own provenance_notes for the full detail."
+    "note": "Basis for the chemical-disinfection dosing and filtration guidance below - already retained in the Document Library (added an earlier round); this topic breaks its bleach/iodine/filter section out into its own focused entry rather than leaving it folded into the broader Water Storage & Boil-Water Advisories topic."
   }
 }
