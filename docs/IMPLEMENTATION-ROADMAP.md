@@ -417,6 +417,63 @@ subject exists" rather than because comprehension genuinely suffers
 without one would be exactly the decorative-image anti-pattern the
 instruction warned against.
 
+### 3g. Original-source library expansion, round 2 (2026-09-02)
+
+Second serious source-investigation pass, per explicit instruction
+that the ~13MB library is nowhere near finished. Investigated broadly
+across categories, retained what passed per-item verification,
+recorded what didn't.
+
+**Retained (4 new documents, ~9.6 MB, bringing the library to 12
+documents / ~22 MB total):**
+
+| Document | Source | Basis | Category | Scope |
+|---|---|---|---|---|
+| Map Reading and Land Navigation (FM 3-25.26) | US Army, 2005, 209pp, 7.8 MB | PD (17 U.S.C. Sec. 105) - Internet Archive's own "Public Domain Mark 1.0" tag + the manual's own "approved for public release" statement, same two-part confirmation as FM 4-25.11 | `maps` | Universal technique (UTM/MGRS/compass are international standards), US military authorship |
+| United States Frequency Allocation Chart | NTIA/US Dept. of Commerce, Sept. 2025, 267 KB | PD - Wikimedia Commons' own federal-employee-work tag, exact byte match verified | `radio` | US-specific (this is a US spectrum allocation chart specifically, not a global one - labeled as such) |
+| Electrical Safety (OSHA QuickCard) | OSHA/US Dept. of Labor, 2013 (rev. 2024), 39 KB | PD - OSHA's own published policy statement ("OSHA's rules are in the public domain") | `electronics` | Universal hazard concepts (shock, arc flash), US-agency authorship |
+| Preparing for Emergencies: Guide for Communities | UK Cabinet Office, Sept. 2016, 285 KB | **Open Government Licence v3.0** (UK Crown copyright's default licence, confirmed as gov.uk's site-wide default unless stated otherwise) - a permissive grant, not a public-domain declaration, but functionally equivalent for redistribution here. First genuinely non-US-government source in this library | `emergency-firstaid` | **International** - the first real counterpart to this library's otherwise all-US-federal sourcing |
+
+All four cross-linked via the existing `related_pages` metadata
+mechanism (see §3c) to their relevant subject pages - no duplicate
+document-list architecture needed, the existing Document Library
+cross-link pattern already was the reusable "Related Documents"
+pattern this round's instruction asked for (see the completeness
+audit below).
+
+**Investigated and rejected (licensing, not access):**
+
+| Source | Finding | Disposition |
+|---|---|---|
+| WHO (Technical notes on drinking-water, sanitation and hygiene in emergencies) | "World Health Organization holds copyright to these materials with all rights reserved" | **Licensing blocked** - not retained. WHO material may still be cited as a research source for original PirateBox reference text in the future, never copied |
+| ITU (Radio Regulations) | Free download explicitly for "personal use" only, not a redistribution grant | **Licensing blocked** - not retained. Continue citing ITU only as a source_id reference (already used for RF band nomenclature), never as a retained original |
+| WMO (World Meteorological Organization publications) | Requires case-by-case permission beyond "short excerpts"; no blanket reuse grant | **Licensing blocked** - not retained. The existing Beaufort Wind Scale content correctly uses NOAA (a genuinely PD US federal presentation of the same international standard) instead, not a WMO document directly |
+
+**Document Library / Related Documents completeness audit:** the
+existing `related_pages`-driven cross-link mechanism
+(`includes/library_links.php`, §3c) already fully satisfies this
+round's "documents should be visible from their subject category"
+requirement - metadata-driven, one canonical catalog, no duplicate
+lists possible. Auditing which subject pages actually call it found
+one real gap: **Field Tools Units (Electrical)** and **Radio** had
+never been wired to the page-level variant (Radio only had its
+existing per-guide anchor variant) - both fixed this round, the same
+reusable function, no new pattern invented.
+
+**`poppler-utils` reconsidered, not installed:** with the library now
+including two image/diagram-rich PD manuals (FM 4-25.11's first-aid
+illustrations, FM 3-25.26's land-navigation figures/maps) alongside
+the already-retained USGS/NOAA charts, the case for PDF-rendering
+tooling to extract individual diagrams as inline reference images is
+now measurably stronger than when this blocker was first recorded
+against a single document - **this is now a reasonable candidate for
+operator-approved installation**, not just a one-document nice-to-
+have. Still not installed, per standing instruction; recorded here for
+the operator's own decision, not acted on unilaterally.
+
+**Library footprint:** 12 documents, ~22 MB total (was ~13 MB) -
+trivial against the 128GB card; still curated, not bulk-mirrored.
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |

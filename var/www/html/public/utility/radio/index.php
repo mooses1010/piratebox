@@ -27,6 +27,15 @@ $sigid = radio_load_json($DATA_DIR . '/signal-identification.json');
 require_once __DIR__ . '/../../../includes/library_links.php';
 $sources = radio_load_json($DATA_DIR . '/sources.json');
 
+// Page-level Document Library cross-link (added 2026-09-02, found
+// missing during a "related documents" completeness audit - every
+// other subject page already had this; Radio only had the per-guide
+// variant below). A catalog entry can still target a specific guide
+// anchor ('/utility/radio/#<guide-id>') for a tighter cross-link, or
+// the bare page URL for a whole-page reference like a frequency
+// allocation chart that doesn't belong to one specific guide.
+$libraryLinksHtml = piratebox_render_library_links_html(piratebox_get_library_entries_for_page('/utility/radio/'));
+
 // Group services into display sections. Keys are the "group" used for the
 // filter chips; a service's `category` (from services.json) maps into one
 // of these via $categoryToGroup.
@@ -127,6 +136,8 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
 
         <p>A fast, offline lookup for a wideband receiver (built with a Malahit DSP2-style receiver in mind). Search or filter below - everything on this page works with no Internet connection. <strong>This is receive-focused.</strong> Owning a receiver does not authorize transmitting anywhere on this page; each entry marks whether transmitting requires a license.</p>
         <p class="muted">Unfamiliar term (polarization, SWR, simplex)? See the <a href="/utility/glossary/">Glossary</a>.</p>
+
+        <?= $libraryLinksHtml ?>
 
         <div class="radio-spectrum-wrap">
             <?php require __DIR__ . '/spectrum.svg.php'; ?>

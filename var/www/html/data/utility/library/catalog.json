@@ -1,5 +1,73 @@
 [
   {
+    "id": "dod-fm-3-25-26-land-navigation",
+    "title": "Map Reading and Land Navigation (FM 3-25.26 / FM 21-26)",
+    "category": "maps",
+    "description": "The US Army's full field manual on map reading and land navigation - topographic map symbols and marginal information, grid systems (UTM/MGRS in full detail), compass use, declination, terrain association, and both day and night navigation techniques. Directly complements this device's own coordinate-format and true-vs-magnetic-north reference with the complete authoritative procedure behind it.",
+    "tags": ["map reading", "land navigation", "utm", "mgrs", "compass", "declination", "topographic map", "terrain association", "military manual"],
+    "file": "dod-fm-3-25-26-land-navigation.pdf",
+    "file_type": "pdf",
+    "file_size": "7.8 MB",
+    "source": "Headquarters, Department of the Army (US Army field manual)",
+    "date_version": "FM 3-25.26, January 2005 (successor to FM 21-26)",
+    "provenance_notes": "Source: https://archive.org/details/FM3-25x26 (direct file: archive.org/download/FM3-25x26/FM3-25x26.pdf) - retrieved 2026-09-02. A US Department of Defense work of the federal government, public domain under 17 U.S.C. Sec. 105 - confirmed via Internet Archive's own item metadata, which explicitly carries a 'Public Domain Mark 1.0' tag AND the manual's own distribution statement text ('Approved for public release, distribution is unlimited'), the same two-part confirmation standard used for FM 4-25.11. Verified 209 pages, 8,167,056 bytes - not a truncated/partial copy.",
+    "related_pages": [
+      {"url": "/utility/maps/", "label": "Maps & Location Reference"},
+      {"url": "/utility/maps/#coordinate-formats", "label": "Maps: Coordinate Formats (DD, DMS, UTM, MGRS)"},
+      {"url": "/utility/maps/#true-vs-magnetic-north", "label": "Maps: True North vs. Magnetic North"},
+      {"url": "/utility/outdoor/", "label": "Outdoor & Field Reference"}
+    ]
+  },
+  {
+    "id": "ntia-us-frequency-allocation-chart",
+    "title": "United States Frequency Allocation Chart",
+    "category": "radio",
+    "description": "The official wall chart showing which service (broadcast, amateur, aviation, marine, federal, etc.) is allocated to every band from 3 kHz to 300 GHz - the authoritative big-picture answer to \"what's using this part of the spectrum,\" complementing this device's own per-service Radio Reference and signal-identification framework.",
+    "tags": ["frequency allocation", "spectrum chart", "radio spectrum", "band plan", "ntia", "fcc"],
+    "file": "ntia-us-frequency-allocation-chart.pdf",
+    "file_type": "pdf",
+    "file_size": "267 KB",
+    "source": "National Telecommunications and Information Administration (NTIA), US Department of Commerce",
+    "date_version": "September 2025 edition (data as of March 2025)",
+    "provenance_notes": "Source: https://commons.wikimedia.org/wiki/File:United_States_Frequency_Allocations_chart_-_September_2025.pdf (direct file: upload.wikimedia.org/wikipedia/commons/7/75/United_States_Frequency_Allocations_chart_-_September_2025.pdf) - retrieved 2026-09-02. A work of a US Department of Commerce employee made as part of official duties, public domain under 17 U.S.C. Sec. 105 per Wikimedia Commons' own file-page tag. Verified exact byte match (273,849 bytes) against Wikimedia's own listed file size.",
+    "related_pages": [
+      {"url": "/utility/radio/", "label": "Radio Reference"}
+    ]
+  },
+  {
+    "id": "osha-electrical-safety",
+    "title": "Electrical Safety (OSHA QuickCard)",
+    "category": "electronics",
+    "description": "A concise official safety card on basic electrical hazards - shock, arc flash/blast, and safe work practices around electrical equipment. Pairs with this device's own Ohm's Law/AWG reference and multimeter-safety note with an authoritative original on the hazards themselves.",
+    "tags": ["electrical safety", "shock hazard", "arc flash", "osha", "electrical hazards"],
+    "file": "osha-electrical-safety.pdf",
+    "file_type": "pdf",
+    "file_size": "39 KB",
+    "source": "Occupational Safety and Health Administration (OSHA), US Department of Labor",
+    "date_version": "OSHA 3294 (2013), most recently revised 2024-02-07",
+    "provenance_notes": "Source: https://www.osha.gov/sites/default/files/publications/electrical_safety.pdf - retrieved 2026-09-02. OSHA-authored safety publication, work of the US federal government, public domain under 17 U.S.C. Sec. 105 - confirmed against OSHA's own stated policy (a 1992 standard interpretation letter still linked from osha.gov: 'OSHA's rules are in the public domain and may be reproduced, fully or partially, without permission from OSHA'), with the standard caveat that agency logos/seals (not present in this card's actual content) are excepted.",
+    "related_pages": [
+      {"url": "/utility/fieldtools/units/", "label": "Field Tools: Electrical Quick Reference"},
+      {"url": "/utility/fieldtools/ohmslaw/", "label": "Field Tools: Ohm's Law Solver"}
+    ]
+  },
+  {
+    "id": "uk-preparing-for-emergencies",
+    "title": "Preparing for Emergencies: Guide for Communities",
+    "category": "emergency-firstaid",
+    "description": "The UK Cabinet Office's household/community emergency-preparedness guide - risk awareness, a household emergency plan, and a basic emergency kit list. A genuinely international counterpart to this library's otherwise US-federal-sourced emergency guidance, useful anywhere this device might travel, not just in the US.",
+    "tags": ["emergency preparedness", "uk", "cabinet office", "household emergency plan", "international", "community resilience"],
+    "file": "uk-preparing-for-emergencies.pdf",
+    "file_type": "pdf",
+    "file_size": "285 KB",
+    "source": "Cabinet Office (UK Government)",
+    "date_version": "September 2016",
+    "provenance_notes": "Source: https://assets.publishing.service.gov.uk/media/5a7f9482ed915d74e622b543/pfe_guide_for_communities.pdf - retrieved 2026-09-02. UK Crown copyright material published on gov.uk, released under the Open Government Licence v3.0 - confirmed as the DEFAULT licence for gov.uk content unless a page states otherwise ('all content available on www.gov.uk is available under the licence, unless otherwise stated'), permitting copying, publishing, distribution, and adaptation for commercial and non-commercial use, conditioned on attribution (given here: 'Contains public sector information licensed under the Open Government Licence v3.0 - Cabinet Office, 2016'). Distinct from the US-federal 17 U.S.C. Sec. 105 basis used elsewhere in this library - a permissive license grant, not a public-domain declaration, but functionally equivalent for this project's redistribution purposes.",
+    "related_pages": [
+      {"url": "/utility/emergency/", "label": "Emergency / Outage Reference"}
+    ]
+  },
+  {
     "id": "usgs-topographic-map-symbols",
     "title": "Topographic Map Symbols",
     "category": "maps",

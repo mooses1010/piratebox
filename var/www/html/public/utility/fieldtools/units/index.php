@@ -3,6 +3,15 @@ declare(strict_types=1);
 session_start();
 
 require_once __DIR__ . '/../../../../includes/fieldtools_convert.php';
+require_once __DIR__ . '/../../../../includes/library_links.php';
+
+// Cross-link to the Document Library - metadata-driven, see includes/
+// library_links.php. Was missing from this page (found during a
+// cross-link completeness audit, 2026-09-02) even though every other
+// subject page already has it - renders nothing until a catalog entry
+// actually names this page in its own related_pages, same as anywhere
+// else this call is used.
+$libraryLinksHtml = piratebox_render_library_links_html(piratebox_get_library_entries_for_page('/utility/fieldtools/units/'));
 
 // Field Tools: Unit Conversion (Post-Stage-32). Interactive conversion
 // needs JavaScript (arbitrary user input, live feedback) - see
@@ -47,6 +56,8 @@ $distExamples = [
         </noscript>
 
         <p class="muted">Unfamiliar term (voltage, resistance, SI prefix)? See the <a href="/utility/glossary/">Glossary</a>.</p>
+
+        <?= $libraryLinksHtml ?>
 
         <h2>Temperature</h2>
         <div class="fieldtools-tool" id="ft-temp-tool">
