@@ -6,6 +6,121 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Round 9: Theme Selector Regression - Root Cause and Fix
+
+**Decision date:** 2026-09-03. The operator reported, from real use on
+real hardware, that round 8's theme selector didn't actually work:
+picking a theme changed the dropdown's own displayed text but nothing
+about the page's appearance, and the choice was gone (selector back to
+"Default") on the very next page. Round 8's own verification never
+caught this - it checked that `<option>` markup rendered via `php -S`
+and computed WCAG contrast from hand-typed hex strings, neither of
+which could ever detect a real browser-runtime failure. Treated as a
+confirmed real bug from the first message, not re-litigated.
+
+**Investigation, in the order it was actually ruled out (this project
+has no real or headless browser available, so every step below is
+static/structural verification, not a browser observation - see the
+"What remains operator-visual verification" note at the end):**
+
+1. **CSS structurally sound.** A full brace-balance parse of
+   `styles.css` (comments stripped first) confirmed the file has zero
+   unmatched braces anywhere, and each of the five `:root`/
+   `:root[data-theme="..."]` blocks is exactly one well-formed rule -
+   ruled out a stray brace elsewhere in the 1600+ line file silently
+   breaking everything after it.
+2. **JS structurally sound.** Re-read `scripts.js` end to end; the
+   restore-IIFE, the `<select>`-sync code, and the `change` listener
+   are all correctly formed, reference the same `PIRATEBOX_THEME_KEY`/
+   `PIRATEBOX_THEMES` values, and the early-restore IIFE genuinely
+   executes before the `DOMContentLoaded` listener in source order (it
+   has to - this is top-level synchronous code).
+3. **No duplicate rendering.** Every one of the 25 pages that include
+   `includes/navbar.php` does so via exactly one `require_once` call -
+   ruled out two `<select id="themeSelect">` elements existing on one
+   page with the JS listener silently attached to the wrong (e.g.
+   hidden) one.
+4. **No ID/key typos.** Byte-compared the literal string `themeSelect`
+   between `includes/theme.php` (where it's rendered) and
+   `scripts.js` (where it's queried) - identical.
+5. **CSS specificity checked, not assumed.** `:root[data-theme="x"]`
+   (one pseudo-class + one attribute selector, both class-level) is
+   provably higher specificity than plain `:root` (one pseudo-class
+   alone) under the CSS spec - the override rule really would win in
+   any standards-compliant browser, given the attribute is actually
+   set on `<html>`.
+6. **Root cause found: no `Cache-Control` on static assets at all.**
+   `curl -sI http://localhost/assets/scripts.js` returned only
+   `Last-Modified`/`ETag` - no `Cache-Control`, no `Expires`, anywhere
+   in `/etc/nginx/sites-available/default`'s `location /` (the block
+   every static asset request actually falls through to; the one
+   `add_header Cache-Control "private, no-store"` in the file is
+   scoped to the exact-match `/.well-known/captive-portal` location
+   only, not to `/assets/`). With no explicit directive, browsers fall
+   back to *heuristic* freshness (commonly a fraction of the time
+   since `Last-Modified`) - meaning a browser that had visited this
+   PirateBox before round 8's deploy could keep silently reusing its
+   OLD cached `scripts.js`/`styles.css` (from any earlier round, with
+   no theme code at all) for an unpredictable, browser-specific
+   window after the new versions were deployed, with **no visible
+   error of any kind**. This exactly and completely explains every
+   symptom reported: the `<select>` still shows a new choice because
+   that's native `<select>` behavior requiring zero JavaScript; there
+   is no visual change because the *cached, stale* JS has no listener
+   to fire; nothing persists because the stale JS never calls
+   `localStorage.setItem`; and every fresh page load shows "Default"
+   again because a `<select>` with no `selected` attribute on any
+   `<option>` simply displays its first option, which happens to be
+   the one named "Default."
+
+**The fix:** `etc/nginx/sites-available/default` gained a
+`location ^~ /assets/ { add_header Cache-Control "no-cache" always; }`
+block. `no-cache` (despite the name) does not disable caching - it
+means the browser must revalidate with the server (a fast conditional
+GET against the current `ETag`/`Last-Modified`) before reusing any
+cached copy, on every use. That revalidation is exactly what a
+heuristic-freshness browser can skip for a stretch of time with no
+explicit directive present - adding it closes the actual gap: a
+deploy's new `ETag` is now detected on the very next load, not after
+an unknowable delay.
+
+**Deliberately not done:** no second theme mechanism layered on top
+(the existing localStorage/`data-theme` architecture was never the
+problem), no cache-busting query-string/versioned-filename scheme
+added on top of the `no-cache` header (redundant - `no-cache` alone
+already guarantees correctness after every deploy, at the HTTP
+protocol level, for any spec-compliant browser), no change to
+`includes/theme.php`, `assets/scripts.js`'s theme logic, or any
+`:root[data-theme]` block - all of it was already correct.
+
+**Regression coverage added:** `tools/test_theme_system.php` - checks
+things a browser test would actually need to be true, not just that
+files/strings exist: the PHP/JS theme-id lists match exactly, every
+JS-declared theme has a matching CSS block and vice versa (no orphans
+either direction), every theme's CSS block redefines every token the
+base `:root` defines (an incomplete theme silently inherits stray
+default-theme colors for whatever it omits - not a crash, but a real,
+easy-to-miss bug this test would catch), the CSS specificity math
+itself, the early-restore IIFE's position relative to
+`DOMContentLoaded` in source order, and that
+`piratebox_render_theme_switcher()`'s actual rendered `<option>`s
+match `PIRATEBOX_THEMES` exactly via the real function, not a
+hand-copied expectation.
+
+**What remains operator-visual verification, honestly:** this
+project has no real or headless browser available in this
+environment, so nothing above can *prove* a real browser now
+switches themes correctly - it proves every statically-checkable
+precondition for that to work is now true, and it identifies and
+fixes the one real defect found (the missing cache header) with a
+complete causal explanation for every symptom reported. Confirming
+five visibly distinct themes and persistence across real page loads
+in an actual browser, after the operator's browser has done one hard
+refresh (or after enough time for any old heuristic-cached copy to
+have expired) to pick up both the code and the corrected cache
+header, is the one verification step this round cannot perform
+itself.
+
 ## Lightweight Theme System
 
 **Decision date:** 2026-09-03, Round 8. A small, curated set of

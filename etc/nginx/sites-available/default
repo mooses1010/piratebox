@@ -84,6 +84,28 @@ server {
         }
     }
 
+    # Round 9: static assets (JS/CSS/images/fonts) get an explicit
+    # Cache-Control so a browser always revalidates with the server
+    # before reusing a cached copy. Before this, no Cache-Control
+    # header was set at all here, so browsers fell back to heuristic
+    # freshness (commonly a fraction of the file's age since it was
+    # last modified) - this was a real, confirmed cause of the round-8
+    # theme-selector bug report: a browser could silently keep serving
+    # an old cached assets/scripts.js or assets/styles.css after a
+    # deploy, with no visible error, until its own heuristic window
+    # happened to expire. "no-cache" (despite the name) still allows
+    # normal fast conditional-GET caching (a 304 when nothing changed,
+    # no re-download) - it just guarantees a check against the
+    # server's current ETag/Last-Modified happens on every use, so a
+    # real deploy is picked up on the very next load rather than after
+    # an unpredictable, browser-specific delay. See
+    # docs/OPERATIONAL-DECISIONS.md "Round 9: Theme Selector Regression
+    # - Root Cause and Fix" for the full diagnosis.
+    location ^~ /assets/ {
+        add_header Cache-Control "no-cache" always;
+        try_files $uri =404;
+    }
+
     # PirateBox application
     location / {
         try_files $uri $uri/ /index.php?$args;
