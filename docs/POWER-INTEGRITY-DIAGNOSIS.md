@@ -1,19 +1,24 @@
 # Power Integrity Diagnosis
 
-**Status: DIAGNOSIS ONLY.** This round investigated the chronic
-`0x50005` undervoltage condition. **Nothing physical was changed** -
-no supply, cable, connector, fan, or GPIO wiring was touched. This is
-the required evidence gathering before the AWUS036ACM production
+**Status: DIAGNOSIS + ONE COMPLETED A/B TEST.** This round investigated
+the chronic `0x50005` undervoltage condition and, in a same-day
+follow-up, tested and **ruled out the power cable as a sufficient fix**
+(§9a) - the original Samsung phone cable was replaced with a
+higher-quality one, same Apple 12W brick, same loads; active
+under-voltage remained after independent re-verification. This is the
+required evidence gathering before the AWUS036ACM production
 migration's power-aware gate (`docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md`
-§8) can be considered met - it is **not** that gate being met. Read
-`docs/POWER-UPS-DESIGN.md` for the separate, forward-looking UPS/
+§8) can be considered met - it is **still not** that gate being met.
+Read `docs/POWER-UPS-DESIGN.md` for the separate, forward-looking UPS/
 battery requirements; this document is about the *current* wall-power
 path.
 
 **The goal was never to make `0x50005` disappear cosmetically.** It
 hasn't disappeared. This document establishes what's actually known,
 what's still genuinely uncertain, and what physical step should happen
-next - all with the evidence that justifies it, not assumption.
+next - all with the evidence that justifies it, not assumption. The
+next controlled variable, per the operator's own plan, is the power
+brick itself (§9a) - not yet tested.
 
 ---
 
@@ -361,6 +366,54 @@ presents, which is a different load shape than phone charging.
 
 ---
 
+## 9a. Cable A/B test - completed, negative result (2026-09-03)
+
+**The power source was identified**: a genuine Apple iPad 12W wall
+brick (well-regulated by reputation, an unlikely culprit on its own),
+paired with an old, unknown-gauge Samsung phone micro-USB cable -
+exactly the profile this document's own evidence pattern pointed
+toward (phone-charging cables are commonly thinner-gauge than sustained
+Pi-level current draw needs, and age/wear adds resistance). Per
+operator instruction, the cable was isolated as the first controlled
+variable: **replaced only the cable** (shortest, highest-quality,
+lowest-resistance micro-USB cable available), same brick, same loads
+(fans/OLED/ALFA) attached throughout, nothing else changed.
+
+**Result, independently verified after reboot - not inferred from "it
+booted":**
+
+| | Old cable | New cable |
+|---|---|---|
+| `vcgencmd get_throttled` | `0x50005` | `0x50005` (unchanged) |
+| Bits 0/2 (current under-voltage/throttling) | SET | **still SET** |
+| Core voltage / temp | nominal | nominal (unchanged) |
+| Timeline through a matched ~19-minute window | continuous assertion, then repeated rapid detect/normalise oscillation (multiple flips within seconds, recurred more than once) | continuous assertion since boot, **zero** oscillation observed through the same window |
+| USB/mt76/SD/ext4 errors | none (beyond the one historical insertion event) | none |
+| Production `wlan0`/services/regulatory domain | unaffected | unaffected |
+
+**Active under-voltage was not resolved by the cable swap.** The one
+genuine difference observed - no rapid oscillation on the new cable
+through a matched window - is real and worth recording honestly, but
+is not itself a fix: bits 0/2 stayed continuously set the entire time,
+which is at least as serious as the old cable's pattern at the same
+point (the old cable's own first ~19 minutes were also continuous
+before its oscillation began - so this comparison point alone doesn't
+yet distinguish "better" from "the same, just observed for a shorter
+total window"). **Whether the new cable's steadier-but-still-active
+pattern represents a real partial improvement or is within the range
+of this system's normal variability is not established from one
+reboot's worth of data.**
+
+**Conclusion, per the operator's own pre-declared plan:** the cable is
+no longer the leading unexamined variable - it has been tested and
+ruled out as a *sufficient* fix (it may still be a *contributing*
+factor; that's not established either way). **The next controlled
+variable is the supply itself** (the Apple 12W brick), per the
+operator's own instruction - not acted on without the operator's
+explicit go-ahead, and not performed as part of this round.
+
+---
+
 ## 10. Fan noise observation - power vs. thermal vs. mechanical
 
 The operator separately noticed the fans sounding louder after a power
@@ -435,12 +488,24 @@ proceeding to the soak on the current supply and hoping for the best.
 
 Recorded honestly, not converted into false certainty:
 
-- **The exact root cause among brick vs. cable vs. connector** is not
-  proven - only ranked by evidence (§4). Only a physical A/B
-  replacement test can narrow this further.
-- **The 16:09-16:10 oscillation's specific trigger** this boot is
-  unexplained - no correlated dmesg event, no known operator action at
-  that exact moment.
+- **The cable has been ruled out as a *sufficient* fix (§9a)** - active
+  under-voltage remained after replacing it. Whether it was a
+  *contributing* factor (i.e. whether the brick alone, with the old
+  cable, would have been even worse) was not isolated - the test
+  compared old-cable-alone-data against new-cable-alone-data, not a
+  fully controlled brick-only baseline.
+- **The exact root cause between the brick and any remaining connector/
+  contact issue** is not proven - only ranked by evidence (§4), now
+  narrowed by ruling out the cable. Only a physical brick-swap A/B test
+  can narrow this further, per the operator's own next-step plan.
+- **Whether the new cable's steadier (non-oscillating) but still
+  continuously-active pattern is a real partial improvement or normal
+  run-to-run variability** is not established from one reboot's data
+  (§9a) - would need multiple comparable boots on each cable to say
+  with confidence.
+- **The 16:09-16:10 oscillation's specific trigger** on the old cable
+  remains unexplained - no correlated dmesg event, no known operator
+  action at that exact moment.
 - **Whether the SD card itself has any latent wear** from repeated
   power-sag exposure over the project's history is not measurable with
   the tools available on this system.

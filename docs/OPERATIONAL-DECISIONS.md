@@ -6,6 +6,39 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Power cable A/B test - negative result
+
+**Decision date:** 2026-09-03, same-day follow-up to the Power
+Integrity Diagnosis round above. Full detail in
+`docs/POWER-INTEGRITY-DIAGNOSIS.md` §9a - this entry is a summary.
+
+Power source identified: genuine Apple iPad 12W wall brick + an old,
+unknown-gauge Samsung phone micro-USB cable. Per operator instruction,
+the cable was isolated as the first controlled variable (a
+well-regarded brick paired with a likely-thin, aged phone cable
+matched this project's own evidence pattern) - replaced with a
+higher-quality cable, same brick, same loads, nothing else changed,
+then rebooted.
+
+**Result, independently verified, not inferred from "it booted":**
+`vcgencmd get_throttled` still reads `0x50005` - bits 0/2 (current
+under-voltage/throttling) remained set through a full ~19-minute
+window matched to where the old cable's own oscillation pattern first
+appeared. Core voltage/temp nominal, zero USB/mt76/SD/ext4 errors,
+production `wlan0` and all services unaffected throughout. **One real,
+honestly-recorded difference:** the new cable showed a single
+continuous assertion with zero oscillation through that window, versus
+the old cable's continuous-then-rapidly-oscillating pattern - not
+itself a fix, and not proven to be a meaningful improvement versus
+normal run-to-run variability (one reboot's data isn't enough to say).
+
+**Conclusion: the cable is ruled out as a *sufficient* fix.** Per the
+operator's own pre-declared plan, **the next controlled variable is
+the power brick itself** - not tested, not acted on without the
+operator's explicit go-ahead. Production `wlan0`, the regulatory
+domain, and the staged ALFA migration architecture were all confirmed
+unaffected by this test.
+
 ## Power Integrity Diagnosis + Undervoltage Root-Cause Round
 
 **Decision date:** 2026-09-03, immediately following the Regulatory
