@@ -1,0 +1,32 @@
+{
+    "osha-pictogram-quickcard": {
+        "name": "Hazard Communication Standard Pictogram QuickCard (OSHA 3491)",
+        "url": "/utility/library/#osha3491-ghs-pictogram-quickcard",
+        "retrieved": "2026-09-03",
+        "note": "Basis for the GHS pictogram descriptions below - meanings cross-checked directly against the QuickCard's own nine pictogram entries."
+    },
+    "osha-sds-quickcard": {
+        "name": "Hazard Communication Safety Data Sheets QuickCard (OSHA 3514)",
+        "url": "/utility/library/#osha3514-sds-quickcard",
+        "retrieved": "2026-09-03",
+        "note": "Basis for the Safety Data Sheet structure/section list below."
+    },
+    "niosh-pocket-guide": {
+        "name": "NIOSH Pocket Guide to Chemical Hazards",
+        "url": "/utility/library/#niosh-pocket-guide-chemical-hazards",
+        "retrieved": "2026-09-03",
+        "note": "Basis for the exposure-limit and PPE-selection concepts below - this page explains how to read the Pocket Guide's own entries, not a substitute for looking up a specific chemical in it."
+    },
+    "osha3075-electrical-hazards": {
+        "name": "Controlling Electrical Hazards (OSHA 3075)",
+        "url": "/utility/library/#osha3075-controlling-electrical-hazards",
+        "retrieved": "2026-09-03",
+        "note": "Cross-referenced for the general labeling/lockout-tagout safe-handling discipline it shares with chemical safe-handling practice."
+    },
+    "general-materials-reference": {
+        "name": "General engineering/materials-science reference",
+        "url": "",
+        "retrieved": "2026-09-03",
+        "note": "Widely-taught, non-controversial material-properties concepts (hardness, tensile strength, corrosion resistance, flammability) not tied to one specific retained document - written originally for this page and kept deliberately general rather than citing specific numeric material data that would need its own source."
+    }
+}

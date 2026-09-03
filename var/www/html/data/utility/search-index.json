@@ -1617,6 +1617,99 @@
     ]
   },
   {
+    "title": "GHS Hazard Pictograms",
+    "section": "materials",
+    "section_label": "Materials & Chemical Safety Reference",
+    "url": "/utility/materials/#ghs-pictograms",
+    "snippet": "The nine standardized symbols used on chemical labels to show what kind of hazard a substance presents - the fastest way to size up a container before reading anything else on it.",
+    "keywords": [
+      "ghs",
+      "pictogram",
+      "hazard symbol",
+      "chemical label",
+      "hazcom",
+      "flammable symbol",
+      "corrosive symbol",
+      "toxic symbol"
+    ]
+  },
+  {
+    "title": "Reading a Safety Data Sheet (SDS)",
+    "section": "materials",
+    "section_label": "Materials & Chemical Safety Reference",
+    "url": "/utility/materials/#safety-data-sheets",
+    "snippet": "Every hazardous chemical sold commercially is required to have a Safety Data Sheet - a standardized, 16-section document that says far more than the label ever could. Knowing the section layout means finding the one fact needed without reading the whole thing.",
+    "keywords": [
+      "sds",
+      "safety data sheet",
+      "msds",
+      "hazcom",
+      "chemical documentation",
+      "16 sections"
+    ]
+  },
+  {
+    "title": "Exposure Limits and PPE Selection Logic",
+    "section": "materials",
+    "section_label": "Materials & Chemical Safety Reference",
+    "url": "/utility/materials/#exposure-limits-and-ppe",
+    "snippet": "Occupational exposure limits (like an OSHA PEL or NIOSH REL) describe how much of a substance in air is considered acceptable over a work shift - understanding the shape of that number matters more than memorizing any single value.",
+    "keywords": [
+      "exposure limit",
+      "pel",
+      "rel",
+      "idlh",
+      "ppe",
+      "respirator",
+      "occupational health",
+      "gloves"
+    ]
+  },
+  {
+    "title": "Recognizing Categories of Chemical Hazard",
+    "section": "materials",
+    "section_label": "Materials & Chemical Safety Reference",
+    "url": "/utility/materials/#chemical-hazard-categories",
+    "snippet": "Beyond the pictograms themselves, chemical hazards fall into a few broad families worth recognizing on sight: physical hazards (fire/reactivity), health hazards (toxicity), and environmental hazards - each calling for a different kind of caution.",
+    "keywords": [
+      "hazard class",
+      "physical hazard",
+      "health hazard",
+      "chemical incompatibility",
+      "reactivity",
+      "oxidizer"
+    ]
+  },
+  {
+    "title": "Basic Material Properties for Repair and Handling",
+    "section": "materials",
+    "section_label": "Materials & Chemical Safety Reference",
+    "url": "/utility/materials/#material-properties-basics",
+    "snippet": "A handful of everyday material properties explain most of why one material is chosen over another for a repair or a container - hardness, strength, corrosion resistance, and flammability chief among them.",
+    "keywords": [
+      "material properties",
+      "hardness",
+      "tensile strength",
+      "corrosion",
+      "galvanic corrosion",
+      "flammability"
+    ]
+  },
+  {
+    "title": "General Safe Storage and Handling Principles",
+    "section": "materials",
+    "section_label": "Materials & Chemical Safety Reference",
+    "url": "/utility/materials/#safe-storage-and-handling",
+    "snippet": "A short set of general-purpose habits - not tied to any one chemical - that reduce risk across almost any hazardous-materials situation: labeling, segregation, ventilation, and never relying on memory.",
+    "keywords": [
+      "safe handling",
+      "chemical storage",
+      "lockout tagout",
+      "ventilation",
+      "labeling discipline"
+    ]
+  },
+  {
     "title": "Subnet",
     "section": "glossary",
     "section_label": "Glossary",
@@ -3317,6 +3410,56 @@
       "UK",
       "Cabinet",
       "Office"
+    ]
+  },
+  {
+    "title": "Hazard Communication Standard Pictogram QuickCard (OSHA 3491)",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/#osha3491-ghs-pictogram-quickcard",
+    "snippet": "The nine GHS hazard pictograms used on chemical labels worldwide under the Hazard Communication Standard - health hazard, flame, exclamation mark, gas cylinder, corrosion, exploding bomb, flame over circle, environment, and skull and crossbones - with what each one means. A short, authoritative label-reading reference.",
+    "keywords": [
+      "ghs",
+      "pictograms",
+      "hazard communication",
+      "chemical labels",
+      "osha",
+      "hazcom",
+      "Occupational",
+      "Safety",
+      "and",
+      "Health",
+      "Administration",
+      "OSHA",
+      "US",
+      "Department",
+      "of",
+      "Labor"
+    ]
+  },
+  {
+    "title": "Hazard Communication Safety Data Sheets QuickCard (OSHA 3514)",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/#osha3514-sds-quickcard",
+    "snippet": "How a Safety Data Sheet (SDS) is organized under the Hazard Communication Standard's required 16-section format - identification, hazards, composition, first-aid, handling/storage, exposure controls/PPE, and more - so an SDS can actually be read and used, not just filed away.",
+    "keywords": [
+      "sds",
+      "safety data sheet",
+      "hazard communication",
+      "osha",
+      "hazcom",
+      "msds",
+      "Occupational",
+      "Safety",
+      "and",
+      "Health",
+      "Administration",
+      "OSHA",
+      "US",
+      "Department",
+      "of",
+      "Labor"
     ]
   },
   {

@@ -875,6 +875,10 @@
       {
         "url": "/utility/emergency/",
         "label": "Emergency / Outage Reference"
+      },
+      {
+        "url": "/utility/materials/",
+        "label": "Materials & Chemical Safety Reference"
       }
     ]
   },
@@ -1105,6 +1109,58 @@
       {
         "url": "/utility/emergency/",
         "label": "Emergency / Outage Reference"
+      }
+    ]
+  },
+  {
+    "id": "osha3491-ghs-pictogram-quickcard",
+    "title": "Hazard Communication Standard Pictogram QuickCard (OSHA 3491)",
+    "category": "materials-chemistry",
+    "description": "The nine GHS hazard pictograms used on chemical labels worldwide under the Hazard Communication Standard - health hazard, flame, exclamation mark, gas cylinder, corrosion, exploding bomb, flame over circle, environment, and skull and crossbones - with what each one means. A short, authoritative label-reading reference.",
+    "tags": [
+      "ghs",
+      "pictograms",
+      "hazard communication",
+      "chemical labels",
+      "osha",
+      "hazcom"
+    ],
+    "file": "osha3491-ghs-pictogram-quickcard.pdf",
+    "file_type": "pdf",
+    "file_size": "274 KB",
+    "source": "Occupational Safety and Health Administration (OSHA), US Department of Labor",
+    "date_version": "OSHA 3491, 2024",
+    "provenance_notes": "Source: https://www.osha.gov/sites/default/files/publications/OSHA3491QUICKCARDPICTOGRAM.pdf - retrieved 2026-09-03. OSHA-authored QuickCard, work of the US federal government, public domain under 17 U.S.C. Sec. 105 (consistent with every other retained OSHA QuickCard/booklet in this library).",
+    "related_pages": [
+      {
+        "url": "/utility/materials/",
+        "label": "Materials & Chemical Safety Reference"
+      }
+    ]
+  },
+  {
+    "id": "osha3514-sds-quickcard",
+    "title": "Hazard Communication Safety Data Sheets QuickCard (OSHA 3514)",
+    "category": "materials-chemistry",
+    "description": "How a Safety Data Sheet (SDS) is organized under the Hazard Communication Standard's required 16-section format - identification, hazards, composition, first-aid, handling/storage, exposure controls/PPE, and more - so an SDS can actually be read and used, not just filed away.",
+    "tags": [
+      "sds",
+      "safety data sheet",
+      "hazard communication",
+      "osha",
+      "hazcom",
+      "msds"
+    ],
+    "file": "osha3514-sds-quickcard.pdf",
+    "file_type": "pdf",
+    "file_size": "577 KB",
+    "source": "Occupational Safety and Health Administration (OSHA), US Department of Labor",
+    "date_version": "OSHA 3514, 2021",
+    "provenance_notes": "Source: https://www.osha.gov/sites/default/files/publications/OSHA3514.pdf - retrieved 2026-09-03. OSHA-authored QuickCard, work of the US federal government, public domain under 17 U.S.C. Sec. 105.",
+    "related_pages": [
+      {
+        "url": "/utility/materials/",
+        "label": "Materials & Chemical Safety Reference"
       }
     ]
   }

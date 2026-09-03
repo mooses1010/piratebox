@@ -125,6 +125,14 @@ for t in load("electronics", "reference.json"):
         t.get("summary", ""), t.get("keywords"),
     ))
 
+# --- Materials & Chemical Safety (round 7) ----------------------------------
+for t in load("materials", "reference.json"):
+    index.append(entry(
+        t.get("title", ""), "materials", "Materials & Chemical Safety Reference",
+        f"/utility/materials/#{t.get('id', '')}",
+        t.get("summary", ""), t.get("keywords"),
+    ))
+
 # --- Glossary ---------------------------------------------------------------
 for t in load("glossary", "terms.json"):
     index.append(entry(

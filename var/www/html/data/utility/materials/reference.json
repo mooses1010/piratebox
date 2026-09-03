@@ -1,0 +1,108 @@
+[
+    {
+        "id": "ghs-pictograms",
+        "category": "labels-hazcom",
+        "title": "GHS Hazard Pictograms",
+        "summary": "The nine standardized symbols used on chemical labels to show what kind of hazard a substance presents - the fastest way to size up a container before reading anything else on it.",
+        "quick_actions": [
+            "Red-diamond border means a GHS hazard pictogram - stop and read it before handling, even if nothing else on the label is in a language you read.",
+            "Flame = flammable/self-heating/pyrophoric. Flame over circle = oxidizer (feeds fire even without its own flame source). Never assume these are the same hazard.",
+            "Exploding bomb = explosives, self-reactive substances, or organic peroxides. Gas cylinder = contents under pressure (can rupture or cause frostbite on release).",
+            "Corrosion = can destroy skin, eyes, or metal on contact. Skull and crossbones = can be fatal or seriously toxic in small amounts - treat as the most serious of the nine.",
+            "Health hazard = longer-term risk (carcinogen, respiratory sensitizer, organ toxicity). Exclamation mark = a milder acute hazard (irritant, skin sensitizer) - still worth PPE, just a lower tier than the skull symbol.",
+            "Environment (non-mandatory in the US) = harmful to aquatic life - relevant to disposal, not just handling."
+        ],
+        "more_info": "A label can carry more than one pictogram at once - a solvent might show both the flame and the health-hazard symbol, and each one is a separate, additive warning rather than a summary. The absence of a pictogram is not the same as \"safe\": some hazard categories (certain irritants, some physical hazards) are not required to carry a pictogram at all. When in doubt, or when a label is unreadable, damaged, or missing entirely, treat the container as unknown/hazardous until its Safety Data Sheet can be found.",
+        "keywords": ["ghs", "pictogram", "hazard symbol", "chemical label", "hazcom", "flammable symbol", "corrosive symbol", "toxic symbol"],
+        "source_id": "osha-pictogram-quickcard",
+        "confidence": "high"
+    },
+    {
+        "id": "safety-data-sheets",
+        "category": "labels-hazcom",
+        "title": "Reading a Safety Data Sheet (SDS)",
+        "summary": "Every hazardous chemical sold commercially is required to have a Safety Data Sheet - a standardized, 16-section document that says far more than the label ever could. Knowing the section layout means finding the one fact needed without reading the whole thing.",
+        "quick_actions": [
+            "Sections 1-3: what it is (identification, manufacturer contact) and what's in it (hazard classification, ingredient composition).",
+            "Section 4 (First-Aid) and Section 5 (Fire-Fighting): what to do right now if something goes wrong - read these before an incident, not during one.",
+            "Section 6 (Accidental Release) and Section 7 (Handling and Storage): spill response and day-to-day safe-storage guidance specific to that substance.",
+            "Section 8 (Exposure Controls/PPE) says exactly what protective equipment and ventilation that specific chemical calls for - more specific and more reliable than a generic assumption.",
+            "Sections 9-11 (physical/chemical properties, stability/reactivity, toxicology) hold the technical detail; Sections 12-16 cover ecological, disposal, transport, and regulatory information.",
+            "No SDS on hand for something in use? That is itself a hazard-recognition red flag, not a minor paperwork gap - treat an unlabeled or undocumented chemical with real caution."
+        ],
+        "more_info": "The 16-section format is a global standard (not just a US requirement), so an SDS for the same product looks the same shape whether it was issued in the US, the EU, or elsewhere - the section numbers and order do not change. This page explains the structure only; the actual hazard data for a specific chemical always lives in that chemical's own SDS or in a reference such as the NIOSH Pocket Guide below, never invented or assumed.",
+        "keywords": ["sds", "safety data sheet", "msds", "hazcom", "chemical documentation", "16 sections"],
+        "source_id": "osha-sds-quickcard",
+        "confidence": "high"
+    },
+    {
+        "id": "exposure-limits-and-ppe",
+        "category": "hazard-recognition",
+        "title": "Exposure Limits and PPE Selection Logic",
+        "summary": "Occupational exposure limits (like an OSHA PEL or NIOSH REL) describe how much of a substance in air is considered acceptable over a work shift - understanding the shape of that number matters more than memorizing any single value.",
+        "quick_actions": [
+            "An exposure limit is not a line between \"safe\" and \"dangerous\" - it is a time-weighted average considered acceptable for a full workday, and short high-concentration exposures can still be hazardous well under that average.",
+            "\"IDLH\" (Immediately Dangerous to Life or Health) values, where listed, describe a level requiring immediate evacuation and the most protective respiratory equipment - a distinct, more urgent threshold than a routine exposure limit.",
+            "PPE selection follows the hazard, not habit: skin/eye contact calls for gloves/goggles matched to that specific chemical's compatibility (not all gloves resist all chemicals), while airborne exposure calls for ventilation first and respiratory protection second.",
+            "Odor is an unreliable warning system - some hazardous gases have strong odor thresholds well above dangerous concentrations, and some (like carbon monoxide) have none at all. Never use \"I can't smell anything\" as a safety check.",
+            "A reference such as the NIOSH Pocket Guide lists these figures per chemical - the value for one substance says nothing about a different one, even in the same general chemical family."
+        ],
+        "more_info": "This page explains how to read exposure-limit and PPE information found in a chemical reference; it is not itself a source of exposure limits for any specific substance. Look up the actual chemical in the NIOSH Pocket Guide (or its SDS) rather than estimating from a similar-sounding one.",
+        "keywords": ["exposure limit", "pel", "rel", "idlh", "ppe", "respirator", "occupational health", "gloves"],
+        "source_id": "niosh-pocket-guide",
+        "confidence": "high"
+    },
+    {
+        "id": "chemical-hazard-categories",
+        "category": "hazard-recognition",
+        "title": "Recognizing Categories of Chemical Hazard",
+        "summary": "Beyond the pictograms themselves, chemical hazards fall into a few broad families worth recognizing on sight: physical hazards (fire/reactivity), health hazards (toxicity), and environmental hazards - each calling for a different kind of caution.",
+        "quick_actions": [
+            "Physical hazards are about the chemical itself reacting - flammability, explosivity, reactivity with water or air, or being an oxidizer. These are about what the substance can do to its surroundings.",
+            "Health hazards are about what the substance does to a person - acute toxicity (immediate effects at a given dose), corrosivity (skin/eye damage), sensitization (allergic-type reactions), and longer-term hazards like carcinogenicity.",
+            "A single substance can carry hazards from more than one family at once (see GHS Hazard Pictograms above) - a physical hazard and a health hazard are not alternatives, they stack.",
+            "\"Incompatible\" is a real, specific concept: different hazard classes stored or used together can react dangerously (a classic example is mixing an oxidizer with a flammable material) - always check a chemical's own SDS Section 7 for its specific storage/incompatibility guidance rather than assuming.",
+            "Unknown or unlabeled containers should be treated as hazardous by default until identified - this is standard practice, not overcaution."
+        ],
+        "more_info": "This is a general orientation to hazard categories, not a substitute for consulting the SDS or label of an actual chemical in hand. Specific chemical compatibility and storage-segregation requirements vary by substance and by jurisdiction; treat anything here as a starting vocabulary, not a compatibility chart.",
+        "keywords": ["hazard class", "physical hazard", "health hazard", "chemical incompatibility", "reactivity", "oxidizer"],
+        "source_id": "niosh-pocket-guide",
+        "secondary_source_id": "osha-pictogram-quickcard",
+        "confidence": "medium"
+    },
+    {
+        "id": "material-properties-basics",
+        "category": "material-properties",
+        "title": "Basic Material Properties for Repair and Handling",
+        "summary": "A handful of everyday material properties explain most of why one material is chosen over another for a repair or a container - hardness, strength, corrosion resistance, and flammability chief among them.",
+        "quick_actions": [
+            "Hardness resists scratching/denting but says little about toughness - a hard material can still be brittle and crack under a sudden impact that a softer, tougher material would absorb.",
+            "Tensile strength is resistance to being pulled apart; compressive strength is resistance to being crushed - many materials (cast iron, concrete) are strong in one and weak in the other.",
+            "Corrosion resistance depends heavily on the environment, not just the material - stainless steel resists rust far better than plain steel in most conditions, but certain grades still corrode in high-chloride (salty/coastal) environments.",
+            "Flammability and heat tolerance matter for storage and repair choices alike - know whether a material or its stored fuel/solvent presents a fire hazard before applying heat, sparks, or an open flame nearby.",
+            "Dissimilar metals in direct contact with moisture present (e.g. aluminum against steel) can corrode faster than either would alone (galvanic corrosion) - worth knowing before joining or storing mixed-metal hardware outdoors."
+        ],
+        "more_info": "These are general, widely-taught material-science concepts rather than data from one specific retained document - see Fastener Basics and Bearings & Lubrication on the Mechanical & Repair page for the fastener- and bearing-specific version of some of these same ideas.",
+        "keywords": ["material properties", "hardness", "tensile strength", "corrosion", "galvanic corrosion", "flammability"],
+        "source_id": "general-materials-reference",
+        "confidence": "medium"
+    },
+    {
+        "id": "safe-storage-and-handling",
+        "category": "safe-handling",
+        "title": "General Safe Storage and Handling Principles",
+        "summary": "A short set of general-purpose habits - not tied to any one chemical - that reduce risk across almost any hazardous-materials situation: labeling, segregation, ventilation, and never relying on memory.",
+        "quick_actions": [
+            "Keep every container labeled - if a substance is ever transferred to a different container, copy the hazard information onto the new one immediately, not \"later.\"",
+            "Store incompatible hazard classes apart (see Recognizing Categories of Chemical Hazard above) - proximity during a leak, fire, or spill is exactly when incompatibility matters most.",
+            "Work in ventilated areas when using anything with a pictogram or a noticeable odor, and don't rely on smell as a warning system (see Exposure Limits and PPE above).",
+            "Lock out/tag out equipment before servicing anything that could unexpectedly energize, pressurize, or move - the same discipline OSHA's electrical-hazard guidance describes applies broadly to mechanical and chemical hazards too.",
+            "Know the location of eyewash, first-aid, and fire-suppression resources before starting work with a hazardous material - not after something goes wrong."
+        ],
+        "more_info": "This page intentionally stays at the level of general safe-handling habits rather than step-by-step procedures for any specific hazardous task - always follow the specific SDS, label, and any applicable local regulations for the actual substance or equipment in hand.",
+        "keywords": ["safe handling", "chemical storage", "lockout tagout", "ventilation", "labeling discipline"],
+        "source_id": "osha3075-electrical-hazards",
+        "secondary_source_id": "niosh-pocket-guide",
+        "confidence": "medium"
+    }
+]
