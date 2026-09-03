@@ -475,6 +475,91 @@ the operator's own decision, not acted on unilaterally.
 **Library footprint:** 12 documents, ~22 MB total (was ~13 MB) -
 trivial against the 128GB card; still curated, not bulk-mirrored.
 
+### 3h. poppler-utils installed - exploiting retained manuals (2026-09-02)
+
+The operator approved and installed `poppler-utils` (confirmed:
+`pdfinfo`/`pdftotext`/`pdfimages` 25.03.0), closing the §3g/§3f
+tooling blocker. This round used it to pull real value out of manuals
+already retained, resolve one deferred redundancy question, and
+re-verify one previously-inconclusive candidate - not just to acquire
+more PDFs.
+
+**First-aid diagrams (§3f gap #2, now closed for a small verified
+set):** read FM 4-25.11's full text (pdftotext, 227 pages, form-feed
+count matches page count exactly) and selected 5 diagrams, added to
+`/utility/firstaid/`: pressure points (Fig 2-31), improvised
+tourniquet (Fig 2-32), smothering/rolling for burning clothing (Fig
+3-13), fracture types (Fig 4-1), board splints (Figs 4-18/4-19).
+Explicitly searched the full text for "recovery position" first - the
+term does not appear anywhere in this manual, so no recovery-position
+diagram was added or invented; the page states this directly rather
+than silently omitting it. Rendered as full manual pages (pdftoppm,
+150dpi) rather than cropped figures - no image-editing tool is
+installed to crop cleanly, and the full page also keeps each figure's
+original caption/context attached, which is a genuine plus, not just
+a workaround.
+
+**Land-navigation diagram (§3f, land-nav wasn't flagged as a gap but
+FM 3-25.26 was newly retained in §3g with figures never inspected):**
+read FM 3-25.26's full text (209 pages, form-feed count matches) and
+searched for terrain/contour figure references. Rather than pull the
+individual hill/saddle/valley/ridge/draw/spur pages separately,
+selected the single composite Figure 10-26 "Terrain features" - a
+real topographic map excerpt with all ten standard landforms numbered
+against one legend - added to the existing "Reading Contour Lines"
+entry on `/utility/maps/`. The declination diagrams (Figs 6-8/6-9)
+were reviewed and NOT added: the existing PirateBox-authored
+`declination.svg.php` already covers that concept and the manual's
+version would be a near-duplicate, not a complement.
+
+**Knot diagrams (§3f gap #1, now closed for 6 of 8 knots): FM 5-125
+re-verified and retained.** The §3g investigation left FM 5-125
+unretained because the Internet Archive item page carried no explicit
+rights tag and, without a PDF tool, its own cover/distribution
+statement couldn't be checked directly. With poppler-utils now
+installed, the PDF was downloaded and inspected directly: it carries
+its own "DISTRIBUTION RESTRICTION: Approved for public release;
+distribution is unlimited" statement and is signed by the Army Chief
+of Staff - a Department of the Army field manual, public domain under
+17 U.S.C. Sec. 105 like every other DoD manual in this library. Now
+retained in full (169pp, 3.7MB) and used as the source for 5 diagram
+pages covering 6 of the existing 8 knot entries: Bowline (Fig 2-11),
+Square Knot + Single Sheet Bend (Figs 2-7/2-8, one page), Overhand +
+Figure-Eight (Figs 2-3/2-4, one page), Clove Hitch (Fig 2-26), Two
+Half Hitches (Fig 2-22). Taut-Line Hitch and Trucker's Hitch are not
+covered by this manual (a rigging manual, not a camping/tarping
+guide) and stay text-only - **the gap for those two is left honest,
+not papered over with an invented or mismatched diagram**, per
+instruction. Added a small reusable `diagram` field convention to
+`data/utility/outdoor/reference.json` (image/alt/caption/source_line)
+and generic rendering support in the page template, rather than
+hardcoding per-knot markup.
+
+**EPA water-disinfection document - deferred redundancy question
+resolved, not auto-retained:** re-read via `pdftotext` rather than
+retained on sight. It has a specific bleach-dosing table (drops per
+quart/liter/gallon at 6% and 8.25% concentrations, doubled for
+cold/cloudy water) plus a granular calcium hypochlorite (HTH) method
+and an iodine tincture method - none of which are in the existing CDC
+water-safety fact sheet, which stays at a higher level with no exact
+measurements. Genuinely complementary, not a duplicate - retained
+(EPA 816-F-15-003, 2pp, 737KB, PD).
+
+New shared CSS (`.doc-figure-gallery`/`.doc-figure` in
+`assets/styles.css`) added once and reused across firstaid/maps/
+outdoor, documented in place as the pattern for future
+selectively-extracted-diagram additions - not per-page one-off markup.
+
+**Verification:** catalog.json validates, `tools/check_library_
+catalog.py` clean (14/14), search index rebuilt (184 entries), `php
+-l` clean on all changed pages, full five-suite regression still
+287/287, all new pages/images smoke-tested via `php -S` (all images
+200, both PDFs download correctly, `/utility/about/` live count reads
+"Document Library: INSTALLED (14)").
+
+**Library footprint:** 14 documents, ~25 MB total (was ~22 MB) -
+still trivial against the 128GB card.
+
 ## 4. Field Tools
 
 | Feature | Status | Evidence | Next action | Docs |

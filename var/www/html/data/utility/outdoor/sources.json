@@ -4,6 +4,13 @@
     "publisher": null,
     "url": null,
     "retrieved": "2026-09-02",
-    "note": "Knot-tying technique is centuries-old functional/utilitarian method, not original creative expression - identical step sequences appear across countless independent sources (maritime, military, mountaineering) with no single owner. Written originally for this reference, cross-checked against widely-corroborated technique rather than copied from any one source. A specific candidate original document (US Army FM 5-125, Rigging Techniques, Procedures, and Applications) was investigated for retention as an authoritative Tier 1 source but direct cover-page/distribution-statement verification was blocked this session (no PDF-rendering tool installed, and a second mirror returned HTTP 403) - not retained without that direct confirmation, not retried further per instruction not to spend substantial time on a tooling blocker. See docs/IMPLEMENTATION-ROADMAP.md for the exact blocker record."
+    "note": "Knot-tying technique is centuries-old functional/utilitarian method, not original creative expression - identical step sequences appear across countless independent sources (maritime, military, mountaineering) with no single owner. Written originally for this reference, cross-checked against widely-corroborated technique rather than copied from any one source."
+  },
+  "dod-fm-5-125-rigging": {
+    "name": "FM 5-125, Rigging Techniques, Procedures, and Applications (US Army)",
+    "publisher": "Headquarters, Department of the Army",
+    "url": "https://archive.org/details/RiggingTechniquesProceduresAndApplicationsFM51252001",
+    "retrieved": "2026-09-02",
+    "note": "A specific candidate diagram source (this manual) was investigated for retention in an earlier session but not retained without direct cover-page/distribution-statement confirmation, since no PDF tool was installed at the time. Now that poppler-utils is available, the PDF was downloaded and inspected directly with pdftotext: it carries its own \"DISTRIBUTION RESTRICTION: Approved for public release; distribution is unlimited\" statement, and is a Headquarters, Department of the Army field manual - a work of the US federal government, public domain under 17 U.S.C. Sec. 105. Retained in full in the Document Library, and used as the verified source for a small set of correctly-depicted knot diagrams below (selective extraction, not the full figure set)."
   }
 }

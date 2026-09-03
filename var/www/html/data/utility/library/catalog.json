@@ -185,8 +185,8 @@
     "id": "dod-fm-4-25-11-first-aid",
     "title": "First Aid (FM 4-25.11 / NTRP 4-02.1 / AFMAN 44-163(I))",
     "category": "emergency-firstaid",
-    "description": "The joint US military field manual on first aid - full step-by-step procedures with illustrations for airway/breathing/bleeding control, shock, fractures/splinting, burns, cold/heat injury, bites/stings, and evacuation/transport techniques. Addresses the visual-diagram gap the First Aid Reference page's own audit flagged (CPR hand position, recovery position, splinting, etc.) with an authoritative, fully redistributable original source, after Red Cross material was found not to be freely redistributable.",
-    "tags": ["first aid", "cpr", "bleeding control", "splinting", "shock", "burns", "recovery position", "field manual", "military first aid"],
+    "description": "The joint US military field manual on first aid - full step-by-step procedures with illustrations for airway/breathing/bleeding control, shock, fractures/splinting, burns, cold/heat injury, bites/stings, and evacuation/transport techniques. Addresses the visual-diagram gap the First Aid Reference page's own audit flagged (pressure points, tourniquets, fracture types, splinting, etc.) with an authoritative, fully redistributable original source, after Red Cross material was found not to be freely redistributable. Note: this manual does not include recovery-position content - checked directly via full-text search, not assumed.",
+    "tags": ["first aid", "bleeding control", "tourniquet", "splinting", "fractures", "burns", "field manual", "military first aid"],
     "file": "dod-fm-4-25-11-first-aid.pdf",
     "file_type": "pdf",
     "file_size": "2.5 MB",
@@ -195,6 +195,22 @@
     "provenance_notes": "Source: https://commons.wikimedia.org/wiki/File:FM_4-25.11_(FM_21-11)_First_Aid_(Change_1).pdf (direct file: upload.wikimedia.org/wikipedia/commons/0/01/FM_4-25.11_%28FM_21-11%29_First_Aid_%28Change_1%29.pdf) - retrieved 2026-09-02. A US Department of Defense work of the federal government, public domain under 17 U.S.C. Sec. 105 (Wikimedia Commons' file page tags it PD-USGov-Military-Army/Navy/Air Force/Marines; the manual's own cover states 'Approved for public release; distribution is unlimited'). Verified 227 pages, 2,621,944 bytes, matching Wikimedia Commons' listed file size exactly - not a truncated/partial copy.",
     "related_pages": [
       {"url": "/utility/firstaid/", "label": "First Aid Reference"}
+    ]
+  },
+  {
+    "id": "dod-fm-5-125-rigging",
+    "title": "Rigging Techniques, Procedures, and Applications (FM 5-125)",
+    "category": "outdoor-field",
+    "description": "US Army field manual on rope, wire rope, and chain rigging: fiber/wire rope characteristics and care, knots/hitches/bends/splices/lashings, slings, blocks and tackle, chain hoists and winches, and rope ladders. Source for a small, verified set of correctly-depicted knot diagrams added to the Outdoor/Field knots reference, which previously had text-only entries specifically because no verified-correct diagram source had been confirmed.",
+    "tags": ["rigging", "knots", "hitches", "bends", "splices", "lashing", "rope", "wire rope", "blocks and tackle", "field manual"],
+    "file": "dod-fm-5-125-rigging-techniques.pdf",
+    "file_type": "pdf",
+    "file_size": "3.7 MB",
+    "source": "Headquarters, Department of the Army",
+    "date_version": "FM 5-125, 3 October 1995, with Change 1 (23 February 2001)",
+    "provenance_notes": "Source: https://archive.org/details/RiggingTechniquesProceduresAndApplicationsFM51252001 - retrieved 2026-09-02. Investigated in an earlier session but not retained: the archive.org item page carried no explicit rights tag, and without a PDF tool installed the manual's own cover/distribution statement couldn't be checked directly, so it was left unretained rather than assumed. Now that poppler-utils is installed, the PDF was downloaded and its text extracted directly with pdftotext: it carries its own 'DISTRIBUTION RESTRICTION: Approved for public release; distribution is unlimited' statement and is signed by the Army Chief of Staff - a Department of the Army field manual, work of the US federal government, public domain under 17 U.S.C. Sec. 105. Verified 169 pages, 3,816,989 bytes.",
+    "related_pages": [
+      {"url": "/utility/outdoor/", "label": "Outdoor/Field: Knots Reference"}
     ]
   },
   {

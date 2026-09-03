@@ -120,6 +120,14 @@ function ref_source_line(array $sources, ?string $sourceId, ?string $confidence)
                                         <?php endforeach; ?>
                                     </ul>
                                 <?php endif; ?>
+                                <?php if (!empty($t['diagram'])): ?>
+                                    <div class="doc-figure-gallery">
+                                        <figure class="doc-figure" style="max-width:420px;">
+                                            <img src="/utility/outdoor/images/<?= rawurlencode($t['diagram']['image']) ?>" alt="<?= htmlspecialchars($t['diagram']['alt']) ?>" loading="lazy">
+                                            <figcaption><?= htmlspecialchars($t['diagram']['caption']) ?><span class="doc-figure-source"><?= $t['diagram']['source_line'] ?></span></figcaption>
+                                        </figure>
+                                    </div>
+                                <?php endif; ?>
                                 <?php if (!empty($t['more_info'])): ?>
                                     <p><?= htmlspecialchars($t['more_info']) ?></p>
                                 <?php endif; ?>

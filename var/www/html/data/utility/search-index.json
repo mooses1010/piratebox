@@ -2358,15 +2358,14 @@
     "section": "library",
     "section_label": "Document Library",
     "url": "/utility/library/#dod-fm-4-25-11-first-aid",
-    "snippet": "The joint US military field manual on first aid - full step-by-step procedures with illustrations for airway/breathing/bleeding control, shock, fractures/splinting, burns, cold/heat injury, bites/stings, and evacuation/transport techniques. Addresses the visual-diagram gap the First Aid Reference page's own audit flagged (CPR hand position, recovery position, splinting, etc.) with an authoritative, fully redistributable original source, after Red Cross material was found not to be freely redistributable.",
+    "snippet": "The joint US military field manual on first aid - full step-by-step procedures with illustrations for airway/breathing/bleeding control, shock, fractures/splinting, burns, cold/heat injury, bites/stings, and evacuation/transport techniques. Addresses the visual-diagram gap the First Aid Reference page's own audit flagged (pressure points, tourniquets, fracture types, splinting, etc.) with an authoritative, fully redistributable original source, after Red Cross material was found not to be freely redistributable. Note: this manual does not include recovery-position content - checked directly via full-text search, not assumed.",
     "keywords": [
       "first aid",
-      "cpr",
       "bleeding control",
+      "tourniquet",
       "splinting",
-      "shock",
+      "fractures",
       "burns",
-      "recovery position",
       "field manual",
       "military first aid",
       "Headquarters",
@@ -2388,6 +2387,30 @@
       "US",
       "military",
       "publication"
+    ]
+  },
+  {
+    "title": "Rigging Techniques, Procedures, and Applications (FM 5-125)",
+    "section": "library",
+    "section_label": "Document Library",
+    "url": "/utility/library/#dod-fm-5-125-rigging",
+    "snippet": "US Army field manual on rope, wire rope, and chain rigging: fiber/wire rope characteristics and care, knots/hitches/bends/splices/lashings, slings, blocks and tackle, chain hoists and winches, and rope ladders. Source for a small, verified set of correctly-depicted knot diagrams added to the Outdoor/Field knots reference, which previously had text-only entries specifically because no verified-correct diagram source had been confirmed.",
+    "keywords": [
+      "rigging",
+      "knots",
+      "hitches",
+      "bends",
+      "splices",
+      "lashing",
+      "rope",
+      "wire rope",
+      "blocks and tackle",
+      "field manual",
+      "Headquarters",
+      "Department",
+      "of",
+      "the",
+      "Army"
     ]
   },
   {

@@ -11,6 +11,12 @@
       "Security note: dress and set the knot (pull all four rope parts snug) before loading it, and leave a reasonable tail - an undressed or short-tailed bowline is far more likely to slip than a properly set one."
     ],
     "more_info": "The bowline's real advantage over other loop knots is that it stays easy to untie even after being loaded hard - many knots that hold just as well become nearly impossible to pick apart after taking a real load. That convenience is exactly why it's not chosen for critical safety applications: the same property that makes it easy to release can let it work loose under the wrong loading pattern.",
+    "diagram": {
+      "image": "fm5-125-fig2-11-bowline.png",
+      "alt": "Three-step diagram of tying a bowline knot",
+      "caption": "Figure 2-11. Bowline.",
+      "source_line": "Source: FM 5-125, <em>Rigging Techniques, Procedures, and Applications</em>, p. 45 (public domain)"
+    },
     "keywords": ["bowline", "loop knot", "rescue loop"],
     "source_id": "general-knot-reference",
     "confidence": "high"
@@ -26,6 +32,12 @@
       "Simple sequence: make a loop, wrap the working end once around the standing part, then feed it back through the first loop from the opposite side it entered - the finished knot looks like the digit 8."
     ],
     "more_info": "A quick way to remember which side to feed the working end back through: done correctly, the rope traces a clean figure-8 shape with no crossed-over twist. If it looks tangled rather than a clean 8, it's tied wrong and won't hold as reliably.",
+    "diagram": {
+      "image": "fm5-125-fig2-3-2-4-overhand-figure8.png",
+      "alt": "Two-step diagram of tying an overhand knot, alongside a two-step diagram of tying a figure-eight knot",
+      "caption": "Figure 2-3 (Overhand knot) and Figure 2-4 (Figure-eight knot).",
+      "source_line": "Source: FM 5-125, <em>Rigging Techniques, Procedures, and Applications</em>, p. 40 (public domain)"
+    },
     "keywords": ["figure eight", "figure 8", "stopper knot"],
     "source_id": "general-knot-reference",
     "confidence": "high"
@@ -42,6 +54,12 @@
       "If two ropes genuinely need to be joined under load, use a sheet bend instead (see below), or better, a proper bend rated for the purpose."
     ],
     "more_info": "The historical, non-negotiable warning about this knot exists precisely because it looks secure at a glance and holds fine under gentle, steady tension - the failure shows up specifically when load varies or the ropes are dissimilar, which is exactly the situation you can't always predict in the field.",
+    "diagram": {
+      "image": "fm5-125-fig2-7-2-8-square-sheetbend.png",
+      "alt": "Three-step diagram of tying a square knot, alongside a three-step diagram of tying a single sheet bend",
+      "caption": "Figure 2-7 (Square knot) and Figure 2-8 (Single sheet bend).",
+      "source_line": "Source: FM 5-125, <em>Rigging Techniques, Procedures, and Applications</em>, p. 43 (public domain)"
+    },
     "keywords": ["square knot", "reef knot", "granny knot"],
     "source_id": "general-knot-reference",
     "confidence": "high"
@@ -58,6 +76,12 @@
       "For a genuinely slippery/synthetic line or a heavier load, tie a double sheet bend (repeat the wrap-and-tuck a second time) for extra security."
     ],
     "more_info": "A sheet bend is essentially the same working principle as a bowline (a bight with a part tucked back under itself), which is part of why it's easy to learn right after learning a bowline.",
+    "diagram": {
+      "image": "fm5-125-fig2-7-2-8-square-sheetbend.png",
+      "alt": "Three-step diagram of tying a square knot, alongside a three-step diagram of tying a single sheet bend",
+      "caption": "Figure 2-7 (Square knot) and Figure 2-8 (Single sheet bend).",
+      "source_line": "Source: FM 5-125, <em>Rigging Techniques, Procedures, and Applications</em>, p. 43 (public domain)"
+    },
     "keywords": ["sheet bend", "joining rope", "becket bend"],
     "source_id": "general-knot-reference",
     "confidence": "high"
@@ -74,6 +98,12 @@
       "For real security, back it up: a clove hitch is often finished with an extra half hitch, or used only as the starting wrap for a lashing that gets its actual strength from the wraps that follow."
     ],
     "more_info": "Its main real-world value is speed - it's one of the fastest hitches to tie and adjust, which is exactly why it's used to start lashings and for temporary attachments rather than as a final, trusted anchor point by itself.",
+    "diagram": {
+      "image": "fm5-125-fig2-26-clove-hitch.png",
+      "alt": "Six-step diagram of tying a clove hitch, shown both at the center of a rope and at the end of a rope",
+      "caption": "Figure 2-26. Clove hitch.",
+      "source_line": "Source: FM 5-125, <em>Rigging Techniques, Procedures, and Applications</em>, p. 55 (public domain)"
+    },
     "keywords": ["clove hitch", "lashing", "post hitch"],
     "source_id": "general-knot-reference",
     "confidence": "high"
@@ -89,6 +119,12 @@
       "Security note: like most hitches, it depends on the standing part staying under some tension - a hitch that's allowed to go completely slack repeatedly can work its half hitches loose over time; check it periodically on a line left tied for a while (e.g. an overnight tent guy line)."
     ],
     "more_info": "This is a genuinely good default \"tie this line to that fixed point\" hitch for most everyday field purposes - simple, reasonably strong, and easy to inspect at a glance (you can see both half hitches are actually dressed correctly).",
+    "diagram": {
+      "image": "fm5-125-fig2-22-half-hitches.png",
+      "alt": "Diagram of a half hitch (two-step) and two half hitches (three-step) tied around a spar",
+      "caption": "Figure 2-22. Half hitches (A: half hitch, B: two half hitches).",
+      "source_line": "Source: FM 5-125, <em>Rigging Techniques, Procedures, and Applications</em>, p. 53 (public domain)"
+    },
     "keywords": ["two half hitches", "round turn", "mooring hitch"],
     "source_id": "general-knot-reference",
     "confidence": "high"
