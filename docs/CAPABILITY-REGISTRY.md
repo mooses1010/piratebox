@@ -66,7 +66,7 @@ it is.**
 | GPIO25 shutdown button | Core | INSTALLED, CURRENT SCOPE | Integrated |
 | Toggle switch (Normal/Emergency, GPIO17) | Operational | OWNED / INCOMING | Integrated (planned) |
 | Momentary buttons, GPIO22/23/24/27 | Operational | OWNED / INCOMING | Integrated (planned) |
-| OLED (SSD1306 0.96" 128x64) | Operational | OWNED / INCOMING | Integrated (planned) |
+| OLED (SSD1306 0.96" 128x64) | Operational | **INSTALLED, CURRENT SCOPE** (2026-09-03) | Integrated |
 | Undervoltage / power-quality monitoring (software, `vcgencmd`) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | UPS/battery hardware | Operational | CANDIDATE (requirements only) | Integrated (if adopted) |
 | RTC (DS3231) | Operational | PLANNED (chip chosen, not purchased) | Integrated (planned) |
@@ -238,18 +238,45 @@ it is.**
   page cycle (`docs/PHYSICAL-CONTROL-UX-DESIGN.md` §1, updated to a
   4-page cycle including Time - see `docs/FIELD-TOOLS-DESIGN.md` §11).
 - **Layer:** Operational.
-- **State:** OWNED / INCOMING - ordered, **no I2C/OLED code exists on
-  this Pi yet**, not physically wired.
+- **State:** **INSTALLED, CURRENT SCOPE (2026-09-03)** - physically
+  wired (GPIO2/SDA, GPIO3/SCL, VCC on 3.3V/pin 1, GND on pin 14),
+  I2C1 enabled, confirmed responding at address 0x3C via `i2cdetect`
+  and a real test frame visually confirmed. `piratebox_oled_daemon.py`
+  / `piratebox-oled.service` implemented and running - see
+  `docs/HARDWARE-INTEGRATION-DESIGN.md` §12 for the full bring-up
+  record.
 - **Interface:** I2C1 (GPIO2/SDA, GPIO3/SCL) - reserved, fixed function,
   not usable for anything else once enabled.
 - **Core dependency:** No - AP/site are fully independent of this
-  display by design (`docs/ARCHITECTURE.md` §2).
-- **Failure behavior (designed, not yet built):** degraded-state display
-  spec already written - honest "not reporting" rather than blank/stale
-  fields (`docs/PHYSICAL-CONTROL-UX-DESIGN.md` §1).
+  display by design (`docs/ARCHITECTURE.md` §2); verified in practice,
+  not just by design - the daemon runs as a separate, unprivileged
+  systemd service with no PirateBox process depending on it.
+- **Failure behavior:** implemented as designed - the daemon retries on
+  a fixed interval if the display is missing/unreachable at startup or
+  disappears mid-run, never crash-loops, never busy-polls, and writes
+  no PirateBox data file (every data source it reads is read-only). See
+  the daemon's own header comment for the full contract.
+- **Interim departures from the full §1/§5 design, both explained in
+  the daemon's header and in `docs/PHYSICAL-CONTROL-UX-DESIGN.md` §1/
+  §5 directly:** pages auto-rotate on a timer rather than a cycle
+  button (GPIO22 not wired yet), and auto-dim-after-idle is not enabled
+  (GPIO23 wake button not wired yet - dimming with no way to wake it
+  would be a regression, not a power-saving improvement). Both are
+  additive, button-driven upgrades once that hardware exists - no
+  redesign needed.
+- **Live capability signal:** `capability_state.php`'s `oled` entry now
+  reads `piratebox-oled.service`'s live systemd state (via
+  `piratebox_status_helper.sh` -> `status.json`'s new `hardware.
+  oled_service_active` field) rather than a hardcoded NOT_INSTALLED -
+  see `piratebox_classify_oled()`'s own doc comment for the honest
+  limit of what this signal can confirm (service running, not
+  necessarily the physical display responding).
 - **Privacy sensitivity:** physical/operational (§8's Normal/Attention/
-  Warning/Critical concept applies once built) - not yet a factor,
-  nothing is displayed today.
+  Warning/Critical concept could apply to a future richer display) -
+  today's four pages show only already-public-facing facts (mode,
+  SSID, client count, service health, storage, uptime, power state) -
+  nothing not already visible on the Stats/About pages to anyone on the
+  network.
 
 ### Undervoltage / power-quality monitoring (software)
 
@@ -269,6 +296,24 @@ it is.**
   unresolved caveat about that specific power source**, not something
   this document resolves. No UPS/power hardware decision has been made
   because of it.
+- **Recurrence, 2026-09-03 (OLED bring-up session):** immediately
+  before the OLED I2C bring-up, an abnormal episode (SSH became
+  extremely slow, the GPIO25 hold-to-shutdown did not trigger, ending in
+  a hard power cycle) was investigated on the next boot. `vcgencmd
+  get_throttled` read `0x50005` (under-voltage detected right now,
+  throttling occurred since boot) with 4 separate kernel-log
+  "Undervoltage detected!" events in the first ~4 minutes of that boot -
+  this is very plausibly the actual explanation for the stall
+  (CPU throttling can starve any process's scheduling, including a
+  GPIO-watching daemon, without indicating a software defect in it).
+  Everything else checked (filesystem, systemd units, dmesg for USB/
+  network errors) was clean - this is specifically a power-supply
+  headroom problem, not a broader fault, and is **not attributed to the
+  OLED itself** (a few mA of added draw, and the condition was observed
+  before the OLED daemon was even running). See
+  `docs/HARDWARE-INTEGRATION-DESIGN.md` §12 for the full record. Still
+  unresolved on this power source; still no UPS/power hardware decision
+  made.
 - **Retention:** currently reports live/current state only, no
   persisted undervoltage-event history. A future "undervoltage events
   since last review" count (`docs/DEVICE-MEMORY-DESIGN.md` §3's

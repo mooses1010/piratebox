@@ -173,6 +173,19 @@ dnsmasq_state=$(systemctl is-active dnsmasq 2>/dev/null || true)
 nginx_state=$(systemctl is-active nginx 2>/dev/null || true)
 phpfpm_state=$(systemctl is-active php8.4-fpm 2>/dev/null || true)
 
+# Optional/physical hardware daemons - deliberately reported separately
+# from the "services" block above, not folded into it: those four are
+# all Core-dependency services, while the OLED daemon is an optional,
+# non-Core capability (docs/ARCHITECTURE.md §2, docs/CAPABILITY-
+# REGISTRY.md's "oled" entry). Mixing them into one list would make a
+# missing/unplugged OLED look like a Core outage to anything summing
+# the "services" object. "active" here means the systemd unit itself is
+# running - it does not confirm the display is physically present and
+# responding (the daemon's own retry loop handles that; see
+# piratebox_oled_daemon.py's header for why a running-but-retrying
+# daemon is the correct honest state when the display is unplugged).
+oled_service_state=$(systemctl is-active piratebox-oled 2>/dev/null || true)
+
 # --- Undervoltage / throttling status (Raspberry Pi specific) ---
 throttled_hex="unavailable"
 undervoltage_now=false
@@ -353,6 +366,9 @@ cat > "$TMP_FILE" <<EOF
   },
   "admin_auth": {
     "configured": $admin_auth_configured
+  },
+  "hardware": {
+    "oled_service_active": $(json_bool "$oled_service_state")
   }
 }
 EOF

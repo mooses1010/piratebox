@@ -83,6 +83,30 @@ if (!function_exists('piratebox_classify_admin_panel')) {
     }
 }
 
+if (!function_exists('piratebox_classify_oled')) {
+    /**
+     * "Active" here means the systemd unit (piratebox-oled.service) is
+     * running - it does NOT confirm the physical display is present and
+     * responding. The daemon's own design (piratebox_oled_daemon.py)
+     * keeps the service "active" even while it's silently retrying an
+     * unplugged/missing display (a graceful-degradation choice, not a
+     * bug) - see that script's header. A false positive in the
+     * optimistic direction here (service up, display actually
+     * unplugged) is the honest limit of what this layer can observe
+     * without the daemon writing its own extra status file, which was
+     * deliberately not added (see docs/HARDWARE-INTEGRATION-DESIGN.md
+     * §5's "never required for operation" / no-unnecessary-writes
+     * goals). AVAILABLE therefore means "known installed and its
+     * service is running," matching the exact honesty note already
+     * used for the 'shutdown_button' capability just below.
+     */
+    function piratebox_classify_oled(bool $helperAvailable, ?bool $serviceActive): string
+    {
+        if (!$helperAvailable) return 'UNKNOWN';
+        return $serviceActive === true ? 'AVAILABLE' : 'UNAVAILABLE';
+    }
+}
+
 if (!function_exists('piratebox_classify_storage')) {
     /**
      * Pure, directly testable - see piratebox_classify_service_pair().
@@ -295,11 +319,20 @@ if (!function_exists('piratebox_get_capability_state')) {
             'detail' => ['live_health_check' => 'not yet implemented - see docs/CAPABILITY-REGISTRY.md'],
         ];
 
+        // Physically wired and verified 2026-09-03 (I2C bus enabled,
+        // OLED responds at 0x3C, a real frame written and visually
+        // confirmed) - see docs/HARDWARE-INTEGRATION-DESIGN.md §5 and
+        // docs/CHECKPOINTS.md for the bring-up record. No longer a
+        // hardcoded NOT_INSTALLED: reads the same status.json snapshot
+        // as every other live capability below.
+        $oledServiceActive = $helperAvailable ? ($status['hardware']['oled_service_active'] ?? null) : null;
         $capabilities['oled'] = [
             'layer' => 'operational',
             'core_dependency' => false,
             'label' => 'OLED display',
-            'state' => 'NOT_INSTALLED',
+            'state' => piratebox_classify_oled($helperAvailable, $oledServiceActive),
+            'stale' => $helperStale,
+            'detail' => ['live_health_check' => 'systemd service state only - does not confirm the physical display is responding, see piratebox_classify_oled()'],
         ];
 
         $capabilities['toggle_switch'] = [
@@ -439,6 +472,10 @@ if (!function_exists('piratebox_diagnose_capability')) {
             'admin_panel' => [
                 'DEGRADED' => 'No admin password has been set yet - this is the secure default, not a fault (/admin/ rejects every login attempt until one exists). To set one: sudo /usr/local/bin/setup_admin_password.sh (see README.md). Re-run the same command any time to change it.',
                 'UNKNOWN' => 'Status helper snapshot unavailable - admin panel readiness cannot currently be confirmed (this does not affect whether /admin/ itself is reachable).',
+            ],
+            'oled' => [
+                'UNAVAILABLE' => 'piratebox-oled.service is not running - the physical status display (if connected) is dark. This never affects Core (AP/site keep working normally). Suggested check: systemctl status piratebox-oled.',
+                'UNKNOWN' => 'Status helper snapshot unavailable - OLED service state cannot currently be confirmed.',
             ],
         ];
 

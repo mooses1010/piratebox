@@ -1,18 +1,22 @@
 # Hardware Integration Design (Stage 11)
 
-**Status: DESIGN ONLY for everything except one button.** No I2C/OLED
-code exists on this Pi, and the toggle switch and four of the five
-momentary buttons remain unwired. **The exception: GPIO25/physical pin
-22 (the "hold-for-safe-shutdown" button) has been physically wired,
-electrically bring-up tested, and has a working persistent
-implementation** - see `docs/PHYSICAL-CONTROL-UX-DESIGN.md` §2/§3 and
-the "Stage 29 Implementation: Physical Shutdown Button" entry in
-`docs/OPERATIONAL-DECISIONS.md` for the full story, and the
-authoritative wiring map in §2 below for current status of every pin.
-Everything else in this document remains the plan to follow **only
-when that hardware physically arrives and the operator explicitly says
-to build it** - per instruction, this stage produced the design, not
-the implementation, for the rest.
+**Status: DESIGN ONLY for the toggle switch and four of the five
+momentary buttons.** Two pieces of hardware now have working, physically
+verified implementations: **GPIO25/physical pin 22 (the
+"hold-for-safe-shutdown" button)** - see `docs/PHYSICAL-CONTROL-UX-
+DESIGN.md` §2/§3 and the "Stage 29 Implementation: Physical Shutdown
+Button" entry in `docs/OPERATIONAL-DECISIONS.md` - and, as of
+2026-09-03, **the SSD1306 OLED display** - I2C1 enabled, the display
+physically wired and confirmed responding at 0x3C, and
+`piratebox-oled.service`/`piratebox_oled_daemon.py` implemented and
+bring-up tested (see §5 and §12 below and `docs/CHECKPOINTS.md` for the
+full record, including a real power-quality finding from the bring-up
+session that is NOT an OLED defect - see §12). The authoritative wiring
+map in §2 below reflects current status of every pin. Everything else
+in this document remains the plan to follow **only when that hardware
+physically arrives and the operator explicitly says to build it** -
+per instruction, this stage produced the design, not the
+implementation, for the toggle switch and the four remaining buttons.
 
 Hardware this design targets (ordered, not yet connected as of 2026-09-01):
 - MTS-101 SPST maintained ON/OFF toggle switch
@@ -33,7 +37,7 @@ what's *actually* enabled on this specific Pi, not generic assumptions:
 | Interface | Status | Detail |
 |---|---|---|
 | Serial console (UART) | **ACTIVE** | `enable_uart=1` in `/boot/firmware/config.txt`; `serial-getty@ttyS0.service` is running. **GPIO14 (TXD0) and GPIO15 (RXD0) are in use** - do not reassign. |
-| I2C (`i2c_arm`) | Not yet enabled | `i2c_bcm2835` kernel module is loaded, but no `dtparam=i2c_arm=on` in config.txt and no `/dev/i2c-*` device exists yet. **GPIO2 (SDA1)/GPIO3 (SCL1) are free** - enabling I2C is a one-line config.txt addition when this stage is actually implemented. |
+| I2C (`i2c_arm`) | **ENABLED, 2026-09-03** | `dtparam=i2c_arm=on` uncommented in `/boot/firmware/config.txt` (persistent, survives reboot - confirmed). **Two-part enablement, not just the config.txt line**: the device-tree overlay alone only brings up the bus adapters (`/sys/bus/i2c/devices/i2c-1`, `i2c-2`) - the `i2c-dev` kernel module, which creates the actual `/dev/i2c-*` character device nodes, must also be loaded and persisted (`/etc/modules-load.d/i2c.conf`). Missing this second half is a well-known, easy-to-hit gap when doing it by hand instead of via `raspi-config`'s "Enable I2C" (which does both) - found and fixed live during this bring-up. `/dev/i2c-1` (GPIO2/SDA, GPIO3/SCL) confirmed present; `i2cdetect -y 1` confirmed the OLED responding at 0x3C, nothing else on the bus. |
 | SPI | Not enabled | No `/dev/spidev*`. Not needed for this design (I2C only). |
 | `/dev/gpiochip0` permissions | `crw-rw---- root:gpio` | **Any process in the `gpio` group can read/write GPIO without root** - see Security Boundary below, this changes the design from what a root-only assumption would require. |
 | `gpio`/`i2c`/`spi` groups | Already exist | `moose` is already a member of all three (inherited from initial Pi setup, not something this project added). |
@@ -62,8 +66,8 @@ avoiding everything in the "never use" list above.
 | Function | GPIO (BCM) | Physical pin | Status | Notes |
 |---|---|---|---|---|
 | Normal/Emergency toggle | GPIO17 | 11 | Not wired | Input, internal pull-up, switch to GND |
-| OLED SDA | GPIO2 | 3 | Not wired | Fixed I2C1 function, not reassignable - reserved, do not use for anything else |
-| OLED SCL | GPIO3 | 5 | Not wired | Fixed I2C1 function, not reassignable - reserved, do not use for anything else |
+| OLED SDA | GPIO2 | 3 | **WIRED, VERIFIED** | Fixed I2C1 function, not reassignable. OLED VCC on pin 1 (3.3V), GND on pin 14 - responds at address 0x3C, confirmed via `i2cdetect` and a real test frame written and visually confirmed 2026-09-03. |
+| OLED SCL | GPIO3 | 5 | **WIRED, VERIFIED** | Fixed I2C1 function, not reassignable. See OLED SDA row - same bring-up. |
 | Momentary button 1 | GPIO22 | 15 | Not wired | Cycle page (Stage 29 §2) |
 | Momentary button 2 | GPIO23 | 16 | Not wired | Wake display (Stage 29 §2) |
 | Momentary button 3 | GPIO24 | 18 | Not wired | Reserved, unassigned (Stage 29 §2) |
@@ -170,6 +174,14 @@ handle this directly and already include debouncing.
 
 ## 5. OLED status display (SSD1306 128x64 I2C)
 
+**Built and physically verified 2026-09-03 - see §12 for the full
+bring-up record and `piratebox_oled_daemon.py` for the implementation.**
+The content plan below has since been superseded by the more detailed,
+already-implemented page design in `docs/PHYSICAL-CONTROL-UX-DESIGN.md`
+§1 (four pages - Status/Time/Network/Health - rather than the two mode-
+specific layouts sketched here); this section's original reasoning is
+kept for context, not because the layouts below are what's running.
+
 **Never required for operation** - if the daemon driving it crashes, is
 disabled, or the display is unplugged, the PirateBox continues operating
 exactly as it does today. This is a hard requirement, not a goal: the
@@ -223,6 +235,8 @@ and cannot be designed further until that hardware is chosen.
 
 ## 6. Likely packages
 
+**`python3-luma.oled` and `i2c-tools` installed 2026-09-03 - see §12.**
+
 **Checked live this session (`dpkg -l`/`apt-cache search`), not assumed:**
 
 | Package | Purpose | Status on this Pi, right now |
@@ -243,6 +257,10 @@ status, checked directly, not what will eventually be requested.
 ---
 
 ## 7. systemd/service architecture
+
+**`piratebox-oled.service` implemented and running 2026-09-03 - see
+§12.** The GPIO daemon (`piratebox-gpio.service` below) remains design-
+only; only the OLED half of this section is built.
 
 Two new services, following the exact hardening pattern already
 established and approved for `piratebox-status.service`/`.timer` (Phase
@@ -447,3 +465,100 @@ the entire mode system be built and tested before any switch existed):
    (mode falls back to Normal, OLED simply goes blank/stale) - the same
    "prove the fallback, don't just assume it" discipline already applied
    throughout this project.
+
+## 12. OLED bring-up record (2026-09-03)
+
+The plan in §5-§8 above is now built and physically verified, not just
+designed. Recorded here rather than rewriting §5-§8 into past tense
+throughout, so the original design reasoning stays intact alongside
+what actually happened.
+
+**I2C enablement - two real gotchas found, both fixed persistently:**
+1. `dtparam=i2c_arm=on` uncommented in `/boot/firmware/config.txt`
+   (backed up first: `config.txt.pre-i2c-bak`). This alone brought up
+   the bus adapters (confirmed via `/sys/bus/i2c/devices/`) but did
+   **not** create `/dev/i2c-*` - a genuinely easy thing to miss doing
+   this by hand instead of via `raspi-config`.
+2. The `i2c-dev` kernel module (the character-device frontend) was
+   missing and had no autoload entry. Fixed with `modprobe i2c-dev`
+   (immediate, no reboot needed for this half) plus a persistent
+   `/etc/modules-load.d/i2c.conf` entry so it survives every future
+   boot without repeating this step.
+
+**Hardware verified, not assumed:** `i2cdetect -y 1` found the display
+at `0x3C` (the expected default SSD1306 address) with nothing else on
+the bus (bus 2, the internal HDMI-only bus, confirmed empty as a
+non-conflict sanity check). A real frame was written via `luma.oled`
+(full-white flash, then a bordered test-pattern frame) and visually
+confirmed by the operator on the physical screen - address response
+alone was deliberately not treated as proof the display works.
+
+**Packages installed (§6's candidates, confirmed via apt):**
+`i2c-tools` (4.4-2), `python3-luma.oled` (3.10.0-1, pulled in
+`python3-luma.core` 2.4.2-1 and `python3-pil` 11.1.0-5 automatically).
+`python3-gpiozero`/`python3-lgpio`/`python3-smbus2` were already
+installed, as §6 predicted - no GPIO-side packages were needed for
+this OLED-only bring-up.
+
+**Service architecture matches §7's design closely, one naming note:**
+`piratebox-oled.service` is implemented exactly as designed (separate
+from any button/GPIO service, `Restart=on-failure`, hardened). It runs
+as the existing `piratebox-gpio` system account (the same one
+`piratebox-button.service` already uses) with `SupplementaryGroups=i2c`
+added, rather than creating the separate `piratebox-hw` account §8
+sketched - reusing the account that already exists rather than adding
+a second one, since both are the same "unprivileged, gpio-group,
+narrowly-scoped hardware daemon" trust tier §8 itself argued for.
+
+**No sudoers grant needed for this daemon** - unlike
+`piratebox-button.service`, the OLED daemon has no privileged action to
+escalate to (it only reads already-world-readable files and writes to
+the display), so §3's "OLED daemon needs its own sudoers grant" note
+never applied here; that was specifically about button daemon actions,
+not the display itself.
+
+**A real, currently-active power-quality finding from this session -
+NOT an OLED defect:** immediately before this bring-up, the operator
+reconnected the OLED wiring while the Pi was powered on, then observed
+SSH become extremely slow and the existing GPIO25 hold-to-shutdown not
+trigger, ultimately requiring a hard power cycle. Investigated on the
+next boot, before any I2C work resumed:
+- `piratebox-button.service` came back up clean and healthy on the new
+  boot - no evidence of a software defect in the button daemon itself.
+- No previous-boot journal was available to examine the actual stall
+  (`journalctl --list-boots` showed only the current boot) - `/var/log/
+  journal` exists but was never actually initialized for persistent
+  storage on this system, a pre-existing gap unrelated to this
+  incident, so the volatile (`/run`-only) journal was lost on the hard
+  power-cut. Worth fixing at some point for future diagnosability, not
+  addressed in this pass.
+- `vcgencmd get_throttled` returned `0x50005` on the fresh boot -
+  **under-voltage detected right now**, and throttling had occurred
+  since boot, confirmed again by 4 separate "Undervoltage detected!"
+  kernel log lines in the first ~4 minutes of uptime. This condition
+  was already flagged as an open question about the wall-brick power
+  source during the original GPIO25 bring-up (§8's cross-reference,
+  `docs/OPERATIONAL-DECISIONS.md`) - it is not new, but it has now
+  plausibly manifested seriously enough to explain the SSH slowness and
+  the button's non-response (CPU throttling can starve any process's
+  scheduling, this daemon included, without indicating a defect in it).
+- Filesystem, systemd units, and dmesg were otherwise completely clean
+  (no ext4/mmc errors, zero failed units, no USB/network errors) - this
+  is specifically and only a power-supply headroom problem, not a
+  broader hardware or software fault.
+- **This remains an open, unresolved condition on this specific power
+  source**, exactly as already flagged in `docs/CAPABILITY-REGISTRY.md`'s
+  "Undervoltage / power-quality monitoring" entry - not resolved by
+  this bring-up, and explicitly not attributed to the newly-added OLED
+  (the OLED's own current draw is a few mA, well within what any
+  correctly-speced 5V/2.5A+ supply should handle; the undervoltage
+  condition was observed on this same boot before the daemon was even
+  running).
+
+**Live installation on this Pi** (not yet reflected in a merged commit
+at design-doc-write time - see `docs/CHECKPOINTS.md` for the exact
+sequence and verification): `piratebox_oled_daemon.py` installed to
+`/usr/local/bin/`, `piratebox-oled.service` installed to
+`/etc/systemd/system/`, `piratebox-gpio` added to the `i2c` group,
+service enabled and started, confirmed rendering all four pages in
+rotation on the physical display.

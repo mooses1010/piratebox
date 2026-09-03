@@ -1,0 +1,48 @@
+# /etc/systemd/system/piratebox-oled.service
+[Unit]
+Description=PirateBox OLED status display daemon (SSD1306, I2C1)
+# See piratebox_oled_daemon.py for exactly what this does and why.
+# Runs continuously (its own retry/redraw loop, not a timer) so it can
+# recover on its own if the display is unplugged and reconnected -
+# see the script's own header for the full degrade/recover contract.
+#
+# Deliberately AFTER local-fs.target only, not After=network.target or
+# any Core service - this daemon has zero dependency on networking or
+# on hostapd/dnsmasq/nginx/php-fpm being up, and nothing in Core depends
+# on this daemon either (docs/ARCHITECTURE.md §2, docs/HARDWARE-
+# INTEGRATION-DESIGN.md §5 "never required for operation").
+After=local-fs.target
+
+[Service]
+Type=simple
+User=piratebox-gpio
+Group=gpio
+# The button daemon (piratebox-button.service) already runs as this
+# same unprivileged system account, in the same gpio group - reused
+# here rather than creating a second hardware-access account, per
+# docs/HARDWARE-INTEGRATION-DESIGN.md §8's own "one dedicated account"
+# framing. SupplementaryGroups=i2c is the one addition this service
+# needs beyond what the button daemon already has, for /dev/i2c-1.
+SupplementaryGroups=i2c
+ExecStart=/usr/local/bin/piratebox_oled_daemon.py
+Restart=on-failure
+RestartSec=5
+
+# No sudo grant of any kind - this daemon has no privileged action to
+# escalate to (unlike piratebox-button.service's narrow poweroff grant).
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectSystem=strict
+PrivateTmp=yes
+# gpiozero isn't used here, but luma.oled/Pillow may want a writable
+# scratch directory for font caching - point it at this service's own
+# private, tmpfs-backed /tmp (same fix piratebox-button.service already
+# needed for gpiozero's own notification pipe) rather than "/", which
+# ProtectSystem=strict makes read-only. Zero SD card writes either way.
+WorkingDirectory=/tmp
+# This daemon touches no PirateBox data file at all (see the script's
+# own header - every data source it reads is opened read-only), so it
+# needs no other writable paths under ProtectSystem=strict.
+
+[Install]
+WantedBy=multi-user.target

@@ -1,15 +1,28 @@
 # Physical Control UX Design (Stage 29)
 
-**Status: DESIGN ONLY for the OLED page state machine (§1) and the
-still-unassigned buttons (§2).** No I2C/OLED code exists on this Pi.
-**§3's hold-for-safe-shutdown flow has been implemented and physically
-verified** on GPIO25/physical pin 22 - the exact design below (4.0s
-hold, no re-fire, no action on early release) matches what's actually
-running. See `docs/OPERATIONAL-DECISIONS.md` ("Stage 29 Implementation:
-Physical Shutdown Button") for the bring-up test results and the
-running service, and `docs/HARDWARE-INTEGRATION-DESIGN.md` §2 for the
-authoritative wiring map. Everything else in this document remains the
-plan to follow once the OLED and remaining buttons physically arrive.
+**Status: DESIGN ONLY for the still-unassigned buttons (§2) - the OLED
+page state machine (§1) is now implemented.** **§3's hold-for-safe-
+shutdown flow has been implemented and physically verified** on
+GPIO25/physical pin 22 - the exact design below (4.0s hold, no re-fire,
+no action on early release) matches what's actually running. See
+`docs/OPERATIONAL-DECISIONS.md` ("Stage 29 Implementation: Physical
+Shutdown Button") for the bring-up test results and the running
+service, and `docs/HARDWARE-INTEGRATION-DESIGN.md` §2 for the
+authoritative wiring map. **As of 2026-09-03, §1's four-page OLED
+design (Status/Time/Network/Health) is built and physically verified**
+- `piratebox_oled_daemon.py`/`piratebox-oled.service`, see
+`docs/HARDWARE-INTEGRATION-DESIGN.md` §12 for the full bring-up record.
+One deliberate interim departure from §1/§5 below, explained in full in
+the daemon's own header comment and in §1's note below: with GPIO22
+("cycle page") and GPIO23 ("wake display") not physically wired yet,
+the daemon auto-rotates through the four pages on a timer instead of
+waiting for a cycle button, and does not auto-dim (dimming with no way
+to wake the display back up would defeat its glanceable purpose
+entirely). Both are straightforward to switch to the button-driven
+behavior specified below once those two buttons are wired - the
+per-page render functions don't change. Everything else in this
+document (the remaining buttons, transport lock, mode-switch UX)
+remains the plan to follow once that hardware physically arrives.
 
 **Relationship to Stage 11:** Stage 11 designed the *electrical* layer
 (pin assignments, debounce mechanism, package needs) and deliberately
@@ -360,6 +373,18 @@ documented connectors, service loops) applying to the control panel
 specifically, not just sensor wiring generally.
 
 ## 5. Display power behavior
+
+**Interim status (2026-09-03): NOT enabled yet, by design, not an
+oversight.** This section's dim-after-idle behavior depends on the
+wake button (§2, GPIO23) to be recoverable at all - without it, an
+auto-dimmed display has no way back to full brightness short of
+restarting the service, which is worse than the "always poked
+brightness" case this section explicitly argues against. `piratebox_
+oled_daemon.py` implements the contrast-setting plumbing this section
+needs and leaves it unused, ready to wire to GPIO23's callback the
+moment that button is physically installed - see the daemon's own
+header comment for the full reasoning. The display currently stays at
+full brightness continuously.
 
 **Proposed: dim (not fully off) after 60 seconds idle, wake instantly on
 any button press** (the dedicated wake button from §2, or any other -
