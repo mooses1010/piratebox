@@ -760,3 +760,51 @@ confirming `main`, `worktree-round7`, and `HEAD` were all identical at
 --list` both confirmed clean afterward. `main` left clean with no
 uncommitted changes.
 
+| Round 8: UX discoverability + lightweight theme system + OLED instrument-panel polish + NTP root-cause diagnosis + bounded reference growth | `56048bc` on `worktree-round8` (not yet merged to `main`) | *(no `~/piratebox-backups/` snapshot - content/code pass, to be merged and deployed via the normal `piratebox_deploy.sh` workflow)* |
+
+**Pre-merge state, 2026-09-03:** built and fully tested on an isolated
+worktree branch across seven commits (`56ecd40` round-7 checkpoint
+closure, `5f4df54` theme system, `33c0de5` landing page, `6d001ff` NTP
+diagnosis, `ca98468` OLED polish, `8bfe6a3` reference growth,
+`56048bc` trust/accessibility). Explicitly did NOT touch the
+undervoltage/power finding, RTC hardware, the AWUS036ACM migration, the
+enclosure, or add any new Field Tools/calculators - all correctly out
+of scope. Landing page gained a "Two Ways to Use This PirateBox"
+section (Connect & Share / Explore & Reference) without listing every
+Utility category, absent in Emergency Mode by design. A five-theme
+system (Default/Terminal/Amber/Low Light/Pirate) was added entirely
+client-side (localStorage + a `data-theme` attribute, no cookie, no
+server state) on top of `:root` CSS custom properties converted from
+the previously-hardcoded palette - WCAG contrast computed (not
+eyeballed) for every theme, one real failure found and fixed (Pirate's
+warning color, 3.85:1 -> 4.99:1). The OLED's four serious pages gained
+header-bar icons, a heartbeat tick, a Wi-Fi bars glyph, an
+always-on (non-personality-gated) client-count pulse, per-service
+status dots, a storage bar, a boxed undervoltage warning, a brief
+page-change wipe transition, and a new always-on mode-transition
+banner - personality mode's own gating (round 7) is unchanged and was
+re-verified against this Pi's real, current `0x50005` condition. The
+operator-reported wrong clock was root-caused to a malformed,
+duplicated hostname in `/etc/systemd/timesyncd.conf`'s `NTP=` line
+(confirmed via failed DNS resolution on the exact corrupted string) -
+`eth0` has real, working Internet connectivity, contradicting an
+earlier audit's assumption; the fix is a one-line `sed` + service
+restart, documented as a genuine operator-sudo gate rather than
+attempted from this session. Reference growth was deliberately bounded:
+two citation upgrades in the Computing page (RFC 20 for ASCII, NEETS
+Module 13 as a secondary for USB/serial), the ERG deferral re-checked
+against a genuinely different host (also blocked, confirming the
+pattern) rather than re-attempted, and one UK global-source candidate
+evaluated and rejected on fitness (not licensing) - no new catalog
+documents added, catalog stays at 40/40. `tools/check_library_
+catalog.py` clean, search index rebuilt byte-identical (232 entries,
+no reference.json changes), full five-suite regression 287/287
+throughout (confirmed after every commit). All key pages (landing,
+Utility hub, all three round-7 reference pages, Computing, Search,
+Maps, Help, Chat, Bulletin, Logbook, Status) smoke-tested 200 via
+`php -S` with zero PHP fatal/parse errors; both locales and the theme
+switcher's five options confirmed rendering. Merge/deploy and live
+re-verification (including installing the updated OLED daemon) to be
+recorded separately once completed, per the same operator-gated
+workflow round 7 used.
+
