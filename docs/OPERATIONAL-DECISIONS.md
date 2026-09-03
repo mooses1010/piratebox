@@ -6,6 +6,109 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## AWUS036ACM Hardware Validation Round
+
+**Decision date:** 2026-09-03, following Round 9's post-power-outage
+closure (`fee3e9b`). Hardware validation only - **`wlan0` remains the
+production PirateBox AP; no migration happened or is planned by this
+entry.** Executes the test plan written in "Ordered: ALFA AWUS036ACM"
+below, now that the hardware has actually arrived and been connected.
+
+**Identification (live, not assumed from the purchase):** `lsusb` shows
+USB ID `0e8d:7612`, MediaTek Inc. MT7612U 802.11a/b/g/n/ac Wireless
+Adapter - matches the expected chipset. `lsusb -t` shows it on
+Bus 001, nested under the onboard hub, at USB2 480M high-speed (the
+Pi 3 B+'s USB2-only ceiling applies regardless of the adapter's own
+USB3 capability). Enumerates as `wlan1`. Driver `mt76x2u` (mainline
+in-tree, confirmed via `ethtool -i` and `lsmod` - no DKMS/vendor
+module). Firmware loaded per dmesg: ASIC revision `76120044`, ROM
+patch build `20141115060606a`, firmware version `0.0.00` build 1.
+
+**Insertion/soak history (dmesg + journalctl, this boot):** the
+previous test adapter (TP-Link TL-WN722N V2, USB ID `2357:010c`,
+`rtl8xxxu`) was still physically connected at boot and was later
+unplugged; the ALFA was plugged into the same physical port afterward.
+At first enumeration, the ALFA disconnected and re-enumerated once,
+~11 seconds after appearing, coincident with a single `mmcblk0`
+(SD card) read I/O error and one `dwc_otg` USB host-controller
+transfer-timeout warning - a cross-subsystem pattern (a USB WiFi event
+and an unrelated SD-card event at the same instant) that points to a
+momentary power-rail sag at insertion rather than an mt76 driver/
+firmware fault. No firmware crash or repeated failure was observed;
+after the single re-enumeration the adapter ran cleanly for the rest
+of the session, including through live AP beaconing.
+
+**Power baseline - distinguishing chronic from new:** `vcgencmd
+get_throttled` reads `0x50005` (under-voltage detected now and since
+boot, throttled now and since boot) - **identical to the value
+recorded before the ALFA was ever connected** (Round 9's post-outage
+recovery, no ALFA present). This is the project's known, pre-existing
+chronic condition, not something the ALFA introduced. The one
+insertion-time disconnect above is the only evidence found that is
+specifically time-correlated with the ALFA; it did not recur, and the
+throttled reading did not change under subsequent AP-beaconing load.
+Per standing instruction, this power problem was not investigated
+further or fixed.
+
+**Wireless capability, confirmed empirically:** `iw phy3 info` lists
+`AP` among supported interface modes (also `monitor`, `IBSS`, `mesh
+point`, `P2P-client/GO`). This was then proven, not just read off the
+capability list, exactly as step 3 of the test plan below requires:
+a live `hostapd` instance (isolated config, not the production file)
+reached `AP-ENABLED` and beaconed a real SSID. Contrast with the
+TL-WN722N V2, which returned `EOPNOTSUPP` on the equivalent probe (see
+its own entry above) - the ALFA's mainline-driver AP support is real,
+not merely advertised. 2.4GHz channels 1-11 are usable for
+transmission under the Pi's current (world/`00`) regulatory domain;
+12-14 are not. VHT (802.11ac) capability is present on 5GHz with
+RX/TX MCS 0-9 on 1 and 2 streams (genuine 2x2), but **every 5GHz
+channel currently shows `(no IR)`** under the active regulatory
+domain, so a legal 5GHz AP test needs a separate, deliberate
+regulatory-domain decision - not attempted this round.
+
+**NetworkManager ownership:** `wlan1` is NetworkManager-managed by
+default (only `wlan0` is excluded, via the live-only
+`/etc/NetworkManager/conf.d/99-piratebox.conf`, which is not tracked in
+this repo). NetworkManager's own wifi radio switch was globally
+`disabled` throughout this session, so nothing auto-associated it.
+Recommend adding `wlan1` (or a MAC/driver-based match, since USB
+enumeration order could change which kernel name it gets) to the same
+exclusion before any future production migration - not done this
+round, since it wasn't needed to keep the test isolated.
+
+**Isolated AP test (step 5-6 of the plan below):** ran a temporary,
+non-persisted `hostapd` (config and PID lived only in the session's job
+tmp directory, never `/etc/hostapd/`) bound to `wlan1`, SSID
+`PirateBox-ALFA-Test`, WPA2-PSK, 2.4GHz channel 6, isolated IP
+(`10.99.99.1/24`, assigned via a plain `ip addr add`, not through
+`dhcpcd`). No DHCP server was started for the test - the production
+`dnsmasq` already binds UDP/67, and standing up a second DHCP scope
+without touching production config was judged higher-risk than the
+test needed; the goal was to prove the adapter can create and sustain
+a real WPA2 AP, which `AP-ENABLED` plus stable beaconing already
+demonstrates independent of full IP connectivity. `wlan0`/production
+hostapd were confirmed untouched and still serving `PirateBox`
+throughout.
+
+**Operator RF gate - the one remaining step:** this entry does **not**
+claim the ALFA is validated for production use. A real client
+associating from a phone/laptop, observed by the operator, is the
+step that actually proves it (see the isolated-test-AP requirements
+below) - not attempted by this session, since it requires a human with
+a wireless device. Recommendation as of this entry: **promising, not
+yet validated** - hardware identification, driver, empirical AP-mode
+capability, and a short supervised soak all passed clean; the one
+insertion-time power event is noted but not disqualifying (single,
+self-resolved, not repeated); full validation is pending the operator
+RF test.
+
+**Explicitly not done this round, per instruction:** no production
+migration, no `hostapd`/`dnsmasq`/`dhcpcd`/NetworkManager production
+config edits, no 5GHz test (blocked by regulatory domain as above), no
+persistent interface naming/udev rule, no attempt to fix the chronic
+undervoltage condition, no AWUS036ACM antenna swap (ARS-N19 not
+involved - stock dual-band antennas only, per instruction).
+
 ## Round 9: Theme Selector Regression - Root Cause and Fix
 
 **Decision date:** 2026-09-03. The operator reported, from real use on

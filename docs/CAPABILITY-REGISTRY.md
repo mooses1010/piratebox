@@ -61,7 +61,7 @@ it is.**
 | Built-in `wlan0` (production AP) | Core | INSTALLED, CURRENT SCOPE | Integrated |
 | TP-Link TL-WN722N v2/v3 | - | INSTALLED (physically present); REJECTED as AP candidate | Attachable |
 | ALFA AWUS036NHA (AR9271) | - | REJECTED as AP candidate (never purchased) | n/a |
-| ALFA AWUS036ACM (MT7612U) | Core (if adopted) | OWNED / INCOMING | Attachable today; would become semi-permanent if adopted |
+| ALFA AWUS036ACM (MT7612U) | Core (if adopted) | INSTALLED (evaluation) - AP capability empirically verified, isolated-AP hardware test passed, operator RF verification pending | Attachable today; would become semi-permanent if adopted |
 | ALFA ARS-N19 antenna | Core (if AWUS036ACM adopted) | OWNED / INCOMING (operator-asserted this session - see note) | Attachable |
 | GPIO25 shutdown button | Core | INSTALLED, CURRENT SCOPE | Integrated |
 | Toggle switch (Normal/Emergency, GPIO17) | Operational | OWNED / INCOMING | Integrated (planned) |
@@ -150,22 +150,89 @@ it is.**
 - **Purpose:** candidate primary-AP upgrade, dual-band 2.4/5GHz, 2x2
   MIMO.
 - **Layer:** would become Core only if/when actually adopted as the
-  production AP; until then it's an evaluation candidate.
-- **State:** **OWNED / INCOMING - ordered, confirmed NOT yet arrived or
-  tested** (`docs/OPERATIONAL-DECISIONS.md`; live `lsusb` on this
-  session confirms it is not currently attached).
-- **Interface:** USB. Expected driver `mt76x2u` (**expected, not
-  verified** - explicitly flagged as unconfirmed in the source doc).
+  production AP; until then it's an evaluation candidate. **Not yet
+  adopted - `wlan0` remains the production AP.**
+- **State (2026-09-03, AWUS036ACM Hardware Validation Round):**
+  physically connected, detected, driver bound, and AP capability
+  **empirically verified** (not merely advertised-list-assumed):
+  `iw phy` correctly listed `AP` as a supported interface mode, and a
+  live `hostapd` instance on an isolated test SSID (`PirateBox-ALFA-
+  Test`, 2.4GHz channel 6, WPA2-PSK) reached `AP-ENABLED` and beaconed
+  stably with no new USB/driver errors. **Operator RF verification
+  (a real client associating, from a phone/laptop) is the one
+  remaining gate before this can be called fully hardware-tested** -
+  see `docs/OPERATIONAL-DECISIONS.md` "AWUS036ACM Hardware Validation
+  Round" for the full evidence and exact gate.
+- **Identity, confirmed live (not assumed from the purchase):** USB ID
+  `0e8d:7612` (MediaTek Inc. MT7612U 802.11a/b/g/n/ac Wireless
+  Adapter), enumerates as `wlan1` on this Pi today. USB2 480M
+  high-speed under a nested onboard hub (Raspberry Pi 3 B+'s USB2-only
+  limitation applies - no USB3 available regardless of adapter
+  capability).
+- **Driver:** `mt76x2u` (mainline in-tree, confirmed bound and
+  functional - not merely present as a module). Firmware loaded:
+  ASIC revision `76120044`, ROM patch build `20141115060606a`, firmware
+  version `0.0.00` build 1. No DKMS/vendor/out-of-tree driver used or
+  needed.
+- **Confirmed wireless capabilities (live `iw phy` query, this
+  session):** interface modes include `AP` (and `monitor`, `IBSS`,
+  `mesh point`, `P2P-client/GO`) - genuinely supports AP mode under the
+  mainline driver, unlike the TL-WN722N V2 (which returned `EOPNOTSUPP`
+  on the equivalent AP-vif-creation probe - see that adapter's own
+  entry above). 2.4GHz: HT20/HT40, channels 1-11 usable for
+  transmission under the current (world/`00`) regulatory domain,
+  12-14 restricted (no-IR). 5GHz: VHT (802.11ac) present, RX/TX MCS
+  0-9 on 1 and 2 spatial streams (confirms genuine 2x2), max channel
+  width 80MHz (no 160/80+80) - **but every 5GHz channel currently
+  shows `(no IR)` under the active world regulatory domain**, so a
+  5GHz AP test is not legally possible today without a separate,
+  deliberate regulatory-domain decision (out of scope for this round).
+  Interface-combination limit: up to 2 concurrent vifs on this phy,
+  but only 1 channel at a time - no simultaneous multi-channel AP+scan
+  on the ALFA itself (irrelevant to the two-radio wlan0+wlan1 case,
+  since they're independent phys).
+- **Power/USB soak findings - read carefully before assuming either
+  "adapter is fine" or "adapter is the problem":** the Pi's `vcgencmd
+  get_throttled` reads `0x50005` (under-voltage detected now AND since
+  boot, throttled now AND since boot) - this is the **same known
+  pre-existing chronic condition** recorded before the ALFA was ever
+  involved (identical value in the Round 9 post-outage recovery, with
+  no ALFA present at all) - **not new, not caused by this adapter.**
+  Separately, at the ALFA's first insertion this session, a single
+  USB disconnect/re-enumeration cycle occurred ~11 seconds after first
+  appearing, coincident with one SD-card (`mmcblk0`) read I/O error and
+  one USB host-controller (`dwc_otg`) transfer-timeout warning - a
+  cross-subsystem pattern consistent with a momentary power-rail sag
+  at insertion, not an mt76 driver/firmware defect (no firmware crash
+  or repeated failures were observed). It was a **single, self-resolved
+  event**, not a repeating pattern - stable for the remainder of the
+  session afterward, including through ~15+ seconds of live AP
+  beaconing with no new errors and no change in the throttled reading.
+  **Record this caveat prominently in any future troubleshooting** so
+  a future USB reset or disconnect on this adapter is checked against
+  the Pi's chronic power condition before being treated as an mt76
+  defect.
+- **NetworkManager/ownership:** `wlan1` shows as NetworkManager-managed
+  (`unmanaged-devices` in `/etc/NetworkManager/conf.d/99-piratebox.conf`
+  - a live-only file, not tracked in this repo - currently excludes
+  only `wlan0` by name) but NetworkManager's own wifi radio switch
+  (`nmcli radio wifi`) is globally `disabled`, so nothing auto-connected
+  it during this round. Not yet given the same explicit unmanaged
+  exclusion as `wlan0` - worth doing before any future production
+  migration, not required for this evaluation round.
 - **Core dependency:** No, if adopted - `wlan0` is the documented
   fallback throughout the evaluation, and stays the current production
   AP unless/until a deliberate, separate migration decision is made
-  after successful isolated testing.
-- **Failure behavior (planned test discipline):** an 8-step test plan
-  exists (`docs/OPERATIONAL-DECISIONS.md`) - isolated `PirateBox-USB-
-  Test` AP first, production `wlan0` untouched throughout, production
-  migration only as an explicit separate step after success.
-- **Notes:** no maximum-client-count is claimed for this adapter -
-  explicitly not yet tested or researched, not assumed.
+  after successful isolated testing and operator RF verification.
+- **Isolated test artifacts:** temporary, non-persisted (killed/removed
+  after verification, no systemd unit, no production file touched) -
+  hostapd config and IP assignment lived only in this session's job
+  tmp directory and a live `ip addr`/`hostapd` process, not the repo or
+  `/etc/`.
+- **Notes:** no maximum-client-count, range, or throughput claims are
+  made - not tested, not assumed. The MAC address observed this
+  session is transient adapter-instance information and is
+  deliberately not recorded here.
 
 ### ALFA ARS-N19 (2.4GHz antenna)
 

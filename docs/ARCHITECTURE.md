@@ -118,8 +118,9 @@ already the live behavior - see `docs/RTC-TIME-READINESS-DESIGN.md` and
 which reports an honest "unavailable" rather than a guess). An external
 radio dies -> fall back to the documented alternative where one exists
 (the built-in `wlan0` AP is already exactly this fallback for the
-not-yet-tested ALFA AWUS036ACM - see `docs/OPERATIONAL-DECISIONS.md`,
-"Wi-Fi adapter notes / planned hardware"). A sensor bus dies -> affected
+ALFA AWUS036ACM - hardware-validated as of the "AWUS036ACM Hardware
+Validation Round" but still pending operator RF verification and not
+adopted as production - see `docs/OPERATIONAL-DECISIONS.md`). A sensor bus dies -> affected
 sensors disappear/degrade, not the whole device. A power monitor dies
 -> telemetry disappears; **it must not itself remove power.** Automation
 gets confused -> manual operator authority remains (already the pattern
