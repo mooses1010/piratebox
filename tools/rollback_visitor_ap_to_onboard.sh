@@ -61,6 +61,17 @@ fi
 
 curl -sf -o /dev/null http://10.0.0.1/ && echo "OK: http://10.0.0.1/ responds." || echo "WARNING: http://10.0.0.1/ did not respond - investigate nginx/php-fpm separately, this is outside what this rollback touches."
 
+# Host/management DNS isolation check (2026-09-03 incident - see
+# docs/OPERATIONAL-DECISIONS.md "Host/Management DNS Isolation Fix").
+# The dhcpcd restart above is exactly the kind of event that caused
+# that incident - verify it didn't regress here too.
+echo "Checking host/management DNS isolation survived this rollback's dhcpcd restart..."
+if grep -q "^nameserver " /etc/resolv.conf && ! getent ahostsv4 example.com 2>/dev/null | grep -q "^10\.0\.0\.1 "; then
+    echo "OK: /etc/resolv.conf still has real nameservers, host resolution is not hitting the visitor wildcard."
+else
+    echo "WARNING: host DNS isolation may have regressed - /etc/resolv.conf has no nameserver lines, or a public hostname resolved to 10.0.0.1. Check 'nohook resolv.conf' in /etc/dhcpcd.conf and NetworkManager's rc-manager (etc/NetworkManager/conf.d/98-piratebox-dns-ownership.conf), then run: nmcli connection up <eth0 connection name>. This does not affect Ethernet/SSH access itself." >&2
+fi
+
 echo
 echo "Rollback complete. pb-ap (if present) has been left alone - it is not"
 echo "started by this script, only wlan0's production role was restored."

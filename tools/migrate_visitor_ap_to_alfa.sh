@@ -162,6 +162,23 @@ systemctl is-active --quiet dnsmasq || { echo "FAIL: dnsmasq not active - see ro
 ip -4 addr show pb-ap | grep -q "inet 10\.0\.0\.1/24" || { echo "FAIL: pb-ap does not hold 10.0.0.1/24 - dhcpcd did not apply the static IP. See rollback script." >&2; exit 1; }
 curl -sf -o /dev/null http://10.0.0.1/ || { echo "FAIL: http://10.0.0.1/ did not respond even though pb-ap holds 10.0.0.1 - investigate (nginx? firewall?) before telling the operator to test. See rollback script." >&2; exit 1; }
 
+# Host/management DNS isolation check (2026-09-03 incident - see
+# docs/OPERATIONAL-DECISIONS.md "Host/Management DNS Isolation Fix").
+# `systemctl restart dhcpcd` above is exactly the kind of event that
+# caused that incident: dhcpcd's global resolv.conf hook silently
+# overwrote NetworkManager's real eth0 nameservers. `nohook resolv.conf`
+# in dhcpcd.conf (and except-interface=lo in dnsmasq.conf) are supposed
+# to make that impossible now regardless of migration state - verify it
+# actually held rather than assuming the fix from a different context
+# still applies here.
+echo "Checking host/management DNS isolation survived this migration's dhcpcd restart..."
+grep -q "^nameserver " /etc/resolv.conf || { echo "FAIL: /etc/resolv.conf has no nameserver lines after the dhcpcd restart above - host DNS isolation regressed. Check 'nohook resolv.conf' is present in /etc/dhcpcd.conf and NetworkManager's rc-manager (etc/NetworkManager/conf.d/98-piratebox-dns-ownership.conf) is installed, then run: nmcli connection up <eth0 connection name>." >&2; exit 1; }
+if getent ahostsv4 example.com 2>/dev/null | grep -q "^10\.0\.0\.1 "; then
+    echo "FAIL: the Pi's own resolver now resolves a public hostname to 10.0.0.1 - host DNS isolation regressed (dnsmasq answered a loopback/host query, or /etc/resolv.conf points at the visitor AP). See docs/OPERATIONAL-DECISIONS.md 'Host/Management DNS Isolation Fix'." >&2
+    exit 1
+fi
+echo "  OK: /etc/resolv.conf still has real nameservers, host resolution is not hitting the visitor wildcard."
+
 echo
 echo "Migration steps complete. wlan0 has been left DOWN and idle (not"
 echo "repurposed - confirmed live that stopping its hostapd binding takes"

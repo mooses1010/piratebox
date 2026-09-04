@@ -50,7 +50,23 @@ echo "[+] Configuring Network..."
 # dhcpcd
 if ! grep -q "interface wlan0" /etc/dhcpcd.conf; then
     echo "    Configuring static IP for wlan0 in /etc/dhcpcd.conf..."
+    # denyinterfaces eth0 + nohook resolv.conf (2026-09-03 Host/Management
+    # DNS Isolation Fix - see docs/OPERATIONAL-DECISIONS.md "Host/
+    # Management DNS Isolation Fix"): eth0 is this Pi's management/WAN
+    # interface, meant to be owned entirely by NetworkManager (see the
+    # conf.d install below) so it gets real upstream DNS. Without
+    # `denyinterfaces eth0`, dhcpcd would also try to manage eth0 and
+    # fight NetworkManager for it. Without `nohook resolv.conf`, dhcpcd's
+    # global (not per-interface) resolv.conf hook rebuilds
+    # /etc/resolv.conf from whatever DNS info dhcpcd itself has on EVERY
+    # dhcpcd event, even for interfaces it isn't managing DNS for -
+    # which on this box is nothing, so it silently overwrites
+    # NetworkManager's real eth0 nameservers with an empty file. Both
+    # lines must come before any `interface` stanza to apply globally.
     cat <<EOF >> /etc/dhcpcd.conf
+
+denyinterfaces eth0
+nohook resolv.conf
 
 interface wlan0
 static ip_address=10.0.0.1/24
@@ -58,6 +74,30 @@ nohook wpa_supplicant
 EOF
     systemctl enable dhcpcd
     systemctl restart dhcpcd
+fi
+
+# NetworkManager: exclude the PirateBox AP radio(s) from NM management,
+# and make NM's /etc/resolv.conf ownership explicit/deterministic for
+# the interfaces it does manage (eth0). See etc/NetworkManager/conf.d/
+# in the repo for the full rationale of each file; installed here so a
+# fresh install can never end up in the un-isolated state that caused
+# the 2026-09-03 incident (NetworkManager fighting hostapd for wlan0,
+# or silently taking over /etc/resolv.conf ownership in a way a second
+# manager - dhcpcd - could still race against).
+echo "    Installing NetworkManager conf.d (AP exclusion + DNS ownership)..."
+mkdir -p /etc/NetworkManager/conf.d
+if [ -f "etc/NetworkManager/conf.d/99-piratebox.conf" ]; then
+    cp "etc/NetworkManager/conf.d/99-piratebox.conf" /etc/NetworkManager/conf.d/99-piratebox.conf
+else
+    echo "    WARNING: etc/NetworkManager/conf.d/99-piratebox.conf not found in repo. Skipping."
+fi
+if [ -f "etc/NetworkManager/conf.d/98-piratebox-dns-ownership.conf" ]; then
+    cp "etc/NetworkManager/conf.d/98-piratebox-dns-ownership.conf" /etc/NetworkManager/conf.d/98-piratebox-dns-ownership.conf
+else
+    echo "    WARNING: etc/NetworkManager/conf.d/98-piratebox-dns-ownership.conf not found in repo. Skipping."
+fi
+if command -v nmcli >/dev/null 2>&1 && systemctl is-active --quiet NetworkManager; then
+    nmcli general reload conf || systemctl restart NetworkManager
 fi
 
 # hostapd
@@ -109,6 +149,15 @@ address=/#/10.0.0.1
 # with 127.0.1.1 ahead of the wildcard) - see etc/dnsmasq.conf in the
 # repo and docs/OPERATIONAL-DECISIONS.md for the full investigation.
 no-hosts
+
+# 2026-09-03 Host/Management DNS Isolation Fix (see
+# docs/OPERATIONAL-DECISIONS.md): dnsmasq always answers queries
+# arriving via loopback (127.0.0.1) regardless of `interface=` above -
+# without this, the Pi's own host resolution can land on the captive
+# wildcard above whenever /etc/resolv.conf has no nameserver lines
+# (glibc's fallback resolver is 127.0.0.1). See etc/dnsmasq.conf in the
+# repo for the full incident writeup.
+except-interface=lo
 
 # RFC 8910 / RFC 7710bis: DHCP option 114 advertises the Captive Portal API
 # URL (RFC 8908) to clients that support it (Android 11+, some others).
