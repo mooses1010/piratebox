@@ -63,6 +63,8 @@ it is.**
 | ALFA AWUS036NHA (AR9271) | - | REJECTED as AP candidate (never purchased) | n/a |
 | ALFA AWUS036ACM (MT7612U) | Core | **PRODUCTION AP, COMMISSIONED (2026-09-03)** - `pb-ap` is the live PirateBox visitor AP; real client validated (association, DHCP lease, site load); single-client only so far, the separate multi-hour/multi-client soak evidence bar is not yet met (see `docs/IMPLEMENTATION-ROADMAP.md` §7 for the exact distinction) | Semi-permanent, installed |
 | ALFA ARS-N19 antenna | Core (if AWUS036ACM adopted) | OWNED / INCOMING (operator-asserted this session - see note) | Attachable |
+| ALFA AWUS036ACM built-in LED | - | **INVESTIGATED, NOT CONTROLLABLE - closed (2026-09-03)**. Kernel fully supports LED control (`CONFIG_MT76_LEDS`/`MAC80211_LEDS`/`LEDS_CLASS`/`LEDS_TRIGGERS` all present); this adapter never registers a `/sys/class/leds/` device, and the one exposed debugfs knob (`led_pin`) was tested twice (instant + sustained hold, operator watching) with no visible effect either time. No raw register write was guessed. See `docs/PHYSICAL-CONTROL-UX-DESIGN.md` §8 for the full evidence chain | n/a - no safe control path exists |
+| Enclosure RGB/status LED(s) | Operational (future) | DOCUMENTED ONLY - future requirement, no hardware chosen; must be mode-aware (Emergency/fault priority, Stealth/Night/Transport suppress all cosmetic lighting) once a real enclosure exists | BLOCKED BY HARDWARE (no enclosure yet) |
 | GPIO25 shutdown button | Core | INSTALLED, CURRENT SCOPE | Integrated |
 | Toggle switch (Normal/Emergency, GPIO17) | Operational | OWNED / INCOMING | Integrated (planned) |
 | Momentary buttons, GPIO22/23/24/27 | Operational | OWNED / INCOMING | Integrated (planned) |

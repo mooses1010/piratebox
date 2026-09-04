@@ -435,3 +435,97 @@ each accidental-input-resistance goal individually, concluding no
 change was needed. That is itself a form of testing (a targeted code
 review against a new requirement set), even though no new executable
 change resulted.
+
+---
+
+## 8. ALFA AWUS036ACM built-in LED: investigated and closed, no safe control path found (2026-09-03)
+
+**Goal, as instructed:** a subtle heartbeat (LED off most of the time,
+one brief blink every ~20-30s) on the ALFA's own built-in LED, using a
+normal kernel LED/sysfs interface if one exists, never a guessed raw
+register write, and never at any risk to `pb-ap`.
+
+**Investigated, all read-only/reversible, confirmed:**
+- No `/sys/class/leds/` entry exists for this adapter (only the Pi's
+  own `ACT`/`PWR`/`mmc0`/`default-on`) - not a kernel gap: this kernel
+  has full LED support compiled in (`CONFIG_MT76_LEDS=y`,
+  `CONFIG_MAC80211_LEDS=y`, `CONFIG_LEDS_CLASS=y`,
+  `CONFIG_LEDS_TRIGGERS=y`, including the exact `CONFIG_LEDS_TRIGGER_
+  TIMER=y` that would have made a clean 20-30s blink trivial via pure
+  sysfs, had a classdev existed).
+- Production `pb-ap` confirmed mapped to `phy3`
+  (`/sys/devices/.../1-1.3:1.0/ieee80211/phy3`).
+- `mt76`'s debugfs tree for this phy (`/sys/kernel/debug/ieee80211/
+  phy3/mt76/`) exposes one LED-related file, `led_pin` (root-only,
+  default `0`) - a genuine driver-native debugfs attribute, not a raw
+  MAC/BB register (`regidx`/`regval`, also present in that same
+  directory, were identified but never touched - no documented
+  register/value was ever available to justify using them, and none
+  was guessed).
+- Inspecting the actual loaded kernel modules (`strings` on the
+  decompressed `.ko` files - real compiled code, not documentation)
+  confirmed real LED support exists in this exact driver stack:
+  `mt76.ko` has a generic `mt76_led_init()` oriented around device-tree
+  boards (`"led registration was explicitly disabled by dts"`) - not
+  applicable to a hot-plugged USB adapter, which has no DT node -  and
+  `mt76x02-lib.ko` (covering this exact mt76x02/mt76x2u chip family)
+  has real, chip-specific `mt76x02_led_set_blink`/`_set_brightness`/
+  `_set_config` functions. None of those three are exported symbols
+  reachable from outside that module, and `led_pin` (the one thing that
+  *is* exposed) is almost certainly just a plain configuration field
+  those functions would consult *if* a LED classdev ever got
+  registered - which never happened for this adapter.
+- A raw `eeprom` debugfs dump (also present in that directory) was read
+  for corroborating evidence only, not acted on: this exact adapter's
+  MAC address (`00:c0:ca:ba:aa:a4`) appears at the expected offset,
+  confirming the dump is genuine, and large stretches of it are
+  unprogrammed (`0xff`) - consistent with, though not conclusive proof
+  of, a low-cost OEM unit whose LED configuration was simply never
+  populated at the factory. No specific byte/bit was ever claimed to
+  *be* the LED-enable flag - that would have required documentation
+  this session didn't have, exactly the kind of guess the operator
+  explicitly ruled out.
+
+**Live test performed, twice, both fully reversible:** wrote `1` to
+`led_pin`, confirmed the write succeeded (readback `1`, zero `dmesg`
+errors), operator watched the physical LED. First attempt was brief
+(operator flagged a brief write might be missed); repeated with a
+sustained hold (value left at `1`, untouched, for as long as the
+operator needed to look) - **the operator confirmed no visible LED
+response either time.** Reverted to `0` immediately both times.
+Independently confirmed after each revert: `pb-ap` still `type AP`/
+`ssid PirateBox`, `hostapd`/`dnsmasq` still `active`, `eth0` unaffected,
+`systemctl --failed` empty, zero new kernel/USB/`mt76x2u` messages of
+any kind across the entire investigation, `vcgencmd get_throttled`
+unchanged at `0x50005`.
+
+**Conclusion: no safe, driver-native, or documented way to light this
+specific adapter's LED was found on this kernel/hardware combination.**
+This is not a kernel configuration gap and not something a systemd
+timer or script could fix - the underlying hardware/EEPROM path never
+registers a controllable LED device in the first place. Per instruction
+("if there isn't [a safe way], leave the LED off and close/document the
+investigation cleanly"), **no heartbeat script, timer, or service was
+built** - there is nothing for one to safely control, and building a
+script around an unverified raw-register poke was explicitly ruled
+out. The LED remains OFF, exactly as found. Nothing about `pb-ap`,
+`hostapd`, `dnsmasq`, Ethernet, or this Pi's known power condition was
+touched or affected by this investigation.
+
+**Future architecture note, as instructed - not built now:** PirateBox
+will likely eventually gain dedicated enclosure RGB/status LED(s), once
+a real enclosure exists (the same "not until real hardware exists"
+deferral already applied elsewhere in this document - see §6). When
+that's designed, it should be **mode-aware**: Emergency/fault states
+take priority over any cosmetic indication, and future Stealth/Night/
+Transport modes (§4 above already establishes Transport as a real,
+if not-yet-mechanized, concept) must be able to suppress *all*
+cosmetic lighting outright, not dim it. If the ALFA's LED ever does
+become controllable (a different, better-EEPROM'd unit; a firmware
+technique not yet investigated; documented register access an operator
+explicitly authorizes with a real datasheet in hand) it should
+represent **radio/device activity only**, and should be one of the
+things that future mode system can override/suppress - not a
+permanently-independent blink wired into unrelated services. This is a
+requirement recorded for that future design pass, not a decision made
+here, and not implemented now.

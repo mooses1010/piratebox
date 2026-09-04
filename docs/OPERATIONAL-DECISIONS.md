@@ -6,6 +6,56 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## ALFA Built-In LED Investigated - No Safe Control Path, Closed
+
+**Decision date:** 2026-09-03. Full detail in
+`docs/PHYSICAL-CONTROL-UX-DESIGN.md` §8 - this entry is a summary.
+
+Goal was a subtle heartbeat (LED off, one brief blink every ~20-30s) on
+the ALFA AWUS036ACM's built-in LED, using a normal kernel interface
+only, never a guessed raw register write, never at risk to `pb-ap`.
+
+Investigation confirmed this kernel has full LED support compiled in
+(`CONFIG_MT76_LEDS`, `CONFIG_MAC80211_LEDS`, `CONFIG_LEDS_CLASS`,
+`CONFIG_LEDS_TRIGGERS` including `LEDS_TRIGGER_TIMER`, which would have
+made this trivial via pure sysfs) - not a kernel gap. But no
+`/sys/class/leds/` device is ever registered for this adapter. The
+only LED-related knob anywhere in its debugfs tree
+(`/sys/kernel/debug/ieee80211/phy3/mt76/led_pin`) was tested twice with
+the operator watching the physical LED directly - once briefly, once
+held at the test value for as long as the operator needed - with **no
+visible response either time**. Reading the actual compiled kernel
+modules (`strings` on the decompressed `.ko` files) confirmed real
+chip-specific LED functions exist in the driver
+(`mt76x02_led_set_blink`/`_brightness`/`_config`) but aren't reachable
+from any exported symbol or debugfs file; `led_pin` is almost certainly
+just a plain field those functions would consult if a classdev existed
+- which one never does for this specific adapter, most likely an
+EEPROM/board-data limitation of this particular unit (corroborated,
+not proven, by large unprogrammed stretches in a debugfs `eeprom`
+dump). `regidx`/`regval` (raw MAC/BB register access) were identified
+but never touched - no register/value was ever documented to justify
+using them, and none was guessed, per instruction.
+
+**Closed with the LED left OFF, exactly as found.** No heartbeat
+script, systemd timer, or service was built - there is nothing for one
+to safely control, and this project's own rule (avoid raw register
+guesses; never risk the AP for a cosmetic feature) rules out the only
+other path available. `pb-ap`, `hostapd`, `dnsmasq`, Ethernet, and this
+Pi's known `0x50005` power condition were all independently reconfirmed
+unaffected before, during, and after both tests.
+
+**Future architecture note recorded, not built:** a future enclosure
+RGB/status LED system (once real enclosure hardware exists) should be
+mode-aware - Emergency/fault states take priority, future Stealth/
+Night/Transport modes must be able to suppress all cosmetic lighting
+outright - and if the ALFA's own LED ever becomes controllable by some
+other means later, it should represent radio/device activity only and
+be subordinate to that same future mode system, not wired into
+unrelated services independently. See `docs/PHYSICAL-CONTROL-UX-
+DESIGN.md` §8's own closing paragraph and `docs/CAPABILITY-REGISTRY.md`
+for the tracked entries.
+
 ## QR Onboarding Simplified to a Single Wi-Fi Code
 
 **Decision date:** 2026-09-03. Same-day follow-up to the ALFA
