@@ -1,24 +1,66 @@
 # External AP Architecture + Production Migration Readiness
 
-**Status banner:** this document describes an **architecture and
-migration-readiness design**, produced during the External AP
-Architecture + Production Migration Readiness Round (2026-09-03),
-immediately after the AWUS036ACM Hardware Validation Round confirmed
-the adapter's hardware/driver/AP-association capability. Read that
-distinction literally:
+**Status banner, updated 2026-09-03 (ALFA Migration Round):
+MIGRATION COMPLETE - `pb-ap` is the live production PirateBox AP,
+commissioned and validated with a real client.** This document
+originally described architecture and migration-readiness design only
+(produced immediately after the AWUS036ACM Hardware Validation Round
+confirmed the adapter's hardware/driver/AP-association capability,
+back when `wlan0` was still production and everything below was staged
+but unexecuted) - that historical framing is preserved throughout the
+sections below for the record, but is **no longer the current state.**
 
-**VALIDATED HARDWARE ≠ PRODUCTION MIGRATION COMPLETE.**
+**What actually happened, in order, all 2026-09-03:** the operator
+explicitly approved commissioning the ALFA as production, accepting
+the known-marginal power supply per the power-aware gate's own human-
+judgment-call provision (item 6). Three real bugs were found and fixed
+live in the process - none in the underlying architecture, all in
+staged code that had never actually been run before: the udev rename
+rule's `ATTRS{}`/`DRIVERS==` ancestor mismatch (fixed with `ENV{}`
+matching), the migration script's fake hostapd "validation" step that
+actually started a real unbounded foreground hostapd and hung forever
+(removed, replaced by the script's own more meaningful post-start
+checks), and `dhcpcd.conf`'s static `10.0.0.1/24` never being moved off
+`wlan0` (fixed, plus the same gap in the rollback script). A fourth,
+independent, previously-undocumented gap was found during validation:
+a live-only, untracked `/etc/nftables.conf` SSH-protection rule had
+been silently broken by the interface change (also fixed, now tracked,
+rewritten to survive any future radio change). See
+`docs/OPERATIONAL-DECISIONS.md` "ALFA Migration Round" for the
+complete evidence chain of all four.
 
-As of this document, `wlan0` (the onboard Raspberry Pi radio) **remains
-the production PirateBox AP.** Nothing in this round switched it. The
-staged code, config, and scripts referenced throughout are committed to
-the repository for review but are **not installed, not enabled, and
-not executed** against live production - see each section's own "Live
-state" note. The one explicit exception is `piratebox_status_helper.sh`
-and `includes/capability_state.php`, whose changes are backward
-compatible by construction (see "Connection statistics" below) and may
-be deployed without changing any observable production behavior; the
-rest of this document is design plus staged, unexecuted artifacts.
+**Real client validation, performed and independently verified server-
+side:** a phone associated to the open `PirateBox` SSID on `pb-ap`,
+received a real DHCP lease (`10.0.0.206`), and loaded the real site at
+`http://piratebox/`. Confirmed server-side while the client stayed
+connected: real station entry in `iw dev pb-ap station dump`
+(authenticated, authorized, associated, strong signal), full DHCP
+DORA sequence in `dnsmasq`'s log, `status.json`'s `wifi_clients: 1` and
+`visitor_ap: {interface: pb-ap, provider: external}`, `capability_
+state.php`'s live classification of `"external AWUS036ACM (pb-ap)"`,
+and the operator's own visual confirmation that the OLED's NETWORK
+page showed the client. `wlan0` confirmed down/idle throughout, not
+repurposed. nftables confirmed protecting SSH via the fixed rule while
+both Ethernet SSH sessions stayed unaffected. Zero kernel/USB/
+`mt76x2u` errors and no new power-throttle bits across the entire
+round (`0x50005` baseline unchanged, as expected and already
+understood as this Pi's own chronic, pre-existing, ALFA-independent
+condition).
+
+**What "commissioned" does NOT mean here, read literally:** the
+power-aware migration gate's full evidence bar (§8/§16 below - extended
+multi-hour soak, *simultaneously* associated multiple clients, sustained
+ordinary traffic, continuous monitoring for new transitions beyond the
+known baseline) is **still not met** - today's validation was one
+client, briefly connected, mostly idle. That remains open as its own,
+separately-scheduled, supervised future round - not a blocker on the
+migration itself being genuinely live and working today. See
+`docs/IMPLEMENTATION-ROADMAP.md`'s ALFA row for the current, single
+authoritative statement of what's done vs. still open.
+
+The rest of this document is preserved as the original design record
+- read it for *why* each piece was built the way it was, not as a
+description of `wlan0` still being production.
 
 ---
 
@@ -947,31 +989,39 @@ failover, no second permanent PirateBox network, no power repair.
 
 ---
 
-## Exact operator gate for eventual migration
+## Exact operator gate for eventual migration - CLOSED, all steps done (2026-09-03)
 
-Everything above is preparation. The actual migration requires a human
-to, in order:
+This section is preserved as it was written (a forward-looking gate
+list) with each step's actual outcome recorded inline. All six steps
+are now done; this is history, not a live checklist.
 
-1. Read this entire document (not just the gate list).
-2. ~~Fix the regulatory domain~~ - **done** (2026-09-03, this round).
+1. ~~Read this entire document~~ - **done.**
+2. ~~Fix the regulatory domain~~ - **done** (2026-09-03, earlier round).
    `iw reg get` independently confirmed reading `country US: DFS-FCC`
    after a reboot. No further regulatory action needed before
    migration.
-3. Install the two staged system files (udev rule, NetworkManager
-   conf) - each independently safe/inert until `pb-ap` exists and/or
-   NetworkManager's wifi radio is re-enabled (already re-enabled, as of
-   this round - see "Regulatory domain" above; still no live exposure,
-   since `pb-ap` doesn't exist until the udev rule is installed).
-4. Decide, deliberately, that the power-aware gate's evidence bar
-   (section 8, restated in section 16's power-readiness handoff above)
-   has actually been met - not merely that hardware and 5GHz
-   validation passed. **Still not met as of this round.**
-5. Run `sudo PIRATEBOX_MIGRATION_CONFIRMED=yes-I-read-the-design-doc
-   tools/migrate_visitor_ap_to_alfa.sh` and complete the Operator test
-   steps in section 12.
-6. Keep `tools/rollback_visitor_ap_to_onboard.sh` one command away
-   until confident.
-
-No part of this is scheduled, automated, or assumed to happen next
-round. **Do not begin this migration without the operator explicitly
-saying so.**
+3. ~~Install the two staged system files (udev rule, NetworkManager
+   conf)~~ - **done**, ALFA Migration Round. The udev rule as
+   originally staged here had a real bug (`ATTRS{}`/`DRIVERS==`
+   ancestor mismatch, could never match) - fixed with `ENV{}` matching
+   and independently confirmed live (`mt76x2u ... pb-ap: renamed from
+   wlan1` in the kernel log).
+4. ~~Decide, deliberately, that the power-aware gate's evidence bar has
+   actually been met~~ - **not what happened, recorded honestly**: the
+   operator instead explicitly and deliberately chose to proceed
+   *without* that bar being met, accepting the known-marginal power
+   supply as a knowing tradeoff (the gate's own item 6 anticipates
+   exactly this option). The full soak/multi-client evidence bar itself
+   remains **not met** - see the status banner at the top of this
+   document and `docs/IMPLEMENTATION-ROADMAP.md`'s ALFA row for the
+   current, honest statement of what that means going forward.
+5. ~~Run the migration script~~ - **done**, with two real bugs found
+   and fixed live in the process (the script's fake hostapd
+   "validation" step, and `dhcpcd.conf`'s static IP left on the wrong
+   interface) - see `docs/OPERATIONAL-DECISIONS.md` "ALFA Migration
+   Round." The Operator test steps in section 12 were completed with a
+   real client: association, a real DHCP lease, `http://piratebox/`
+   loading, station/status/OLED all confirmed correct server-side.
+6. `tools/rollback_visitor_ap_to_onboard.sh` remains one command away,
+   fixed alongside the migration script (it had the same missing
+   `dhcpcd` step) - not needed so far, kept ready regardless.

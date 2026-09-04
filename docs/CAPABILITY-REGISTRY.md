@@ -58,10 +58,10 @@ it is.**
 
 | Capability | Layer | State | Integrated/Attachable/Companion |
 |---|---|---|---|
-| Built-in `wlan0` (production AP) | Core | INSTALLED, CURRENT SCOPE | Integrated |
+| Built-in `wlan0` | Operational (reserved) | INSTALLED, RESERVED FOR FUTURE USE - no longer the production AP as of the ALFA Migration Round (2026-09-03); confirmed down/idle, not repurposed (see `docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md` "Radio role model") | Integrated |
 | TP-Link TL-WN722N v2/v3 | - | INSTALLED (physically present); REJECTED as AP candidate | Attachable |
 | ALFA AWUS036NHA (AR9271) | - | REJECTED as AP candidate (never purchased) | n/a |
-| ALFA AWUS036ACM (MT7612U) | Core (if adopted) | INSTALLED (evaluation) - hardware/driver/2.4+5GHz AP-association VALIDATED under a corrected US regulatory domain; migration architecture/readiness designed and staged but NOT installed/enabled; still not the production AP | Attachable today; would become semi-permanent if adopted |
+| ALFA AWUS036ACM (MT7612U) | Core | **PRODUCTION AP, COMMISSIONED (2026-09-03)** - `pb-ap` is the live PirateBox visitor AP; real client validated (association, DHCP lease, site load); single-client only so far, the separate multi-hour/multi-client soak evidence bar is not yet met (see `docs/IMPLEMENTATION-ROADMAP.md` §7 for the exact distinction) | Semi-permanent, installed |
 | ALFA ARS-N19 antenna | Core (if AWUS036ACM adopted) | OWNED / INCOMING (operator-asserted this session - see note) | Attachable |
 | GPIO25 shutdown button | Core | INSTALLED, CURRENT SCOPE | Integrated |
 | Toggle switch (Normal/Emergency, GPIO17) | Operational | OWNED / INCOMING | Integrated (planned) |

@@ -210,6 +210,77 @@ change is squarely "networking/system configuration," which this
 project's own rules reserve for the operator regardless of momentary
 sudo availability.
 
+**Update: nftables fix applied live and verified, via the correct
+workflow.** The operator's first attempt to copy the fix (`cp
+etc/nftables.conf /etc/nftables.conf`) failed - the fix existed only on
+the `worktree-alfa-migration` branch, not yet merged into `main`, so
+the path didn't exist in the primary checkout. `systemctl restart
+nftables` had been pasted together with it and ran anyway, but only
+reloaded the unchanged (still-broken) live file - confirmed via
+`journalctl -u nftables` (clean restart, exit 0) and a fresh `nft list
+ruleset` read: no regression, nothing weakened, just re-applied
+identically. Correct fix: fast-forward merged `worktree-alfa-migration`
+into `main` (`50aa82e` → `b669cca`, clean, no conflicts, pulling in all
+three of this round's fixes at once), confirmed the file now present
+and byte-identical in the primary checkout, then gave the corrected
+path. Operator re-ran it as two separate commands this time. Verified
+live: ruleset now reads `iifname != { "lo", "eth0" } tcp dport 22
+reject with tcp reset`; `nftables.service` restarted cleanly; both
+existing Ethernet SSH sessions confirmed still working; zero failed
+services; `pb-ap` still serving correctly (`10.0.0.1/24`, real site
+`200 OK`).
+
+**Real client test performed and independently validated server-side.**
+Operator connected a phone to the open `PirateBox` SSID, it associated,
+got prompted by Android (selected "Only this time"), and loaded
+`http://piratebox/` (entered manually) - the real site. While the phone
+stayed connected, this session independently confirmed, entirely
+server-side:
+- `iw dev pb-ap station dump`: a real station (`02:8b:df:c6:b1:e7`),
+  `authenticated: yes`, `associated: yes`, `authorized: yes`, strong
+  signal (-30dBm), 160s connected, real throughput (41Mbps expected).
+- `dnsmasq`'s log: the full DHCP DORA sequence (`DISCOVER`/`OFFER`/
+  `REQUEST`/`ACK`) on `pb-ap`, lease `10.0.0.206`.
+- `status.json`: `wifi_clients: 1`, `visitor_ap: {interface: "pb-ap",
+  provider: "external", multiple_ap_interfaces_warning: false}`.
+- `capability_state.php` (direct PHP invocation against the real live
+  `status.json`): `ap_network.detail.provider.label` = `"external
+  AWUS036ACM (pb-ap)"`.
+- The operator's own visual confirmation: the OLED's NETWORK page
+  showed 1 client.
+- `connection-stats.json` (the persisted, privacy-preserving hourly
+  Device Memory input) had not yet rolled over to include this
+  connection at check time - confirmed this is expected, not a bug:
+  the in-progress hour's count lives only in `status.json`'s tmpfs
+  `current_hour_count` (already correctly `1`) until the hour boundary
+  passes, by the same design this project already documented for its
+  connection-stats feature elsewhere.
+- Site pages spot-checked (`/`, `/help.php`, `/chat.php`,
+  `/bulletin.php`, `/.well-known/captive-portal`): all `200`.
+- `dnsmasq`'s query logging is intentionally disabled (privacy by
+  design, confirmed via `dnsmasq.conf`) - no DNS-level captive-portal
+  activity is expected to be visible server-side, and none was; the
+  DHCP sequence plus the operator's own confirmed page load together
+  are the complete expected evidence chain for this project's captive-
+  portal mechanism (wildcard DNS + a CAPPORT DHCP option, both
+  interface-agnostic by construction - see `docs/EXTERNAL-AP-
+  ARCHITECTURE-DESIGN.md` "Captive portal / DHCP / DNS implications").
+- nftables' SSH protection was confirmed structurally correct
+  (`iifname != {"eth0","lo"}` unambiguously covers `pb-ap`) but not
+  empirically exercised against live traffic from that subnet - doing
+  so would need an actual connection attempt originating from the
+  phone's own network, which is optional client-side verification, not
+  required given the rule's static, non-conditional nature.
+
+**Migration is commissioned and real-client-validated as of this
+entry.** The separate, still-open power-aware soak evidence bar
+(extended multi-hour duration, simultaneous multi-client, sustained
+traffic, continuous new-transition monitoring) was never claimed met -
+see `docs/IMPLEMENTATION-ROADMAP.md`'s ALFA row and `docs/CHECKPOINTS.md`
+for the durable recovery point (`b669cca`) and the explicit distinction
+between "commissioned and working" versus "hardened for unsupervised
+24/7 production," which remain two separate claims, not one.
+
 ## Load-isolation test 2: heatsink fans removed - negative result, plus new direct voltage measurement
 
 **Decision date:** 2026-09-03, same-day follow-up to the ALFA

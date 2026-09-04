@@ -978,3 +978,69 @@ the normal worktree-cleanup procedure.
 above is a real open item for the operator, not a blocker recorded as
 if it were code work still to do.
 
+## ALFA Migration Round: production AP commissioned on the AWUS036ACM, real client validated (2026-09-03)
+
+**`b669cca`** - the durable known-good recovery point for the ALFA as
+production PirateBox AP. Full evidence chain in
+`docs/OPERATIONAL-DECISIONS.md` "ALFA Migration Round"; architecture
+context in `docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md` (status banner
+updated to reflect this).
+
+Operator explicitly approved commissioning the ALFA, deliberately
+accepting the known-marginal power supply (the power-aware gate's own
+item 6 anticipates exactly this choice) rather than waiting for the
+separate multi-hour soak evidence bar, which remains genuinely open
+(see below). Three real bugs were found and fixed live in previously-
+staged, never-before-executed code - none in the underlying
+architecture: the udev `pb-ap` rename rule's `ATTRS{}`/`DRIVERS==`
+ancestor mismatch (fixed with `ENV{}` matching, confirmed live via the
+kernel's own `renamed from wlan1` log line); the migration script's
+fake hostapd "validation" step, which actually started a real,
+unbounded, foreground hostapd and hung indefinitely on a *valid*
+config (removed - the script's own post-start checks are more
+meaningful anyway, now hard failures instead of warnings); and
+`dhcpcd.conf`'s static `10.0.0.1/24` never being moved off `wlan0`,
+which left the Pi holding that address nowhere once `wlan0` went fully
+down (fixed in both the migrate and rollback scripts). A fourth,
+independent gap was found during validation, not part of the staged
+migration work at all: a live-only, untracked `/etc/nftables.conf` SSH-
+protection rule (`iifname "wlan0" tcp dport 22 reject ...`) had been
+silently broken by the interface change - the design doc had wrongly
+claimed no nftables configuration existed in this project; fixed, now
+tracked in the repo for the first time, rewritten as `iifname != {
+"eth0", "lo" }` so it survives any future radio change without a rule
+update.
+
+**Real client validation, independently verified server-side while the
+client stayed connected:** a phone associated to the open `PirateBox`
+SSID on `pb-ap`, got a real DHCP lease (`10.0.0.206`, full DORA
+sequence in `dnsmasq`'s log), and loaded `http://piratebox/` (the real
+site, not a placeholder). Confirmed server-side: a real, authenticated,
+associated station in `iw dev pb-ap station dump`; `status.json`
+showing `wifi_clients: 1` and `visitor_ap: {interface: "pb-ap",
+provider: "external"}`; `capability_state.php`'s live classification
+correctly reading `"external AWUS036ACM (pb-ap)"`; the operator's own
+visual confirmation that the OLED's NETWORK page showed the client.
+`wlan0` confirmed down/idle throughout - reserved for future use, not
+repurposed, not a second AP/uplink/management network. nftables
+confirmed protecting SSH via the fixed rule while both Ethernet SSH
+sessions stayed unaffected throughout the entire round, including
+through two script hangs and a firewall reload. Zero kernel/USB/
+`mt76x2u` errors; `vcgencmd get_throttled` unchanged at `0x50005` (the
+same known pre-existing, ALFA-independent condition) across the whole
+round.
+
+**What this checkpoint is NOT**: the power-aware migration gate's full
+evidence bar (extended multi-hour soak, *simultaneously* associated
+multiple clients, sustained ordinary traffic, continuous monitoring for
+new power/kernel transitions beyond the known baseline) remains **not
+met** - today's validation was one client, briefly connected, mostly
+idle. That is recorded as a separate, deliberately-scheduled, supervised
+future round in `docs/IMPLEMENTATION-ROADMAP.md`'s ALFA row - not a
+blocker on this checkpoint being a genuine, working, real-client-
+validated production migration today.
+
+Regression: not re-run this round (no PHP/test-suite-covered code
+changed beyond `capability_state.php`'s already-tested provider
+classifier from an earlier round, deployed but not modified here).
+
