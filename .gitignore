@@ -26,9 +26,10 @@ var/www/html/public/utility/exports/
 # it in locally while testing.
 *.piratebox_admin_htpasswd
 
-# QR codes (Phase 5) - generated fresh at install time by the installer
-# via qrencode, not committed (see installer_pi_zero_trixie.sh).
-var/www/html/public/assets/qr-url.png
+# QR code (Phase 5, simplified to a single code - see
+# docs/OPERATIONAL-DECISIONS.md) - generated fresh at install time by
+# the installer via qrencode, not committed (see
+# installer_pi_zero_trixie.sh).
 var/www/html/public/assets/qr-wifi.png
 
 # Context-recovery infrastructure (see CLAUDE.md): an optional, transient,

@@ -183,19 +183,26 @@ chown -R www-data:www-data /var/www/html
 chmod 0755 /var/www/html/public/uploads
 chmod 0755 /var/www/html/data
 
-# Phase 5: QR codes for the Help page, generated fresh at deploy time
+# Phase 5: QR code for the Help page, generated fresh at deploy time
 # with qrencode (a small, standard CLI tool - not a PHP/runtime
-# dependency, and not committed to git since they're just a rendering of
-# two static strings this installer already knows). SSID/security here
-# match hostapd.conf's open "PirateBox" network - if you change the SSID
-# or add a password, update the WIFI: string below to match.
-echo "    Generating QR codes..."
+# dependency, and not committed to git since it's just a rendering of a
+# static string this installer already knows). SSID/security here match
+# hostapd.conf's open "PirateBox" network - if you change the SSID or
+# add a password, update the WIFI: string below to match.
+#
+# Single QR by design (simplified from an earlier two-QR scheme - see
+# docs/OPERATIONAL-DECISIONS.md "QR Onboarding Simplified to a Single
+# Wi-Fi Code"): a standards-compatible WIFI: join QR only. The former
+# second QR (a plain http://piratebox/ URL, for opening the site once
+# already connected) added no function a printed "OPEN > piratebox/"
+# fallback text doesn't already cover on the Help page itself, and two
+# codes were confusing for first-time visitors to tell apart.
+echo "    Generating QR code..."
 if command -v qrencode >/dev/null 2>&1; then
     qrencode -o /var/www/html/public/assets/qr-wifi.png -s 6 -m 2 "WIFI:T:nopass;S:PirateBox;;"
-    qrencode -o /var/www/html/public/assets/qr-url.png -s 6 -m 2 "http://piratebox/"
-    chown www-data:www-data /var/www/html/public/assets/qr-url.png /var/www/html/public/assets/qr-wifi.png
+    chown www-data:www-data /var/www/html/public/assets/qr-wifi.png
 else
-    echo "    WARNING: qrencode not found - QR images will be missing from the Help page."
+    echo "    WARNING: qrencode not found - QR image will be missing from the Help page."
 fi
 
 # Phase 4: record the deployed commit for the admin page's version display.

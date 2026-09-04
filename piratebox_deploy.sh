@@ -88,7 +88,6 @@ rsync -a "${DRYRUN[@]}" --chown=www-data:www-data \
     --exclude 'data/travel-mode.json' \
     --exclude 'data/travel-mode-quarantine/' \
     --exclude 'includes/VERSION' \
-    --exclude 'public/assets/qr-url.png' \
     --exclude 'public/assets/qr-wifi.png' \
     --exclude '.piratebox_admin_htpasswd' \
     "$SRC" "$DST"

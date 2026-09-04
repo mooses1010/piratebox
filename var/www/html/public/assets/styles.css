@@ -861,6 +861,15 @@ img,
     display: inline-block;
 }
 
+.qr-join-label {
+    text-align: center;
+    max-width: 160px;
+    margin: 0 0 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+}
+
 .qr-card img {
     display: block;
     width: 160px;

@@ -39,18 +39,20 @@ $piratebox_locale = piratebox_get_locale();
             </li>
         </ol>
 
+        <!-- Single QR by design: a standards-compatible WIFI: QR (join only) -
+             not a nonstandard combined Wi-Fi+URL payload. "piratebox/" below
+             is the deliberate printed fallback for when the captive portal
+             doesn't open automatically, not a second scannable code. See
+             docs/OPERATIONAL-DECISIONS.md "QR Onboarding Simplified to a
+             Single Wi-Fi Code" for why the former second (URL) QR was
+             removed. -->
         <div class="qr-row">
             <div>
+                <p class="qr-join-label">JOIN PIRATEBOX</p>
                 <div class="qr-card">
                     <img src="assets/qr-wifi.png" alt="QR code to join the open PirateBox Wi-Fi network" width="160" height="160">
                 </div>
-                <p class="qr-caption"><strong>1 &mdash; Connect to the "PirateBox" Wi-Fi</strong><br>Scan to join (open network, no password)</p>
-            </div>
-            <div>
-                <div class="qr-card">
-                    <img src="assets/qr-url.png" alt="QR code linking to http://piratebox/" width="160" height="160">
-                </div>
-                <p class="qr-caption"><strong>2 &mdash; Open PirateBox</strong><br>Scan once connected to the Wi-Fi above</p>
+                <p class="qr-caption">OPEN &gt; <span class="help-url">piratebox/</span></p>
             </div>
         </div>
     </section>

@@ -23,12 +23,17 @@ This configuration has been tested on a Raspberry Pi Zero 2 W running Raspberry 
 
 !['PirateBox WiFi QR Code'](https://github.com/teklynk/piratebox/blob/main/PirateBox-wifi-qrcode.png?raw=true)
 
-The device itself also serves this same Wi-Fi QR code, plus a second one
-for the direct URL (`http://piratebox/`, falling back to
-`http://10.0.0.1/` if hostname resolution ever doesn't work on a given
-client), on its own Help page (`http://piratebox/help.php`) - generated
-locally at install time, no external QR service involved. See
-[docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md) (Phase 5).
+The device itself also serves this same Wi-Fi QR code on its own Help
+page (`http://piratebox/help.php`) - generated locally at install time,
+no external QR service involved. Scanning it only joins the Wi-Fi
+network (a standard `WIFI:` QR payload); if the captive portal doesn't
+open automatically afterward, the Help page prints the fallback `OPEN >
+piratebox/` right under the code (falling back to `http://10.0.0.1/` if
+hostname resolution ever doesn't work on a given client). An earlier
+version of this page also had a second QR just for the direct URL -
+removed as redundant once the printed fallback covered the same case.
+See [docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md)
+(Phase 5; QR onboarding later simplified to a single code).
 
 ## Features
 - **Offline Network**: Creates its own Wi-Fi hotspot (SSID: PirateBox).
