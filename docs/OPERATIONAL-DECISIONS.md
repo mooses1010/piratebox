@@ -6,6 +6,55 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## ALFA Migration Round: staged udev rule bug found and fixed on first live install attempt
+
+**Decision date:** 2026-09-03. Full detail in
+`docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md` §2 - this entry is a summary.
+
+Operator explicitly approved proceeding with the production visitor-AP
+migration to the ALFA AWUS036ACM, deliberately accepting the current
+known-marginal power supply per the design doc's "power-aware migration
+gate" (item 6's human judgment call). Read-only audit confirmed: `eth0`
+up, `wlan0` production AP healthy, ALFA (`0e8d:7612`/`mt76x2u`) present
+as `wlan1`, regulatory domain already correct (`country US: DFS-FCC`),
+no passwordless root available to this session for any of the
+migration's own steps - all executed by the operator directly, per
+project rule (networking/system config changes stop for the operator).
+
+Operator installed the two staged system files
+(`etc/udev/rules.d/99-piratebox-external-ap.rules`,
+`etc/NetworkManager/conf.d/99-piratebox.conf`) and physically replugged
+the ALFA to trigger the rename. Result: **the interface came back as
+`wlan1`, not `pb-ap`** - the udev rule silently failed to match.
+
+Root cause, confirmed live (`udevadm info -a`, `udevadm test`): the
+staged rule's `ATTRS{idVendor}`/`ATTRS{idProduct}`/`DRIVERS==`
+conditions can never all match on the same ancestor device for this
+hardware - `idVendor`/`idProduct` exist only on the USB *device* node
+(`1-1.3`), whose own driver is the generic `usb` composite driver; the
+real `mt76x2u` driver binds one level down on the USB *interface* node
+(`1-1.3:1.0`), which has no `idVendor`/`idProduct` attribute at all.
+udev requires every condition in one rule to match the *same* ancestor
+- none ever does here. **This was a structural bug in the originally
+committed rule, not a timing issue**: a reboot (the design doc's other
+suggested trigger) would have failed identically, since the rule could
+never match regardless of when the "add" event fired.
+
+Fix: match the equivalent `ENV{}` properties instead
+(`ENV{ID_USB_DRIVER}`, `ENV{ID_VENDOR_ID}`, `ENV{ID_MODEL_ID}`), which
+udev already imports directly onto the `net` device itself via the
+earlier `usb_id` builtin in the standard rule chain - confirmed present
+and correct (`mt76x2u`/`0e8d`/`7612`) against this exact live adapter
+via `udevadm test` before writing the fix. No ancestor-walk needed.
+
+Live re-verification of the corrected rule was the immediate next step
+after this fix - see this entry's own follow-on or the design doc's
+"Live state" note for the outcome.
+
+Nothing production-facing was touched: `wlan0`/`hostapd`/`dnsmasq`
+remained the live AP throughout, confirmed unaffected before and after
+the replug attempt. No new USB/kernel/SD errors from the replug itself.
+
 ## Load-isolation test 2: heatsink fans removed - negative result, plus new direct voltage measurement
 
 **Decision date:** 2026-09-03, same-day follow-up to the ALFA

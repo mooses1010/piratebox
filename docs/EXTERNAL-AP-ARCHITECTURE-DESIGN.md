@@ -65,11 +65,36 @@ V2 also used `wlan1` before it was unplugged).
 
 **Mechanism chosen: udev, matched on driver + USB VID:PID, naming it
 `pb-ap`.** Staged at
-`etc/udev/rules.d/99-piratebox-external-ap.rules` (not installed):
+`etc/udev/rules.d/99-piratebox-external-ap.rules`:
 
 ```
-SUBSYSTEM=="net", ACTION=="add", DRIVERS=="mt76x2u", ATTRS{idVendor}=="0e8d", ATTRS{idProduct}=="7612", NAME="pb-ap"
+SUBSYSTEM=="net", ACTION=="add", ENV{ID_USB_DRIVER}=="mt76x2u", ENV{ID_VENDOR_ID}=="0e8d", ENV{ID_MODEL_ID}=="7612", NAME="pb-ap"
 ```
+
+**Corrected 2026-09-03, during the first live install attempt (ALFA
+Migration Round).** The rule as originally written here used
+`DRIVERS=="mt76x2u", ATTRS{idVendor}=="0e8d", ATTRS{idProduct}=="7612"`
+- raw ancestor-walk matches. Live testing (`udevadm info -a`,
+`udevadm test /sys/class/net/wlan1`) found this could never match on
+this hardware: `idVendor`/`idProduct` exist only on the USB *device*
+node (`1-1.3`), whose own `DRIVERS` is the generic `usb` composite
+driver; the real `mt76x2u` driver binds one level down, on the USB
+*interface* node (`1-1.3:1.0`), which carries no `idVendor`/
+`idProduct` attribute of its own. udev requires every `ATTRS{}`/
+`DRIVERS==` condition in one rule to be satisfied on the *same*
+ancestor - no ancestor here ever satisfied all three, so the rule was
+a silent, permanent no-match (confirmed: the file was read into the
+rule database with no error, but never produced a rule-application
+trace, and a real ALFA replug after installing it left the adapter as
+`wlan1`, unrenamed). **This was a structural bug, not a timing issue -
+a reboot would not have fixed it either**, contrary to this
+document's original "replugged or the Pi rebooted" framing below.
+Fixed by matching the equivalent `ENV{}` properties instead
+(`ID_USB_DRIVER`, `ID_VENDOR_ID`, `ID_MODEL_ID`), which udev already
+imports directly onto the `net` device itself via the earlier
+`usb_id` builtin - confirmed present and correct via `udevadm test`
+against this exact live adapter before this fix was written. See
+`docs/OPERATIONAL-DECISIONS.md` for the dated entry.
 
 **Why VID:PID+driver, not USB serial:** the AWUS036ACM's own USB
 descriptor reports a generic/blank serial number (`000000000`, per
@@ -103,11 +128,15 @@ this mechanism, and this document does not record the ALFA's own
 transient MAC anywhere (per the Hardware Validation Round's same
 discipline).
 
-**Live state:** not installed. `ip link show pb-ap` currently fails
-(confirmed at design time - no such interface exists until this file
-is copied to `/etc/udev/rules.d/` and the adapter replugged or the Pi
-rebooted). Installing it is a migration-time step (see "Migration
-plan").
+**Live state:** installed (2026-09-03, ALFA Migration Round) at
+`/etc/udev/rules.d/99-piratebox-external-ap.rules`, using the corrected
+`ENV{}`-based rule above. The original `ATTRS{}`/`DRIVERS==` version
+was installed first and confirmed non-functional live (see the
+"Corrected 2026-09-03" note above) before this fix; `ip link show
+pb-ap` still failed after that first attempt's replug. Re-verification
+against the corrected rule is the next step in this round, not yet
+confirmed as of this sentence - see `docs/OPERATIONAL-DECISIONS.md`
+for the live outcome.
 
 ---
 

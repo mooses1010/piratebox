@@ -38,6 +38,28 @@
 # rename of an unrelated MediaTek-chipset device that happens to share
 # a USB ID range but uses a different driver.
 #
+# Corrected 2026-09-03 (first live install attempt, ALFA migration
+# round): the original line below matched ATTRS{idVendor}/ATTRS{idProduct}
+# and DRIVERS== as raw ancestor-walk conditions. Confirmed live via
+# `udevadm info -a`/`udevadm test` that this can never match on this
+# hardware: idVendor/idProduct live only on the USB *device* node
+# (1-1.3), whose own DRIVERS attribute is the generic "usb" composite
+# driver, not "mt76x2u" - the actual mt76x2u driver binds one level
+# down, on the USB *interface* node (1-1.3:1.0), which has no
+# idVendor/idProduct attribute of its own. udev's ATTRS{}/DRIVERS==
+# matching requires every condition in one rule to be satisfied on the
+# SAME single ancestor device - no ancestor here ever satisfies all
+# three at once, so the original rule was a silent, permanent no-match
+# (confirmed: reading the file succeeded, but no rule-application trace
+# for it ever appeared in `udevadm test`, and a real replug left the
+# adapter as wlan1, unrenamed - not a timing/reboot-vs-replug issue,
+# structural). Fixed by matching the equivalent ENV{} properties
+# instead, which udev already imports directly onto the net device
+# itself via the earlier `usb_id` builtin (confirmed present via
+# `udevadm test`: ID_USB_DRIVER=mt76x2u, ID_VENDOR_ID=0e8d,
+# ID_MODEL_ID=7612) - no ancestor-walk needed, since these are already
+# properties of the device the rule is renaming.
+#
 # Privacy note: this rule names a piece of the operator's OWN AP
 # hardware for the PirateBox appliance's internal bookkeeping - it is
 # not visitor/client identification. It never touches, stores, or
@@ -46,4 +68,4 @@
 # rule against persisting visitor MAC addresses (docs/
 # DEVICE-MEMORY-DESIGN.md, tools/backup_piratebox_data.sh) - unaffected
 # by this file.
-SUBSYSTEM=="net", ACTION=="add", DRIVERS=="mt76x2u", ATTRS{idVendor}=="0e8d", ATTRS{idProduct}=="7612", NAME="pb-ap"
+SUBSYSTEM=="net", ACTION=="add", ENV{ID_USB_DRIVER}=="mt76x2u", ENV{ID_VENDOR_ID}=="0e8d", ENV{ID_MODEL_ID}=="7612", NAME="pb-ap"
