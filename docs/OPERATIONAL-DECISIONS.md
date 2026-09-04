@@ -6,6 +6,109 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Host/Management DNS Isolation Fix
+
+**Decision date:** 2026-09-03. Full detail, live validation evidence,
+and restart-cycle testing in `docs/CHECKPOINTS.md` (commit `d719ef0`) -
+this entry is the decision record: what was wrong, why, and what
+architecture is now in place so it can't recur.
+
+**The bug:** two DNS managers on this box both had implicit,
+undocumented claims on `/etc/resolv.conf`, and neither knew about the
+other. NetworkManager owns `eth0` (this Pi's management/optional-WAN
+interface) and correctly learns real upstream nameservers via DHCP.
+dhcpcd owns `pb-ap`'s static AP address and, separately, ships a
+**global** (not per-interface) `resolv.conf` hook that rebuilds
+`/etc/resolv.conf` from dhcpcd's own DNS knowledge on every dhcpcd
+event - restart, lease renewal, `pb-ap` bouncing - regardless of
+whether dhcpcd actually manages the interface anyone cares about for
+DNS. Since dhcpcd is denied `eth0` (`denyinterfaces eth0`) and `pb-ap`
+has no DNS to offer (it's the AP's own static address), every such
+event overwrote NetworkManager's real nameservers with nothing. With
+`/etc/resolv.conf` empty, glibc's resolver falls back to its documented
+default, `127.0.0.1` - and dnsmasq, despite being configured with
+`interface=pb-ap`, answers loopback queries **regardless of that
+restriction** (a documented dnsmasq quirk, confirmed live with a raw
+DNS query straight at `127.0.0.1:53`). dnsmasq's own
+`address=/#/10.0.0.1` visitor wildcard then answered every hostname,
+including `claude.ai` and `api.anthropic.com`, with `10.0.0.1`.
+
+**Why this matters beyond the immediate incident:** this is exactly the
+kind of failure the operator's own framing anticipated - "loss/
+restart/reconfiguration of pb-ap, dnsmasq, dhcpcd, NetworkManager, or
+the ALFA AP must not silently replace host DNS with PirateBox captive
+DNS." It wasn't one misconfiguration, it was an ownership gap: nothing
+in this repo or on this live system had ever declared, in one place,
+who is allowed to write `/etc/resolv.conf`. Two implicit defaults (NM's
+autodetected `rc-manager`, dhcpcd's always-on `resolv.conf` hook)
+happened to coexist without conflict until a dhcpcd event exposed the
+race - and the installer never even created the NetworkManager
+exclusion (`etc/NetworkManager/conf.d/99-piratebox.conf`) or the
+`eth0` denial (`denyinterfaces eth0`) on a fresh install, meaning a
+brand-new PirateBox would have started life with this same latent
+conflict, not just this already-migrated one.
+
+**The fix makes ownership explicit instead of implicit, on both
+sides:** `nohook resolv.conf` (dhcpcd.conf) removes dhcpcd from the
+picture entirely - it was never supposed to be a DNS source on this
+box. `rc-manager=file` (new `etc/NetworkManager/conf.d/
+98-piratebox-dns-ownership.conf`) pins NetworkManager's own behavior so
+it doesn't silently change if `resolvconf` or `systemd-resolved` are
+ever installed/enabled later for an unrelated reason. `except-
+interface=lo` (dnsmasq.conf) closes the loopback quirk directly, as a
+second, independent layer - even if resolv.conf ownership were ever
+broken again by something not yet anticipated, dnsmasq itself can no
+longer answer the query that would exploit it. All three are additive,
+narrowly-scoped config lines, not a rewrite of any daemon's role in the
+architecture: NetworkManager still owns exactly `eth0` and nothing
+else (the existing `unmanaged-devices=interface-name:wlan0;
+interface-name:pb-ap` line is untouched); dhcpcd still owns `pb-ap`'s
+static IP; dnsmasq still owns visitor DHCP/DNS on `pb-ap` with the same
+wildcard behavior for every visitor-facing name.
+
+**`bind-interfaces` for dnsmasq was evaluated and deliberately
+rejected** as an additional hardening step (literally binding dnsmasq's
+socket to `pb-ap`'s own address instead of the default dynamic
+wildcard-bind-with-packet-filter, which is what let the loopback quirk
+apply in the first place). Live logs from the ALFA migration round
+already show dnsmasq logging "interface pb-ap does not currently exist"
+at the moment it starts (a boot-ordering race the current dynamic-bind
+mode tolerates as a non-fatal warning and recovers from automatically);
+`bind-interfaces` needs to `bind()` to that literal address immediately
+and could turn a slow-to-enumerate ALFA into a hard dnsmasq start
+failure at boot, trading a proven low-severity issue for a plausible
+higher-severity one. `except-interface=lo` alone already closes the
+actual vulnerability without that risk - not revisited unless a future
+round finds a concrete reason `bind-interfaces` is worth that
+boot-ordering trade.
+
+**Project integration**, so this can't recur through the normal ways
+this system's DNS-adjacent config gets touched again:
+`installer_pi_zero_trixie.sh` now installs both NetworkManager conf.d
+files and adds `denyinterfaces eth0`/`nohook resolv.conf` to its
+dhcpcd block (previously absent - a genuinely fresh install had never
+been given this isolation at all); `tools/migrate_visitor_ap_to_alfa.sh`
+and `tools/rollback_visitor_ap_to_onboard.sh` (both still STAGED, not
+installed) gained an explicit post-restart check for exactly this
+failure mode, since both scripts restart dhcpcd as part of their normal
+operation.
+
+**Validated live, both sides independently, through a full
+NetworkManager+dhcpcd+dnsmasq+hostapd restart cycle** - not left
+resting on the initial temporary manual `/etc/resolv.conf` edit, which
+was explicitly treated as a recovery measure only and was in fact
+overwritten by NetworkManager's own regeneration during validation (a
+config reload alone made NM rewrite the file itself, with the same
+correct content, proving real ownership rather than coincidental
+leftover content). Full detail and every command run: `docs/
+CHECKPOINTS.md`, "Host/Management DNS Isolation Fix" entry. No reboot
+was performed - service-level restarts of every involved daemon were
+judged sufficient evidence for a configuration-based fix (hooks and
+exclusions read at every start, not one-time runtime state a reboot
+alone would exercise); genuinely reboot-only failure modes remain
+unverified and would need a separate, operator-approved reboot to rule
+out.
+
 ## ALFA Built-In LED Investigated - No Safe Control Path, Closed
 
 **Decision date:** 2026-09-03. Full detail in
