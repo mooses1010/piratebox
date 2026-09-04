@@ -1,24 +1,31 @@
 # Power Integrity Diagnosis
 
-**Status: DIAGNOSIS + ONE COMPLETED A/B TEST.** This round investigated
-the chronic `0x50005` undervoltage condition and, in a same-day
-follow-up, tested and **ruled out the power cable as a sufficient fix**
-(§9a) - the original Samsung phone cable was replaced with a
-higher-quality one, same Apple 12W brick, same loads; active
-under-voltage remained after independent re-verification. This is the
-required evidence gathering before the AWUS036ACM production
-migration's power-aware gate (`docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md`
-§8) can be considered met - it is **still not** that gate being met.
-Read `docs/POWER-UPS-DESIGN.md` for the separate, forward-looking UPS/
-battery requirements; this document is about the *current* wall-power
-path.
+**Status: DIAGNOSIS + TWO COMPLETED A/B TESTS, BOTH NEGATIVE.** This
+round investigated the chronic `0x50005` undervoltage condition and,
+across two same-day follow-ups, tested and **ruled out both the power
+cable (§9a) and the power brick (§9b) as sufficient fixes**, each in
+isolation: old Samsung phone cable → higher-quality cable (Apple 12W
+brick unchanged) showed no resolution; Apple 12W brick → UGREEN GaN
+brick (new cable unchanged) also showed no resolution - active
+under-voltage was independently re-verified present in every
+configuration. This is the required evidence gathering before the
+AWUS036ACM production migration's power-aware gate (`docs/
+EXTERNAL-AP-ARCHITECTURE-DESIGN.md` §8) can be considered met - it is
+**still not** that gate being met. Read `docs/POWER-UPS-DESIGN.md` for
+the separate, forward-looking UPS/battery requirements; this document
+is about the *current* wall-power path.
 
 **The goal was never to make `0x50005` disappear cosmetically.** It
-hasn't disappeared. This document establishes what's actually known,
-what's still genuinely uncertain, and what physical step should happen
-next - all with the evidence that justifies it, not assumption. The
-next controlled variable, per the operator's own plan, is the power
-brick itself (§9a) - not yet tested.
+hasn't disappeared, across three different cable/brick combinations
+now. This document establishes what's actually known, what's still
+genuinely uncertain, and what physical step should happen next - all
+with the evidence that justifies it, not assumption. With both the
+cable and the (first candidate) brick ruled out individually, the
+leading remaining hypotheses (§9b) point toward the Pi's own input
+connector/power path or a baseline combined load exceeding what's
+reaching the Pi under any tested supply chain - neither proven, and no
+further physical step is recommended without the operator's own
+direction.
 
 ---
 
@@ -414,6 +421,100 @@ explicit go-ahead, and not performed as part of this round.
 
 ---
 
+## 9b. Power brick A/B test - completed, negative result (2026-09-03)
+
+**Controlled variable:** the power brick, and only the brick. Operator
+gracefully shut PirateBox down and changed the brick from the genuine
+Apple 12W USB adapter (§9a's test) to a UGREEN GaN multi-port brick -
+**same new/higher-quality cable** (unchanged from §9a), all downstream
+hardware (ALFA, OLED, fans, Ethernet) unchanged, nothing plugged or
+unplugged from any other port on the UGREEN brick during the
+observation window (the operator noted this specific brick can
+renegotiate/reset its USB outputs when another port's load changes,
+so it was deliberately kept dedicated/stable for this test).
+
+**Before/after configuration:**
+- Before (§9a): Apple 12W brick + new cable.
+- After (this test): UGREEN GaN brick + **same** new cable.
+
+**Observation duration:** fresh boot to 21 minutes uptime - a window
+comparable to §9a's ~19-minute mark, reached by waiting rather than by
+any action that could itself disturb the measurement.
+
+**Raw evidence, independently checked at the comparable window (not
+inferred from "it booted"):**
+- `vcgencmd get_throttled`: `0x50005` - identical hex value to every
+  prior configuration tested.
+- Bit decode: 0 (under-voltage NOW) **SET**, 2 (throttled NOW) **SET**,
+  16/18 (historical) SET, all others clear - the *current*-condition
+  bits are active at the 21-minute check, not just sticky/historical.
+- Core voltage 1.2000V, temp 41.9°C - both nominal, matching every
+  prior check on every prior configuration.
+- `dmesg` timeline: **exactly one** `Undervoltage detected!` line, at
+  boot (17:11:25), **zero** `Voltage normalised` lines, **zero**
+  oscillation through the full 21-minute window - the same
+  single-continuous-assertion character as §9a's new-cable result (not
+  the old cable's rapid-oscillation pattern).
+- USB/`mt76x2u`: the ALFA enumerated once, cleanly, at boot - zero
+  resets, zero disconnects, zero warnings for the rest of the window.
+  **No USB/mt76 instability accompanies this power behavior.**
+- SD/MMC/ext4: zero errors.
+- Production `wlan0` (SSID `PirateBox`, AP mode), all six services,
+  and the regulatory domain (`country US: DFS-FCC`) all confirmed
+  healthy and unaffected throughout.
+
+**Current vs. historical interpretation, stated precisely:** this is
+not a case of "sticky bits from an old event, currently healthy" - bit
+0 was independently re-verified SET at the 21-minute mark, well past
+any plausible startup transient. **Active under-voltage was present
+for the observation window's entire duration on the UGREEN brick**,
+exactly as it was on the Apple brick.
+
+**Conclusion: the UGREEN GaN brick does not resolve the condition
+either.** This is not framed as "no oscillation, therefore improved" -
+the Apple-brick/new-cable test already showed that same
+no-oscillation, single-continuous-assertion character, so it is not
+something distinguishing this brick from the previous one. **The two
+results are, for every measured purpose, the same outcome.**
+Conclusion strength: **strong** for "this specific brick+cable
+combination does not clear active under-voltage" (directly observed,
+independently reverified, reproducible pattern) - **not** strong
+enough to say anything definitive yet about *why*, beyond narrowing
+the field (see below).
+
+**What three consecutive negative results now shift the ranking
+toward:** old cable + Apple brick, new cable + Apple brick, and new
+cable + UGREEN brick have all now shown the identical active-
+undervoltage signature. Two different bricks (one legacy-known
+Apple adapter, one good-quality modern GaN unit) and two different
+cables (the suspect old phone cable and a higher-quality replacement)
+have all failed to clear it. This shifts weight in §4's ranking away
+from "any one specific worn/cheap component" and toward either **a
+connector/contact issue on the Pi's own micro-USB input jack** (not
+yet inspected/tested), **the Pi's own power input path** (class D,
+previously ranked weaker but now more plausible given two
+independently-good supply chains both failing), or **a baseline
+combined load (GPIO fans + OLED + the ALFA, all active in this exact
+configuration) that draws more than what's actually reaching the Pi's
+input pins under any of these tested supply chains** - none of these
+three is proven over the others by this test; it only narrows what's
+been ruled out.
+
+**Next controlled variable - only if the operator wants to pursue
+further, not decided here:** the remaining untested pieces are (a) a
+close visual/physical inspection of the Pi's own micro-USB input
+connector for wear or looseness (read-only, no swap needed - already
+recommended in §8), and (b) if that shows nothing, a load-isolation
+test would be the next thing to actually prove or disprove the "load
+exceeds what's arriving under real conditions" hypothesis - not
+proposed as a next action here, since it edges toward the kind of
+controlled-experiment design that should be the operator's call, not
+this document's default next step. **This document does not recommend
+proceeding to any further physical change without the operator's own
+direction**, per instruction to stop and wait after this result.
+
+---
+
 ## 10. Fan noise observation - power vs. thermal vs. mechanical
 
 The operator separately noticed the fans sounding louder after a power
@@ -488,27 +589,36 @@ proceeding to the soak on the current supply and hoping for the best.
 
 Recorded honestly, not converted into false certainty:
 
-- **The cable has been ruled out as a *sufficient* fix (§9a)** - active
-  under-voltage remained after replacing it. Whether it was a
-  *contributing* factor (i.e. whether the brick alone, with the old
-  cable, would have been even worse) was not isolated - the test
-  compared old-cable-alone-data against new-cable-alone-data, not a
-  fully controlled brick-only baseline.
-- **The exact root cause between the brick and any remaining connector/
-  contact issue** is not proven - only ranked by evidence (§4), now
-  narrowed by ruling out the cable. Only a physical brick-swap A/B test
-  can narrow this further, per the operator's own next-step plan.
-- **Whether the new cable's steadier (non-oscillating) but still
-  continuously-active pattern is a real partial improvement or normal
-  run-to-run variability** is not established from one reboot's data
-  (§9a) - would need multiple comparable boots on each cable to say
-  with confidence.
-- **The 16:09-16:10 oscillation's specific trigger** on the old cable
-  remains unexplained - no correlated dmesg event, no known operator
-  action at that exact moment.
+- **Both the cable and the first candidate brick have been ruled out as
+  *sufficient* fixes individually (§9a, §9b)** - active under-voltage
+  remained after each was replaced, in isolation. Neither test isolated
+  whether either was a *contributing* factor (i.e. whether the original
+  cable+Apple-brick combination together would have been even worse
+  than either single-variable swap) - each test compared one-variable-
+  changed data against the immediately preceding configuration, not a
+  fully orthogonal 2x2 comparison of all four cable/brick combinations.
+- **The remaining candidates - a connector/contact issue on the Pi's
+  own micro-USB input jack, the Pi's own power input path, or a
+  baseline combined load exceeding what any tested supply chain
+  delivers under real conditions** - are ranked by elimination (§9b),
+  not proven. None has direct, dedicated evidence for it yet.
+- **Whether either "new cable" test's steadier (non-oscillating) but
+  still continuously-active pattern is a real signal or normal
+  run-to-run variability** is not established from single-boot data on
+  each configuration - would need multiple comparable boots per
+  configuration to say with confidence. Notably, this same
+  no-oscillation character appeared identically on both the Apple and
+  UGREEN bricks (both paired with the new cable) - consistent with it
+  being a cable-related characteristic rather than a per-brick one, but
+  not proven as such.
+- **The 16:09-16:10 oscillation's specific trigger** on the *original*
+  cable remains unexplained - no correlated dmesg event, no known
+  operator action at that exact moment. It has not recurred on either
+  brick tested with the new cable.
 - **Whether the SD card itself has any latent wear** from repeated
   power-sag exposure over the project's history is not measurable with
   the tools available on this system.
-- **Whether a genuinely known-good Pi-specific supply would fully
-  resolve this** is a prediction based on the evidence pattern, not a
-  proven fact until actually tested.
+- **Whether any physical intervention would resolve this** remains
+  unproven - three real, independently-verified negative results now
+  exist (old cable, new cable+Apple, new cable+UGREEN); the field has
+  narrowed, but nothing tested so far has cleared the condition.

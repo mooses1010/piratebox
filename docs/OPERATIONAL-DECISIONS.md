@@ -6,6 +6,38 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Power brick A/B test - negative result
+
+**Decision date:** 2026-09-03, same-day follow-up to the cable A/B
+test above. Full detail in `docs/POWER-INTEGRITY-DIAGNOSIS.md` §9b -
+this entry is a summary.
+
+Operator gracefully shut down and changed only the power brick: Apple
+12W USB adapter → UGREEN GaN multi-port brick, **same** new/higher-
+quality cable from the immediately preceding test, all other hardware
+unchanged. Per the operator's own note, the UGREEN brick can
+renegotiate/reset its USB outputs if another port's load changes, so
+nothing else was plugged/unplugged from it during the observation
+window.
+
+**Result, independently verified at a ~21-minute window (comparable to
+the cable test's ~19 minutes), not inferred from "it booted":**
+`vcgencmd get_throttled` still `0x50005` - bits 0/2 (current under-
+voltage/throttling) still set. Single continuous assertion since boot,
+zero oscillation, zero USB/mt76 resets or errors, zero SD/ext4 errors,
+core voltage/temp nominal, production `wlan0`/services/regulatory
+domain all unaffected.
+
+**Conclusion: the UGREEN brick does not resolve the condition either.**
+Three consecutive real-hardware configurations (old cable+Apple brick,
+new cable+Apple brick, new cable+UGREEN brick) have now all shown the
+identical active-undervoltage signature. This narrows the field away
+from "one specific worn/cheap component" and toward the Pi's own input
+connector/power path, or a baseline combined load (GPIO fans + OLED +
+ALFA) exceeding what's reaching the Pi under any tested supply chain -
+neither proven; no further physical step is recommended without the
+operator's own direction, per instruction to report and wait.
+
 ## Power cable A/B test - negative result
 
 **Decision date:** 2026-09-03, same-day follow-up to the Power
