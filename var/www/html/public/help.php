@@ -39,20 +39,31 @@ $piratebox_locale = piratebox_get_locale();
             </li>
         </ol>
 
-        <!-- Single QR by design: a standards-compatible WIFI: QR (join only) -
-             not a nonstandard combined Wi-Fi+URL payload. "piratebox/" below
-             is the deliberate printed fallback for when the captive portal
-             doesn't open automatically, not a second scannable code. See
-             docs/OPERATIONAL-DECISIONS.md "QR Onboarding Simplified to a
-             Single Wi-Fi Code" for why the former second (URL) QR was
-             removed. -->
+        <!-- Two QR codes by design, restored 2026-09-03 after a brief
+             one-QR simplification round - see
+             docs/OPERATIONAL-DECISIONS.md "Two-QR PirateBox Onboarding
+             Restored". Both are plain, standards-compatible payloads
+             (WIFI: join / a bare http:// URL) - no nonstandard combined
+             Wi-Fi+URL trick. "piratebox/" under the first QR is a
+             deliberate printed fallback, not a replacement for the
+             second QR: the join QR plus that printed hostname is
+             sufficient by itself (captive portal, or type it
+             manually), while the second QR is a convenient second path
+             once already connected. -->
         <div class="qr-row">
             <div>
-                <p class="qr-join-label">JOIN PIRATEBOX</p>
+                <p class="qr-label">JOIN PIRATEBOX</p>
                 <div class="qr-card">
                     <img src="assets/qr-wifi.png" alt="QR code to join the open PirateBox Wi-Fi network" width="160" height="160">
                 </div>
                 <p class="qr-caption">OPEN &gt; <span class="help-url">piratebox/</span></p>
+            </div>
+            <div>
+                <p class="qr-label">OPEN PIRATEBOX</p>
+                <div class="qr-card">
+                    <img src="assets/qr-url.png" alt="QR code linking to http://piratebox/" width="160" height="160">
+                </div>
+                <p class="qr-caption">Scan once connected to the Wi-Fi above</p>
             </div>
         </div>
     </section>
