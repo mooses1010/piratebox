@@ -6,6 +6,61 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Load-isolation test 2: heatsink fans removed - negative result, plus new direct voltage measurement
+
+**Decision date:** 2026-09-03, same-day follow-up to the ALFA
+load-isolation test above. Full detail in
+`docs/POWER-INTEGRITY-DIAGNOSIS.md` §9d - this entry is a summary.
+
+Wiring verified first against `docs/CHECKPOINTS.md` and
+`POWER-INTEGRITY-DIAGNOSIS.md` §3 (both independently confirm physical
+pin 4 (5V) / physical pin 6 (GND), no GPIO involvement, no conflict
+with the OLED or shutdown-button pins) before any physical action.
+
+The operator then performed a genuine controlled cold-power-cycle:
+held the physical shutdown button for a graceful `systemctl poweroff`,
+waited for a full halt, then fully removed and reapplied the USB-A
+power input - not a software reboot. Both heatsink fans were
+physically disconnected from pins 4/6 throughout the resulting fresh
+boot; the ALFA remained physically absent (unchanged from the prior
+test). An earlier, uncontrolled interval where the fans happened to
+already be unplugged mid-session (not from a fresh boot) was recorded
+separately and explicitly not treated as controlled evidence.
+
+Result, independently verified through a confirmed 18-minute window
+(closed early by operator instruction before the planned ~22-minute
+target, once the operator was satisfied with the direction of the
+result and moved to restore normal hardware): `0x50005` unchanged -
+bits 0/2 still set, one `Undervoltage detected!` at boot, zero
+`Voltage normalised` lines, zero oscillation, zero USB/SD/kernel
+errors, all services healthy. Identical signature to every prior
+configuration tested this round.
+
+Conclusion: removing both heatsink fans, like removing the ALFA,
+changed nothing measurable about the undervoltage condition. The
+evidence does not support the fans as a meaningful contributing static
+load either.
+
+**New this entry:** the operator took a live DC multimeter reading
+directly across physical pin 4/pin 6 in this exact configuration -
+first time this project has had a direct analog measurement rather
+than only the firmware's binary bit. Observed ~4.7V baseline (only
+~70mV above this board's own ~4.63V detection threshold) with brief,
+apparently periodic drops to ~3.3-3.5V. `piratebox-status.timer`'s
+fixed 30-second cadence (confirmed via `journalctl`), which runs
+`iw dev`/`station dump` against the onboard `wlan0` production AP
+radio every cycle, is identified as a cadence-matching candidate -
+**explicitly not established as cause**, no exact-timestamp
+correlation performed, and no configuration change made to test it,
+per operator instruction to make no changes this round.
+
+Operator has since physically restored both fans and the ALFA to
+normal; PirateBox is back to its full standard hardware configuration
+as of this entry. Next controlled variable not decided here, per
+instruction - left for the operator's own direction. The timer/Wi-Fi-
+poll correlation is flagged as a specific, testable next candidate,
+distinct from the static-load candidates already ruled out.
+
 ## Load-isolation test 1: AWUS036ACM removed - negative result
 
 **Decision date:** 2026-09-03, same-day follow-up to the brick A/B

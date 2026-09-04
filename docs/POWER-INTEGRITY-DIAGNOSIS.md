@@ -1,33 +1,45 @@
 # Power Integrity Diagnosis
 
-**Status: DIAGNOSIS + THREE COMPLETED CONTROLLED TESTS, ALL NEGATIVE.**
+**Status: DIAGNOSIS + FOUR COMPLETED CONTROLLED TESTS, ALL NEGATIVE,
+PLUS A NEW DIRECT ANALOG MEASUREMENT NOT YET CORRELATED TO CAUSE.**
 This round investigated the chronic `0x50005` undervoltage condition
 and, across same-day follow-ups, tested and **ruled out the power
-cable (§9a), the power brick (§9b), and the AWUS036ACM as a
-contributing load (§9c)**, each in isolation: old Samsung phone cable →
-higher-quality cable showed no resolution; Apple 12W brick → UGREEN
-GaN brick showed no resolution; ALFA present → ALFA physically
-removed (a genuine cold power-cycle, not a software reboot) also
-showed no measurable change. Active under-voltage was independently
-re-verified present in every configuration tested so far. This is the
-required evidence gathering before the AWUS036ACM production
-migration's power-aware gate (`docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md`
-§8) can be considered met - it is **still not** that gate being met.
-Read `docs/POWER-UPS-DESIGN.md` for the separate, forward-looking UPS/
+cable (§9a), the power brick (§9b), the AWUS036ACM (§9c), and the two
+heatsink fans (§9d) as contributing loads**, each in isolation: old
+Samsung phone cable → higher-quality cable showed no resolution; Apple
+12W brick → UGREEN GaN brick showed no resolution; ALFA present → ALFA
+physically removed showed no measurable change; both fans present →
+both fans physically removed (again a genuine cold power-cycle, not a
+software reboot) also showed no measurable change. Active under-
+voltage was independently re-verified present in every configuration
+tested so far. **§9d additionally records the first direct analog
+(multimeter) measurement taken at the Pi's own 5V/GND header pins**:
+a chronically marginal ~4.7V baseline (only ~70mV above this board's
+own ~4.63V detection threshold) with brief, apparently periodic drops
+to ~3.3-3.5V. A same-cadence candidate (`piratebox-status.timer`'s
+30-second onboard-Wi-Fi poll) is identified but explicitly **not
+established as cause** - correlation only, not tested by disabling or
+changing anything, per operator instruction. This is the required
+evidence gathering before the AWUS036ACM production migration's
+power-aware gate (`docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md` §8) can be
+considered met - it is **still not** that gate being met. Read
+`docs/POWER-UPS-DESIGN.md` for the separate, forward-looking UPS/
 battery requirements; this document is about the *current* wall-power
 path.
 
 **The goal was never to make `0x50005` disappear cosmetically.** It
-hasn't disappeared, across three different cable/brick combinations
-now. This document establishes what's actually known, what's still
-genuinely uncertain, and what physical step should happen next - all
-with the evidence that justifies it, not assumption. With both the
-cable and the (first candidate) brick ruled out individually, the
-leading remaining hypotheses (§9b) point toward the Pi's own input
-connector/power path or a baseline combined load exceeding what's
-reaching the Pi under any tested supply chain - neither proven, and no
-further physical step is recommended without the operator's own
-direction.
+hasn't disappeared, across four different cable/brick/load
+combinations now. This document establishes what's actually known,
+what's still genuinely uncertain, and what physical step should happen
+next - all with the evidence that justifies it, not assumption. With
+the cable, the first candidate brick, the ALFA, and now both heatsink
+fans all ruled out individually as *static* loads, §9d's multimeter
+finding reframes the remaining open question away from "which single
+static load is responsible" and toward a marginal baseline compounded
+by a *periodic transient* of a magnitude (~1.2-1.4V) large enough to
+matter on its own - candidate source identified, not proven, and no
+further physical or configuration step is recommended without the
+operator's own direction.
 
 ---
 
@@ -605,6 +617,139 @@ cleanly.
 **Next controlled variable:** not recommended in this entry, per
 instruction - reported for the operator's own direction, not decided
 here.
+
+---
+
+## 9d. Load-isolation test 2: heatsink fans physically removed - negative result, plus new direct voltage measurement (2026-09-03)
+
+**Controlled variable:** the two heatsink fans' physical presence, and
+only that. Wiring verified first against `docs/CHECKPOINTS.md` and
+this document's own §3 (both independently record physical pin 4 (5V)
+/ physical pin 6 (GND), no GPIO/software involvement, no conflict with
+the OLED's pins 1/3/5/14 or the shutdown button's pins 22/9) before any
+physical action was taken.
+
+**Before/after configuration:**
+- Before (§9c): UGREEN GaN brick + new cable + ALFA physically absent
+  + both fans present + OLED + Ethernet, `wlan0` production AP.
+- After (this test): **identical** configuration with both fans
+  **physically disconnected** from pins 4/6. Nothing else changed.
+
+**Procedural note - genuine cold power-cycle, matching §9c's rigor:**
+the operator held the physical shutdown button for a graceful
+`systemctl poweroff`, waited for a full halt, then fully removed and
+reapplied the USB-A power input at the UGREEN brick - not a software
+reboot. Fresh boot: `2026-09-03 19:42:54`.
+
+**Uncontrolled preliminary data point, recorded honestly, not treated
+as part of this test:** between §9c and this controlled test, the
+operator had already physically disconnected both fans before/during
+an unrelated documentation audit, with the Pi already running (not a
+fresh boot for that condition). A ~20-minute snapshot taken during that
+interval showed `0x50005` with bits 0/2 already set, single continuous
+assertion, zero errors - directionally consistent with this section's
+controlled result, but **not usable as a controlled measurement**:
+the fans' exact state at that boot's own power-on moment (`19:18:43`)
+was never established, so that boot's sticky bits 16/18 cannot be
+attributed to a known before/after transition the way a genuine
+cold-power-cycle's can.
+
+**Observation window - closed early by operator instruction, recorded
+honestly:** the plan was a ~22-minute window matching §9c's rigor. The
+operator ended the test and physically restored both fans and the ALFA
+partway through; the last data point confirmed to predate that
+restoration is the **18-minute mark**. A further automated reading
+arrived at the 23-minute mark, after the stop request reached this
+session - **excluded from this record** since it cannot be confirmed
+to predate the physical restoration, per the operator's own
+contamination concern.
+
+**Raw evidence, independently checked through the confirmed 18-minute
+window:**
+- `vcgencmd get_throttled`: `0x50005` at boot (~7 min), 13 min, and 18
+  min - **identical hex value, unchanged**, matching every prior
+  configuration.
+- Bit decode: 0 (under-voltage NOW) **SET**, 2 (throttled NOW) **SET**
+  at every check; 16/18 (historical) SET; all others clear throughout.
+- `dmesg` timeline: **exactly one** `Undervoltage detected!` line, at
+  `19:42:27`, **zero** `Voltage normalised` lines through the full
+  confirmed window - the same single-continuous-assertion character as
+  every prior test on this cable/brick (§9a-§9c).
+- Temp: 47.8°C → 47.2°C → 44.0°C (7/13/18 min) - stable, nominal, no
+  thermal-limit bits (3/19) ever set. ARM clock at idle-governor speed
+  (600MHz), bit 1 (frequency capped) clear - not a forced cap.
+- `status.json`: `undervoltage_now: true`, `undervoltage_since_boot:
+  true` throughout, consistent with the direct reading.
+- USB: `lsusb` confirmed the ALFA genuinely absent throughout (only the
+  Pi's own internal hub/Ethernet chips visible).
+- Services: all 6 core services (`hostapd`, `dnsmasq`, `nginx`,
+  `php8.4-fpm`, button daemon, OLED daemon) active at every check;
+  `systemctl --failed` empty every time; zero kernel errors, resets, or
+  USB/SD faults.
+
+**Conclusion: removing both heatsink fans, like removing the ALFA,
+changed nothing measurable about the undervoltage condition** within
+the confirmed 18-minute window. Same hex value, same bit pattern, same
+single-continuous-assertion timeline character, same zero-error
+USB/SD/service state, fans present or absent. Per the same framing as
+§9c: **the evidence does not support the heatsink fans as a meaningful
+contributing static load to this condition.** Conclusion strength:
+**strong but slightly less complete than §9c's** - the confirmed
+window (18 min) is shorter than the ~19-24 minute windows of every
+prior test, since the operator closed it early once satisfied with the
+direction of the result; nothing in the confirmed data suggests a
+longer window would have differed.
+
+**New evidence this same session - direct analog measurement, not
+previously available in this document:** the operator took a live DC
+multimeter reading directly across physical pin 4 (+5V) and pin 6
+(GND) while the Pi ran in this exact ALFA-absent/fans-absent
+configuration. Observed: **~4.7V baseline**, with brief, apparently
+periodic drops to **~3.3-3.5V**, at a subjectively predictable/
+repeating cadence. This is the first time this document has had a real
+voltage magnitude rather than only the firmware's binary bit - and it
+shows the baseline itself sits only **~70mV above this board's own
+~4.63V under-voltage detection threshold** (§1), with a separate,
+much larger (~1.2-1.4V) periodic transient riding on top of it.
+
+**Correlation investigated, explicitly not established as cause, and
+not tested by changing anything (per operator instruction):**
+`piratebox-status.timer` fires on a fixed, tight cadence -
+`OnUnitActiveSec=30s`, `AccuracySec=5s` - confirmed from live
+`journalctl` timestamps this boot to land every 30-31 seconds without
+drift. Each cycle, as root, it runs `piratebox_status_helper.sh`, which
+calls `iw dev` and `iw dev wlan0 station dump` against the **onboard
+`wlan0` production AP radio** - the same radio sharing this board's
+single 5V input with the pins measured. No other periodic activity on
+this system (all other timers/cron jobs are minutes-to-days apart) is
+a comparable cadence match; the OLED daemon's I2C redraw
+(`REFRESH_SECONDS = 3.0`) is a weaker secondary candidate, already
+documented elsewhere in this project as low-current. **This is a
+cadence-vs-cadence match only** - no exact-timestamp correlation
+between the multimeter's own observed dip instants and the service's
+log entries was performed, and the firmware's own bit-0 event log
+cannot confirm or deny sub-30-second dynamics on its own, since bit 0
+stayed continuously latched throughout this and every other test
+(consistent with a baseline this close to threshold, with or without
+a periodic transient added on top). **No configuration change was
+made to test this correlation**, per explicit operator instruction not
+to disable or alter the timer during this round.
+
+**Operator-restored hardware state, as of the close of this test:** the
+AWUS036ACM is physically reconnected; both heatsink fans are physically
+reconnected to their original pin 4/6 connection; OLED, shutdown
+button, and Ethernet were never disturbed. PirateBox is back to its
+normal full-hardware configuration as of this entry. This restored
+state is **not** part of the isolation dataset above - it is recorded
+here only to mark where the controlled interval ends.
+
+**Next controlled variable:** not decided here, per instruction. This
+entry's own multimeter finding surfaces `piratebox-status.timer`'s
+30-second onboard-Wi-Fi poll as a specific, testable next candidate -
+categorically different from the static-load candidates already ruled
+out (§9a-§9d) - but confirming or ruling it out requires a
+configuration change explicitly deferred by the operator for this
+round.
 
 ---
 
