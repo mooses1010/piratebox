@@ -1,19 +1,21 @@
 # Power Integrity Diagnosis
 
-**Status: DIAGNOSIS + TWO COMPLETED A/B TESTS, BOTH NEGATIVE.** This
-round investigated the chronic `0x50005` undervoltage condition and,
-across two same-day follow-ups, tested and **ruled out both the power
-cable (§9a) and the power brick (§9b) as sufficient fixes**, each in
-isolation: old Samsung phone cable → higher-quality cable (Apple 12W
-brick unchanged) showed no resolution; Apple 12W brick → UGREEN GaN
-brick (new cable unchanged) also showed no resolution - active
-under-voltage was independently re-verified present in every
-configuration. This is the required evidence gathering before the
-AWUS036ACM production migration's power-aware gate (`docs/
-EXTERNAL-AP-ARCHITECTURE-DESIGN.md` §8) can be considered met - it is
-**still not** that gate being met. Read `docs/POWER-UPS-DESIGN.md` for
-the separate, forward-looking UPS/battery requirements; this document
-is about the *current* wall-power path.
+**Status: DIAGNOSIS + THREE COMPLETED CONTROLLED TESTS, ALL NEGATIVE.**
+This round investigated the chronic `0x50005` undervoltage condition
+and, across same-day follow-ups, tested and **ruled out the power
+cable (§9a), the power brick (§9b), and the AWUS036ACM as a
+contributing load (§9c)**, each in isolation: old Samsung phone cable →
+higher-quality cable showed no resolution; Apple 12W brick → UGREEN
+GaN brick showed no resolution; ALFA present → ALFA physically
+removed (a genuine cold power-cycle, not a software reboot) also
+showed no measurable change. Active under-voltage was independently
+re-verified present in every configuration tested so far. This is the
+required evidence gathering before the AWUS036ACM production
+migration's power-aware gate (`docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md`
+§8) can be considered met - it is **still not** that gate being met.
+Read `docs/POWER-UPS-DESIGN.md` for the separate, forward-looking UPS/
+battery requirements; this document is about the *current* wall-power
+path.
 
 **The goal was never to make `0x50005` disappear cosmetically.** It
 hasn't disappeared, across three different cable/brick combinations
@@ -512,6 +514,97 @@ controlled-experiment design that should be the operator's call, not
 this document's default next step. **This document does not recommend
 proceeding to any further physical change without the operator's own
 direction**, per instruction to stop and wait after this result.
+
+---
+
+## 9c. Load-isolation test 1: AWUS036ACM physically removed - negative result (2026-09-03)
+
+**Controlled variable:** the AWUS036ACM's physical presence, and only
+that - a genuine, complete USB-level absence (not merely idle/managed
+state, which was the only "ALFA present but inactive" condition
+previously tested). Read-only audit performed first (interface/driver/
+hostapd-binding/USB-topology confirmation - see the conversation
+record; not duplicated in this doc since nothing about interface
+identity changed as a result) before any physical action was taken.
+
+**Before/after configuration:**
+- Before (§9b): UGREEN GaN brick + new cable + ALFA physically present
+  (idle, `wlan1`, `type managed`, not production) + both fans + OLED +
+  Ethernet, `wlan0` production AP.
+- After (this test): **identical** configuration with the ALFA
+  **physically unplugged** - genuinely absent from the USB bus
+  (confirmed via `lsusb`/`iw dev` showing only the Pi's own internal
+  USB devices - the 4-port hub, the 3-port hub, and the internal
+  Ethernet chip; no MT7612U). Nothing else changed.
+
+**Important procedural distinction, recorded honestly per operator
+correction:** the transition between configurations was **not** a
+software reboot (`sudo reboot`). The operator held the physical
+shutdown button for a normal graceful-shutdown hold, waited for a full
+shutdown, then physically disconnected and reconnected the USB-A power
+input - a genuine cold power-cycle. This is a *more* rigorous reset
+than a software reboot would have been (a soft reboot typically leaves
+the 5V rail continuously energized and only restarts the OS; this
+fully de-energized and re-energized the board), so if anything this
+test's baseline is cleaner than the cable/brick tests' software
+reboots, not less rigorous.
+
+**Immediate post-unplug check (ALFA still present in the running OS,
+before the power-cycle):** `usb 1-1.3: USB disconnect, device number
+4` - a single, clean disconnect line, no warnings, no timeouts, no
+errors (contrast with the original hot-plug *insertion* event, which
+showed a disconnect/reconnect cycle plus a coincident SD error and USB
+timeout). `vcgencmd get_throttled` immediately after the live unplug
+still read `0x50005` with bit 0 set - no instant change, expected
+since the bit was already active going in and instantaneous recovery
+isn't guaranteed either way.
+
+**Observation duration:** fresh cold-boot to 24 minutes uptime -
+comparable to the cable test's ~19 minutes and the brick test's ~21
+minutes.
+
+**Raw evidence, independently checked at the comparable window:**
+- `vcgencmd get_throttled`: `0x50005` - **identical hex value** to
+  every prior configuration, ALFA present or absent.
+- Bit decode: 0 (under-voltage NOW) **SET**, 2 (throttled NOW) **SET**,
+  16/18 (historical) SET, all others clear.
+- Core voltage 1.2000V, temp 41.9°C - both nominal.
+- `dmesg` timeline: **exactly one** `Undervoltage detected!` line, at
+  18:44:37 (within the first ~4 minutes of this fresh boot), **zero**
+  `Voltage normalised` lines, **zero** oscillation through the full
+  24-minute window - the same single-continuous-assertion character as
+  every ALFA-present test on this cable (§9a, §9b).
+- USB/SD/ext4: zero errors of any kind.
+- Production `wlan0` (SSID `PirateBox`, AP mode), all six services, and
+  the regulatory domain (`country US: DFS-FCC`) all confirmed healthy
+  throughout - unaffected by the ALFA's absence, as expected (it was
+  never carrying production traffic).
+
+**Current vs. historical interpretation:** bit 0 was independently
+re-verified SET at the 24-minute mark, on a boot that began with the
+ALFA already absent from the very first power-up - not a case of
+"historical bits inherited from a prior ALFA-present state." This is a
+genuinely clean ALFA-absent measurement, not a mixed one.
+
+**Conclusion: removing the AWUS036ACM entirely changed nothing
+measurable about the undervoltage condition.** Same hex value, same
+bit pattern, same single-continuous-assertion timeline character, same
+zero-error USB/SD/service state, with or without the ALFA. Per the
+operator's own framing (the Pi undervolted before the ALFA ever
+existed, so this test was never about root cause - only about whether
+it's a meaningful *contributing* load): **the evidence does not
+support the ALFA as a meaningful contributing load to this condition,
+even in complete physical absence.** Conclusion strength: **strong**
+for this specific claim - a true (not merely idle) absence, a cleaner-
+than-usual cold-power-cycle baseline, a comparable observation window,
+and a result indistinguishable in every measured respect from the
+immediately preceding ALFA-present test. This does not by itself
+identify what *is* driving the condition - it closes off one candidate
+cleanly.
+
+**Next controlled variable:** not recommended in this entry, per
+instruction - reported for the operator's own direction, not decided
+here.
 
 ---
 

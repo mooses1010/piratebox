@@ -6,6 +6,40 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Load-isolation test 1: AWUS036ACM removed - negative result
+
+**Decision date:** 2026-09-03, same-day follow-up to the brick A/B
+test above. Full detail in `docs/POWER-INTEGRITY-DIAGNOSIS.md` §9c -
+this entry is a summary.
+
+A read-only audit confirmed current interface/driver/topology state
+first (production AP is `wlan0`/`brcmfmac`; the ALFA is `wlan1`/
+`mt76x2u`, idle, never bound to hostapd; Ethernet is the Pi's own
+internal chip, logically independent of the ALFA though sharing the
+same physical 5V input; the ALFA was the only externally-attached USB
+device). The ALFA was then physically unplugged live (clean disconnect,
+no errors) and the Pi taken through a graceful shutdown (physical
+button) followed by a full cold power-cycle at the USB-A power
+input - **not a software reboot**, recorded honestly per operator
+correction; if anything a more rigorous state reset than a soft reboot
+would have been.
+
+**Result, independently verified at a 24-minute window:** `0x50005` -
+identical hex value, identical bit pattern, identical single-
+continuous-assertion timeline (one detection at 18:44:37, zero
+oscillation) to the immediately preceding ALFA-present test. Zero USB/
+SD/ext4 errors. Production `wlan0`/services/regulatory domain
+unaffected (expected - the ALFA was never carrying production traffic).
+
+**Conclusion: removing the AWUS036ACM entirely changed nothing
+measurable.** Per the operator's own framing (the Pi undervolted
+before the ALFA ever existed - this test was about contribution, not
+root cause), the evidence does not support the ALFA as a meaningful
+contributing load, even in true physical absence. Strong conclusion
+for this specific claim; does not by itself identify the actual cause.
+Next controlled variable not recommended in this entry, per
+instruction - left for the operator's own direction.
+
 ## Power brick A/B test - negative result
 
 **Decision date:** 2026-09-03, same-day follow-up to the cable A/B
