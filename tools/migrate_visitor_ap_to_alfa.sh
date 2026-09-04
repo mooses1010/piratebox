@@ -133,12 +133,23 @@ echo "--- Migration ---"
 echo "Stopping hostapd/dnsmasq..."
 systemctl stop hostapd dnsmasq
 
-echo "Rewriting interface= in /etc/hostapd/hostapd.conf and /etc/dnsmasq.conf..."
+echo "Rewriting interface= in /etc/hostapd/hostapd.conf, /etc/dnsmasq.conf, and /etc/dhcpcd.conf..."
 sed -i 's/^interface=wlan0$/interface=pb-ap/' /etc/hostapd/hostapd.conf
 sed -i 's/^interface=wlan0$/interface=pb-ap/' /etc/dnsmasq.conf
-
-echo "Validating hostapd config..."
-hostapd -dd -t /etc/hostapd/hostapd.conf 2>&1 | grep -qi "invalid" && { echo "FAIL: hostapd config invalid - restoring backup." >&2; cp -a "$BACKUP_DIR/hostapd.conf" /etc/hostapd/hostapd.conf; exit 1; }
+# dhcpcd.conf: move the static 10.0.0.1/24 block from wlan0 to pb-ap.
+# Found live during the first migration attempt (2026-09-03): stopping
+# hostapd's wlan0 binding takes the interface fully DOWN (nothing else
+# keeps it up), so leaving this block on wlan0 - the original plan -
+# means nothing holds 10.0.0.1 any more, while pb-ap (no static block
+# of its own) falls through to dhcpcd's default per-interface DHCP-
+# client/IPv4LL behavior and self-assigns a useless 169.254.x.x
+# address instead. Confirmed: nginx itself was never the problem
+# (listen 80 default_server, no bound IP) - nothing on the Pi held the
+# address at all. See docs/OPERATIONAL-DECISIONS.md "ALFA Migration
+# Round" for the full evidence chain.
+sed -i 's/^interface wlan0$/interface pb-ap/' /etc/dhcpcd.conf
+echo "Restarting dhcpcd to apply the moved static IP..."
+systemctl restart dhcpcd
 
 echo "Starting hostapd/dnsmasq on pb-ap..."
 systemctl start hostapd dnsmasq
@@ -148,12 +159,15 @@ sleep 2
 iw dev pb-ap info | grep -q "type AP" || { echo "FAIL: pb-ap did not come up as AP - see rollback script." >&2; exit 1; }
 systemctl is-active --quiet hostapd || { echo "FAIL: hostapd not active - see rollback script." >&2; exit 1; }
 systemctl is-active --quiet dnsmasq || { echo "FAIL: dnsmasq not active - see rollback script." >&2; exit 1; }
-curl -sf -o /dev/null http://10.0.0.1/ || echo "WARNING: http://10.0.0.1/ did not respond - investigate before telling the operator to test."
+ip -4 addr show pb-ap | grep -q "inet 10\.0\.0\.1/24" || { echo "FAIL: pb-ap does not hold 10.0.0.1/24 - dhcpcd did not apply the static IP. See rollback script." >&2; exit 1; }
+curl -sf -o /dev/null http://10.0.0.1/ || { echo "FAIL: http://10.0.0.1/ did not respond even though pb-ap holds 10.0.0.1 - investigate (nginx? firewall?) before telling the operator to test. See rollback script." >&2; exit 1; }
 
 echo
-echo "Migration steps complete. wlan0 has been left up and idle (not"
-echo "repurposed - see docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md 'Radio role"
-echo "model' for future onboard-radio use)."
+echo "Migration steps complete. wlan0 has been left DOWN and idle (not"
+echo "repurposed - confirmed live that stopping its hostapd binding takes"
+echo "it fully down, not merely idle-while-up as originally assumed - see"
+echo "docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md 'Radio role model' for"
+echo "future onboard-radio use)."
 echo
 echo "NEXT: hand off to the Operator test steps in"
 echo "docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md 'Migration plan' - this"

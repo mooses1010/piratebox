@@ -652,16 +652,26 @@ packets to `10.0.0.1`).
 
 **The one real coupling**: `dnsmasq.conf`'s `interface=wlan0` and
 `dhcpcd.conf`'s `interface wlan0` / `10.0.0.1/24` static assignment -
-both are exactly what `tools/migrate_visitor_ap_to_alfa.sh` changes
-(the `dnsmasq.conf` line) or leaves alone (`dhcpcd.conf`'s `10.0.0.1`
-assignment is **not** touched by the staged migration script - `10.0.0.1`
-stays defined against `wlan0` in `dhcpcd.conf`; only `hostapd`/
-`dnsmasq`'s *radio* binding changes. See that script's own comments for
-why this is sufficient: `dhcpcd.conf`'s `interface wlan0` block exists
-to give `wlan0` its static IP and `nohook wpa_supplicant` - a future
-migration that fully retires `wlan0` from AP duty would need to
-reconsider this, but the current staged migration keeps `wlan0` up and
-idle, not retired, so this is intentionally left alone this round).
+both are changed by `tools/migrate_visitor_ap_to_alfa.sh`.
+
+**Corrected 2026-09-03, first live migration attempt (ALFA Migration
+Round):** this section originally claimed `dhcpcd.conf`'s `10.0.0.1`
+assignment could be safely left on `wlan0`, on the assumption that
+`wlan0` would stay "up and idle, not retired" once hostapd stopped
+using it. **Confirmed wrong, live:** stopping hostapd's `wlan0` binding
+takes the interface fully **down** (nothing else keeps it up) - so
+leaving the static block there meant nothing held `10.0.0.1` any more,
+while `pb-ap` (no static block of its own) fell through to `dhcpcd`'s
+default per-interface DHCP-client/IPv4LL behavior and self-assigned a
+useless `169.254.x.x` address instead. First symptom: `http://10.0.0.1/`
+timed out entirely - confirmed not an nginx problem (it listens on
+`0.0.0.0:80`, no bound IP; verified still answering on `127.0.0.1`
+throughout). `tools/migrate_visitor_ap_to_alfa.sh` now also moves this
+`dhcpcd.conf` block to `pb-ap` and restarts `dhcpcd` as part of the
+migration; `tools/rollback_visitor_ap_to_onboard.sh` moves it back and
+also restarts `dhcpcd` (previously missing from both scripts). See
+`docs/OPERATIONAL-DECISIONS.md` "ALFA Migration Round" for the full
+evidence chain.
 
 **No captive portal, nginx, or firewall change of any kind is needed
 for a radio migration** - confirmed by this audit, not assumed.
@@ -689,18 +699,34 @@ confirmation plus an interactive `migrate` prompt, so it cannot run by
 accident.
 
 ### Migration (what the staged script actually does, if run)
+
+**Revised 2026-09-03 after the first live attempt found two real bugs**
+(see `docs/OPERATIONAL-DECISIONS.md` "ALFA Migration Round" for the
+full evidence): step 2 originally covered only two files, and step 3's
+"validate" was never actually a config-check (hostapd 2.10 has no such
+flag - confirmed elsewhere in this project already) but a real,
+unbounded foreground hostapd start with no timeout, which hung
+indefinitely on a valid config. Both are fixed below.
+
 1. Stop `hostapd`/`dnsmasq`.
-2. Change `interface=wlan0` → `interface=pb-ap` in both
-   `/etc/hostapd/hostapd.conf` and `/etc/dnsmasq.conf` - the **only**
-   lines either file needs to change (see "Captive/DHCP/DNS" above).
-3. Validate the resulting hostapd config.
+2. Change `interface=wlan0` → `interface=pb-ap` in
+   `/etc/hostapd/hostapd.conf` and `/etc/dnsmasq.conf`, **and** move
+   `dhcpcd.conf`'s `interface wlan0` static-`10.0.0.1/24` block to
+   `interface pb-ap` (see "Captive/DHCP/DNS" above for why this third
+   file is not optional), then restart `dhcpcd`.
+3. ~~Validate the resulting hostapd config~~ - removed; there is no
+   real way to test-start hostapd without actually starting it, and
+   step 5's live checks already cover this more meaningfully than a
+   synthetic test ever could.
 4. Start `hostapd`/`dnsmasq` again.
-5. Live-check: `pb-ap` reports `type AP`, both services active, a
-   basic `curl` against `http://10.0.0.1/` responds.
-6. `10.0.0.1`, dnsmasq's wildcard DNS/DHCP behavior, CAPPORT, nginx,
-   the site itself, connection statistics, and status/OLED reporting
-   all continue working unchanged - by design, none of them reference
-   the interface name directly (see sections 9-11).
+5. Live-check: `pb-ap` reports `type AP`, both services active,
+   `pb-ap` actually holds `10.0.0.1/24` (not just that something's
+   listening), a basic `curl` against `http://10.0.0.1/` responds -
+   all hard failures now, not warnings.
+6. dnsmasq's wildcard DNS/DHCP behavior, CAPPORT, nginx, the site
+   itself, connection statistics, and status/OLED reporting all
+   continue working unchanged - by design, none of them reference the
+   interface name directly (see sections 9-11).
 
 ### Operator test
 - SSID visible on a real device.

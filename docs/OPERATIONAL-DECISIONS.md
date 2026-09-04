@@ -47,9 +47,91 @@ earlier `usb_id` builtin in the standard rule chain - confirmed present
 and correct (`mt76x2u`/`0e8d`/`7612`) against this exact live adapter
 via `udevadm test` before writing the fix. No ancestor-walk needed.
 
-Live re-verification of the corrected rule was the immediate next step
-after this fix - see this entry's own follow-on or the design doc's
-"Live state" note for the outcome.
+**Udev fix confirmed live**, second replug: kernel log recorded `mt76x2u
+1-1.3:1.0 pb-ap: renamed from wlan1` directly. `pb-ap` came up cleanly,
+`ethtool -i pb-ap` confirmed `mt76x2u`, NetworkManager exclusion
+confirmed present, `wlan0` confirmed completely unaffected throughout,
+zero new kernel/USB errors from either replug, `vcgencmd get_throttled`
+unchanged at `0x50005`.
+
+**Operator then ran the actual migration**
+(`sudo PIRATEBOX_MIGRATION_CONFIRMED=yes-I-read-the-design-doc
+tools/migrate_visitor_ap_to_alfa.sh`), all 6 preflight checks passed,
+and it hung indefinitely at "Validating hostapd config..." (several
+minutes, no progress). Read-only investigation from a separate SSH
+session (Ethernet, never interrupted) found the exact cause without
+touching anything: the script's validation line,
+`hostapd -dd -t /etc/hostapd/hostapd.conf | grep -qi "invalid"`, is not
+a config-check - **`hostapd`'s `-t` flag means "add timestamps to
+debug output," not "test and exit."** This project's own
+`docs/IMPLEMENTATION-ROADMAP.md` had already independently noted
+elsewhere that hostapd 2.10 has no real config-validate flag - this
+staged script's author apparently missed that when writing this line.
+With no `-B` and no test-only mode, the command **actually started a
+real, live, unmanaged foreground hostapd** bound to `pb-ap`. A
+successfully-starting hostapd never prints "invalid" and never exits
+on its own, so `grep -qi invalid` never saw a match or EOF - the pipe
+blocked forever. Confirmed via full process-tree/`/proc` inspection:
+both `hostapd` (real PID, `-dd -t` cmdline) and `grep` were alive and
+in normal sleeping state, not deadlocked; no `timeout` wrapper existed
+anywhere in the script. **Positive finding preserved deliberately, not
+just a failure report:** this ad hoc hostapd instance genuinely
+succeeded - `iw dev pb-ap info` showed `type AP`, `ssid PirateBox`,
+channel 6, `UP`, and zero kernel/`mt76x2u`/USB errors appeared in
+`journalctl -k` for the entire window. **The ALFA cleanly entered AP
+mode and beaconed the production SSID during this "failed" attempt** -
+strong, real evidence the underlying radio-level migration is sound;
+only the validation scripting was broken.
+
+Operator pressed Ctrl+C in the migration terminal as instructed.
+Contrary to the expectation that this would abort the whole script
+(a plain non-interactive `bash script.sh` normally dies on SIGINT):
+**the script actually survived and continued** - `sudo`'s `use_pty`
+default gives the script its own pty/job-control context, so SIGINT
+killed only the stuck foreground pipeline (`hostapd`/`grep`), not the
+script's own interpreter. The script proceeded through its remaining
+steps on its own and **genuinely started the real, systemd-managed
+`hostapd`/`dnsmasq` bound to `pb-ap`** (`AP-ENABLED` in the hostapd
+log, both services confirmed `active`). This was not established by
+assumption - independently re-verified live after the fact.
+
+**A second, more serious bug surfaced at exactly this point:
+`http://10.0.0.1/` was completely unreachable.** Root cause, confirmed
+live: `dhcpcd.conf`'s static `10.0.0.1/24` assignment was still bound
+to `interface wlan0`, per this round's original (wrong) design-doc
+assumption that `wlan0` would stay "up and idle" post-migration.
+`wlan0` actually goes fully **down** once nothing drives it via
+hostapd - confirmed (`ip link show wlan0` state `DOWN`) - so nothing
+held `10.0.0.1` any more. Meanwhile `pb-ap` has no static block of its
+own, so `dhcpcd` applied its ordinary default per-interface behavior
+to it: tried a DHCP-client lease, failed (nothing offers one), and
+self-assigned a link-local `169.254.53.155` instead (all visible
+directly in `journalctl -u dhcpcd`, including dnsmasq's own startup
+warning "interface pb-ap does not currently exist"). Confirmed this
+was not an nginx problem: nginx listens on `0.0.0.0:80` with no bound
+IP and was verified still answering on `127.0.0.1` throughout.
+
+Fixes, all applied to the repo (not yet re-run live as of this
+writing): `tools/migrate_visitor_ap_to_alfa.sh` now also moves
+`dhcpcd.conf`'s static block to `pb-ap` and restarts `dhcpcd`, drops
+the broken hostapd "validation" line entirely (step 5's real live
+checks - `type AP`, both services active, `pb-ap` actually holding
+`10.0.0.1/24`, a real `curl` - already cover this more meaningfully,
+and are now hard failures instead of warnings), and corrects its own
+"wlan0 left up and idle" claim to "left down and idle."
+`tools/rollback_visitor_ap_to_onboard.sh` gets the symmetric fix (moves
+the `dhcpcd.conf` block back to `wlan0`, restarts `dhcpcd` - previously
+missing from both scripts' rollback path too) plus the same IP-holding
+check in its own verification. `docs/EXTERNAL-AP-ARCHITECTURE-
+DESIGN.md` §11/§12 corrected to stop claiming `dhcpcd.conf` doesn't
+need to change.
+
+Live state at the time of this writing: real `hostapd`/`dnsmasq` are
+active and bound to `pb-ap`, `wlan0` is down, `10.0.0.1` is not yet
+reachable (the dhcpcd fix above is written but not yet applied live -
+still needs root, per the same project rule as everything else this
+round). Ethernet/SSH confirmed unaffected throughout every step of
+this entire round, including both hangs.
 
 Nothing production-facing was touched: `wlan0`/`hostapd`/`dnsmasq`
 remained the live AP throughout, confirmed unaffected before and after

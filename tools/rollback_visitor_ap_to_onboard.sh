@@ -26,6 +26,11 @@ if [ -z "$BACKUP_DIR" ] || [ ! -f "$BACKUP_DIR/hostapd.conf" ]; then
     echo "the migration - review the result)." >&2
     sed -i 's/^interface=pb-ap$/interface=wlan0/' /etc/hostapd/hostapd.conf
     sed -i 's/^interface=pb-ap$/interface=wlan0/' /etc/dnsmasq.conf
+    # dhcpcd.conf's static 10.0.0.1/24 block also moved to pb-ap at
+    # migration time (found necessary live, 2026-09-03 - see
+    # docs/OPERATIONAL-DECISIONS.md "ALFA Migration Round") - move it
+    # back, or the Pi ends up with neither interface holding 10.0.0.1.
+    sed -i 's/^interface pb-ap$/interface wlan0/' /etc/dhcpcd.conf
 else
     echo "Restoring from $BACKUP_DIR ..."
     cp -a "$BACKUP_DIR/hostapd.conf" /etc/hostapd/hostapd.conf
@@ -36,13 +41,16 @@ fi
 echo "Stopping hostapd/dnsmasq..."
 systemctl stop hostapd dnsmasq
 
+echo "Restarting dhcpcd to move the static IP back to wlan0..."
+systemctl restart dhcpcd
+
 echo "Starting hostapd/dnsmasq on wlan0..."
 systemctl start hostapd dnsmasq
 
 sleep 2
 echo "--- Verifying restoration ---"
-if iw dev wlan0 info | grep -q "type AP" && systemctl is-active --quiet hostapd && systemctl is-active --quiet dnsmasq; then
-    echo "OK: wlan0 is back up as the PirateBox AP, hostapd/dnsmasq active."
+if iw dev wlan0 info | grep -q "type AP" && systemctl is-active --quiet hostapd && systemctl is-active --quiet dnsmasq && ip -4 addr show wlan0 | grep -q "inet 10\.0\.0\.1/24"; then
+    echo "OK: wlan0 is back up as the PirateBox AP with 10.0.0.1/24, hostapd/dnsmasq active."
 else
     echo "wlan0 did NOT come back up cleanly - hostapd/dnsmasq status:" >&2
     systemctl status hostapd dnsmasq --no-pager -l >&2
