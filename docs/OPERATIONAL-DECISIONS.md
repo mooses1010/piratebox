@@ -137,6 +137,79 @@ Nothing production-facing was touched: `wlan0`/`hostapd`/`dnsmasq`
 remained the live AP throughout, confirmed unaffected before and after
 the replug attempt. No new USB/kernel/SD errors from the replug itself.
 
+**Update: dhcpcd fix applied live, migration validated working.**
+Operator ran the two commands above. Confirmed independently: `pb-ap`
+now holds `10.0.0.1/24`, `iw dev pb-ap info` shows `type AP`/`ssid
+PirateBox`, `curl http://10.0.0.1/` returns the real site (upload form,
+storage stats, footer), `wlan0` correctly stays down/idle, zero new
+kernel/USB errors, `vcgencmd get_throttled` unchanged at `0x50005`.
+
+**Two more gaps found during validation, both from the same root cause
+- staged/designed changes that were never actually live-installed:**
+
+1. `/usr/local/bin/piratebox_status_helper.sh` was still the pre-
+   External-AP-Architecture-round version (hardcoded `wlan0` station
+   dump), never reinstalled after that round added auto-detection.
+   With `wlan0` down, this meant `status.json` had no `visitor_ap`
+   block and `wifi_clients` would always read 0 regardless of real
+   ALFA associations - breaking client count, OLED, and Device Memory
+   simultaneously. Operator ran the exact reinstall command already
+   documented in the design doc. Confirmed after: live file identical
+   to repo copy, executable, and `status.json` now correctly shows
+   `"visitor_ap": {"interface": "pb-ap", "provider": "external",
+   "multiple_ap_interfaces_warning": false}`.
+
+2. The deployed web app (`/var/www/html/`) was stamped at commit
+   `9e6d9f3` (13:35 that same day) - older than the commit that added
+   `piratebox_classify_visitor_ap_provider()` to `capability_state.php`.
+   Ran `sudo piratebox_deploy.sh` (one of this session's pre-approved
+   NOPASSWD commands, no operator gate needed). Its `--dry-run` first
+   reported "DRY RUN (nothing changed)" despite a real, confirmed
+   pending diff (56 insertions) - traced to a real (minor) bug in the
+   deploy script itself: that message is printed unconditionally
+   whenever `--dry-run` is passed, regardless of what `rsync` (run
+   without `-v`/`--itemize-changes`) would actually do. Not fixed this
+   round (out of scope; noted for the record so a future session
+   doesn't trust that message either). Verified the real diff directly
+   instead (`git diff` between the deployed commit and current `HEAD`
+   for `var/www/html/`, confirmed to be exactly the previously-reviewed
+   provider-classifier addition, nothing unexpected) before running the
+   real deploy. Confirmed after: `VERSION` now matches current `HEAD`,
+   live `capability_state.php` has the classifier, direct PHP
+   invocation of `piratebox_get_capability_state()` against real live
+   `status.json` correctly returns `ap_network.detail.provider.label`
+   = `"external AWUS036ACM (pb-ap)"`, `state: AVAILABLE`. Site still
+   `200 OK`, zero failed services after the deploy.
+
+**Third, more serious gap found - a real, previously-undocumented
+security control silently stopped working:** validating the operator's
+own checklist item "nftables still protects SSH from the wireless
+side" turned up `/etc/nftables.conf`, loaded at boot by
+`nftables.service`, containing `iifname "wlan0" tcp dport 22 reject
+with tcp reset` (comment: "PirateBox wlan0 clients must not be able to
+reach SSH"). **This directly contradicts this round's own design doc,
+which claimed "no nftables/firewall configuration exists in this
+project at all"** - that audit only searched the tracked repo; this
+file existed live-only and untracked, the same category of gap as
+`etc/NetworkManager/conf.d/99-piratebox.conf` found the same way in an
+earlier round. Consequence: this rule protected SSH from `wlan0`
+correctly for the project's entire history, then **silently stopped
+protecting anything the moment production moved to `pb-ap`** - `wlan0`
+traffic no longer exists, so the rule never fires, and `pb-ap` was
+never covered by any rule at all. SSH is currently reachable from the
+visitor subnet. Fix written and staged, not yet applied live (needs
+root, same as everything else this round): `etc/nftables.conf`, now
+tracked in the repo for the first time, rewrites the rule as `iifname
+!= { "eth0", "lo" } tcp dport 22 reject with tcp reset` - a denylist of
+trusted paths instead of an allowlist of "whichever radio happens to
+be active today," so it survives any future radio change with no rule
+update required, matching the same auto-detection principle already
+applied in `piratebox_status_helper.sh`. Syntax validated (`nft -c -f`)
+before proposing it. **Not applied by this session** - a firewall
+change is squarely "networking/system configuration," which this
+project's own rules reserve for the operator regardless of momentary
+sudo availability.
+
 ## Load-isolation test 2: heatsink fans removed - negative result, plus new direct voltage measurement
 
 **Decision date:** 2026-09-03, same-day follow-up to the ALFA

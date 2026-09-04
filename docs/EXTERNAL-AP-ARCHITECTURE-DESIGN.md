@@ -39,11 +39,39 @@ Full audit performed against both the repository and live system state
 | `var/www/html/includes/capability_state.php` (`ap_network`) | **not an interface reference at all** | Already keyed on `hostapd`/`dnsmasq` *service* activity, not an interface name. No change needed for that part; extended this round with provider detail (see below). |
 | `var/www/html/public/**` (status/admin pages) | **not an interface reference at all** | All consume `wifi_clients`/service booleans from `status.json`, never touch an interface name directly. |
 | `docs/**` | **historical/documentation** | Out of scope for this audit pass; updated separately where this round's decisions change what they should say (this file, `CAPABILITY-REGISTRY.md`, `IMPLEMENTATION-ROADMAP.md`, `OPERATIONAL-DECISIONS.md`). |
+| `/etc/nftables.conf` (`iifname "wlan0" tcp dport 22 reject ...`) | **production-radio identity - MISSED by this original audit** | See correction below. |
 
-**No nftables/firewall configuration exists in this project at all** -
-confirmed by search; PirateBox's network isolation is DHCP/DNS-scope
-only (no visitor subnet routing to WAN exists to firewall off). Nothing
-to audit or migrate there.
+**Corrected 2026-09-03, during actual migration validation (ALFA
+Migration Round): this section originally claimed "no nftables/
+firewall configuration exists in this project at all."** That was
+wrong - this audit pass only searched the tracked repo, and
+`/etc/nftables.conf` existed live-only, untracked (same category of
+gap as `etc/NetworkManager/conf.d/99-piratebox.conf`, found the same
+way in an earlier round), so a plain repo search never found it.
+`nftables.service` loads it at every boot. Its one real rule -
+`iifname "wlan0" tcp dport 22 reject with tcp reset`, with a comment
+reading "PirateBox wlan0 clients must not be able to reach SSH" - is a
+genuine, deliberate, previously-undocumented security control: it
+protects SSH from the *visitor* radio specifically, distinct from the
+trusted wired management path. **It silently stopped protecting
+anything the moment production migrated to `pb-ap`**: `wlan0` traffic
+no longer exists, so the rule never fires, and `pb-ap` was never
+covered by any rule at all - found only because the operator's own
+migration validation checklist explicitly asked "does nftables still
+protect SSH from the wireless side," which prompted actually checking
+live state instead of trusting this document's stale claim. Fixed,
+staged (not yet applied live), at `etc/nftables.conf` - now tracked in
+the repo for the first time - rewritten as `iifname != { "eth0", "lo"
+} tcp dport 22 reject ...` (a denylist of trusted paths, not an
+allowlist of "whichever radio is active today") so it survives any
+future radio change with no rule update required, matching the same
+auto-detection principle already applied in
+`piratebox_status_helper.sh`. See `docs/OPERATIONAL-DECISIONS.md` for
+the live-application step, once done.
+
+Aside from this one missed file: PirateBox's network isolation is
+otherwise DHCP/DNS-scope only (no visitor subnet routing to WAN exists
+to firewall off) - that part of the original claim holds.
 
 **Key finding that simplified everything downstream:** exactly **one**
 place in the entire codebase does a raw `iw dev <iface> station dump` -
