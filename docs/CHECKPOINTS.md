@@ -1140,3 +1140,66 @@ start, not one-time runtime state that only a fresh boot would
 exercise). If a genuine reboot-only failure mode is ever suspected, that
 remains to be checked separately, with the operator's go-ahead.
 
+| Two-QR PirateBox Onboarding Restored | `692b825` | (site/installer config only - `help.php`, `styles.css`, `installer_pi_zero_trixie.sh`, `piratebox_deploy.sh`, `.gitignore`, `README.md` - no `~/piratebox-backups/` snapshot taken; deployed via the normal `piratebox_deploy.sh` workflow, QR PNGs regenerated live via `qrencode` separately since they're gitignored generated assets, not part of the rsync payload) |
+
+**What changed:** reversed the QR-card portion of the same-day one-QR
+simplification (`7c044fd`) after the operator reviewed the deployed
+one-QR Help page in person and preferred the previous two-code layout.
+Full reasoning in `docs/OPERATIONAL-DECISIONS.md` "Two-QR PirateBox
+Onboarding Restored" - the simplification's own entry is left intact
+as history, not rewritten. Both QR cards are back in `help.php`
+("JOIN PIRATEBOX" / Wi-Fi QR / "OPEN &gt; piratebox/" fallback text,
+alongside "OPEN PIRATEBOX" / URL QR), `installer_pi_zero_trixie.sh`
+generates both again, and `piratebox_deploy.sh`/`.gitignore` track both
+filenames as generated-not-committed. The one thing kept from the
+simplification, per instruction: the plain-text `OPEN > piratebox/`
+fallback under the join QR, now explicitly deliberate redundancy
+alongside the second QR rather than a substitute for it.
+
+**Asset audit:** confirmed the live `qr-url.png` from before the
+simplification still physically existed on disk (deploys are
+additive-only, so it was never deleted when the simplification landed)
+- not silently relied on. Both `qr-wifi.png` and `qr-url.png` were
+regenerated fresh live with the installer's exact `qrencode -s 6 -m 2
+"<payload>"` invocation, so the live assets are provably current, not
+resting on an orphaned leftover.
+
+**Payloads unchanged, standards-compatible:** `WIFI:T:nopass;S:PirateBox;;`
+and `http://piratebox/` - no combined Wi-Fi+URL trick, no external QR
+service. `piratebox/` remains the canonical printed hostname; `10.0.0.1`
+stays a documented fallback only.
+
+**Verified:** `php -l` clean on `help.php`; `bash -n` clean on
+`installer_pi_zero_trixie.sh` and `piratebox_deploy.sh`; full PHP
+regression suite unchanged at 313/313; `tools/check_library_catalog.py`
+unchanged at 42/42 (help.php has no dedicated unit tests - confirms no
+other code broke). No QR decoder is installed on this system and none
+was installed without an operator go-ahead (project rule, same
+standard as the original simplification round) - payload correctness
+is by construction (the exact literal strings were passed directly to
+`qrencode`) plus visual inspection of both regenerated codes (clean
+finder patterns, high contrast, visually distinct from each other).
+
+**Deployed and live-verified** via `piratebox_deploy.sh` (real, not
+dry-run): `includes/VERSION` stamped `692b825` (this checkpoint's
+commit); both QR PNGs regenerated live with the installer's exact
+`qrencode` invocation (`qr-url.png`'s bytes came back byte-identical to
+the pre-existing orphaned file, `qr-wifi.png` likewise matched its
+prior content - confirming both were already correct, now provably
+regenerated rather than merely assumed). Live checks: `http://10.0.0.1/
+help.php` returns `200`; both `assets/qr-wifi.png` (364 bytes) and
+`assets/qr-url.png` (321 bytes) return `200`; live markup shows exactly
+two `.qr-row` cards, "JOIN PIRATEBOX"/"OPEN PIRATEBOX" labels, and the
+`OPEN &gt; piratebox/` fallback intact; live `styles.css` has `.qr-label`
+(not the old `.qr-join-label`); the rest of the Help page's sections
+(Connection Status, Using PirateBox, What is PirateBox?, trust
+statements, etc.) all still present and unaffected. No headless browser
+is available on this Pi to render a pixel screenshot - not treated as a
+blocker per instruction; markup/asset/layout validation stands in for
+it, operator can visually confirm afterward. Unrelated-regression
+sweep: `systemctl --failed` empty; `hostapd`/`dnsmasq`/`nginx`/
+`php8.4-fpm`/`NetworkManager`/`dhcpcd` all active; management-side DNS
+(`claude.ai` resolution, confirming the separate Host/Management DNS
+Isolation Fix above is undisturbed) and the visitor captive portal
+(`http://10.0.0.1/` → `200`) both still correct.
+

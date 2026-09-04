@@ -6,6 +6,93 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Two-QR PirateBox Onboarding Restored
+
+**Decision date:** 2026-09-03. Reverses part of "QR Onboarding
+Simplified to a Single Wi-Fi Code" below (same day) - that entry is
+left intact as the historical record of why the simplification was
+made; this entry records why it was reversed, not a rewrite of that
+history.
+
+**What happened:** the one-QR Help page was reviewed in person by the
+operator after being deployed, who preferred the previous two-QR
+layout and asked for it back - a genuine, informed UX preference
+formed by actually looking at the live page, not a process failure in
+the original simplification (that round's own audit and reasoning were
+sound; the operator simply decided differently once seeing it).
+
+**Restored exactly**: both QR cards in `help.php`'s "Connect" section -
+`qr-wifi.png` (`WIFI:T:nopass;S:PirateBox;;`, standard join-only
+payload) labeled "JOIN PIRATEBOX", and `qr-url.png`
+(`http://piratebox/`, plain URL payload) labeled "OPEN PIRATEBOX" -
+`installer_pi_zero_trixie.sh` generating both again via `qrencode` at
+install time, and `piratebox_deploy.sh`/`.gitignore` referencing both
+as generated-not-committed assets, same as before the simplification.
+
+**Kept, per instruction - the one thing NOT reverted**: the plain-text
+`OPEN &gt; piratebox/` fallback caption under the first (join) QR,
+added during the simplification round. This is deliberate redundancy,
+not a stand-in for the second QR: a visitor can either scan QR 1, join,
+and let the captive portal open automatically (falling back to reading
+the printed `piratebox/` text if it doesn't); or scan QR 1, join, then
+scan QR 2 to open the site directly. Both paths work independently -
+QR 1 plus the printed hostname is sufficient by itself, QR 2 is a
+convenient second method, not a requirement. The CSS class that styles
+the label above each QR card was generalized from `.qr-join-label` to
+`.qr-label` so the same rule cleanly serves both cards' headings
+("JOIN PIRATEBOX" and "OPEN PIRATEBOX") rather than reusing a
+join-specific name for the open card too.
+
+**Asset audit before restoring** (per instruction - don't just rely on
+an orphaned deployed file): this project's deploys are additive-only,
+so the live `/var/www/html/public/assets/qr-url.png` from before the
+simplification was confirmed to still physically exist on disk
+(dated before this round, never deleted, simply no longer referenced
+by the live `help.php` or excluded from git tracking once the
+simplification landed). It was **not** silently reused as-is - both
+`qr-wifi.png` and `qr-url.png` were regenerated fresh, live, with the
+exact same `qrencode -s 6 -m 2 "<payload>"` invocation the installer
+uses, so the live assets are provably current and reproducible from
+source rather than resting on an accidental leftover. Same standard as
+the simplification round: no QR decoder is installed on this system,
+and none was installed to double-check the pixel-level decode without
+an operator go-ahead (project rule) - verification is by construction
+(the exact literal payload strings were passed directly to `qrencode`,
+a standard, deterministic open-source encoder already used throughout
+this project) plus visual inspection of clean finder patterns/contrast
+on both codes, not a live scan/decode.
+
+**Verified**: `php -l` clean on `help.php`; `bash -n` clean on both
+shell scripts; full PHP regression suite unchanged at 313/313;
+`tools/check_library_catalog.py` unchanged at 42/42 (same non-evidence
+caveat as before - `help.php` has no dedicated unit tests, this
+confirms no other code broke). `.qr-row`'s existing flexbox
+(`flex-wrap: wrap`) needed no changes to hold two cards again - it
+already handled the two-card case before the simplification and wraps
+to stacked cards on narrow/mobile widths via the existing `@media
+(max-width: 480px)` rule (unchanged, applies to `.qr-card img`
+regardless of card count). Deployed live via `piratebox_deploy.sh`
+(real run) and both QR PNGs regenerated live; full live verification
+in `docs/CHECKPOINTS.md`.
+
+**Found, not fixed here - flagged separately**: `/usr/local/bin/
+piratebox_deploy.sh` (the root-owned, sudo-invocable installed copy)
+was discovered stale relative to the repo's own `piratebox_deploy.sh` -
+missing several already-committed improvements from 2026-09-02+ (the
+VERSION honesty marker, `data/device-history.json`/`data/review-
+boundary.json` excludes, this round's new `qr-url.png` exclude). This
+round's real deploy was confirmed safe to run against the stale
+installed copy regardless (none of the newly-excluded paths exist in
+the repo's deploy source right now, and this project's rsync is
+additive-only - no `--delete` - so a missing exclude cannot cause data
+loss on its own). Re-running `setup_claude_automation.sh` to refresh
+the installed copy (documented as idempotent/safe to re-run for exactly
+this situation) was attempted but blocked by this session's own
+permission classifier as a root-owned system file install - correctly
+cautious, not overridden. Left for the operator to run directly
+(`sudo ./setup_claude_automation.sh`) at their convenience; not a
+blocker on anything deployed in this round.
+
 ## Host/Management DNS Isolation Fix
 
 **Decision date:** 2026-09-03. Full detail, live validation evidence,
