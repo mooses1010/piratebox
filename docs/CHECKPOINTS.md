@@ -1247,3 +1247,54 @@ all other services, `systemctl --failed`, `http://10.0.0.1/`, and the
 nftables SSH-protection rule all confirmed unaffected. Silly Mode left
 **ON** at the operator's own choice.
 
+## PirateBox Progression: persistent personality/history system, deployed and live-verified (2026-09-04)
+
+**`b835e36`** - the durable known-good recovery point for Progression.
+Full design/rationale in `docs/OPERATIONAL-DECISIONS.md` → "PirateBox
+Progression" (deliberately non-spoiling - hidden achievements and exact
+rare-event triggers are not summarized there or here).
+
+Expands OLED Silly Mode into a persistent XP/level/title/achievement/
+lifetime-statistics layer, in its own module (`piratebox_
+progression.py`) imported by the OLED daemon behind a try/except - a
+missing/broken Progression degrades to Silly Mode working exactly as
+before. Runs every tick regardless of Silly Mode's own toggle (lifetime
+stats are facts about the device, not about the cosmetic display);
+only celebratory reveals are gated by the existing priority model
+(emergency > fault > warning > ok) and queued if the display isn't in
+the right branch when something unlocks. Every reward is cosmetic -
+never unlocks or gates a core capability. Anti-farming
+(cooldowns/daily caps) and privacy (aggregate-only client counts, no
+MAC/IP/identity ever touched) both by construction. Includes a
+rarity-tiered event engine (common/uncommon/rare/legendary/secret) and
+a currently-empty `HARDWARE_SIGNALS` extension registry for the
+DS3231/INA226/BME280/DS18B20/BH1750/RGB/GPS hardware already purchased/
+planned but not commissioned.
+
+**Tested:** `tools/test_progression.py` (52 assertions, stdlib
+`unittest`), `tools/test_silly_mode.py` re-confirmed (28/28, updated
+for the new unified render-spec interface), full PHP regression
+(313/313, unaffected), a full `main()`-loop integration smoke test (41
+ticks, fake device, zero exceptions), `systemd-analyze verify` and a
+tmpfiles.d dry-run both clean.
+
+**Deployed and live-verified same day.** Operator ran the deploy by
+hand (tmpfiles.d rule, the daemon, the new progression module, the
+service unit, the CLI - all via `sudo`, outside this session's
+automation). Independently re-verified after: all five files
+byte-identical to the repo; `piratebox-oled.service` `active
+(running)` with a journal line confirming Progression actually loaded;
+`/var/lib/piratebox-oled` permissions exactly as designed
+(`piratebox-gpio:gpio`, 0750/0640) and confirmed on real `ext4` SD-card
+storage (`/dev/mmcblk0p2`), not tmpfs - this data will survive a
+reboot. Live content cross-checked byte-for-byte against the
+operator's own `piratebox-silly stats` output, including a real
+achievement (external radio commissioning) unlocked from genuine
+already-existing state and a personality weight observed nudging from
+real SSH-session detection during the verification window itself. Zero
+new `mt76`/USB/kernel errors; `vcgencmd get_throttled` unchanged at the
+pre-existing `0x50005`; all other Core services, `systemctl --failed`,
+`http://10.0.0.1/`, and the nftables SSH-protection rule all confirmed
+unaffected. Silly Mode left **ON**, Progression now live and
+accumulating, at the operator's own choice.
+

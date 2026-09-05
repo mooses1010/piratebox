@@ -224,7 +224,50 @@ pre-existing) updated for `render_silly()`'s new unified render-spec
 interface and re-confirmed passing - no behavior change to anything it
 covers. Full five-suite PHP regression (313/313) re-run and confirmed
 unaffected (this round touched no PHP). `systemd-analyze verify` and a
-tmpfiles.d dry-run both clean before rollout.
+tmpfiles.d dry-run both clean before rollout. A full `main()`-loop
+integration smoke test (fake I2C device, a real 41-tick sequence
+including a client arrival, a new simultaneous-client record, and a
+departure) ran to completion with zero exceptions before this was
+handed to the operator for live deployment.
+
+**Deployed and live-verified (2026-09-04), same day.** The operator ran
+the deploy by hand (tmpfiles.d rule, the daemon, the new `piratebox_
+progression.py` module, the service unit, and the CLI - all via
+`sudo`, outside this session's automation, same pattern as every prior
+OLED update). Independently re-verified after, not trusted from the
+operator's report alone:
+- All five deployed files byte-identical to the repo copies.
+- `piratebox-oled.service` `active (running)`, clean restart, journal
+  shows `"Progression loaded: <name>, level 1, 0 achievement(s)."` -
+  proof the new module actually loaded, not just that the daemon
+  started.
+- **Permissions confirmed exactly as designed**: `/var/lib/piratebox-
+  oled` `drwxr-x---` `piratebox-gpio:gpio`; `progression.json`
+  `-rw-r-----` same owner/group (0640) - readable by the operator's own
+  account via its existing `gpio` group membership, with zero "other"
+  access.
+- **Persistence confirmed on real storage, not tmpfs/overlay**:
+  `/var/lib/piratebox-oled` resolves to `/dev/mmcblk0p2` (ext4, the
+  actual SD card root filesystem) via `df -T` - this data will survive
+  a reboot, unlike everything else this daemon touches.
+- **Live content independently cross-checked against the operator's
+  own `piratebox-silly stats` output** - exact match, including a real
+  achievement (`external_radio`, "Upgraded Rigging") unlocked
+  correctly from the genuine `visitor_ap.provider == "external"`
+  signal, and `weights.vigilance` nudged fractionally above its 0.5
+  baseline from real SSH-session detection during the verification
+  window itself - the personality-weight mechanism confirmed reacting
+  to real live state, not just passing its unit tests.
+- Zero new `mt76`/USB/kernel errors across the restart window;
+  `vcgencmd get_throttled` unchanged at `0x50005` (this Pi's pre-
+  existing chronic condition, correctly unaffected either way); all
+  other Core services, `systemctl --failed` (empty), `http://10.0.0.1/`
+  (`200`), and the nftables SSH-protection rule all confirmed
+  unaffected - Progression touches none of Core, confirmed rather than
+  assumed.
+
+Silly Mode left **ON**, Progression now live and accumulating, at the
+operator's own choice, ending this round.
 
 ---
 
