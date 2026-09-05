@@ -235,6 +235,23 @@ regression re-confirmed unaffected: PHP 339/339, `test_expressions.py`
 confirmed the new font-loading signature works end-to-end through
 `glance-preview`, not just in isolated unit tests.
 
+**Deployed and physically validated (second pass), same day.** Both
+changed files (`piratebox_glance.py`, `piratebox_oled_daemon.py`)
+confirmed byte-identical between the repo and their live `/usr/local/
+bin` copies after deployment; `piratebox-oled.service` restarted clean
+(stop/start in the journal, Progression reloaded, no errors) with
+`systemctl --failed` empty. Operator ran `piratebox-silly glance-
+preview` a second time against the real display and confirmed the
+label-readability fix resolved the round's one open finding: labels
+(CPU/RAM/DISK/CLIENTS/UPTIME/TIME) are now clearly legible from normal
+sitting distance alongside the already-good numeric values, and the
+overall layout "looks perfect." **The Distance/Glance Display feature
+is now fully visually approved, both rounds (initial concept/numeric
+readability, then label readability) closed.** Core services
+(`hostapd`/`dnsmasq`/`nginx`/`php8.4-fpm`), the site
+(`http://10.0.0.1/`, HTTP 200), and `vcgencmd get_throttled` (unchanged
+at the pre-existing chronic `0x50005`) all confirmed unaffected.
+
 ## Expression Engine v2 (Silly Mode's visual personality, substantially deepened)
 
 **Decision date:** 2026-09-04. Evolves Silly Mode's existing face
