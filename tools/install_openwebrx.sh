@@ -103,6 +103,24 @@ if [ ! -f /usr/local/lib/libcsdr.so ] && [ ! -f /usr/local/lib/libcsdr.so.1 ]; t
     cd "$BUILD_DIR"
     [ -d csdr ] || git clone -b master --depth 1 https://github.com/jketterl/csdr.git
     cd csdr
+
+    # Upstream compatibility patch: aarch64 + GCC 14+ (Debian Trixie's
+    # default) fails to build csdr's NEON-only debug-trace code with
+    # "implicit declaration of function 'errhead'" - a real, confirmed-
+    # unfixed upstream bug (https://github.com/jketterl/csdr/issues/13),
+    # not a misconfiguration on this project's part. See the patch
+    # file's own header comment for the full root-cause explanation.
+    # Applied idempotently: a marker string in the patch itself lets a
+    # re-run detect it's already in place rather than re-applying (which
+    # `patch` would otherwise reject as already-applied noise, or - worse
+    # - silently double-apply against a differently-edited tree).
+    if ! grep -q "errhead() is defined ONLY in the separate csdr.c CLI\|Upstream bug (confirmed unfixed" src/libcsdr.c 2>/dev/null; then
+        echo "Applying csdr-errhead-neon-aarch64.patch"
+        patch -p1 < "$REPO_ROOT/etc/openwebrx/patches/csdr-errhead-neon-aarch64.patch"
+    else
+        echo "csdr-errhead-neon-aarch64.patch already applied, skipping"
+    fi
+
     mkdir -p build && cd build
     cmake ..
     make -j"$(nproc)"
@@ -194,10 +212,13 @@ else
     exit 1
 fi
 
+echo "=== starting openwebrx.service ==="
+systemctl restart openwebrx
+sleep 3
+systemctl status openwebrx --no-pager -l || true
+
 echo
 echo "=== Install complete ==="
 echo "OpenWebRX+ commit: $OWRX_COMMIT"
-echo "Service installed and enabled, but NOT started yet - see the next steps"
-echo "printed by the calling session, or start it manually with:"
-echo "  systemctl start openwebrx"
-echo "  journalctl -u openwebrx -f"
+echo "Recent journal:"
+journalctl -u openwebrx --no-pager -n 40 || true
