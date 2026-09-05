@@ -106,6 +106,17 @@ server {
         try_files $uri =404;
     }
 
+    # Optional Radio (OpenWebRX+/RTL-SDR) capability - a separate,
+    # isolated file (etc/nginx/openwebrx-location.conf) so this diff
+    # stays minimal; absent entirely if the capability is never
+    # installed (include of a missing file is an nginx config error,
+    # so tools/install_openwebrx.sh is what creates
+    # /etc/nginx/openwebrx-location.conf - this include line alone is
+    # harmless to have staged in the repo before that happens, since
+    # it's only ever copied into the live config together with the
+    # file it includes, never separately).
+    include /etc/nginx/openwebrx-location.conf;
+
     # PirateBox application
     location / {
         try_files $uri $uri/ /index.php?$args;

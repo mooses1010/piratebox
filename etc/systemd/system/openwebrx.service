@@ -1,0 +1,50 @@
+# PirateBox: OpenWebRX+ optional RTL-SDR receiver capability.
+#
+# Adapted from upstream's own systemd/openwebrx.service template
+# (luarvique/openwebrx) for this project's manual/venv-based install
+# (tools/install_openwebrx.sh) - upstream's template assumes a
+# system-wide `pip`/`setup.py install`, which modern Debian (PEP 668,
+# "externally managed environment") blocks by default; this project
+# installs into a dedicated venv at /opt/openwebrx/venv instead, so
+# ExecStart points there rather than /usr/bin/openwebrx.
+#
+# Deliberately a standalone, independent unit: no Requires=/BindsTo=
+# on any core PirateBox service (hostapd, dnsmasq, nginx, php-fpm) in
+# either direction, and nothing in core PirateBox depends on this one -
+# matching docs/ARCHITECTURE.md section 2's "optional capability
+# failure must degrade the PirateBox, not disable the PirateBox" rule.
+# If this unit is absent, stopped, disabled, or crash-looping, every
+# other PirateBox service continues completely unaffected - the only
+# thing that changes is that nginx's /radio/ reverse-proxy target
+# stops answering (visitors get a connection-refused/502 from nginx,
+# not a PirateBox-wide outage, and the rest of the PirateBox site is
+# untouched).
+[Unit]
+Description=OpenWebRX+ WebSDR receiver (PirateBox optional Radio capability)
+Documentation=https://github.com/luarvique/openwebrx
+# Ordering only (start after the network/RTL-SDR udev processing has
+# had a chance to settle on boot) - deliberately NOT a Requires=/
+# BindsTo= dependency on anything, in either direction.
+After=network.target systemd-udev-settle.service
+
+[Service]
+Type=simple
+User=openwebrx
+Group=openwebrx
+ExecStart=/opt/openwebrx/venv/bin/openwebrx
+Restart=on-failure
+RestartSec=5
+Environment="HOME=/var/lib/openwebrx"
+WorkingDirectory=/var/lib/openwebrx
+
+# Restart=on-failure (not "always"): unlike hostapd's own Restart=always
+# (docs/OPERATIONAL-DECISIONS.md, 2026-09-05 incident), this service has
+# no external interface identity to reattach to and no known clean-exit-
+# needs-restart failure mode - a plain crash/non-zero-exit is the only
+# case that should trigger a respawn. If the RTL-SDR is simply absent,
+# OpenWebRX+ itself is expected to log a source error and keep the web
+# UI reachable rather than exit - see docs/RADIO-SDR-ARCHITECTURE-
+# DESIGN.md's OpenWebRX+ integration section for the confirmed behavior.
+
+[Install]
+WantedBy=multi-user.target
