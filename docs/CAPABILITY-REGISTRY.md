@@ -772,13 +772,17 @@ it is.**
   clone/derivative of the Russian MALAHITEAM Malahit-DSP line, NOT a
   confirmed genuine original; own internal battery), an RTL-SDR dongle
   (exact model/revision not yet identified), and an outdoor magnetic-
-  loop antenna are already owned but none are yet connected to or
-  integrated with this Pi. The RECEIVE CAPABILITY ITSELF (a browser-
-  accessible SDR backend/UI) remains **CANDIDATE** - no software stack
-  installed, no hardware connected to the Pi, and several real
-  unknowns unresolved (this specific unit's firmware/USB behavior,
+  loop antenna are already owned. **The Malahit has been connected to
+  this Pi once (2026-09-05) for passive, read-only USB enumeration
+  only** - confirmed VID:PID `ffff:0737`, two USB Audio Class capture
+  interfaces (one likely demodulated audio, one likely IQ) and two
+  indistinguishable CDC-ACM serial ports - it is not wired into any
+  PirateBox service. The RTL-SDR has not yet been connected. The
+  RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
+  remains **CANDIDATE** - no software stack installed, and several
+  real unknowns remain (which serial port, if either, is CAT control;
   whether any existing SDR-software Malahit support actually applies
-  to this hardware variant, real Pi 3B+ performance under an actual
+  to this hardware variant; real Pi 3B+ performance under an actual
   SDR web-server workload) - see the design doc's own open-questions
   list. Layer: Optional/Field. Classification: Attachable (USB). Core
   dependency: No.

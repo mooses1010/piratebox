@@ -51,11 +51,41 @@ the user's existing SDR setup, not yet connected to the Pi.
 - **OBSERVED, UNEXPLAINED** — something the user directly witnessed on
   the physical unit that no source (original or follow-up research)
   documents an explanation for.
+- **CONFIRMED (this unit, 2026-09-05 enumeration)** — added after the
+  first physical USB enumeration pass: directly read from this exact
+  owned unit's own USB descriptors, kernel log, or ALSA driver state -
+  the strongest tier in this document, but still scoped to what a
+  passive descriptor/enumeration inspection can prove (see the next
+  tier for where inference begins).
+- **STRONGLY SUGGESTED (evidence-based inference, not proof)** — a
+  conclusion that fits the confirmed descriptor-level evidence very
+  well (e.g. channel-count/sample-rate signatures matching known SDR
+  conventions) but has not been independently proven by actually
+  exercising the interface (e.g. capturing and inspecting real audio
+  content, or sending a query and reading a real reply).
 
 ---
 
-## 1. Executive summary (revised 2026-09-05)
+## 1. Executive summary (revised 2026-09-05, twice - see §2b for the physical enumeration update)
 
+- **2026-09-05, physical enumeration complete (§2b)**: the V3 unit was
+  connected to the Pi and passively characterized. Two genuinely
+  distinct, confirmed audio streams exist - **mono, 40kHz** (very
+  likely demodulated audio) and **stereo, 160kHz** (very likely IQ,
+  matching the well-known "IQ-as-stereo-audio" convention) - plus two
+  descriptor-identical CDC-ACM serial ports whose individual purpose
+  (which one, if either, is CAT control) could not be determined
+  passively. USB is Full Speed (12Mbit/s) only. The device declares
+  itself "Self Powered" in its own USB descriptor, a favorable but not
+  fully dispositive sign for the Pi's marginal rail. The ALFA
+  Wi-Fi adapter briefly disconnected and re-enumerated one second
+  *before* the Malahit's own enumeration completed - consistent with a
+  brief shared-rail transient at insertion, not proven to be caused by
+  the Malahit specifically, and no further disruption occurred once it
+  settled. The documented "long-press power button, no USB, to see
+  firmware version" check did **not** work on this exact unit -
+  firmware version remains unknown. Full details, and the exact
+  confirmed/suggested/unknown breakdown, are in §2b.
 - **Hardware identity, corrected**: the owned receiver is a **Malahit
   DSP SDR V3, manufactured by HiDY ("HFDY"), made in China** — a
   well-documented Chinese clone of the original MALAHITEAM Malahit-DSP
@@ -261,6 +291,186 @@ must be independently confirmed against this specific HiDY V3 clone
 before being relied on** — the §2a findings above are the closest
 thing to unit-specific evidence currently available, and even those
 are one community-reported unit, not a guarantee for this exact one.
+
+---
+
+## 2b. First physical USB enumeration — results (2026-09-05)
+
+**The §11 physical hardware gate has been performed.** The V3 unit was
+charged separately beforehand, connected to the Pi with a data cable
+while powered on, and left connected for the passive characterization
+below - no drivers installed, no CAT commands sent, no firmware or
+calibration changes, no button-combo experiments repeated.
+
+### One documentation claim did NOT hold up on this unit
+
+§2a's "long-press the power button at boot, with no USB connected, to
+see the firmware version" (sourced from the `wiki.robotz.com` HFDY V3
+page) **did not work on this exact unit** - it performed a normal
+startup with no version screen shown. This is recorded as a real,
+useful negative result, not a failure: it's further evidence that
+community documentation for "the HFDY V3" does not uniformly apply
+even within that same clone family - consistent with §2's own earlier
+"Fire Brothers" vs "HFDY" rival-clone-brand finding, and a reminder
+that every claim in this document needs this unit's own evidence, not
+just a same-named product's. **The firmware version remains unknown**,
+and per instruction this is not to be re-attempted with other button
+combinations.
+
+### Before/after comparison
+
+| | Before | After connecting |
+|---|---|---|
+| `lsusb` (new line) | none | `ID ffff:0737 MicroGenSF Malahit reciever` |
+| ALSA capture hardware | none | card 2 "reciever", 2 capture devices, 1 playback device |
+| `/dev/ttyACM*` | none | `/dev/ttyACM0`, `/dev/ttyACM1` |
+| `/dev/ttyUSB*` | none | none |
+| `vcgencmd get_throttled` | `0x50005` | `0x50005` (unchanged) |
+| `vcgencmd measure_volts` | `1.2000V` (SoC core, not the 5V input rail) | `1.2000V` (unchanged) |
+| temp | 39.2°C | 39.7°C |
+
+No new driver/package was needed - the kernel's own in-tree `cdc_acm`
+and `snd-usb-audio` bound automatically, exactly as §2's "standard USB
+classes, no proprietary driver" finding predicted (that finding was
+about the genuine product, but held true here too).
+
+### CONFIRMED (this unit, 2026-09-05 enumeration)
+
+Directly read from the device's own USB descriptors (`lsusb -v -d
+ffff:0737`), the kernel log (`dmesg`), and the ALSA driver's own
+parsed state (`/proc/asound/card2/*`) - all three independently agree:
+
+- **VID:PID `ffff:0737`**, product string "Malahit reciever" [sic],
+  manufacturer string "MicroGenSF", `bcdDevice` 1.06. (§2a's
+  community-reported `ffff:0737` hypothesis from a different, unrelated
+  unit turned out to match exactly - worth noting as a good sign that
+  this VID:PID may be consistent across at least some portion of this
+  clone line, though still only two data points.) The device's
+  `iSerial` string decodes as non-printable/malformed binary, not a
+  usable stable identifier - do not rely on it to distinguish this
+  unit from another of the same batch.
+- **Negotiated USB speed: Full Speed, 12Mbit/s** - not High Speed
+  (480Mbit/s). This is a real, confirmed bandwidth ceiling for
+  everything this device does over USB, shared across all ten of its
+  interfaces at once.
+- **`bmAttributes 0xc0` = Self Powered**, declared `MaxPower 250mA`.
+  The device's own USB configuration descriptor tells the host it does
+  not depend on bus power for its own operation, and requests only a
+  small (250mA) allowance even though it's self-powered. This is a
+  genuinely favorable data point for the Pi's marginal rail - but it
+  is **not** the same thing as "never draws charging current via
+  VBUS": the USB "Self Powered" bit governs whether the device's own
+  logic/USB stack depends on bus power, not whether a separate,
+  independent battery-charging circuit pulls current from VBUS. USB
+  has no descriptor field that declares "I am also charging my
+  battery right now." **The charging-current question from §2/§2a
+  remains open** - this finding narrows what it can be about (the
+  device isn't secretly asking for hundreds of mA to simply function),
+  it doesn't resolve it.
+- **Ten interfaces, five Interface Association Groups**, exactly
+  matching the earlier reported "2 CDC-ACM pairs + 6 audio interfaces"
+  shape:
+  - **Interfaces 0-1** → `/dev/ttyACM0`. Communications class,
+    "Abstract (modem)" subclass, "AT-commands (v.25ter)" protocol
+    field (a generic USB class-code choice many non-AT-command CDC
+    devices use as boilerplate - **not evidence this actually speaks
+    Hayes AT commands**; §2's CAT research already found the genuine
+    product's CAT protocol is Kenwood-TS-480-style ASCII, not AT
+    commands). One Interrupt IN endpoint (status) + Bulk IN/OUT pair
+    (data) - the standard CDC-ACM shape.
+  - **Interfaces 2-3** → `/dev/ttyACM1`. **Descriptor-for-descriptor
+    identical in shape and class/subclass/protocol to interfaces 0-1**
+    (confirmed independently via both `lsusb -v` and `udevadm info -a`
+    on both device nodes) - USB descriptors alone cannot distinguish
+    what these two ports are each for.
+  - **Interfaces 4-5** → ALSA card 2, device 0 (capture). AudioControl
+    input terminal type `0x0710` = **"Radio Receiver"** (a real,
+    specific USB Audio Class terminal type, not a generic microphone
+    type). Actual streaming format: **mono, 16-bit (S16_LE), fixed
+    40000 Hz**, confirmed identically by both the raw descriptor and
+    `/proc/asound/card2/stream0`.
+  - **Interfaces 6-7** → ALSA card 2, device 1 (capture only). Second,
+    separate "Radio Receiver" input terminal. Actual streaming format:
+    **stereo (channel map "FL FR"), 16-bit (S16_LE), fixed 160000
+    Hz** - confirmed identically by both the raw descriptor and
+    `/proc/asound/card2/stream1`.
+  - **Interfaces 8-9** → ALSA card 2, device 0 (playback, bundled with
+    the same "device 0" number as the mono capture pair since ALSA
+    groups them). Direction is reversed from the others - a "USB
+    Streaming" input terminal feeding a "Radio Receiver" *output*
+    terminal, i.e. host-to-device. Format: mono, 16-bit, fixed 40000
+    Hz - same rate/format as the mono capture pair, just the opposite
+    direction.
+- **Live USB topology** (`lsusb -t`, current): the Malahit sits at
+  `Bus 001, Dev 007`, nested under the same internal 4-port hub the
+  ALFA is attached to, but one level deeper (behind a second, 3-port
+  internal hub that also carries the onboard Ethernet). The ALFA is a
+  direct child of the first hub, not nested behind the second one.
+  They are on different branches, but both ultimately draw from the
+  **same shared upstream 5V feed** through the Pi's own internal
+  combo hub chip.
+- **`dmesg -T` timeline**: the ALFA's disconnect/re-enumeration
+  (`usb 1-1.3: USB disconnect` → fresh re-enumeration one second
+  later) is timestamped **one second BEFORE** the Malahit's own first
+  enumeration line appears. The sequence is consistent with a brief
+  shared-rail transient at the moment of *inserting* the Malahit
+  (physically plugging in any USB device can cause a brief voltage
+  sag as the host's port controller detects and powers up the new
+  connection), not with an ongoing, sustained high-current draw from
+  the Malahit afterward - no further disconnects or throttling-state
+  changes were observed for the remainder of the session once the
+  Malahit had settled into its enumerated state.
+
+### STRONGLY SUGGESTED (evidence-based inference, not proof)
+
+- **Interfaces 4-5 (mono, 40kHz) are very likely the demodulated
+  receiver audio stream** ("Malahit RX" in §2's naming) - a mono
+  voice/audio-bandwidth sample rate is exactly what demodulated
+  AM/FM/SSB audio needs, and 40kHz specifically is a plausible,
+  round-ish choice for that purpose. This has NOT been proven by
+  actually capturing and inspecting the audio content - only by the
+  channel-count/sample-rate signature matching the expected shape.
+- **Interfaces 6-7 (stereo, 160kHz) are very likely the IQ/baseband
+  stream** ("Malahit IQ" in §2's naming) - two channels at a much
+  higher sample rate than any voice-audio use would need is the
+  well-established "IQ as stereo audio" convention this whole category
+  of hardware (Malahit-family and otherwise, e.g. FiFi-SDR) is known to
+  use, with left/right channels carrying I and Q respectively. 160kHz
+  doesn't exactly match any of the genuine DSP2's documented panorama
+  spans (192/96/48kHz, §2) - consistent with this being a different
+  product with its own bandwidth choice, not evidence against the
+  IQ hypothesis itself. This has NOT been proven by capturing and
+  analyzing the actual sample stream (e.g. confirming it looks like
+  baseband RF content rather than something else entirely).
+- **Interfaces 8-9 (mono, 40kHz playback) are plausibly a
+  host-to-radio audio injection path** (matching the shape a firmware
+  feature like a code-practice tone, an announcement, or a monitor
+  function might use) - genuinely speculative; no source found
+  documents what this is for on any Malahit-family product, original
+  or clone.
+- **`/dev/ttyACM0` and `/dev/ttyACM1` cannot be distinguished by
+  descriptor alone; determining which (if either) is CAT control, and
+  what the other one does, requires either testing (§12) or specific
+  documentation for this exact VID:PID that has not been found.**
+
+### Still unknown (unchanged or newly precise)
+
+- Which, if either, `/dev/ttyACM*` port accepts CAT commands, and in
+  what protocol (Kenwood-TS-480-style, per §2's genuine-product
+  research, is a reasonable starting hypothesis to test - not a
+  confirmed fact for this unit).
+- Whether OpenWebRX+ (via `SoapyMalahitRR` or any other path) can
+  actually consume either audio stream usefully - see §5's revised
+  assessment below.
+- Actual USB charging current draw - the "Self Powered" descriptor bit
+  is a favorable but not dispositive data point (see above); no
+  current-draw measurement has been taken.
+- This unit's firmware version (the one documented check method did
+  not work - see above).
+- Whether the ALFA disconnect was genuinely power-related or coincidental -
+  the timing is consistent with a brief insertion transient on a
+  shared rail, but this is one observation, not a controlled,
+  repeatable test.
 
 ---
 
@@ -517,6 +727,19 @@ ALFA occupies one) — there is physical room to attach both the Malahit
 and the RTL-SDR without a hub, though a hub may still be the right
 choice for power reasons (§8).
 
+**CONFIRMED, 2026-09-05 (§2b)**: the Malahit negotiates **Full Speed
+(12Mbit/s), not High Speed (480Mbit/s)** - its own hardware ceiling,
+not a Pi limitation. Its confirmed stereo IQ-candidate stream (160000
+Hz × 2 channels × 16-bit) alone is ~5.1Mbit/s of raw PCM - a
+meaningful fraction of that 12Mbit/s budget shared across all ten of
+the device's own interfaces simultaneously (both audio streams, both
+serial ports). This is a real, device-side bandwidth ceiling to keep
+in mind independent of anything the Pi's own USB topology does -
+worth remembering once actual throughput/reliability testing happens,
+not something to try to work around by moving the device to a
+different Pi port (Full Speed is negotiated by the device itself, not
+assigned by the host).
+
 **REQUIRES TESTING** (research finding, §5): no source anywhere
 benchmarks current OpenWebRX+ (2026 build, full decoder set) on an
 actual Pi 3B+ under Trixie aarch64 at a specific sample rate/client
@@ -602,6 +825,25 @@ Key details behind the table:
   NEEDS HARDWARE/needs-source-reading to settle definitively, but the
   prior should shift toward "probably doesn't apply" rather than
   "50/50."
+  **2026-09-05, post-enumeration update (§2b)**: the physical evidence
+  neither confirms nor rules out `SoapyMalahitRR` compatibility
+  directly (that plugin's own source hasn't been read against this
+  unit's actual behavior), but it does clarify what a *working*
+  integration would actually need to consume: a device presenting as
+  **plain USB Audio Class capture interfaces** (confirmed: one mono
+  40kHz, one stereo 160kHz) plus **two indistinguishable CDC-ACM serial
+  ports** of unknown individual function - not the SPI/I2C/GPIO-wired
+  bare-module shape `SoapyMalahitRR`'s own source tree suggested (§5's
+  original finding). This is a genuine, USB-standard-class interface
+  shape that **generic** tooling (not a Malahit-specific plugin) could
+  plausibly consume - see the `SoapyAudio` path discussed just below,
+  which becomes a materially more concrete option now that the actual
+  audio interface shape (channel count, sample rate, format) is known
+  rather than assumed. **Net effect: the Malahit-specific plugin path
+  looks no more promising than before (still probably a mismatch), but
+  a generic-audio-interface bridge path looks more concrete and
+  buildable now that its exact target shape is confirmed, not
+  hypothetical.**
 - No generic "audio card as IQ source" input type exists in
   OpenWebRX+ analogous to SDR#/HDSDR's "IQ from soundcard" — what
   exists is device-specific integrations that happen to use ALSA
@@ -613,7 +855,13 @@ Key details behind the table:
   device with zero OpenWebRX+ code changes, but tuning/gain control
   would need to come from somewhere else (the CAT serial link, most
   likely, mirroring how FiFi-SDR needs an external `rockprog` call
-  alongside its `arecord` audio capture).
+  alongside its `arecord` audio capture). **2026-09-05: this path now
+  has a confirmed, specific target** (§2b) - a stereo, 16-bit, fixed
+  160000 Hz ALSA capture device (`hw:CARD=reciever,DEV=1`) - rather
+  than a hypothetical "some audio interface." Still untested whether
+  `SoapyAudio` actually enumerates and streams this specific device
+  correctly, and CAT control still depends on resolving which (if
+  either) `/dev/ttyACM*` port is the right one (§2b, §11's next step).
 - Live-stream audio codec is limited to **ADPCM or raw PCM only** — no
   Opus/MP3 option for the real-time listen stream (MP3 exists only for
   an optional server-side recording feature). This is actually good
@@ -632,26 +880,24 @@ Key details behind the table:
 
 ---
 
-## 6. What we still need from the user's actual hardware (updated 2026-09-05)
+## 6. What we still need (updated 2026-09-05 after physical enumeration)
 
-1. **Malahit DSP SDR V3 (HiDY)** — hardware identity is now known
-   (§2a); still needed:
-   - Firmware version, via the long-press-power-button method §2a
-     found documented for this exact product — **no USB connection
-     required for this check.**
-   - Confirmation of USB-C (already found likely true for this
-     product line generally, per §2a; a glance at the unit confirms).
-   - `lsusb`/`dmesg` output once connected (§11) — the actual next
-     step, checked against the `ffff:0737`/"MicroGenSF Malahit
-     reciever" hypothesis from §2a, not assumed to match.
-   - Whether one or two `/dev/ttyACM*` devices appear (§2a found one
-     reported unit with two).
+1. **Malahit DSP SDR V3 (HiDY)** — most of what could be learned from
+   the unit alone via USB is now in hand (§2b: VID:PID, interface
+   shape, audio formats, topology). Still needed:
+   - Firmware version — the one documented check method (long-press
+     power button, no USB) did **not** work on this unit (§2b); no
+     other passive method is currently known. Not to be chased further
+     with untried button combinations.
+   - Which `/dev/ttyACM*` port (if either) is CAT, and in what
+     protocol — needs the DTR-aware approach in §11a, not yet
+     performed.
    - PCB revision marking — optional, only if the case is opened for
-     an unrelated reason; not required for this investigation.
-2. **RTL-SDR**: no advance information needed — this gets identified
-   the same way the ALFA was: real `lsusb` output once connected, and
-   a photo of the printed label if the VID:PID/product string is
-   ambiguous or ambiguous-looking (rebranded units are common in this
+     an unrelated reason; not required.
+2. **RTL-SDR**: no advance information needed, and not yet started —
+   this gets identified the same way the ALFA was: real `lsusb` output
+   once connected, and a photo of the printed label if the VID:PID/
+   product string is ambiguous (rebranded units are common in this
    ecosystem).
 3. **Magnetic-loop antenna**: no electrical unknowns block this
    investigation phase — it only matters once an actual receive test
@@ -704,13 +950,21 @@ FAILURE MODE / UI EXPOSURE) to Radio specifically:
 
 ---
 
-## 8. Proposed architecture (design only — nothing built yet)
+## 8. Proposed architecture (design only — nothing built yet; updated 2026-09-05 with the confirmed interface shape)
 
 ```
 Radio Capability (optional, Operational-adjacent but Optional/Field layer)
 ├── Backend abstraction
-│   ├── Malahit backend   (SoapyMalahitRR, if it fits this unit - NEEDS HARDWARE)
-│   ├── RTL-SDR backend   (native rtl-connector or SoapySDR - well-trodden)
+│   ├── Malahit-family backend
+│   │   ├── SoapyMalahitRR (if it fits this unit - still doubtful, §5) -OR-
+│   │   └── SoapyAudio + a small CAT-bridge daemon, targeting the NOW-
+│   │       CONFIRMED (§2b) stereo/16-bit/160000Hz ALSA capture device
+│   │       for IQ, plus whichever /dev/ttyACM* turns out to be CAT
+│   │       (§11a) for tuning - two separate, ordinary Linux interfaces
+│   │       rather than one Malahit-specific plugin
+│   ├── RTL-SDR backend   (native rtl-connector or SoapySDR - well-trodden,
+│   │   unaffected by anything found this round - remains the more
+│   │   certain-to-work backend)
 │   └── (future backends - same shape, no redesign needed)
 ├── OpenWebRX+ (or, if it turns out unfit, a lighter RTL-SDR-only
 │   candidate from §5's table) - bound to localhost only, never
@@ -725,6 +979,23 @@ Radio Capability (optional, Operational-adjacent but Optional/Field layer)
     reach SSH," not "this new service is reachable from the right
     place")
 ```
+
+**What changed here, 2026-09-05**: the Malahit-family backend branch
+is now drawn as two concrete alternatives rather than one uncertain
+plugin, because §2b's physical enumeration confirmed this unit exposes
+its likely-IQ stream as a **plain, standard USB Audio Class capture
+device** (stereo, 16-bit, fixed 160000 Hz) - not something requiring
+Malahit-specific USB handling at all. That means a **generic**
+SoapySDR audio-input plugin (`SoapyAudio`) pointed at that one already-
+known ALSA device, paired with a **small, separate CAT-bridge script**
+(once §11a resolves which serial port, if either, is CAT) that
+OpenWebRX+ calls out to for tuning, is now a concrete, buildable
+architecture - not a hypothetical fallback. This is architecturally
+cleaner than depending on a plugin (`SoapyMalahitRR`) whose own fit for
+this hardware remains doubtful: it only assumes standard, already-
+confirmed Linux interfaces (ALSA capture + a serial port), the same
+class of interfaces `gr-osmosdr`/FiFi-SDR-style integrations already
+use elsewhere in this ecosystem (§5).
 
 Why this shape, not a bigger or smaller one:
 
@@ -862,7 +1133,28 @@ let one's absence break the other.
 
 ---
 
-## 11. First physical hardware gate — Malahit DSP SDR V3 (HiDY) USB enumeration (revised 2026-09-05)
+## 11. First physical hardware gate — Malahit DSP SDR V3 (HiDY) USB enumeration
+
+**COMPLETE (2026-09-05) — see §2b for the full results.** The
+procedure below is kept for the record (it's what was actually
+followed, and documents the reasoning), but the gate itself has been
+passed: the unit was connected, passively characterized, and left
+connected without incident. **§11a below is the NEW next gate** -
+read that first if you're deciding what to do next; the rest of this
+section is historical.
+
+### What actually happened, briefly
+
+The unit was pre-charged separately, connected with a data cable while
+powered on, and characterized via `lsusb -v`, `udevadm info`,
+`/proc/asound`, and `dmesg` - all purely passive, no writes to any
+interface. Power state was unaffected by the Malahit's own presence
+(§2b's before/after table). The one documented firmware-version check
+(long-press power button, no USB) did not work on this unit. The
+original text below is preserved as-followed; see §2b for what it
+actually found.
+
+### Original text (as followed)
 
 **Do not connect the V3 yet without reading this section.**
 
@@ -995,37 +1287,129 @@ comparison, not combined with this unit's own results.
 
 ---
 
-## 12. Open questions carried forward (updated 2026-09-05)
+## 11a. Next gate — why the two serial ports are a deliberate stopping point (added 2026-09-05)
+
+§2b's descriptor-level inspection genuinely exhausted what passive USB
+enumeration can prove about `/dev/ttyACM0` vs `/dev/ttyACM1` - both are
+descriptor-identical, confirmed independently via `lsusb -v` and
+`udevadm info -a` on both device nodes. Distinguishing them requires
+actually opening at least one of them - which is where this
+investigation is deliberately stopping to flag a real, specific risk
+rather than just proceeding.
+
+**The risk, specifically**: opening a USB-CDC-ACM serial device on
+Linux commonly asserts the DTR (Data Terminal Ready) control line as
+part of the normal `open()`/termios initialization, unless the calling
+code explicitly suppresses that (e.g. a library flag, or careful
+`stty` sequencing before any read/write). This is a well-known
+behavior class - it's exactly why many DTR-sensitive embedded/hobbyist
+devices (some Arduino boards being the most famous example) reset
+themselves the moment a terminal program opens their port, with no
+data ever having been transmitted. Nothing in this investigation's
+research found any documentation either confirming or ruling out that
+this Malahit V3's own firmware reacts to DTR assertion in any way -
+and this unit has *already* demonstrated one undocumented, unexplained
+reset trigger (§2a's dual-encoder-button behavior), which is exactly
+the kind of firmware quirk that would make a DTR-triggered reset
+plausible rather than far-fetched. Opening a port "read-only" (never
+writing a CAT command) does not avoid this risk - the risk is in the
+act of opening the port itself, before any read or write happens.
+
+**This is why it's being treated as a genuine next gate, not something
+resolved autonomously in this round**: it's a real technical
+uncertainty with a plausible failure mode on hardware that has already
+shown one unexplained reset behavior, not a question answerable from
+already-available evidence.
+
+**Recommended safe approach, for whenever this is pursued** (design
+only - not performed in this round):
+
+1. Use a serial library/tool that can explicitly suppress DTR/RTS
+   assertion on open (e.g. Python's `pyserial` with
+   `dsrdtr=False, rtscts=False`, and setting `dtr=False`/`rts=False`
+   *before* calling `open()` where the library allows it - not every
+   tool exposes this; a plain `cat`/`screen`/`minicom` open with
+   default settings should be assumed unsafe until proven otherwise).
+   `pyserial` is not currently installed on this Pi and would need an
+   explicit go-ahead to install, per this project's own "no package
+   installs without operator approval" rule - this alone is a reason
+   this step waits for a deliberate decision rather than happening
+   automatically.
+2. With DTR/RTS suppressed, open ONE port at a time in pure read mode
+   (never write) for a short, timed window (a few seconds), and see
+   whether anything is emitted unprompted - §2's own research found a
+   firmware feature description ("improved CAT information output,
+   including S-meter data") suggesting some Malahit-family firmware
+   versions push telemetry without being asked, which would make a
+   pure listen genuinely informative without ever transmitting.
+3. Only after that - and only with explicit go-ahead - would sending
+   an actual probe (e.g. the Kenwood-TS-480-style `FA;` frequency
+   query §2 documents for the genuine product) be appropriate, and
+   even then, one port and one command at a time, watching for any
+   sign of a reset before trying the second port.
+
+A short, passive audio-capture byte-level sanity check (confirming the
+mono 40kHz stream looks like demodulated audio and the stereo 160kHz
+stream looks like wideband/noise-like IQ content, without ever
+listening to or transcribing any actual audio content) remains a
+separate, lower-risk option that doesn't share this DTR concern at all
+(USB Audio Class interfaces are activated via a standard alternate-
+setting switch, not a control line with device-specific reset
+semantics) - this was not performed in this round either, since §2b's
+descriptor-level evidence (channel count + sample rate signature) was
+already strong enough to report as "strongly suggested," and doing so
+wasn't necessary to reach a genuine architectural conclusion. It
+remains available as a next step if firmer confirmation is wanted
+before further architecture decisions are made.
+
+---
+
+## 12. Open questions (updated 2026-09-05 after physical enumeration)
+
+**Resolved or substantially narrowed by §2b's physical enumeration:**
+
+- ~~This unit's actual `lsusb` VID:PID~~ — **CONFIRMED**: `ffff:0737`,
+  matching the one community-reported value found in §2a exactly.
+- ~~Whether one or two `/dev/ttyACM*` devices appear~~ — **CONFIRMED**:
+  two (`ttyACM0`, `ttyACM1`), descriptor-identical.
+- ~~USB connector type~~ — moot for the Pi-side investigation now that
+  the unit is confirmed connected via USB-C with a working data cable.
+- Whether the audio interfaces carry anything resembling "Malahit
+  RX"/"Malahit IQ" — **STRONGLY SUGGESTED** (not proven): mono/40kHz
+  and stereo/160kHz respectively, by channel-count/sample-rate
+  signature (§2b).
+
+**Still genuinely open:**
 
 1. Does `SoapyMalahitRR` (naming: "Malahit-**R1**") actually work with
-   this owned V3 handheld unit's USB-Audio-Class IQ interface, or does
-   it expect a different, bare wired module product entirely? The
-   hardware correction (§2a) makes this LESS likely to pan out than
-   originally framed, not equally uncertain. (§2a, §5)
-2. This unit's exact firmware version (checkable now, with no USB
-   connection, via the long-press-power-button method — §2a, §11 step
-   zero) and confirmed USB connector type (likely USB-C per §2a, worth
-   a glance to confirm).
-3. Whether this unit's actual `lsusb` VID:PID matches the one
-   community-reported value found (`ffff:0737`, "MicroGenSF Malahit
-   reciever") or differs, and whether one or two `/dev/ttyACM*`
-   devices appear. (§2a, §11)
-4. This RTL-SDR's exact model/VID:PID. (§3, §6)
+   this unit's confirmed USB Audio Class interfaces, or does it expect
+   a different, bare wired module product entirely? Still NEEDS
+   HARDWARE-level testing or source-reading to settle; the physical
+   evidence didn't change the underlying naming-mismatch concern (§5,
+   §2b).
+2. Which, if either, `/dev/ttyACM0`/`/dev/ttyACM1` is CAT control, and
+   in what protocol — descriptor-identical, cannot be resolved
+   passively; needs the DTR-aware approach in §11a.
+3. This unit's firmware version — the one documented check method did
+   not work on this unit (§2b); no other passive method is known.
+4. This RTL-SDR's exact model/VID:PID (§3, §6) — entirely separate
+   hardware, not yet enumerated at all.
 5. Real OpenWebRX+ CPU/RAM/client-count behavior on this actual Pi
    3B+/Trixie — no published benchmark exists for any Malahit variant
-   or RTL-SDR on this OS/hardware combination. (§4, §5)
-6. Actual USB charging behavior of this unit when attached to the Pi —
-   §2a's finding that charging appears bundled with any powered-on USB
-   connection makes a true data-only arrangement look less likely to
-   be achievable by cable choice alone; needs direct measurement.
-   (§2a, §11)
-7. Whether a separately-powered USB hub becomes the long-term
-   architecture for one or both devices, once §11's findings are in.
-   (§2a, §8)
-8. The dual-encoder-button reboot/reset behavior (§2a) remains
-   unexplained by any source found — not something to actively
-   investigate further ourselves, but worth asking about if this
-   project ever engages the OpenWebRX+/Malahit community directly.
+   or RTL-SDR on this OS/hardware combination (§4, §5).
+6. Actual USB charging current draw — the "Self Powered" descriptor
+   bit (§2b) is a favorable but not dispositive sign; no direct
+   current measurement has been taken.
+7. Whether the ALFA's one-second-earlier disconnect/re-enumeration
+   (§2b) was genuinely caused by the Malahit's insertion or was
+   coincidental — one observation, consistent with a shared-rail
+   insertion transient, not a controlled/repeated test.
+8. Whether a separately-powered USB hub becomes the long-term
+   architecture for one or both devices (§2b, §8).
+9. The dual-encoder-button reboot/reset behavior (§2a) remains
+   unexplained by any source found — not to be actively investigated
+   further ourselves; worth asking about if this project ever engages
+   the OpenWebRX+/Malahit community directly.
 
 None of these block writing this document; all of them block writing
 any code.
