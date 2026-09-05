@@ -237,6 +237,92 @@ resort, and only with the operator's explicit go-ahead - a physical
 USB replug) would need its own dedicated investigation round rather
 than being attempted speculatively here.
 
+### Closeout (same day): redeploy succeeded, incident CLOSED
+
+The operator ran the redeploy + restart command above, reconnected the
+laptop fresh, and confirmed real end-to-end success: PirateBox visible
+and reachable at both `http://piratebox/` and `http://10.0.0.1/`. One
+observation reported during reconnection - brief intermittent
+load/not-load behavior - was investigated rather than assumed benign
+or assumed a fault, per instruction.
+
+**Final live-state verification (read-only, before closing):**
+
+- The corrected `override.conf` is confirmed live and genuinely
+  effective this time: `systemctl show hostapd`'s own `After=` list
+  now includes `sys-subsystem-net-devices-pb\x2dap.device` alongside
+  the base unit's usual targets, and no "Unknown key" warnings appear
+  anywhere in the journal since this restart - confirming the
+  `[Service]`-vs-`[Unit]` bug from the previous entry is genuinely
+  fixed live, not just in the repo.
+- hostapd: `active (running)`, `AP-ENABLED` logged cleanly at startup,
+  zero errors in its journal.
+- `pb-ap`: `UP`/`LOWER_UP`, `type AP`, `ssid PirateBox`, channel 6 -
+  fully normal.
+- ARP/neighbour state for the client improved from the previously
+  concerning `FAILED` (no MAC, confirmed unreachable) to **`STALE`
+  with the correct, real MAC** - `STALE` is the ordinary, healthy
+  resting state for an idle-but-previously-confirmed ARP entry, not a
+  fault; the kernel re-verifies it automatically the next time traffic
+  is sent.
+- DHCP: two clean `DISCOVER`/`OFFER`/`REQUEST`/`ACK` cycles logged for
+  the client, both completing normally.
+- Interface counters showed real historical traffic volume (313KB RX /
+  229KB TX, far more than the DHCP exchanges alone would produce -
+  consistent with actual page loads having occurred), static between
+  two snapshots taken seconds apart - consistent with a genuinely idle
+  client at the moment of checking, not a stalled connection.
+- Power: `throttled=0x50005` - unchanged, the same pre-existing chronic
+  condition, no new event. `systemctl --failed` empty.
+
+**The intermittent load/not-load period, explained:** hostapd's
+journal shows the client completing a full authenticate -> associate
+-> DHCP cycle at 15:06:46-15:07:19, then a **second** complete
+authenticate -> associate -> DHCP cycle for the same client about a
+minute later (15:08:14-15:08:48) - with **zero disassociation,
+deauthentication, error, or kernel/USB/mt76 messages anywhere in
+between**. This is consistent with ordinary client-side behavior after
+a fresh reconnect (e.g. an OS-level connectivity/captive-portal check,
+or a quick client-initiated re-association) settling into a stable
+connection, not a hostapd, driver, or USB fault. No ALFA reset, no
+station-add/remove churn, no new power event occurred during this
+window.
+
+**One remaining, honestly-reported loose end:** `iw dev pb-ap station
+dump` (and `station get <mac>`) still shows no station for the client,
+the same symptom flagged as concerning in the previous update. This
+time, though, it is **not corroborated by any other evidence** - ARP
+is healthy (not `FAILED`), traffic volume is consistent with real use
+having occurred, and the operator's own direct test succeeded. A
+debugfs cross-check (`/sys/kernel/debug/ieee80211/phy3/.../stations/`)
+could not settle it either way (the expected path doesn't exist for
+this driver). Recorded as an unresolved oddity in one diagnostic tool's
+view of this specific driver, not as an open fault - per instruction,
+this is documented rather than chased with a speculative fix, since
+every other signal is clean and the operator's real-world test is the
+strongest evidence available.
+
+**Important lesson, recorded for later, not fixed in this incident:**
+process-liveness alone was insufficient to detect this entire
+incident's first failure mode - hostapd stayed `ActiveState=active`
+throughout the whole outage, and `/run/piratebox/status.json`'s
+`services.hostapd` field (which only checks that) reported healthy the
+entire time. This blind spot is **not fixed here** - deliberately
+scoped as its own future round rather than folded into this incident's
+response - but is now tracked as an explicit roadmap item: see
+`docs/IMPLEMENTATION-ROADMAP.md` section 7, "AP health monitoring:
+process-liveness blind spot."
+
+**Incident status: CLOSED.** Both the original failure mode (hostapd
+never reattaching after a USB re-enumeration) and the fix's own
+initial bug (wrong systemd section) are confirmed fixed and live-
+verified. The brief intermittent period during reconnection has a
+clean, evidence-backed benign explanation. No further action is
+pending from this incident; the AP-health-monitoring blind spot and
+the "if the STA/ARP desync recurs" escalation path above are carried
+forward as separate, tracked future items, not open parts of this
+incident.
+
 ## Distance / Glance Display (large-format at-a-distance OLED pages)
 
 **Decision date:** 2026-09-04. Adds a large-format "glance" presentation
