@@ -323,6 +323,51 @@ the "if the STA/ARP desync recurs" escalation path above are carried
 forward as separate, tracked future items, not open parts of this
 incident.
 
+### New known issue found after closure (same day, unrelated task): the udev `SYSTEMD_WANTS` restart trigger did not fire on a real re-enumeration
+
+While investigating an RTL-SDR dongle, reseating a nearby USB
+connection incidentally caused the ALFA to blip (disconnect/
+re-enumerate) again - an unplanned real-world test of this fix. Result
+was a genuine mixed one:
+
+- **`BindsTo=`/`ConditionPathExists=` (the part that stops hostapd
+  cleanly) worked exactly as designed** - confirmed via `systemctl
+  show`: hostapd transitioned cleanly to `inactive`/`dead`
+  ("Deactivated successfully") the moment the old interface vanished,
+  with no restart-loop/thrashing.
+- **The udev `ENV{SYSTEMD_WANTS}+="hostapd.service"` restart-on-
+  reappear trigger did not fire.** hostapd stayed stopped after the
+  interface came back and was renamed to `pb-ap` again; the interface
+  sat in `type managed` (never switched to AP) until a manual
+  `sudo systemctl restart hostapd`. Investigated live: the rule itself
+  is confirmed byte-correct - `udevadm test --action=add` against the
+  real device path, re-run immediately after, correctly computes
+  `SYSTEMD_WANTS=hostapd.service` - but the actual live udev database
+  entry for the device from the real event lacked that property, and
+  systemd's own job log shows no start job was ever queued for
+  hostapd.service. Root cause **not established** - a real root-level
+  debug trace (`udevadm control --log-priority=debug` or equivalent)
+  would be needed to settle it, which wasn't pursued in the moment per
+  explicit instruction not to turn an unrelated RTL-SDR characterization
+  task into a second hostapd project. One plausible but unconfirmed
+  hypothesis: some subtlety in how systemd's device-unit tracking
+  handles `SYSTEMD_WANTS` for a device *name* (`pb-ap`) that gets
+  reused across repeated, distinct USB re-enumerations of the same
+  physical port, as opposed to a device seen for the first time ever.
+
+**Recorded as a known issue, deliberately not fixed now:** the
+automatic-recovery half of this fix cannot yet be trusted to actually
+fire on every real re-enumeration - a manual `sudo systemctl restart
+hostapd` remains the fallback whenever the SSID doesn't reappear on
+its own after an ALFA blip. If this is picked up as its own future
+round, the most likely robust replacement is a systemd `.path` unit
+(`PathExists=/sys/class/net/pb-ap` triggering `systemctl start
+hostapd`) - a more battle-tested, inotify-backed primitive for
+exactly this "start a service when a path appears" pattern, less
+dependent on the specific semantics of udev's per-rule `SYSTEMD_WANTS`
+property translation that this incident found unreliable in practice.
+Also tracked in `docs/IMPLEMENTATION-ROADMAP.md` section 7.
+
 ## Distance / Glance Display (large-format at-a-distance OLED pages)
 
 **Decision date:** 2026-09-04. Adds a large-format "glance" presentation
