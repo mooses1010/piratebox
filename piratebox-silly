@@ -14,6 +14,12 @@
 #   piratebox-silly status           - current Silly Mode + Emergency Mode state
 #   piratebox-silly stats            - Progression summary (level, title, XP,
 #                                       lifetime stats, achievement count)
+#   piratebox-silly preview          - briefly demo a sampler of ordinary/
+#                                       common expressions and animations on
+#                                       the real OLED (Silly Mode must already
+#                                       be on) - operator-only, never shows
+#                                       uncommon/rare/legendary/secret content,
+#                                       auto-expires on its own (see below)
 #   piratebox-silly backup [path]    - copy the live Progression file out,
 #                                       timestamped, to ~/piratebox-progression-
 #                                       backups/ by default
@@ -29,6 +35,19 @@
 # resets to the default OFF on every reboot, same rationale as
 # MODE_FILE. The OLED daemon reads this file live, every redraw (~3s) -
 # no service restart or signal needed after toggling.
+#
+# `preview` (Expression Engine v2, 2026-09-04) writes a plain
+# timestamp to /tmp/piratebox/silly-preview-request, the same recency-
+# based, no-acknowledge signal-file pattern `on`/`off` and the short-
+# press status-check override already use - see piratebox_oled_
+# daemon.py's read_preview_active()/PREVIEW_PLAYLIST for the OLED side.
+# Deliberately requires Silly Mode to already be on (checked below,
+# not silently forced on) so this command never has a surprising side
+# effect beyond "run the demo" - and deliberately built entirely from
+# fixed render-spec dicts on the OLED side, never by calling the
+# rarity engine, so it is structurally impossible for this to reveal
+# an uncommon/rare/legendary/secret variant regardless of the real
+# device's level/history or how many times it's run.
 #
 # Progression's durable state lives at /var/lib/piratebox-oled/
 # progression.json (real disk, survives reboot and Silly Mode being
@@ -56,6 +75,8 @@ STATE_DIR="/tmp/piratebox"
 SILLY_FILE="$STATE_DIR/silly"
 RESET_REQUEST_FILE="$STATE_DIR/progression-reset-request"
 IMPORT_REQUEST_FILE="$STATE_DIR/progression-import-request"
+PREVIEW_REQUEST_FILE="$STATE_DIR/silly-preview-request"
+PREVIEW_WINDOW_SECONDS=45
 PROGRESSION_FILE="/var/lib/piratebox-oled/progression.json"
 RESET_CONFIRM_TOKEN="RESET-CONFIRMED"
 BACKUP_DIR="$HOME/piratebox-progression-backups"
@@ -67,6 +88,7 @@ Usage:
   piratebox-silly off
   piratebox-silly status
   piratebox-silly stats
+  piratebox-silly preview
   piratebox-silly backup [path]
   piratebox-silly reset --confirm-i-am-sure [--yes]
   piratebox-silly import <file>
@@ -143,6 +165,30 @@ print(f"Achievements unlocked: {len(s.get('achievements', []))}")
 age = time.time() - s.get("updated_at", 0)
 print(f"(last updated {age:.0f}s ago)")
 PYEOF
+        ;;
+
+    preview)
+        current="off"
+        if [ -r "$SILLY_FILE" ] && [ "$(tr -d '[:space:]' < "$SILLY_FILE" 2>/dev/null)" = "on" ]; then
+            current="on"
+        fi
+        if [ "$current" != "on" ]; then
+            echo "Silly Mode is currently OFF - the preview has nothing to show." >&2
+            echo "Run 'piratebox-silly on' first, then try 'piratebox-silly preview' again." >&2
+            exit 1
+        fi
+        if [ -r /tmp/piratebox/mode ] && [ "$(tr -d '[:space:]' < /tmp/piratebox/mode 2>/dev/null)" = "emergency" ]; then
+            echo "Emergency Mode is active - the preview would not be visible right now" >&2
+            echo "(Emergency Mode always takes the display, by design). Try again once" >&2
+            echo "Emergency Mode clears, or check 'piratebox-silly status'." >&2
+            exit 1
+        fi
+        mkdir -p "$STATE_DIR" 2>/dev/null || true
+        printf '%s\n' "$(date +%s)" > "$PREVIEW_REQUEST_FILE"
+        echo "Preview started - watch the real OLED for about ${PREVIEW_WINDOW_SECONDS}s."
+        echo "This cycles a small sampler of ordinary expressions/animations only -"
+        echo "never anything uncommon/rare/legendary/secret, regardless of this"
+        echo "device's real level or history - then returns to normal on its own."
         ;;
 
     backup)

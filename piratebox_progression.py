@@ -393,6 +393,16 @@ ACHIEVEMENTS = {
         "Full House", 100, True,
         lambda s, c: (c.get("current_clients") or 0) >= 3 and c.get("ssh_active"),
     ),
+    "hidden_curious_collection": _mk(
+        # Expression Engine v2 (2026-09-04) - rewards actually having
+        # witnessed a real spread of the rarer visual variants, not any
+        # specific one by name (this predicate never names a variant id
+        # - see _record_variant_choice()'s own rare_events_witnessed
+        # counter, which every rare/legendary/secret pick already
+        # increments regardless of which family/variant it came from).
+        "The Curious Collection", 90, True,
+        lambda s, c: s["stats"].get("rare_events_witnessed", 0) >= 8,
+    ),
 }
 
 
@@ -431,12 +441,28 @@ def _quiet_hours(c):
 # never come back empty; everything above that is genuinely optional
 # texture. Rarity/weight numbers and the exact hidden variants are
 # deliberately not summarized in operator-facing docs (see instruction).
+#
+# Expression Engine v2 (2026-09-04) additions below use two new render-
+# spec shapes on top of the pre-existing {"expression":...}/{"scene":...}:
+#   {"anim": <ANIMATIONS key>} - a brief multi-frame reaction, resolved
+#     and flashed by piratebox_oled_daemon.py's play_animation_burst()
+#     (this module never imports piratebox_expressions.py or knows what
+#     an animation actually looks like - same separation of concerns as
+#     every existing {"scene":...} entry already had).
+#   A `condition` reading `ctx["hardware"]` - the future-sensor-hook
+#   pattern: `read_hardware_signals()` returns `{}` until a real reader
+#   is registered (see that function's own header), so any such
+#   condition is permanently False today and becomes eligible on its
+#   own, automatically, the moment a future round registers the real
+#   reader - no code here needs to change when that happens.
 EVENT_FAMILIES = {
     "client_arrival": [
         _v("client_arrival.common_excited", RARITY_COMMON, 100, {"expression": "excited"}),
         _v("client_arrival.uncommon_delighted", RARITY_UNCOMMON, 18,
            {"expression": "excited", "decoration": "sparkle", "quip": "Well, look who it is!"},
            cooldown_s=3600),
+        _v("client_arrival.uncommon_wave", RARITY_UNCOMMON, 14,
+           {"anim": "wave_hello", "quip": "Ahoy there!"}, cooldown_s=5400, min_level=2),
         _v("client_arrival.rare_royal", RARITY_RARE, 4,
            {"expression": "royal_welcome", "quip": "A guest of note!"},
            condition=lambda s, c: s["stats"]["total_client_encounters"] >= 10,
@@ -449,17 +475,25 @@ EVENT_FAMILIES = {
         _v("wake.common", RARITY_COMMON, 100, {"expression": "waking"}),
         _v("wake.uncommon_groggy", RARITY_UNCOMMON, 20,
            {"expression": "waking", "quip": "Five more minutes..."}, cooldown_s=7200),
+        _v("wake.uncommon_look_around", RARITY_UNCOMMON, 16,
+           {"anim": "look_around_curious", "quip": "Where was I?"}, cooldown_s=5400, min_level=2),
         _v("wake.rare_startled", RARITY_RARE, 5,
-           {"expression": "surprised", "quip": "Oh! Didn't see you there."},
+           {"anim": "startle_and_settle", "quip": "Oh! Didn't see you there."},
            condition=_quiet_hours, cooldown_s=86400, min_level=4),
     ],
     "flourish": [
         _v("flourish.common", RARITY_COMMON, 100, {"expression": "pirate_flourish"}),
         _v("flourish.uncommon_wink", RARITY_UNCOMMON, 15,
            {"expression": "pirate_flourish", "decoration": "wink"}, cooldown_s=3600 * 6),
+        _v("flourish.uncommon_salty", RARITY_UNCOMMON, 12,
+           {"expression": "salty", "quip": "Aye, matey."}, cooldown_s=3600 * 5, min_level=3),
         _v("flourish.rare_logbook", RARITY_RARE, 3,
            {"scene": "logbook"}, condition=lambda s, c: len(s["achievements"]) >= 3,
            cooldown_s=86400 * 3, min_level=6),
+        _v("flourish.rare_victory", RARITY_RARE, 2,
+           {"anim": "victory_flourish"},
+           condition=lambda s, c: len(s["achievements"]) >= 5,
+           cooldown_s=86400 * 4, min_level=7),
         _v("flourish.legendary_bottle", RARITY_LEGENDARY, 0.3,
            {"scene": "message_bottle"},
            condition=lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 86400 * 30,
@@ -470,6 +504,23 @@ EVENT_FAMILIES = {
         # opportunistically as texture ON TOP of the normal ambient
         # cycle (see the daemon's own integration), so an empty result
         # (None) is the expected, ordinary outcome almost every time.
+        # NOTE ON COOLDOWN LENGTH: unlike every OTHER family, "ambient"
+        # has no condition-free "common" baseline entry to dilute
+        # against (see the family-level comment above) - every ambient
+        # tick that isn't showing "pirate_flourish" calls roll_event()
+        # here, so an entry's OWN cooldown is the only thing standing
+        # between "uncommon" and "constant." A short cooldown was tried
+        # and caught live during this round's own development smoke
+        # test (it won almost every single ambient tick, immediately
+        # drowning out the plain ambient cycle AND bias_ambient_
+        # expression()'s mannerism layer, which only ever gets a chance
+        # to show through on ticks this family returns None) - these
+        # cooldowns are deliberately long enough (many hours, not
+        # minutes) to actually read as occasional.
+        _v("ambient.uncommon_skeptical", RARITY_UNCOMMON, 8,
+           {"expression": "skeptical"}, cooldown_s=3600 * 10, min_level=2),
+        _v("ambient.uncommon_curiouser", RARITY_UNCOMMON, 6,
+           {"expression": "curiouser"}, cooldown_s=3600 * 14, min_level=3),
         _v("ambient.secret_star", RARITY_SECRET, 0.15,
            {"scene": "shooting_star", "quip": "Make a wish."},
            condition=lambda s, c: c.get("idle_seconds", 0) >= 1800 and _quiet_hours(c),
@@ -478,6 +529,19 @@ EVENT_FAMILIES = {
            {"scene": "treasure_glimmer"},
            condition=lambda s, c: s["weights"].get("sociability", 0.5) < 0.3,
            cooldown_s=86400 * 10, min_level=7),
+        _v("ambient.secret_night_watch", RARITY_SECRET, 0.1,
+           {"scene": "night_watch"},
+           # Future BH1750 hook: `ctx["hardware"]["ambient_lux"]` is
+           # always None until a real reader is registered (see
+           # HARDWARE_SIGNALS below) - this variant is permanently
+           # ineligible until that happens, exactly matching "no
+           # sensor-dependent behavior becomes eligible until that
+           # capability is actually commissioned."
+           condition=lambda s, c: (
+               (c.get("hardware") or {}).get("ambient_lux") is not None
+               and c["hardware"]["ambient_lux"] < 5
+           ),
+           cooldown_s=86400 * 5, min_level=4),
     ],
 }
 

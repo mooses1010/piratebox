@@ -36,6 +36,12 @@ spec = importlib.util.spec_from_file_location("piratebox_progression", PROG_PATH
 prog = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prog)
 
+# piratebox_oled_daemon.py now does a top-level `from piratebox_expressions
+# import ...` (Expression Engine v2, 2026-09-04) - see tools/test_silly_
+# mode.py's own identical comment for why this line is needed when
+# loading the daemon by file path via importlib.
+sys.path.insert(0, os.path.dirname(DAEMON_PATH))
+
 daemon_spec = importlib.util.spec_from_file_location("piratebox_oled_daemon", DAEMON_PATH)
 oled = importlib.util.module_from_spec(daemon_spec)
 daemon_spec.loader.exec_module(oled)
@@ -260,6 +266,19 @@ class AchievementTests(unittest.TestCase):
             w = font_small.getbbox(spec["name"])[2]
             self.assertLessEqual(w, 128, f"{aid}: name too wide ({w}px): {spec['name']!r}")
 
+    def test_hidden_curious_collection_fires_at_the_threshold_not_before(self):
+        """Expression Engine v2 (2026-09-04) - ties an achievement to
+        the pre-existing rare_events_witnessed counter (already
+        incremented by _record_variant_choice() for any rare/legendary/
+        secret pick, regardless of which family/variant) rather than
+        naming any specific variant, so this predicate stays honest
+        about "a real spread of rarity," not one lucky repeat roll."""
+        s = prog._default_state()
+        s["stats"]["rare_events_witnessed"] = 7
+        self.assertEqual(prog.check_achievements(s, ctx()), [])
+        s["stats"]["rare_events_witnessed"] = 8
+        self.assertIn("hidden_curious_collection", prog.check_achievements(s, ctx()))
+
 
 class EventEngineTests(unittest.TestCase):
     def test_every_family_always_returns_something_when_it_has_a_plain_default(self):
@@ -327,7 +346,17 @@ class EventEngineTests(unittest.TestCase):
     def test_every_render_spec_is_drawable(self):
         """Every variant across every family must produce a render dict
         the OLED daemon can actually draw (regression guard for the
-        expression/scene-name typo class of bug)."""
+        expression/scene-name typo class of bug) - extended for
+        Expression Engine v2's {"anim": ...} shape (2026-09-04): those
+        never reach build_frame() directly in production (main() always
+        resolves "anim" into a concrete frame first via
+        play_animation_burst()/resolve_animation_frames() - see that
+        module's own header for why), so this test resolves and draws
+        every one of an anim's own frames instead of calling
+        build_frame() with the unresolved {"anim": ...} dict itself
+        (which build_frame has no "anim" branch for at all - passing it
+        straight through would silently draw a blank face, defeating
+        the whole point of this typo guard)."""
         class FakeDevice:
             mode, size = "1", (128, 64)
         font, font_small, font_big = oled.load_fonts()
@@ -337,6 +366,19 @@ class EventEngineTests(unittest.TestCase):
                 render = v["render"]
                 if "expression" in render and render["expression"] != "pirate_flourish":
                     self.assertIn(render["expression"], oled.EXPRESSIONS, f"{v['id']}: unknown expression")
+                elif "anim" in render:
+                    self.assertIn(render["anim"], oled.ANIMATIONS, f"{v['id']}: unknown animation")
+                    specs, gap, hold = oled.resolve_animation_frames(
+                        render["anim"], "ok", quip=render.get("quip"),
+                    )
+                    self.assertIsNotNone(specs, f"{v['id']}: animation failed to resolve")
+                    for spec in specs:
+                        img = oled.build_frame(
+                            dev, "silly", font, font_small, font_big, None, False, "normal",
+                            alive_on=True, extra=spec,
+                        )
+                        self.assertEqual(img.size, (128, 64))
+                    continue
                 img = oled.build_frame(
                     dev, "silly", font, font_small, font_big, None, False, "normal",
                     alive_on=True, extra={"render": render, "tier": "ok"},
@@ -358,6 +400,40 @@ class HardwareSignalTests(unittest.TestCase):
     def test_a_raising_reader_degrades_to_none_not_a_crash(self):
         prog.register_hardware_signal("broken", lambda: 1 / 0)
         self.assertEqual(prog.read_hardware_signals(), {"broken": None})
+
+    def test_hardware_gated_ambient_variant_is_permanently_ineligible_uncommissioned(self):
+        """Expression Engine v2 (2026-09-04): ambient.secret_night_watch
+        is gated on ctx["hardware"]["ambient_lux"], which is always None
+        until a real BH1750 reader is registered (HARDWARE_SIGNALS
+        starts empty - see this class's own test_starts_empty). This
+        must hold across many rolls at a level/state that satisfies
+        every OTHER gate the variant has, so the only thing keeping it
+        out is the missing hardware signal itself."""
+        s = prog._default_state()
+        s["xp"]["level"] = 99
+        rng = random.Random(11)
+        seen = set()
+        for _ in range(500):
+            v = prog.roll_event("ambient", s, ctx(hardware={}), rng)
+            if v:
+                seen.add(v["id"])
+        self.assertNotIn("ambient.secret_night_watch", seen)
+
+    def test_hardware_gated_ambient_condition_itself_responds_to_a_real_signal(self):
+        """The other half of the guarantee above, checked at the right
+        level: force_next_event() bypasses EVERY condition/cooldown/
+        min_level check by design (see roll_event()'s own forced-dispatch
+        branch), so dispatching it forced would prove nothing about the
+        condition itself. Instead, call the variant's own `condition`
+        callable directly with a qualifying reading - proving that once
+        a real BH1750 reader eventually supplies one, this gate opens on
+        its own with no code change needed here, exactly the point of
+        the HARDWARE_SIGNALS registry."""
+        s = prog._default_state()
+        spec = next(v for v in prog.EVENT_FAMILIES["ambient"] if v["id"] == "ambient.secret_night_watch")
+        self.assertFalse(spec["condition"](s, ctx(hardware={})))
+        self.assertFalse(spec["condition"](s, ctx(hardware={"ambient_lux": 50})))  # too bright
+        self.assertTrue(spec["condition"](s, ctx(hardware={"ambient_lux": 2})))    # dark enough
 
 
 class PersonalityWeightTests(unittest.TestCase):

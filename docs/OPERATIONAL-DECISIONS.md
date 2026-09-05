@@ -6,6 +6,190 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Expression Engine v2 (Silly Mode's visual personality, substantially deepened)
+
+**Decision date:** 2026-09-04. Evolves Silly Mode's existing face
+system into a data-driven "Expression Engine" without discarding any
+of the visual identity built up across the prior rounds (OLED Silly
+Mode, PirateBox Progression, the cadence rebalance) - every pre-
+existing expression, the pirate-flourish beat, and all five original
+scenes still exist, unchanged in appearance. Per instruction, this
+entry describes the architecture and categories of what changed, not
+the specific new catalog - see `piratebox_expressions.py` and its own
+test suite (`tools/test_expressions.py`) for the fully explicit,
+implementation-level truth.
+
+**New module: `piratebox_expressions.py`.** Every drawing primitive
+and data table that used to live inline in `piratebox_oled_daemon.py`
+(`EXPRESSIONS`, `draw_face`/`draw_scene`/`draw_zzz`/`draw_pirate_
+flourish`/`draw_skull_and_crossbones`) moved to a new, standalone,
+zero-I/O module - the OLED daemon now only ever decides WHEN to show
+something (its `main()` priority chain is unchanged in shape) and
+hands a render-spec dict to `render_silly()`, which is now a thin
+dispatcher. This directly answers the explicit instruction not to let
+the daemon become "an enormous pile of expression-specific
+conditionals": adding a future expression, animation, or scene means
+editing this one file, never `main()`'s state machine. Every name the
+daemon used to define at module scope (`EXPRESSIONS`, `draw_skull_and_
+crossbones`, etc.) is now imported at the top of that file and stays
+reachable exactly the same way, so no existing test needed to change
+for the move itself (though the test harness's own `importlib`-based
+loading needed one line added, in both `tools/test_silly_mode.py` and
+`tools/test_progression.py`, to put the daemon's directory on
+`sys.path` so its new sibling import resolves the same way it already
+does for free in production, where both files are deployed side by
+side to `/usr/local/bin`).
+
+**Richer visual vocabulary, layered onto the existing foundation.**
+The original dozen expressions (idle/blink/look_left/look_right/
+sleeping/waking/happy/excited/surprised/confused/smug/ssh_watch/royal_
+welcome) are untouched. `draw_face()` gained: a genuine asymmetric-eye
+capability (`eyes` may now be a 2-tuple, one style per side, in
+addition to the existing single-style form every prior expression
+still uses), two new eye styles (a watchful narrow slit, a heavier
+drooping lid, distinct from the existing "half" relaxed/smug look),
+and several small pirate-themed accessory decorations alongside the
+existing crown/sparkle/wink. Two new full-screen scenes join the
+original five, using the same static-set-piece shape (a custom scene
+still needs bespoke per-frame code to animate well, which isn't worth
+it for the modest number of scenes this project has - deliberately not
+generalized further than that).
+
+**Multi-frame animation, kept conservative on purpose.** A new
+`ANIMATIONS` registry (a handful of entries, each a short sequence of
+2-5 existing-expression frames) is played via a brief, bounded
+synchronous "burst" - `piratebox_oled_daemon.py`'s new
+`play_animation_burst()` reuses the EXACT same technique the display's
+own page-transition wipe already used (a few extra `device.display()`
+calls with a short `time.sleep()` between, all well under one second
+total) rather than inventing a second animation mechanism or changing
+the daemon's overall `REFRESH_SECONDS` cadence. This was a deliberate
+choice to get real snappy animation (a proper quick blink, a look-
+around, a startle) without turning `main()` into a high-frequency
+redraw loop, per instruction to investigate a finer frame cadence
+conservatively rather than broadly. A burst only ever plays from
+inside the ok/warning-tier, Silly-Mode-on branch of `main()`'s
+priority chain - Emergency/fault/mode-transition already always pre-
+empt that branch entirely, so a burst can never delay a serious page;
+directly confirmed via a `main()`-loop integration smoke test that
+forces an Emergency transition mid-run and checks every subsequent
+tick is the serious rotation. After a burst, its final frame settles
+into the exact same hold/countdown bookkeeping a plain one-shot event
+reaction (excited/surprised/confused/waking) already used before this
+round - animations don't need their own separate "is something
+playing" state.
+
+**Personality weights now actually influence what's shown.** Before
+this round, PirateBox Progression's sociability/vigilance/resilience
+weights were computed and stored but never read by anything - a real
+gap against "personality weights should become visible through
+mannerisms." A new, deliberately small, separate function
+(`bias_ambient_expression()`, NOT part of the rarity engine below) now
+occasionally reshapes an ordinary ambient idle moment into a
+personality-flavored variant once a weight has drifted noticeably from
+its neutral starting point - subtle probabilities, never a permanent
+override, so a freshly-born device (every weight still neutral) shows
+none of this and variety is preserved even for a device whose history
+has pushed a weight to an extreme. Two PirateBoxes that accumulate
+different real usage patterns can gradually develop visibly different
+idle habits without either losing any base expression.
+
+**Contextual reactions, extended.** Client-arrival, wake, and the
+periodic flourish beat all gained additional alternates in
+`piratebox_progression.py`'s existing `EVENT_FAMILIES`/`roll_event()`
+rarity engine (unchanged mechanism - condition/cooldown/min_level-
+gated weighted selection, see the "PirateBox Progression" entry
+below) - some of the new alternates use the new `{"anim": "<id>"}`
+render-spec shape instead of `{"expression": ...}`/`{"scene": ...}`,
+resolved and flashed by `play_animation_burst()` before their settle
+frame is treated like any other render. A real miscalibration was
+caught and fixed during this round's own development (not left for a
+user to discover): the "ambient" family has no condition-free "common"
+baseline entry to dilute against (by original design - it's meant to
+return "no texture" almost every tick), so a short cooldown on a new
+entry there caused it to fire on nearly every eligible tick instead of
+reading as occasional - fixed by lengthening those cooldowns
+substantially, confirmed via the same integration smoke test.
+
+**Future sensor hardware plugs in with zero code change here when it
+arrives.** One new `EVENT_FAMILIES` condition reads
+`ctx["hardware"]` (from Progression's own `HARDWARE_SIGNALS`
+registry, still empty - see the "PirateBox Progression" entry) rather
+than any hardcoded assumption - permanently ineligible today, and
+automatically reachable the moment a future round registers a real
+reader, exactly the extension point that registry was built for. No
+sensor reading is fabricated anywhere in this round.
+
+**Operator-only physical-validation preview, not a permanent feature.**
+`piratebox-silly preview` writes a plain timestamp
+(`/tmp/piratebox/silly-preview-request`, pre-created via
+`etc/tmpfiles.d/piratebox-tmp.conf`, same recency-based no-acknowledge
+pattern as the short-press status-check override) that the OLED daemon
+detects and responds to by cycling a small, FIXED, hand-picked sampler
+of ordinary expressions/animations for about 45 seconds, then
+returning to normal on its own. Built entirely from plain dict
+literals, never by calling `roll_event()` - structurally incapable of
+surfacing an uncommon/rare/legendary/secret variant regardless of the
+device's real level/history or how many times it's run, satisfying the
+"clearly operator-only, never spoils rare content" requirement without
+a separate always-on debug flag to forget about. Requires Silly Mode
+to already be on (the CLI errors out with instructions otherwise,
+rather than silently forcing it on) and is naturally suppressed during
+Emergency Mode by the same priority chain that suppresses everything
+else there - no special-casing needed for that.
+
+**Priority ordering - unchanged shape, verified not just assumed.**
+The full chain remains `mode_transition` > `tier in (emergency, fault)`
+> `silly_toggle_just_happened` > `not silly_enabled` > `status_check_
+active` > [new] `preview_active` > the ok/warning-tier Silly branch
+(pending reveals > sleeping > held reaction/animation > cadence's
+status phase > ambient/flourish, personality bias, and rare-event
+texture). The preview override sits at the same tier as the button's
+own status-check override (an explicit, deliberate operator action) -
+both rank below Silly-off and below Emergency/fault, above ordinary
+personality.
+
+**Performance.** No new dependency, no new subprocess, no network
+call, no additional filesystem write cadence - `piratebox_
+expressions.py` imports nothing beyond what `piratebox_oled_daemon.py`
+already imported (PIL only). The one new per-tick cost is
+`read_preview_active()`'s file read (identical cost to the existing
+`read_status_check_active()`/`read_silly_toggle_edge()` reads already
+happening every tick) and, only while an animation burst is actually
+playing (a handful of times per hour at most, never during Emergency/
+fault), a few extra synchronous `device.display()` calls totaling well
+under one second. `piratebox-oled.service` still has no CPU/memory
+quota directive (none existed before this round either) - noted as a
+gap worth deciding on explicitly in a future round if richer content
+ever meaningfully changes that, not assumed to be already covered.
+
+**Testing:** new `tools/test_expressions.py` (19 tests) covering every
+expression/animation/scene renders without exception, the asymmetric-
+eyes and dict-frame-override paths, `resolve_animation_frames()`'s
+quip placement and unknown-id degradation, and `bias_ambient_
+expression()`'s determinism/eligibility/bounded-variety behavior with
+a seeded RNG. `tools/test_silly_mode.py` grew from 53 to 63 (new
+`PlayAnimationBurstTests`, `PreviewOverrideTests`,
+`PreviewPlaylistTests`, plus the sys.path fix above). `tools/test_
+progression.py` grew from 73 to 76 (the new hardware-gated condition
+tested directly rather than through forced dispatch - `force_next_
+event()` bypasses every condition/cooldown/min_level check by design,
+so it can't be used to prove a condition itself evaluates correctly;
+the new hidden achievement; the existing render-spec "typo guard" test
+extended to resolve and draw every `{"anim": ...}` variant's actual
+frames, not just wave the unresolved dict through `build_frame()`,
+which has no "anim" branch and would have silently drawn a blank face
+without ever failing). A full `main()`-loop integration smoke test
+(fake device, a simulated client arrival and a forced Emergency
+transition mid-run) confirmed animation/personality-bias wiring works
+end-to-end and Emergency still pre-empts everything from the very next
+tick, catching the ambient-cooldown miscalibration above live rather
+than after deployment. Full existing regression re-confirmed
+unaffected: PHP 339/339, `tools/test_button_daemon.py` 19/19.
+`systemd-tmpfiles --create --dry-run` clean (no systemd unit files
+changed this round - only the two `.py` daemons, the new `.py` module,
+`piratebox-silly`, and `etc/tmpfiles.d/piratebox-tmp.conf`).
+
 ## Double-tap Silly Mode toggle (physical button)
 
 **Decision date:** 2026-09-04. Adds a third gesture to the existing

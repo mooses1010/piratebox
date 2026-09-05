@@ -248,7 +248,19 @@ rebalance + short-press status-check override". Also user-toggleable
 by a double tap on that same physical button now, as an alternative to
 the `piratebox-silly on`/`off` CLI (both control the exact same state) -
 see `docs/OPERATIONAL-DECISIONS.md` → "Double-tap Silly Mode toggle
-(physical button)".
+(physical button)". **2026-09-04 (Expression Engine v2):** the face/
+animation drawing primitives and their data tables moved out of the
+daemon into their own module (`piratebox_expressions.py`), gained
+multi-frame animation (played as a brief, bounded synchronous burst -
+the display's redraw cadence itself is unchanged), a richer eye/
+decoration vocabulary, and a personality-mannerism layer that lets the
+existing sociability/vigilance/resilience weights actually influence
+which ambient variant shows. `piratebox-silly preview` is a new,
+operator-only physical-validation command that demos a fixed, non-
+secret sampler on the real display. See `docs/OPERATIONAL-DECISIONS.md`
+→ "Expression Engine v2" for the full architecture; per that entry's
+own spoiler policy, the new visual catalog itself isn't enumerated
+here either.
 
 **Progression (added 2026-09-04):** a persistent XP/level/title/
 achievement/history layer underneath Silly Mode, in its own module

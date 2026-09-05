@@ -361,6 +361,15 @@ from luma.core.interface.serial import i2c
 from luma.oled.device import ssd1306
 from PIL import Image, ImageDraw, ImageFont
 
+# Expression Engine v2 (2026-09-04) - see that module's own header, and
+# the "Silly Mode face rendering" comment further down this file, for
+# why every drawing primitive/data table lives there now, not here.
+from piratebox_expressions import (
+    EXPRESSIONS, ANIMATIONS, SCENES, FACE_CX, FACE_CY, EYE_DX, EYE_R,
+    draw_face, draw_zzz, draw_pirate_flourish, draw_scene,
+    draw_skull_and_crossbones, resolve_animation_frames, bias_ambient_expression,
+)
+
 I2C_PORT = 1
 I2C_ADDRESS = 0x3C
 RETRY_SECONDS = 20.0          # how long to wait between init attempts
@@ -393,6 +402,18 @@ SILLY_TOGGLE_REQUEST_FILE = "/tmp/piratebox/silly-toggle-request"  # double-
                                        # state is read fresh from SILLY_FILE
                                        # itself, never duplicated into this
                                        # file's own content.
+PREVIEW_REQUEST_FILE = "/tmp/piratebox/silly-preview-request"  # operator-
+                                       # only "show me common expressions"
+                                       # request from `piratebox-silly
+                                       # preview` - see read_preview_active()
+                                       # and PREVIEW_PLAYLIST below. Same
+                                       # recency-based, no-acknowledge
+                                       # pattern as STATUS_CHECK_REQUEST_FILE.
+PREVIEW_WINDOW_SECONDS = 45.0         # long enough to see the whole
+                                       # PREVIEW_PLAYLIST once at a
+                                       # relaxed pace, short enough that
+                                       # a forgotten preview can't run
+                                       # for long unattended
 STATUS_FILE = "/run/piratebox/status.json"
 TRANSITIONS_LOG = "/var/www/html/data/mode-transitions.log"
 HOSTAPD_CONF = "/etc/hostapd/hostapd.conf"
@@ -598,6 +619,51 @@ def read_status_check_active(now: float) -> bool:
         return False
     age = now - ts
     return 0.0 <= age < STATUS_CHECK_WINDOW_SECONDS
+
+
+def read_preview_active(now: float) -> bool:
+    """`piratebox-silly preview` (operator-only, see that script) writes
+    a plain Unix timestamp here - identical recency-based pattern to
+    read_status_check_active() above (same fail-safe degradation:
+    missing/malformed/future-timestamped all mean "not active"). No
+    daily cap, no cooldown - this is a deliberately simple, always-
+    available developer/operator tool, not a rarity-gated Silly
+    behavior; see PREVIEW_PLAYLIST below for why it can never show
+    secret/rare content regardless of how often it's run."""
+    try:
+        with open(PREVIEW_REQUEST_FILE, "r") as f:
+            ts = float(f.read().strip())
+    except (OSError, ValueError):
+        return False
+    age = now - ts
+    return 0.0 <= age < PREVIEW_WINDOW_SECONDS
+
+
+# A fixed, hand-picked, deterministic sampler of ordinary/common Silly
+# Mode content for `piratebox-silly preview` (see read_preview_active()
+# above) - built ENTIRELY from plain render-spec dicts, never by
+# calling piratebox_progression.roll_event(), so it is structurally
+# impossible for a preview to surface an uncommon/rare/legendary/secret
+# variant, no matter how many times an operator runs it or what the
+# device's real level/history/personality happens to be. This is the
+# "representative selection of the non-secret/common visual
+# improvements" the feature's own physical-validation step asked for -
+# deliberately not exhaustive (it doesn't enumerate the full EXPRESSIONS/
+# ANIMATIONS/SCENES tables), just enough of a sampler to judge whether
+# faces stay readable, timing feels right, and the personality/
+# information balance still feels right.
+PREVIEW_PLAYLIST = [
+    {"expression": "idle"},
+    {"expression": "happy"},
+    {"expression": "excited"},
+    {"expression": "curious"},
+    {"expression": "confused"},
+    {"expression": "content"},
+    {"anim": "quick_blink_pair"},
+    {"anim": "look_around_curious"},
+    {"expression": "pirate_flourish", "quip": "Preview mode, matey."},
+]
+PREVIEW_SECONDS_PER_ITEM = 5.0   # long enough to actually look at each one
 
 
 def read_silly_toggle_edge(markers: dict) -> bool:
@@ -951,161 +1017,21 @@ def advance_silly_cadence(phase: str, seconds_remaining: float, refresh_seconds:
 
 
 # --- Silly Mode face rendering ------------------------------------------
-# One parametrized primitive (draw_face) plus a small table mapping each
-# named expression to its (eyes, brows, mouth, decoration) parameters -
-# deliberately not one bespoke drawing function per expression, so
-# adding/tuning an expression is a one-line table edit, not new drawing
-# code. Every shape is a plain Pillow ellipse/arc/line/polygon, exactly
-# like every other page on this display already uses.
-
-FACE_CX, FACE_CY = 64, 27   # face center, leaving room above for the
-                             # corner badges and below for a quip line
-EYE_DX = 17                  # horizontal offset of each eye from center
-EYE_R = 9                    # eye socket radius
-
-EXPRESSIONS = {
-    # name:          (eyes,         brows,          mouth,        decoration)
-    "idle":          ("open",       "none",         "smile_small", None),
-    "blink":         ("closed",     "none",         "smile_small", None),
-    "look_left":     ("look_left",  "none",         "smile_small", None),
-    "look_right":    ("look_right", "none",         "smile_small", None),
-    "sleeping":      ("closed",     "none",         "flat",        None),
-    "waking":        ("half",       "raised",       "o",           None),
-    "happy":         ("open",       "none",         "smile_big",   None),
-    "excited":       ("wide",       "raised",       "o",           "sparkle"),
-    "surprised":     ("wide",       "raised",       "o_small",     None),
-    "confused":      ("open",       "one_raised",   "wavy",        None),
-    "smug":          ("half",       "one_raised",   "smirk",       None),
-    "ssh_watch":     ("open",       "flat",         "smirk",       None),
-    "royal_welcome": ("wide",       "raised",       "smile_big",   "crown"),
-}
-
-
-def draw_face(draw, eyes: str, brows: str, mouth: str, decoration: str = None) -> None:
-    cx, cy = FACE_CX, FACE_CY
-    lx, rx = cx - EYE_DX, cx + EYE_DX
-
-    if decoration == "crown":
-        draw.polygon(
-            [(cx - 16, cy - EYE_R - 12), (cx - 10, cy - EYE_R - 22), (cx - 4, cy - EYE_R - 12),
-             (cx, cy - EYE_R - 22), (cx + 4, cy - EYE_R - 12), (cx + 10, cy - EYE_R - 22),
-             (cx + 16, cy - EYE_R - 12)],
-            outline="white",
-        )
-
-    for ex in (lx, rx):
-        # "wink" closes only the right eye, regardless of the base
-        # `eyes` param for that side - the only per-eye asymmetry this
-        # face system needs, so it's handled as a narrow special case
-        # rather than a whole parallel eyes vocabulary.
-        this_eye = "closed" if (decoration == "wink" and ex == rx) else eyes
-        box = (ex - EYE_R, cy - EYE_R, ex + EYE_R, cy + EYE_R)
-        if this_eye == "closed":
-            draw.line((ex - EYE_R, cy, ex + EYE_R, cy), fill="white", width=2)
-        elif eyes == "half":
-            draw.arc(box, start=190, end=350, fill="white", width=2)
-        elif eyes == "wide":
-            wbox = (ex - EYE_R - 2, cy - EYE_R - 2, ex + EYE_R + 2, cy + EYE_R + 2)
-            draw.ellipse(wbox, outline="white", width=2)
-            draw.ellipse((ex - 3, cy - 3, ex + 3, cy + 3), fill="white")
-        elif eyes in ("look_left", "look_right"):
-            # Pupil pushed almost to the socket's edge (rather than a
-            # small nudge from center) - a subtle few-pixel shift reads
-            # as noise at this size, this reads as a clear direction.
-            draw.ellipse(box, outline="white", width=2)
-            shift = -(EYE_R - 4) if eyes == "look_left" else (EYE_R - 4)
-            draw.ellipse((ex + shift - 3, cy - 3, ex + shift + 3, cy + 3), fill="white")
-        else:  # "open"
-            draw.ellipse(box, outline="white", width=2)
-            draw.ellipse((ex - 3, cy - 3, ex + 3, cy + 3), fill="white")
-
-        if brows == "raised":
-            draw.line((ex - EYE_R, cy - EYE_R - 5, ex + EYE_R, cy - EYE_R - 8), fill="white", width=2)
-        elif brows == "flat":
-            draw.line((ex - EYE_R, cy - EYE_R - 4, ex + EYE_R, cy - EYE_R - 4), fill="white", width=2)
-        elif brows == "one_raised" and ex == rx:
-            draw.line((ex - EYE_R, cy - EYE_R - 3, ex + EYE_R, cy - EYE_R - 9), fill="white", width=2)
-
-        if decoration == "sparkle":
-            # A couple of short radiating tick marks above each eye -
-            # distinguishes "excited" from the otherwise-similar
-            # "surprised" (both wide-eyed) at a glance.
-            draw.line((ex - EYE_R - 3, cy - EYE_R - 2, ex - EYE_R - 7, cy - EYE_R - 6), fill="white", width=1)
-            draw.line((ex + EYE_R + 3, cy - EYE_R - 2, ex + EYE_R + 7, cy - EYE_R - 6), fill="white", width=1)
-
-    my = cy + 20
-    if mouth == "smile_small":
-        draw.arc((cx - 10, my - 6, cx + 10, my + 6), start=200, end=340, fill="white", width=2)
-    elif mouth == "smile_big":
-        draw.arc((cx - 16, my - 10, cx + 16, my + 8), start=200, end=340, fill="white", width=2)
-    elif mouth == "o":
-        draw.ellipse((cx - 6, my - 6, cx + 6, my + 6), outline="white", width=2)
-    elif mouth == "o_small":
-        draw.ellipse((cx - 4, my - 4, cx + 4, my + 4), outline="white", width=2)
-    elif mouth == "flat":
-        draw.line((cx - 8, my, cx + 8, my), fill="white", width=2)
-    elif mouth == "wavy":
-        draw.line([(cx - 10, my - 2), (cx - 4, my + 3), (cx + 2, my - 3), (cx + 8, my + 2)], fill="white", width=2)
-    elif mouth == "smirk":
-        draw.line((cx - 6, my + 2, cx + 8, my - 2), fill="white", width=2)
-
-
-def draw_zzz(draw, font_small, tick: int) -> None:
-    """A couple of small 'z's near the top-right of a sleeping face -
-    alternates size on tick parity for the only bit of "life" a resting
-    face needs."""
-    big = (tick % 2 == 0)
-    draw.text((FACE_CX + 22, FACE_CY - 26), "z" if big else "Z", font=font_small, fill="white")
-    draw.text((FACE_CX + 13, FACE_CY - 18), "Z" if big else "z", font=font_small, fill="white")
-
-
-def draw_pirate_flourish(draw, font, font_small, quip: str) -> None:
-    """The evolved skull-and-crossbones beat - same primitive as before
-    (draw_skull_and_crossbones), now one entry in Silly Mode's own
-    rotation rather than a standalone always-present page."""
-    draw_skull_and_crossbones(draw, 2, 4)
-    draw.text((38, 10), "PIRATEBOX", font=font, fill="white")
-    draw.text((0, 46), quip, font=font_small, fill="white")
-
-
-def draw_scene(draw, font, font_small, scene: str) -> None:
-    """Legendary/secret "scene" beats - a step up from a plain face,
-    still just plain Pillow primitives, still no image asset. Each is
-    hand-drawn once here; piratebox_progression.py never imports this
-    module or any drawing library - it only ever hands back a plain
-    `{"scene": "<name>"}` dict, keeping state/logic and rendering
-    cleanly separated (see that module's own header)."""
-    cx, cy = FACE_CX, FACE_CY
-    if scene == "shooting_star":
-        for sx, sy in ((14, 8), (100, 14), (60, 4), (30, 20), (110, 30)):
-            draw.point((sx, sy), fill="white")
-        draw.line((20, 10, 55, 24), fill="white", width=2)
-        draw.polygon([(55, 24), (49, 20), (51, 27)], fill="white")
-        draw_face(draw, "open", "raised", "o_small")
-    elif scene == "message_bottle":
-        draw.line((cx - 6, cy - 18, cx - 6, cy + 8), fill="white", width=2)
-        draw.line((cx + 6, cy - 18, cx + 6, cy + 8), fill="white", width=2)
-        draw.arc((cx - 6, cy - 4, cx + 6, cy + 14), start=0, end=180, fill="white", width=2)
-        draw.line((cx - 6, cy + 8, cx + 6, cy + 8), fill="white")
-        draw.line((cx - 3, cy - 22, cx - 3, cy - 18), fill="white", width=2)
-        draw.line((cx + 3, cy - 22, cx + 3, cy - 18), fill="white", width=2)
-        draw.rectangle((cx - 4, cy - 10, cx + 4, cy - 2), outline="white")  # the note, rolled inside
-    elif scene == "treasure_glimmer":
-        draw.rectangle((cx - 16, cy, cx + 16, cy + 14), outline="white")
-        draw.arc((cx - 16, cy - 10, cx + 16, cy + 6), start=180, end=360, fill="white", width=2)
-        for gx, gy in ((cx - 22, cy - 6), (cx + 20, cy - 4), (cx, cy - 14)):
-            draw.line((gx - 3, gy, gx + 3, gy), fill="white")
-            draw.line((gx, gy - 3, gx, gy + 3), fill="white")
-    elif scene == "reunion":
-        draw_face(draw, "wide", "raised", "smile_big")
-        for dx, dy in ((-30, 10), (28, 6), (-22, -20), (34, -16), (0, -26)):
-            draw.point((cx + dx, cy + dy), fill="white")
-    elif scene == "logbook":
-        draw.rectangle((cx - 20, cy - 16, cx + 20, cy + 16), outline="white")
-        for ly in range(cy - 10, cy + 12, 6):
-            draw.line((cx - 14, ly, cx + 14, ly), fill="white")
-    else:
-        draw_face(draw, "open", "none", "smile_small")
+# The actual drawing primitives and data tables (EXPRESSIONS, ANIMATIONS,
+# SCENES, draw_face/draw_scene/draw_zzz/draw_pirate_flourish/draw_skull_
+# and_crossbones, plus the personality-mannerism bias_ambient_expression())
+# moved out to piratebox_expressions.py in the "Expression Engine v2"
+# round (2026-09-04) - imported at the top of this file, see that
+# module's own header for the full rationale ("do not let this file
+# become an enormous pile of expression-specific conditionals"). This
+# daemon now only ever decides WHEN to show something (main()'s
+# priority chain, unchanged in shape) and hands off a render-spec dict
+# to render_silly() below, which is now a thin dispatcher over
+# piratebox_expressions's own functions - it no longer contains any
+# per-expression drawing logic itself. Every imported name (EXPRESSIONS,
+# draw_skull_and_crossbones, etc.) stays reachable as `piratebox_oled_
+# daemon.<name>` exactly as before, so no existing test needed to
+# change for this move alone.
 
 
 def render_silly(draw, font, font_small, render: dict, tier: str, alive_on: bool) -> None:
@@ -1180,31 +1106,6 @@ def render_achievement(draw, font, font_small, name: str) -> None:
     draw.text((2, 48), name, font=font_small, fill="white")
 
 
-def draw_skull_and_crossbones(draw, x: int, y: int, color: str = "white", bg: str = "black") -> None:
-    """A small (~28x28px) skull-and-crossbones, drawn with plain Pillow
-    primitives - no external image file, no font glyph, nothing beyond
-    what every other page on this display already uses. `color`/`bg`
-    default to every existing call site's assumption (a white skull on
-    a black page) - passing `color="black", bg="white"` (added 2026-
-    09-04 for the Silly Mode toggle confirmation banner, which is an
-    inverted white page) draws the same shape correctly there too,
-    without a second, near-duplicate drawing function."""
-    # Cranium
-    draw.ellipse((x, y, x + 24, y + 20), outline=color, fill=color)
-    # Eye sockets (punched out in the background color)
-    draw.ellipse((x + 4, y + 6, x + 10, y + 13), fill=bg)
-    draw.ellipse((x + 14, y + 6, x + 20, y + 13), fill=bg)
-    # Nose
-    draw.polygon([(x + 12, y + 13), (x + 10, y + 17), (x + 14, y + 17)], fill=bg)
-    # Jaw/teeth
-    draw.rectangle((x + 4, y + 19, x + 20, y + 24), outline=color, fill=color)
-    for tx in range(x + 6, x + 20, 3):
-        draw.line((tx, y + 19, tx, y + 24), fill=bg)
-    # Crossbones behind/below
-    draw.line((x - 4, y + 28, x + 28, y + 20), fill=color, width=2)
-    draw.line((x - 4, y + 20, x + 28, y + 28), fill=color, width=2)
-
-
 PAGE_ORDER = ["status", "time", "network", "health"]
 
 
@@ -1267,6 +1168,50 @@ def display_frame(device, new_img, old_img=None, transition: bool = False) -> No
             device.display(frame)
             time.sleep(0.04)
     device.display(new_img)
+
+
+def play_animation_burst(device, anim_id: str, tier: str, quip, font, font_small, font_big, mode: str):
+    """Multi-frame animation, Expression Engine v2 (2026-09-04). Flashes
+    a short (well under 1 second - each ANIMATIONS entry's own
+    frame_gap_s times its own frame count, see piratebox_expressions.py)
+    sequence of already-resolved single-frame Silly renders directly to
+    the display, bypassing the normal 3s-per-tick redraw pacing - the
+    SAME technique display_frame()'s own transition wipe already uses
+    (a handful of extra device.display() calls with a short time.sleep()
+    between), just repurposed for a snappy reaction instead of a page-
+    to-page wipe, and reusing ONE proven pattern rather than inventing a
+    second animation mechanism. This is a deliberately conservative way
+    to get real sub-3s animation without changing this daemon's overall
+    REFRESH_SECONDS or turning main() into a high-frequency redraw loop
+    (see piratebox_expressions.py's own ANIMATIONS docstring) - only
+    ever called from the ok/warning-tier, Silly-Mode-on branch of
+    main()'s priority chain, which Emergency/fault/mode-transition
+    already always pre-empt, so a burst can never delay a serious page.
+
+    Returns (final_render_dict, hold_ticks) so the caller can fold the
+    animation's own settle frame into the exact same hold/countdown
+    bookkeeping (`silly_hold_render`/`silly_hold_remaining`) a plain,
+    non-animated one-shot reaction already used before this round -
+    callers never need their own separate "an animation is playing"
+    state. Returns (None, None) for an unknown anim id (fail-safe,
+    matching every other unknown-key lookup in this daemon) - the
+    caller falls back to its own default render in that case."""
+    frame_specs, frame_gap_s, hold_ticks = resolve_animation_frames(anim_id, tier, quip=quip)
+    if frame_specs is None:
+        return None, None
+    for spec in frame_specs:
+        try:
+            img = build_frame(device, "silly", font, font_small, font_big, None, False, mode, extra=spec)
+            device.display(img)
+        except Exception:
+            # A real display failure mid-burst - let the caller's own
+            # end-of-tick try/except (which still runs right after this
+            # returns) discover and handle "lost contact with the OLED"
+            # exactly as it always does; this just stops flashing more
+            # frames into a display that's no longer responding.
+            break
+        time.sleep(frame_gap_s)
+    return frame_specs[-1]["render"], hold_ticks
 
 
 def load_fonts():
@@ -1380,6 +1325,14 @@ def main() -> int:
     # exactly one tick no matter what.
     silly_toggle_markers = {}
 
+    # Operator-only "preview common expressions" request (Expression
+    # Engine v2, 2026-09-04) - same edge-detected-banner-once, then-
+    # held-open-window shape as status_check_was_active above.
+    preview_was_active = False
+    preview_started_at = None
+    preview_last_index = -1
+    preview_current_render = None
+
     # Progression (piratebox_progression.py) - a separate, persistent,
     # always-on subsystem underneath Silly Mode. Loaded once at startup;
     # see that module's own header for the full design. A load/import
@@ -1454,6 +1407,13 @@ def main() -> int:
         status_check_active = read_status_check_active(now)
         status_check_just_started = status_check_active and not status_check_was_active
         status_check_was_active = status_check_active
+        preview_active = read_preview_active(now)
+        preview_just_started = preview_active and not preview_was_active
+        if preview_just_started:
+            preview_started_at = now
+            preview_last_index = -1
+            preview_current_render = None
+        preview_was_active = preview_active
         # Double-tap Silly toggle confirmation - edge is consumed every
         # single tick, even during Emergency/fault (see the branch below
         # for why): a toggle that happens mid-Emergency must never queue
@@ -1586,6 +1546,38 @@ def main() -> int:
             else:
                 page, extra = PAGE_ORDER[page_index], None
                 transition_wipe = seconds_on_current_page == 0.0 and last_image is not None
+        elif preview_active:
+            # Operator-only "show me common expressions" demo
+            # (Expression Engine v2 physical-validation aid, see
+            # `piratebox-silly preview` and PREVIEW_PLAYLIST above) -
+            # same priority tier as status_check_active immediately
+            # above (an explicit, deliberate operator action), and,
+            # like every branch here, can never run during Emergency/
+            # fault or while Silly Mode is off - both are already
+            # excluded higher in this chain, so this branch is only
+            # ever reached when neither applies. Cycles the fixed
+            # playlist once every PREVIEW_SECONDS_PER_ITEM for as long
+            # as the request stays fresh - no rarity engine call
+            # anywhere in this branch, so nothing shown here can ever
+            # be an uncommon/rare/legendary/secret variant, regardless
+            # of the device's real level/history. The CLI itself prints
+            # what's about to happen and for how long, so no dedicated
+            # opening banner page is needed here - the first playlist
+            # item just appears on the very next redraw.
+            elapsed = now - (preview_started_at or now)
+            preview_index = int(elapsed // PREVIEW_SECONDS_PER_ITEM) % len(PREVIEW_PLAYLIST)
+            if preview_index != preview_last_index or preview_current_render is None:
+                preview_last_index = preview_index
+                item = PREVIEW_PLAYLIST[preview_index]
+                if item.get("anim") is not None:
+                    final_render, _ = play_animation_burst(
+                        device, item["anim"], tier, item.get("quip"),
+                        font, font_small, font_big, mode,
+                    )
+                    preview_current_render = final_render or {"expression": "idle"}
+                else:
+                    preview_current_render = item
+            page, extra = "silly", {"render": preview_current_render, "tier": tier}
         else:
             # tier is "ok" or "warning," Silly Mode is on, and no
             # override is active.
@@ -1631,7 +1623,23 @@ def main() -> int:
                         render = None
                 if render is None:
                     render = {"expression": event}
-                silly_hold_render, silly_hold_remaining = render, SILLY_ONE_SHOT_HOLD_TICKS
+                if render.get("anim") is not None:
+                    # Expression Engine v2: the rarity engine picked an
+                    # animated variant for this event (e.g. an uncommon/
+                    # rare reaction upgraded from a plain static face) -
+                    # flash it now, then hold its settle frame exactly
+                    # like a plain one-shot reaction already would.
+                    final_render, anim_hold_ticks = play_animation_burst(
+                        device, render["anim"], tier, render.get("quip"),
+                        font, font_small, font_big, mode,
+                    )
+                    if final_render is not None:
+                        render, hold_ticks = final_render, anim_hold_ticks
+                    else:
+                        render, hold_ticks = {"expression": event}, SILLY_ONE_SHOT_HOLD_TICKS
+                else:
+                    hold_ticks = SILLY_ONE_SHOT_HOLD_TICKS
+                silly_hold_render, silly_hold_remaining = render, hold_ticks
 
             if pending_reveals and not in_special_state:
                 kind, payload = pending_reveals.pop(0)
@@ -1657,6 +1665,21 @@ def main() -> int:
                 expression = compute_silly_expression(
                     tick, has_clients=(current_clients or 0) > 0, ssh_active=ssh_active,
                 )
+                if progression is not None:
+                    # Personality-mannerism layer (Expression Engine v2,
+                    # 2026-09-04) - a no-op unless `expression` happens
+                    # to be one of the small handful bias_ambient_
+                    # expression() knows how to reshape (currently just
+                    # "idle"/"blink") AND the relevant weight has
+                    # drifted from neutral AND a modest probability roll
+                    # hits - see that function's own docstring. Never
+                    # touches "pirate_flourish"/"ssh_watch" (neither is
+                    # ever a substitution target), so this is safe to
+                    # call unconditionally right here rather than
+                    # special-casing which expressions are eligible.
+                    expression = bias_ambient_expression(
+                        expression, progression_state.get("weights", {}), progression_rng,
+                    )
                 render = {"expression": expression}
                 if expression == "pirate_flourish":
                     family = "flourish"
@@ -1671,7 +1694,9 @@ def main() -> int:
                             variant = None
                     if variant is not None:
                         render = dict(variant["render"])
-                    if "quip" not in render or render.get("quip") is None:
+                    if render.get("anim") is None and (
+                        "quip" not in render or render.get("quip") is None
+                    ):
                         n = current_clients if current_clients is not None else 0
                         render = dict(render)
                         render["quip"] = SILLY_QUIPS[
@@ -1690,6 +1715,20 @@ def main() -> int:
                             render = dict(variant["render"])
                     except Exception:  # noqa: BLE001
                         pass
+
+                if render.get("anim") is not None:
+                    # An animated flourish/ambient variant was picked -
+                    # flash it now and fold its settle frame into the
+                    # ordinary hold mechanism, exactly like an animated
+                    # event reaction does above, so it stays visible for
+                    # more than the one tick a plain flourish gets.
+                    final_render, anim_hold_ticks = play_animation_burst(
+                        device, render["anim"], tier, render.get("quip"),
+                        font, font_small, font_big, mode,
+                    )
+                    if final_render is not None:
+                        silly_hold_render, silly_hold_remaining = final_render, anim_hold_ticks
+                        render = final_render
                 page, extra = "silly", {"render": render, "tier": tier}
 
         try:

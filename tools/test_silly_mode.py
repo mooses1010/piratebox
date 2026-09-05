@@ -23,6 +23,15 @@ import unittest
 HERE = os.path.dirname(os.path.abspath(__file__))
 DAEMON_PATH = os.path.join(HERE, "..", "piratebox_oled_daemon.py")
 
+# piratebox_oled_daemon.py now does a top-level `from piratebox_expressions
+# import ...` (Expression Engine v2, 2026-09-04) - in production this
+# resolves for free (both files are deployed side-by-side to
+# /usr/local/bin, and Python auto-adds a directly-run script's own
+# directory to sys.path[0]), but loading the daemon by file path via
+# importlib (below) does not add its directory to sys.path on its own,
+# so the sibling import would fail here without this line.
+sys.path.insert(0, os.path.dirname(DAEMON_PATH))
+
 spec = importlib.util.spec_from_file_location("piratebox_oled_daemon", DAEMON_PATH)
 oled = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(oled)
@@ -31,6 +40,27 @@ spec.loader.exec_module(oled)
 class FakeDevice:
     mode = "1"
     size = (128, 64)
+
+    def display(self, img):
+        # No-op - real hardware writes here; tests only need something
+        # that accepts the call without touching an I2C bus. Records
+        # nothing by default (see RecordingFakeDevice below for tests
+        # that need to inspect what was "shown").
+        pass
+
+
+class RecordingFakeDevice(FakeDevice):
+    """Same as FakeDevice, but remembers every image handed to
+    display() (just a count and the last one) - for tests that need to
+    confirm play_animation_burst() actually flashed multiple frames."""
+
+    def __init__(self):
+        self.display_count = 0
+        self.last_image = None
+
+    def display(self, img):
+        self.display_count += 1
+        self.last_image = img
 
 
 HEALTHY_STATUS = {
@@ -542,6 +572,137 @@ class SillyTogglePriorityIntegrationTests(unittest.TestCase):
         else:
             page = "silly"
         self.assertEqual(page, "serious_rotation")
+
+
+class PlayAnimationBurstTests(unittest.TestCase):
+    """play_animation_burst() - Expression Engine v2 (2026-09-04). Uses
+    a real (tiny) time.sleep() between frames, same acceptance already
+    made for tools/test_button_daemon.py's double-tap timer tests -
+    monkeypatches ANIMATIONS' own frame_gap_s down to something
+    negligible so this suite stays fast without mocking time.sleep
+    itself (mocking it would also hide a real regression where a frame
+    gap became huge)."""
+
+    def setUp(self):
+        self._orig_gap = oled.ANIMATIONS["quick_blink_pair"]["frame_gap_s"]
+        oled.ANIMATIONS["quick_blink_pair"]["frame_gap_s"] = 0.001
+
+    def tearDown(self):
+        oled.ANIMATIONS["quick_blink_pair"]["frame_gap_s"] = self._orig_gap
+
+    def test_flashes_every_frame_to_the_device(self):
+        dev = RecordingFakeDevice()
+        font, font_small, font_big = oled.load_fonts()
+        expected_frames = len(oled.ANIMATIONS["quick_blink_pair"]["frames"])
+        oled.play_animation_burst(dev, "quick_blink_pair", "ok", None, font, font_small, font_big, "normal")
+        self.assertEqual(dev.display_count, expected_frames)
+
+    def test_returns_the_final_frames_render_and_the_animations_own_hold_ticks(self):
+        dev = RecordingFakeDevice()
+        font, font_small, font_big = oled.load_fonts()
+        final_render, hold_ticks = oled.play_animation_burst(
+            dev, "quick_blink_pair", "ok", "a quip", font, font_small, font_big, "normal",
+        )
+        self.assertEqual(final_render, {"expression": "idle", "quip": "a quip"})
+        self.assertEqual(hold_ticks, oled.ANIMATIONS["quick_blink_pair"]["hold_ticks"])
+
+    def test_unknown_animation_id_returns_none_none(self):
+        dev = RecordingFakeDevice()
+        font, font_small, font_big = oled.load_fonts()
+        final_render, hold_ticks = oled.play_animation_burst(
+            dev, "no_such_animation", "ok", None, font, font_small, font_big, "normal",
+        )
+        self.assertIsNone(final_render)
+        self.assertIsNone(hold_ticks)
+        self.assertEqual(dev.display_count, 0)
+
+    def test_a_mid_burst_display_failure_stops_the_burst_without_raising(self):
+        class FlakyDevice(RecordingFakeDevice):
+            def display(self, img):
+                super().display(img)
+                if self.display_count == 2:
+                    raise OSError("simulated I2C loss")
+
+        dev = FlakyDevice()
+        font, font_small, font_big = oled.load_fonts()
+        # Must not raise - the caller's own end-of-tick try/except is
+        # what actually handles "lost contact with the OLED" (see that
+        # function's own docstring); this just stops flashing more.
+        oled.play_animation_burst(dev, "quick_blink_pair", "ok", None, font, font_small, font_big, "normal")
+        self.assertEqual(dev.display_count, 2)
+
+
+class PreviewOverrideTests(unittest.TestCase):
+    """read_preview_active() - the OLED side of `piratebox-silly
+    preview`'s operator-only demo request. Identical recency-based
+    pattern to StatusCheckOverrideTests above."""
+
+    def setUp(self):
+        self._orig = oled.PREVIEW_REQUEST_FILE
+        fd, self.path = tempfile.mkstemp()
+        os.close(fd)
+        oled.PREVIEW_REQUEST_FILE = self.path
+
+    def tearDown(self):
+        oled.PREVIEW_REQUEST_FILE = self._orig
+        if os.path.exists(self.path):
+            os.unlink(self.path)
+
+    def write(self, content):
+        with open(self.path, "w") as f:
+            f.write(content)
+
+    def test_missing_file_is_inactive(self):
+        os.unlink(self.path)
+        self.assertFalse(oled.read_preview_active(1000.0))
+
+    def test_recent_timestamp_is_active(self):
+        self.write("1000.0\n")
+        self.assertTrue(oled.read_preview_active(1005.0))
+
+    def test_old_timestamp_is_inactive(self):
+        self.write("1000.0\n")
+        self.assertFalse(oled.read_preview_active(1000.0 + oled.PREVIEW_WINDOW_SECONDS + 1))
+
+    def test_garbage_content_is_inactive_not_a_crash(self):
+        self.write("not a number")
+        self.assertFalse(oled.read_preview_active(1000.0))
+
+
+class PreviewPlaylistTests(unittest.TestCase):
+    """The fixed, hand-picked, non-rarity-engine playlist itself -
+    every item must be drawable, and none may reference an uncommon/
+    rare/legendary/secret variant id (structurally impossible anyway,
+    since this playlist never calls roll_event(), but this guards
+    against a future edit accidentally wiring it through that path)."""
+
+    def test_every_item_renders_without_exception(self):
+        font, font_small, font_big = oled.load_fonts()
+        dev = FakeDevice()
+        for item in oled.PREVIEW_PLAYLIST:
+            if item.get("anim") is not None:
+                specs, _, _ = oled.resolve_animation_frames(item["anim"], "ok", quip=item.get("quip"))
+                self.assertIsNotNone(specs)
+                for spec in specs:
+                    img = oled.build_frame(
+                        dev, "silly", font, font_small, font_big, None, False, "normal", extra=spec,
+                    )
+                    self.assertEqual(img.size, (128, 64))
+            else:
+                img = oled.build_frame(
+                    dev, "silly", font, font_small, font_big, None, False, "normal",
+                    extra={"render": item, "tier": "ok"},
+                )
+                self.assertEqual(img.size, (128, 64))
+
+    def test_playlist_never_calls_the_rarity_engine(self):
+        """Structural guard, not just a behavioral one: every item is a
+        plain dict literal, never the result of roll_event() - so
+        there's no live progression state a preview run could possibly
+        read from at all."""
+        for item in oled.PREVIEW_PLAYLIST:
+            self.assertIsInstance(item, dict)
+            self.assertNotIn("id", item)  # roll_event() variants always carry an "id"; playlist items never do
 
 
 if __name__ == "__main__":
