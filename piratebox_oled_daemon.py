@@ -394,7 +394,7 @@ from piratebox_expressions import (
 # weighting selection and pixel-level rendering, and touches no I/O of
 # its own - see that module's own header for the full rationale.
 from piratebox_glance import (
-    GLANCE_PAGES, GLANCE_PREVIEW_ORDER, render_glance_page, select_glance_page,
+    GLANCE_PAGES, GLANCE_PREVIEW_ORDER, LABEL_FONT_SIZES, render_glance_page, select_glance_page,
 )
 
 I2C_PORT = 1
@@ -1379,7 +1379,8 @@ def build_frame(
         render_silly_toggle_banner(draw, font, font_big, extra["new_state"])
     elif page == "glance":
         render_glance_page(
-            draw, font_small, extra["font_medium"], extra["font_big"],
+            draw, extra["label_fonts"], extra["font_cpu_label"],
+            extra["font_medium"], extra["font_big"],
             extra["page_id"], extra["metrics"],
         )
     return img
@@ -1474,29 +1475,47 @@ def load_fonts():
 
 
 def load_glance_fonts():
-    """Two more sizes of the same face, for the Distance/Glance Display
-    (2026-09-04) - kept as a SEPARATE function rather than widening
-    load_fonts()'s own return tuple, since that tuple's exact 3-item
-    shape (`font, font_small, font_big = load_fonts()`) is already
-    unpacked positionally in a couple dozen places across this file and
-    every test that loads it - changing its arity would be a needless,
-    wide-blast-radius risk for what is really an unrelated, additive
-    need. 22pt ("medium") is used for a page with two stacked values
-    (e.g. CPU's percent-and-temperature) or a longer string (uptime);
-    32pt ("big") is used for a page with exactly one short value,
-    letting it fill as much of the 128x64 canvas as legibly possible -
-    see piratebox_glance.py's own render functions for exactly which
-    page uses which. Same fail-safe fallback as load_fonts() - a
-    missing TTF degrades to PIL's bitmap default, never a crash."""
+    """Fonts for the Distance/Glance Display (2026-09-04) - kept as a
+    SEPARATE function rather than widening load_fonts()'s own return
+    tuple, since that tuple's exact 3-item shape (`font, font_small,
+    font_big = load_fonts()`) is already unpacked positionally in a
+    couple dozen places across this file and every test that loads it
+    - changing its arity would be a needless, wide-blast-radius risk
+    for what is really an unrelated, additive need.
+
+    Returns (label_fonts, font_cpu_label, font_medium, font_big):
+      - `label_fonts`: a 3-tuple of pre-loaded sizes matching
+        piratebox_glance.LABEL_FONT_SIZES (biggest first) - that
+        module picks the largest of these that actually fits a given
+        label's measured width (see its own _fit_label_font()), fixing
+        a real physical-validation finding (2026-09-04): the original
+        single small (9pt) label size was unreadable at the same
+        distance the big numeric value below it read fine at.
+      - `font_cpu_label`: the CPU page's own dedicated, smaller label
+        size - that page stacks two values instead of one, so it has
+        less vertical room than the single-value pages label_fonts
+        serves; see piratebox_glance.py's own render_glance_page() note.
+      - `font_medium` (22pt): a page with two stacked values (CPU's
+        percent-and-temperature) or a longer single value (uptime).
+      - `font_big` (32pt): a page with exactly one short value, filling
+        as much of the 128x64 canvas as legibly possible.
+    Value sizes/positions are UNCHANGED from before the label-size fix,
+    per instruction to leave already-validated numeric readability
+    alone - only the label side of load_glance_fonts() grew. Same
+    fail-safe fallback as load_fonts() - a missing TTF degrades to
+    PIL's bitmap default for every size, never a crash."""
     try:
+        label_fonts = tuple(ImageFont.truetype(FONT_PATH, size) for size in LABEL_FONT_SIZES)
         return (
+            label_fonts,
+            ImageFont.truetype(FONT_PATH, 20),
             ImageFont.truetype(FONT_PATH, 22),
             ImageFont.truetype(FONT_PATH, 32),
         )
     except OSError:
         log.warning("Could not load %s for glance fonts, falling back to PIL default bitmap font.", FONT_PATH)
         default = ImageFont.load_default()
-        return default, default
+        return (default, default, default), default, default, default
 
 
 def init_device():
@@ -1638,7 +1657,7 @@ def main() -> int:
     glance_preview_started_at = None
     glance_preview_last_index = -1
 
-    font_glance_medium, font_glance_big = load_glance_fonts()
+    glance_label_fonts, font_glance_cpu_label, font_glance_medium, font_glance_big = load_glance_fonts()
 
     # Progression (piratebox_progression.py) - a separate, persistent,
     # always-on subsystem underneath Silly Mode. Loaded once at startup;
@@ -1856,6 +1875,7 @@ def main() -> int:
                 glance_metrics, prev_cpu_jiffies = build_glance_metrics(status, stale, prev_cpu_jiffies, pulse_now)
             page, extra = "glance", {
                 "page_id": glance_page_id, "metrics": glance_metrics,
+                "label_fonts": glance_label_fonts, "font_cpu_label": font_glance_cpu_label,
                 "font_medium": font_glance_medium, "font_big": font_glance_big,
             }
         elif not silly_enabled:
@@ -1889,7 +1909,8 @@ def main() -> int:
                     offline_glance_was_active = True
                 page, extra = "glance", {
                     "page_id": glance_page_id, "metrics": glance_metrics,
-                    "font_medium": font_glance_medium, "font_big": font_glance_big,
+                    "label_fonts": glance_label_fonts, "font_cpu_label": font_glance_cpu_label,
+                "font_medium": font_glance_medium, "font_big": font_glance_big,
                 }
             else:
                 offline_glance_was_active = False
@@ -2031,7 +2052,8 @@ def main() -> int:
                     silly_glance_was_active = True
                 page, extra = "glance", {
                     "page_id": glance_page_id, "metrics": glance_metrics,
-                    "font_medium": font_glance_medium, "font_big": font_glance_big,
+                    "label_fonts": glance_label_fonts, "font_cpu_label": font_glance_cpu_label,
+                "font_medium": font_glance_medium, "font_big": font_glance_big,
                 }
             elif silly_cadence_phase == "status":
                 silly_glance_was_active = False

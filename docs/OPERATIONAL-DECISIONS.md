@@ -183,6 +183,58 @@ tmpfiles.d dry-run both clean - no systemd unit files changed this
 round (the one new signal file lives inside the already-bound `/tmp/
 piratebox` directory).
 
+**Follow-up: label readability fix, same day.** Physical validation on
+the real OLED passed for the numeric values (readable at the intended
+distance) but failed for the small label above each one (`font_small`,
+the same 9pt this daemon's other pages use for secondary detail) -
+readable up close, not from across the desk, defeating half the
+point. Fixed with a focused change to `piratebox_glance.py` only - the
+scheduler, cadence, controls, Expression Engine v2, and every other
+page were untouched:
+- A 3-size label font ladder (36/32/28pt, biggest first) plus
+  `_fit_label_font()`, which measures each label's actual rendered
+  width and picks the LARGEST tier that fits - not one fixed giant
+  font that would have clipped "CLIENTS"/"UPTIME". CPU/RAM/DISK/TIME/
+  POWER all comfortably fit the biggest tier and use it; CLIENTS steps
+  down to 28pt and UPTIME to 32pt, each exactly as far as its own
+  measured width requires and no further.
+- CPU keeps its own separate, smaller (20pt) label size - it stacks
+  two values instead of one, so it structurally has less vertical room
+  than the single-value pages, a legitimate difference from a width
+  problem, not the same fix applied inconsistently.
+- New `_draw_top_aligned()` positions each label so its actual rendered
+  ink (measured via `textbbox`, not guessed) starts at a fixed pixel
+  regardless of which ladder tier got picked - the same "measure, don't
+  guess" discipline `_centered_x()` already used horizontally.
+- Numeric VALUES are unchanged in font size; only their y-position
+  shifted slightly downward to make room for the now-much-larger label
+  above them, per instruction to leave already-validated value
+  readability alone.
+- `load_glance_fonts()` (the daemon) now loads the label ladder + CPU's
+  own label size alongside the two existing, unchanged value sizes -
+  still all loaded once at startup, not per-frame; `piratebox_
+  glance.py` still does zero I/O of its own, only choosing among
+  already-loaded font objects via pure Pillow geometry.
+
+**Testing:** `tools/test_glance.py` grew from 22 to 28 - a new
+`LabelFitTests` class with real pixel-level clipping guards (not just
+"doesn't raise"): confirms short labels get the biggest tier, confirms
+CLIENTS/UPTIME step down only as far as actually needed (never further,
+guarding against an over-cautious fit), confirms no label's measured
+width ever reaches the 128px canvas edge, and - the strongest guard -
+scans the actual rendered bitmap of every declared page at its most
+extreme real values (100%/-99°C, 999 clients, "99d 23h" uptime, "23:59"
+time) for the lowest lit pixel row, failing if content reaches the
+canvas's last row. `tools/test_silly_mode.py`'s existing glance
+dispatch tests updated for the new font-loading signature (same test
+count, no new tests needed there - the dispatch wiring itself didn't
+change in kind, only which font objects flow through it). Full
+regression re-confirmed unaffected: PHP 339/339, `test_expressions.py`
+19/19, `test_progression.py` 76/76, `test_button_daemon.py` 19/19,
+`test_silly_mode.py` 103/103. A full `main()`-loop smoke test
+confirmed the new font-loading signature works end-to-end through
+`glance-preview`, not just in isolated unit tests.
+
 ## Expression Engine v2 (Silly Mode's visual personality, substantially deepened)
 
 **Decision date:** 2026-09-04. Evolves Silly Mode's existing face

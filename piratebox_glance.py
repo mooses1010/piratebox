@@ -86,6 +86,21 @@ def _draw_centered(draw, text: str, font, y: int, canvas_w: int = CANVAS_W, fill
     draw.text((_centered_x(draw, text, font, canvas_w), y), text, font=font, fill=fill)
 
 
+def _draw_top_aligned(draw, text: str, font, top_y: int, canvas_w: int = CANVAS_W, fill: str = "white") -> None:
+    """Like _draw_centered(), but positions the text so its actual
+    rendered INK top edge lands at `top_y`, not wherever the font's own
+    internal line metrics happen to put it (DejaVu Sans Mono's
+    ascender space above a plain all-caps label varies by size, so a
+    literal y=1 would drift down at larger sizes) - measured via
+    textbbox, the same "don't guess, measure" discipline _centered_x()
+    already uses horizontally. This is what makes the label-vs-value
+    vertical budget on each page below predictable across every label
+    font size LABEL_FONT_SIZES actually picks."""
+    bbox = draw.textbbox((0, 0), text, font=font)
+    x = max(0, (canvas_w - (bbox[2] - bbox[0])) // 2) - bbox[0]
+    draw.text((x, top_y - bbox[1]), text, font=font, fill=fill)
+
+
 def _fmt_pct(value) -> str:
     return "--%" if value is None else f"{round(value)}%"
 
@@ -94,51 +109,114 @@ def _fmt_temp(value) -> str:
     return "--C" if value is None else f"{round(value)}C"
 
 
+# --- Label sizing: "fit intelligently," not one fixed giant font -------
+#
+# Physical validation (2026-09-04) confirmed the numeric VALUES read
+# fine at distance but the small label above them ("CPU"/"DISK"/etc.,
+# originally drawn at the same 9pt font_small every other serious page
+# uses for secondary detail) did not - defeating half the point of a
+# distance page. Fixed with a small font LADDER instead of one bigger
+# fixed size: LABEL_FONT_SIZES, biggest first. _fit_label_font() below
+# picks the LARGEST of these three that still fits a given label's
+# actual measured width (with a small margin) - short labels (CPU, RAM,
+# DISK, TIME, POWER) all comfortably fit the biggest size and use it;
+# the two genuinely long ones (CLIENTS, UPTIME) step down exactly as
+# far as their own width requires and no further, so nothing clips and
+# nothing is needlessly small just because ONE label is long. This
+# means piratebox_oled_daemon.py's load_glance_fonts() now loads three
+# label sizes (plus the two existing value sizes, unchanged) - still
+# all loaded ONCE at daemon startup, not per-frame; this module still
+# does zero I/O of its own, only picking among ALREADY-LOADED font
+# objects it's handed, via pure Pillow geometry (textbbox), matching
+# every other measurement in this file.
+LABEL_FONT_SIZES = (36, 32, 28)  # must match load_glance_fonts()'s own
+                                   # label_fonts tuple order (biggest first)
+LABEL_MAX_WIDTH = CANVAS_W - 8    # 4px margin each side
+
+
+def _fit_label_font(draw, text: str, label_fonts):
+    """`label_fonts` is a sequence of pre-loaded ImageFont objects,
+    ordered to match LABEL_FONT_SIZES (biggest first). Returns the
+    first one whose rendered width for `text` fits LABEL_MAX_WIDTH;
+    falls back to the smallest if even that doesn't fit (never raises -
+    every label this module actually uses today fits comfortably
+    within the smallest size, verified by test_glance.py, but a future
+    label added without checking its width degrades to "smallest
+    available" rather than clipping silently off-screen)."""
+    for font in label_fonts:
+        bbox = draw.textbbox((0, 0), text, font=font)
+        if bbox[2] - bbox[0] <= LABEL_MAX_WIDTH:
+            return font
+    return label_fonts[-1]
+
+
+def _draw_label(draw, text: str, label_fonts, top_y: int = 1) -> None:
+    """The one label-drawing entry point every render function below
+    uses - picks the best-fitting size from `label_fonts` (see
+    _fit_label_font()) and top-aligns it at `top_y` (see
+    _draw_top_aligned()) so the label always starts at a predictable
+    pixel regardless of which size it ended up using."""
+    _draw_top_aligned(draw, text, _fit_label_font(draw, text, label_fonts), top_y)
+
+
 # --- One render function per page -------------------------------------
-# Each takes (draw, font_small, font_medium, font_big, metrics) and
-# draws exactly one full-screen page: a short label near the top in
-# font_small (minimal decoration, per instruction - no boxes/icons
-# here, those cost pixels this page's whole point needs), then the
-# value(s) as large as the layout allows, centered. Every one handles
-# a missing/None metric by showing a "--" placeholder rather than
-# crashing or printing a garbled value - whether a page is worth
-# showing AT ALL given missing data is the SCHEDULER's job
+# Each takes (draw, label_fonts, font_cpu_label, font_medium, font_big,
+# metrics) and draws exactly one full-screen page: a label near the
+# top (as large as LABEL_FONT_SIZES allows it to be, per the note
+# above - minimal decoration otherwise, per instruction: no boxes/
+# icons here, those cost pixels this page's whole point needs), then
+# the value(s) as large as the layout allows, centered - value sizing/
+# positioning is UNCHANGED from before the label-size fix, per
+# instruction to leave already-validated numeric readability alone.
+# Every one handles a missing/None metric by showing a "--" placeholder
+# rather than crashing or printing a garbled value - whether a page is
+# worth showing AT ALL given missing data is the SCHEDULER's job
 # (`eligible()` below), not the renderer's; a renderer's job is to
 # never look broken if it does get called.
+#
+# CPU is the one page with two stacked values instead of one, so it
+# structurally has less vertical room for its own label than the
+# single-value pages below - `font_cpu_label` is a dedicated, smaller
+# label size chosen specifically to leave that room without shrinking
+# either value line, rather than running "CPU" (which would otherwise
+# fit the biggest LABEL_FONT_SIZES tier easily) through the same
+# fit-to-width ladder the single-value pages use, which answers a
+# different question (does it fit the WIDTH) than the one that
+# actually constrains this page (does everything fit the HEIGHT).
 
-def _render_cpu(draw, font_small, font_medium, font_big, metrics: dict) -> None:
-    _draw_centered(draw, "CPU", font_small, 1)
-    _draw_centered(draw, _fmt_pct(metrics.get("cpu_percent")), font_medium, 14)
-    _draw_centered(draw, _fmt_temp(metrics.get("cpu_temp_c")), font_medium, 37)
+def _render_cpu(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics: dict) -> None:
+    _draw_top_aligned(draw, "CPU", font_cpu_label, 0)
+    _draw_centered(draw, _fmt_pct(metrics.get("cpu_percent")), font_medium, 19)
+    _draw_centered(draw, _fmt_temp(metrics.get("cpu_temp_c")), font_medium, 41)
 
 
-def _render_ram(draw, font_small, font_medium, font_big, metrics: dict) -> None:
-    _draw_centered(draw, "RAM", font_small, 1)
-    _draw_centered(draw, _fmt_pct(metrics.get("ram_percent")), font_big, 20)
+def _render_ram(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics: dict) -> None:
+    _draw_label(draw, "RAM", label_fonts)
+    _draw_centered(draw, _fmt_pct(metrics.get("ram_percent")), font_big, 30)
 
 
-def _render_disk(draw, font_small, font_medium, font_big, metrics: dict) -> None:
-    _draw_centered(draw, "DISK", font_small, 1)
-    _draw_centered(draw, _fmt_pct(metrics.get("disk_percent")), font_big, 20)
+def _render_disk(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics: dict) -> None:
+    _draw_label(draw, "DISK", label_fonts)
+    _draw_centered(draw, _fmt_pct(metrics.get("disk_percent")), font_big, 30)
 
 
-def _render_clients(draw, font_small, font_medium, font_big, metrics: dict) -> None:
-    _draw_centered(draw, "CLIENTS", font_small, 1)
+def _render_clients(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics: dict) -> None:
+    _draw_label(draw, "CLIENTS", label_fonts)
     clients = metrics.get("clients")
-    _draw_centered(draw, "--" if clients is None else str(clients), font_big, 20)
+    _draw_centered(draw, "--" if clients is None else str(clients), font_big, 30)
 
 
-def _render_uptime(draw, font_small, font_medium, font_big, metrics: dict) -> None:
-    _draw_centered(draw, "UPTIME", font_small, 1)
-    _draw_centered(draw, metrics.get("uptime_str") or "--", font_medium, 24)
+def _render_uptime(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics: dict) -> None:
+    _draw_label(draw, "UPTIME", label_fonts)
+    _draw_centered(draw, metrics.get("uptime_str") or "--", font_medium, 33)
 
 
-def _render_time(draw, font_small, font_medium, font_big, metrics: dict) -> None:
-    _draw_centered(draw, "TIME", font_small, 1)
-    _draw_centered(draw, metrics.get("time_str") or "--:--", font_big, 20)
+def _render_time(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics: dict) -> None:
+    _draw_label(draw, "TIME", label_fonts)
+    _draw_centered(draw, metrics.get("time_str") or "--:--", font_big, 30)
 
 
-def _render_power_warning(draw, font_small, font_medium, font_big, metrics: dict) -> None:
+def _render_power_warning(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics: dict) -> None:
     # Deliberately plain, not alarming beyond what a WARNING tier fact
     # warrants - this is the chronic undervoltage condition
     # (docs/POWER-INTEGRITY-DIAGNOSIS.md), represented honestly but
@@ -147,8 +225,8 @@ def _render_power_warning(draw, font_small, font_medium, font_big, metrics: dict
     # piratebox_oled_daemon.py's compute_display_tier()/priority chain,
     # unchanged by this feature - a glance page is NEVER how Emergency
     # is presented).
-    _draw_centered(draw, "POWER", font_small, 1)
-    _draw_centered(draw, "LOW", font_big, 20)
+    _draw_label(draw, "POWER", label_fonts)
+    _draw_centered(draw, "LOW", font_big, 30)
 
 
 _RENDERERS = {
@@ -162,17 +240,19 @@ _RENDERERS = {
 }
 
 
-def render_glance_page(draw, font_small, font_medium, font_big, page_id: str, metrics: dict) -> None:
+def render_glance_page(draw, label_fonts, font_cpu_label, font_medium, font_big, page_id: str, metrics: dict) -> None:
     """The sole entry point piratebox_oled_daemon.py's build_frame()
-    calls for page=="glance". An unknown page_id degrades to a plain
-    "--" rather than raising - matches the fail-safe fallback every
-    other unknown-key lookup in this project already uses (e.g.
+    calls for page=="glance". `label_fonts` is the 3-tuple described
+    above (LABEL_FONT_SIZES order); `font_cpu_label` is the CPU page's
+    own dedicated smaller label size. An unknown page_id degrades to a
+    plain "--" rather than raising - matches the fail-safe fallback
+    every other unknown-key lookup in this project already uses (e.g.
     draw_scene()'s own unknown-scene default)."""
     renderer = _RENDERERS.get(page_id)
     if renderer is None:
         _draw_centered(draw, "--", font_big, 20)
         return
-    renderer(draw, font_small, font_medium, font_big, metrics)
+    renderer(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics)
 
 
 # --- Eligibility / weighting registry + scheduler -----------------------

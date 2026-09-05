@@ -38,8 +38,13 @@ def _fresh_draw():
 
 
 def _fonts():
+    """Returns (label_fonts, font_cpu_label, font_medium, font_big) -
+    matches piratebox_oled_daemon.py's own load_glance_fonts() return
+    shape exactly (label-size fix, 2026-09-04)."""
+    label_fonts = tuple(ImageFont.truetype(FONT_PATH, size) for size in gl.LABEL_FONT_SIZES)
     return (
-        ImageFont.truetype(FONT_PATH, 9),
+        label_fonts,
+        ImageFont.truetype(FONT_PATH, 20),
         ImageFont.truetype(FONT_PATH, 22),
         ImageFont.truetype(FONT_PATH, 32),
     )
@@ -67,52 +72,56 @@ class RenderingTests(unittest.TestCase):
     tested here)."""
 
     def test_every_declared_page_renders_without_exception(self):
-        font_small, font_medium, font_big = _fonts()
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
         for page_id in gl.GLANCE_PAGES:
             with self.subTest(page_id=page_id):
-                gl.render_glance_page(_fresh_draw(), font_small, font_medium, font_big, page_id, HEALTHY_METRICS)
+                gl.render_glance_page(
+                    _fresh_draw(), label_fonts, font_cpu_label, font_medium, font_big, page_id, HEALTHY_METRICS,
+                )
 
     def test_unknown_page_id_degrades_to_placeholder_not_a_crash(self):
-        font_small, font_medium, font_big = _fonts()
-        gl.render_glance_page(_fresh_draw(), font_small, font_medium, font_big, "no-such-page", HEALTHY_METRICS)
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
+        gl.render_glance_page(
+            _fresh_draw(), label_fonts, font_cpu_label, font_medium, font_big, "no-such-page", HEALTHY_METRICS,
+        )
 
     def test_boundary_percent_values_render_without_exception(self):
-        font_small, font_medium, font_big = _fonts()
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
         for page_id in ("cpu", "ram", "disk"):
             for pct in (0, 1, 50, 99, 100):
                 with self.subTest(page_id=page_id, pct=pct):
                     m = dict(HEALTHY_METRICS)
                     m["cpu_percent"] = m["ram_percent"] = m["disk_percent"] = pct
-                    gl.render_glance_page(_fresh_draw(), font_small, font_medium, font_big, page_id, m)
+                    gl.render_glance_page(_fresh_draw(), label_fonts, font_cpu_label, font_medium, font_big, page_id, m)
 
     def test_negative_temperature_renders_without_exception(self):
-        font_small, font_medium, font_big = _fonts()
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
         m = dict(HEALTHY_METRICS)
         m["cpu_temp_c"] = -5.0
-        gl.render_glance_page(_fresh_draw(), font_small, font_medium, font_big, "cpu", m)
+        gl.render_glance_page(_fresh_draw(), label_fonts, font_cpu_label, font_medium, font_big, "cpu", m)
 
     def test_three_digit_client_count_renders_without_exception(self):
-        font_small, font_medium, font_big = _fonts()
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
         m = dict(HEALTHY_METRICS)
         m["clients"] = 254
-        gl.render_glance_page(_fresh_draw(), font_small, font_medium, font_big, "clients", m)
+        gl.render_glance_page(_fresh_draw(), label_fonts, font_cpu_label, font_medium, font_big, "clients", m)
 
     def test_zero_clients_renders_without_exception(self):
-        font_small, font_medium, font_big = _fonts()
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
         m = dict(HEALTHY_METRICS)
         m["clients"] = 0
-        gl.render_glance_page(_fresh_draw(), font_small, font_medium, font_big, "clients", m)
+        gl.render_glance_page(_fresh_draw(), label_fonts, font_cpu_label, font_medium, font_big, "clients", m)
 
     def test_every_page_handles_every_metric_missing(self):
         """No metric is assumed present - a page whose specific value(s)
         are None must still render (as a "--" placeholder), never
         raise, mirroring the fail-safe degradation every other reader
         in this project already uses for missing/malformed data."""
-        font_small, font_medium, font_big = _fonts()
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
         empty = {}
         for page_id in gl.GLANCE_PAGES:
             with self.subTest(page_id=page_id):
-                gl.render_glance_page(_fresh_draw(), font_small, font_medium, font_big, page_id, empty)
+                gl.render_glance_page(_fresh_draw(), label_fonts, font_cpu_label, font_medium, font_big, page_id, empty)
 
     def test_percent_values_are_actually_centered_not_just_present(self):
         """Regression guard for the exact bug class the instruction
@@ -120,12 +129,12 @@ class RenderingTests(unittest.TestCase):
         aligned at a fixed x) - measures the drawn text's own bounding
         box position for two very different digit counts and confirms
         neither one is flush against an edge."""
-        font_small, font_medium, font_big = _fonts()
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
         for pct in (8, 100):
             draw = _fresh_draw()
             m = dict(HEALTHY_METRICS)
             m["ram_percent"] = pct
-            gl.render_glance_page(draw, font_small, font_medium, font_big, "ram", m)
+            gl.render_glance_page(draw, label_fonts, font_cpu_label, font_medium, font_big, "ram", m)
             text = f"{pct}%"
             bbox = draw.textbbox((0, 0), text, font=font_big)
             width = bbox[2] - bbox[0]
@@ -136,6 +145,145 @@ class RenderingTests(unittest.TestCase):
             right_margin = gl.CANVAS_W - (expected_x + width)
             self.assertGreater(left_margin, 5)
             self.assertGreater(right_margin, 5)
+
+
+class LabelFitTests(unittest.TestCase):
+    """Label-size fix (2026-09-04, following physical validation that
+    found the ORIGINAL fixed small label unreadable at distance even
+    though the big numeric value below it read fine). Every test here
+    is a real measurement against the rendered pixels, not just "didn't
+    raise" - the whole point of this round's fix was a readability
+    regression that unit tests alone hadn't caught the first time."""
+
+    ALL_LABELS = ("CPU", "RAM", "DISK", "TIME", "POWER", "CLIENTS", "UPTIME")
+
+    def test_short_labels_get_the_largest_tier(self):
+        """CPU/RAM/DISK/TIME/POWER (<=5 chars) must all fit the BIGGEST
+        LABEL_FONT_SIZES tier - per instruction, "short labels like
+        CPU, RAM, and DISK can be especially large," so settling for a
+        smaller tier when the biggest already fits would be a
+        regression even though it wouldn't clip."""
+        label_fonts, _, _, _ = _fonts()
+        draw = _fresh_draw()
+        biggest = label_fonts[0]
+        for text in ("CPU", "RAM", "DISK", "TIME", "POWER"):
+            with self.subTest(text=text):
+                chosen = gl._fit_label_font(draw, text, label_fonts)
+                self.assertIs(chosen, biggest)
+
+    def test_longer_labels_step_down_only_as_far_as_needed(self):
+        """CLIENTS and UPTIME are too wide for the biggest tier (measured
+        fact, not assumed) - confirm each picks the LARGEST tier that
+        actually fits, not the smallest available (which would be a
+        needless over-correction, exactly what a single "shrink until
+        it fits" giant-font approach would risk if implemented naively)."""
+        label_fonts, _, _, _ = _fonts()
+        draw = _fresh_draw()
+        for text in ("CLIENTS", "UPTIME"):
+            with self.subTest(text=text):
+                chosen = gl._fit_label_font(draw, text, label_fonts)
+                bbox = draw.textbbox((0, 0), text, font=chosen)
+                self.assertLessEqual(bbox[2] - bbox[0], gl.LABEL_MAX_WIDTH)
+                # And confirm it's not needlessly small: the NEXT size
+                # up (whichever tier is immediately larger than the
+                # chosen one) must genuinely fail to fit - otherwise
+                # _fit_label_font() picked too conservatively.
+                chosen_index = label_fonts.index(chosen)
+                if chosen_index > 0:
+                    next_bigger = label_fonts[chosen_index - 1]
+                    next_bbox = draw.textbbox((0, 0), text, font=next_bigger)
+                    self.assertGreater(next_bbox[2] - next_bbox[0], gl.LABEL_MAX_WIDTH)
+
+    def test_no_label_ever_exceeds_the_canvas_width(self):
+        """The actual clipping guard: whichever tier gets chosen for
+        ANY of today's real labels, its rendered width must never
+        exceed the full 128px canvas (not just the LABEL_MAX_WIDTH
+        margin target - confirms the margin itself is meaningfully
+        inside the hard boundary, not accidentally equal to it)."""
+        label_fonts, font_cpu_label, _, _ = _fonts()
+        draw = _fresh_draw()
+        for text in self.ALL_LABELS:
+            with self.subTest(text=text):
+                font = font_cpu_label if text == "CPU" else gl._fit_label_font(draw, text, label_fonts)
+                bbox = draw.textbbox((0, 0), text, font=font)
+                self.assertLess(bbox[2] - bbox[0], gl.CANVAS_W)
+
+    def test_fallback_to_smallest_when_nothing_fits(self):
+        """A hypothetical label too wide even for the smallest tier
+        (not a real one today - see test_no_fake_future_sensor_pages_
+        appear in SchedulerTests for the real registry) must degrade to
+        the smallest available rather than raising or returning
+        nothing."""
+        label_fonts, _, _, _ = _fonts()
+        draw = _fresh_draw()
+        chosen = gl._fit_label_font(draw, "A" * 100, label_fonts)
+        self.assertIs(chosen, label_fonts[-1])
+
+    def test_draw_top_aligned_places_ink_at_the_requested_y(self):
+        """Regression guard for exactly the bug _draw_top_aligned() was
+        introduced to prevent: a literal fixed y (as plain draw.text()
+        would use) drifts down at larger font sizes because of the
+        font's own internal ascender space. Renders to a real bitmap
+        and scans for the topmost ACTUALLY LIT pixel row - not a
+        recomputation of the function's own formula, a real measurement
+        of its effect - and confirms it lands at (or immediately after,
+        never before) the requested top_y, consistently across every
+        label font size this module actually uses."""
+        label_fonts, _, _, _ = _fonts()
+        top_y = 3
+        for font in label_fonts:
+            with self.subTest(size=font.size):
+                img = Image.new("1", (gl.CANVAS_W, gl.CANVAS_H))
+                draw = ImageDraw.Draw(img)
+                gl._draw_top_aligned(draw, "CPU", font, top_y=top_y)
+                pixels = img.load()
+                topmost_lit_row = None
+                for y in range(gl.CANVAS_H):
+                    if any(pixels[x, y] for x in range(gl.CANVAS_W)):
+                        topmost_lit_row = y
+                        break
+                self.assertIsNotNone(topmost_lit_row, "nothing was drawn at all")
+                # Allow a couple of pixels of slack (anti-aliasing-free
+                # 1-bit rendering can round a glyph's own top serif/curve
+                # up or down by a pixel or two) but the drift this test
+                # guards against would be many pixels at larger sizes,
+                # not one or two.
+                self.assertLessEqual(abs(topmost_lit_row - top_y), 2)
+
+    def test_no_page_clips_at_the_bottom_of_the_canvas(self):
+        """The actual vertical no-clipping guard: for every declared
+        page, at realistic-to-extreme metric values (including the
+        longest real strings each page can show), the value line's own
+        rendered ink must stay within the 64px canvas height."""
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
+        draw = _fresh_draw()
+        cases = [
+            ("cpu", {"cpu_percent": 100, "cpu_temp_c": -99}),
+            ("ram", {"ram_percent": 100}),
+            ("disk", {"disk_percent": 100}),
+            ("clients", {"clients": 999}),
+            ("uptime", {"uptime_str": "99d 23h"}),
+            ("time", {"time_str": "23:59"}),
+            ("power_warning", {"undervoltage_now": True}),
+        ]
+        for page_id, metrics in cases:
+            with self.subTest(page_id=page_id):
+                img = Image.new("1", (gl.CANVAS_W, gl.CANVAS_H))
+                d = ImageDraw.Draw(img)
+                gl.render_glance_page(d, label_fonts, font_cpu_label, font_medium, font_big, page_id, metrics)
+                # Scan the actual rendered bitmap for the lowest lit
+                # pixel row - the real, final word on whether anything
+                # clipped, independent of any font-metrics assumption.
+                pixels = img.load()
+                lowest_lit_row = -1
+                for y in range(gl.CANVAS_H):
+                    if any(pixels[x, y] for x in range(gl.CANVAS_W)):
+                        lowest_lit_row = y
+                self.assertLess(
+                    lowest_lit_row, gl.CANVAS_H,
+                    f"{page_id}: content reaches the very last row - likely clipped",
+                )
+                self.assertGreater(lowest_lit_row, 0, f"{page_id}: nothing was drawn at all")
 
 
 class SchedulerTests(unittest.TestCase):

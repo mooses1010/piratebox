@@ -868,11 +868,12 @@ class GlanceDispatchTests(unittest.TestCase):
 
     def test_glance_page_renders_via_build_frame(self):
         font, font_small, font_big = oled.load_fonts()
-        font_medium, font_glance_big = oled.load_glance_fonts()
+        label_fonts, font_cpu_label, font_medium, font_glance_big = oled.load_glance_fonts()
         img = oled.build_frame(
             FakeDevice(), "glance", font, font_small, font_big, None, False, "normal",
             extra={
                 "page_id": "cpu", "metrics": {"cpu_percent": 8, "cpu_temp_c": 46},
+                "label_fonts": label_fonts, "font_cpu_label": font_cpu_label,
                 "font_medium": font_medium, "font_big": font_glance_big,
             },
         )
@@ -880,13 +881,15 @@ class GlanceDispatchTests(unittest.TestCase):
 
     def test_every_known_glance_page_id_renders_via_build_frame(self):
         font, font_small, font_big = oled.load_fonts()
-        font_medium, font_glance_big = oled.load_glance_fonts()
+        label_fonts, font_cpu_label, font_medium, font_glance_big = oled.load_glance_fonts()
         for page_id in oled.GLANCE_PAGES:
             with self.subTest(page_id=page_id):
                 img = oled.build_frame(
                     FakeDevice(), "glance", font, font_small, font_big, None, False, "normal",
                     extra={
-                        "page_id": page_id, "metrics": {}, "font_medium": font_medium, "font_big": font_glance_big,
+                        "page_id": page_id, "metrics": {},
+                        "label_fonts": label_fonts, "font_cpu_label": font_cpu_label,
+                        "font_medium": font_medium, "font_big": font_glance_big,
                     },
                 )
                 self.assertEqual(img.size, (128, 64))
