@@ -190,6 +190,20 @@ unaffected: PHP 339/339, `tools/test_button_daemon.py` 19/19.
 changed this round - only the two `.py` daemons, the new `.py` module,
 `piratebox-silly`, and `etc/tmpfiles.d/piratebox-tmp.conf`).
 
+**Deployed and physically validated same day.** All five changed files
+confirmed byte-identical between the repo and their live `/usr/local/
+bin`/`/etc/tmpfiles.d` copies after deployment; `piratebox-oled.service`
+restarted clean (stop/start in the journal, Progression reloaded, no
+errors) with `systemctl --failed` empty. Operator ran `piratebox-silly
+preview` against the real display and confirmed: faces stay readable,
+animation timing feels right, everything fits the 128x64 canvas, and
+the personality-vs-information balance still feels right - the
+representative, non-spoiling sample this round's own physical-
+validation step was built for. Core services (`hostapd`/`dnsmasq`/
+`nginx`/`php8.4-fpm`), the site (`http://10.0.0.1/`, HTTP 200), and
+`vcgencmd get_throttled` (unchanged at the pre-existing chronic
+`0x50005`) all confirmed unaffected.
+
 ## Double-tap Silly Mode toggle (physical button)
 
 **Decision date:** 2026-09-04. Adds a third gesture to the existing
