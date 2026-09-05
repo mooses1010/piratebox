@@ -6,6 +6,228 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## PirateBox Progression (persistent personality/history system)
+
+**Decision date:** 2026-09-04. Expands OLED Silly Mode (below) into a
+persistent, long-term personality/progression subsystem: XP, levels,
+cosmetic titles, achievements, lifetime aggregate statistics, a small
+rarity-tiered event/reaction engine, bounded "personality weights," a
+locally-generated device identity, and clean extension points for
+hardware that's purchased/planned but not yet commissioned. Full
+implementation detail (including specific hidden/secret content -
+deliberately not repeated here, see "What's deliberately not
+documented here" below) lives in `piratebox_progression.py`'s own
+header and its test suite, `tools/test_progression.py`.
+
+**Architecture: a separate, optional module underneath Silly Mode, not
+more conditionals bolted onto the OLED daemon.** `piratebox_oled_
+daemon.py` `import`s `piratebox_progression.py` once at startup, inside
+a `try/except` - a missing or broken Progression module degrades to
+Silly Mode (and the plain serious rotation) working exactly as they did
+before this round, never taking the ordinary display down with it.
+Progression itself imports no drawing library (no PIL/luma) - it only
+ever hands the daemon plain dicts (`{"expression": ...}` or
+`{"scene": ...}`, optionally a `quip`) describing what *could* be
+shown; only the daemon actually draws pixels. This keeps the whole
+subsystem testable with zero hardware and, per instruction, keeps the
+daemon itself from becoming "an unmaintainable pile of random
+conditionals" - the daemon's own tick loop grew by one delegated call
+(`progression.observe_tick(...)`) plus a few `roll_event(...)` calls at
+its existing event-detection points, not a parallel decision tree.
+
+**Progression runs independently of Silly Mode's own on/off toggle.**
+Lifetime stats/XP/achievements accumulate every tick regardless of
+whether the cosmetic display is currently switched on - "how long has
+this device been alive, how many visitors has it seen" are facts about
+the device, not about whether someone's currently watching its face.
+Only the *celebratory display* (a level-up banner, an achievement
+popup) is gated: if Silly Mode is off, or the tier is `"emergency"`/
+`"fault"` at the moment something unlocks, the reveal is queued
+(`pending_reveals`) and surfaces the next time the display is actually
+in the ok/warning-tier Silly branch - so nothing is ever lost, and
+nothing ever interrupts a fault or an off display.
+
+**Priority model - unchanged, extended consistently.**
+`compute_display_tier()` (Silly Mode, unchanged by this round) still
+returns `emergency` > `fault` > `warning` > `ok`. Progression's own
+tick (stat/XP tracking) runs under every tier including emergency/
+fault - an Emergency Mode exercise is itself one of the things
+Progression tracks - but every *displayable* consequence (level-ups,
+achievement popups, rare/legendary event scenes) is only ever
+considered from the exact same ok/warning-tier, Silly-enabled branch
+Silly Mode itself already used. Nothing new was added to the priority
+ordering; Progression's content is entirely a *citizen* of the
+existing `"ok"`/`"warning"` tiers, never a new tier of its own.
+
+**XP / levels / titles.** A progressively-steeper cumulative curve
+(`xp_for_level()`, roughly `60 * level^1.55`) - a simulated year of
+this Pi's own real chronic-`"warning"`-tier operation with modest
+realistic activity reached roughly level 45-50 (a curated cosmetic
+title, e.g. an early "Deckhand"-tier name through a senior "Commodore"-
+tier one - full ladder in `piratebox_progression.py`'s `TITLES`), with
+real headroom left for further years - matching the instruction that
+early progression should feel quick while the system stays meaningful
+for the long run. **Progression NEVER unlocks or gates any core
+PirateBox capability** - every reward is XP, a level, a title, an
+achievement flag, a personality-weight nudge, or a suggested Silly Mode
+render; nothing here is consulted by networking, Emergency Mode, or
+any other PirateBox subsystem.
+
+**Anti-farming, by construction.** A single generic helper,
+`award_once()` (cooldown and/or a per-calendar-day cap), gates every
+repeatable XP source - reconnecting the same device over and over
+cannot produce unlimited XP (directly tested:
+`test_repeated_identical_client_arrivals_are_capped_per_day`). A
+handful of counters (a new simultaneous-client record, an achievement
+unlock) are deliberately left *uncapped* because they're already
+monotonic/one-time by construction - they cannot be farmed regardless.
+The same `award_once()`-style cooldown mechanism also suppresses a
+just-fired rare/uncommon event variant from immediately recurring (see
+the event engine below), so rare content stays rare, not just
+initially rare.
+
+**Privacy - no new exposure, by construction, not by policy alone.**
+Every client-related counter (`total_client_encounters`,
+`max_simultaneous_clients`) is derived exclusively from
+`status.json`'s existing aggregate `wifi_clients` integer - the exact
+same field every OLED page already reads. No MAC address, IP,
+hostname, or per-client identity is read, stored, or referenced
+anywhere in `piratebox_progression.py`; the data needed to build a
+client identity database never reaches this file at all, so it isn't a
+policy this module has to remember to honor - it structurally cannot
+violate it. SSH activity reuses the exact same `read_ssh_established()`
+Silly Mode already added (a live yes/no from `/proc/net/tcp`, no
+session content, no logging).
+
+**Rarity/event engine.** `EVENT_FAMILIES` groups alternate reactions
+for situations the daemon already detects (a client arriving, waking
+from idle sleep, the periodic pirate-flourish beat) plus a fully
+opportunistic `"ambient"` family layered on top of ordinary idle
+cycling. Each family has a `common` baseline (indistinguishable from
+plain Silly Mode most of the time) plus `uncommon`/`rare`/`legendary`/
+`secret` alternates gated by some combination of condition (time of
+day, idle duration, level, achievement count, a personality weight),
+cooldown, and a minimum level - exactly the "combinations of state, not
+merely a random roll" the instruction called for. `roll_event()` is a
+pure, weighted-random, fully deterministic-given-its-inputs function
+(directly unit tested, including a `force_next_event()` test/dev hook
+that bypasses weighting entirely - **not wired into the CLI or any
+operator-facing path**, so normal use can't accidentally self-spoil
+it). A full-year simulation at realistic activity levels produced the
+family's legendary variant on a roughly monthly cadence and its rare
+variant every few days - rare enough to stay genuinely occasional,
+common enough to eventually be seen.
+
+**Personality weights - bounded, deterministic, NOT machine learning.**
+Three small floats (`sociability`, `vigilance`, `resilience`), each
+updated by a fixed-fraction exponential moving average toward a target
+whenever a relevant event occurs (a client arrives, an SSH session is
+seen, an Emergency exercise resolves) and clamped to `[0, 1]` -
+directly unit-tested for boundedness. These subtly bias which
+alternate a family roll favors; they never make a decision a test
+can't reproduce exactly given the same state and inputs.
+
+**Device identity.** A short, locally-generated two-word name (e.g. an
+adjective + a nautical noun, from two small fixed word lists baked into
+this file) is generated once, the first time Progression ever runs, and
+persisted - no network call, no personal information, no cloud
+registration of any kind.
+
+**Persistence / reliability.** Durable state lives at `/var/lib/
+piratebox-oled/progression.json` - real disk, survives reboot and
+Silly Mode being off, deliberately **not** `/tmp` (tmpfs would erase
+"months and years of real use" every reboot). Writes are atomic (temp
+file + `fsync` + `os.replace`, same directory) and coalesced (at most
+once every 45s, and only if something actually changed - most ticks do
+zero disk I/O). A missing, corrupt, or wrong-schema-version file
+degrades to a fresh default state and logs once - this project's
+existing "honest default, never fabricate, never crash"
+discipline (`docs/ARCHITECTURE.md` §10), applied to a new data store
+the same way every other reader in this project already applies it. A
+broken `progression.json` can never affect networking, Emergency Mode,
+OLED basic status, or any other core function - only Progression's own
+optional content is at risk, and only until the next clean default
+state is written.
+
+**Permissions - the one narrow write exception this daemon has ever
+needed.** `piratebox-oled.service` still runs `ProtectSystem=strict`,
+still cannot write anywhere else - `ReadWritePaths=/var/lib/piratebox-
+oled` is the single, deliberate carve-out, to a directory `etc/
+tmpfiles.d/piratebox-tmp.conf` pre-creates (owned by the same
+`piratebox-gpio` account the daemon already runs as, group `gpio` -
+which the operator's own account is already a member of, so
+`piratebox-silly stats`/`backup` can read the live file directly with
+no daemon round-trip; only writes need the single-writer discipline
+below).
+
+**Backup / reset / import - explicit, hard to trigger accidentally, single-writer.**
+`piratebox-silly` (unprivileged, no sudo, no change to the existing
+Silly Mode toggle mechanism) gained four subcommands: `stats` (a plain-
+text summary, reads the live file directly), `backup [path]` (a
+timestamped copy, defaulting to `~/piratebox-progression-backups/`,
+mirroring `tools/backup_piratebox_data.sh`'s own convention for a
+different data store), `reset --confirm-i-am-sure` (requires the flag
+*and* typing `RESET` back interactively, or an explicit `--yes` for
+scripted use - genuinely hard to fat-finger), and `import <file>`. The
+CLI **never writes `progression.json` directly** - `reset`/`import`
+instead drop a request into the already-bind-mounted `/tmp/piratebox`
+(the exact channel Silly Mode's own toggle already established), which
+only the OLED daemon notices (a cheap `mtime` check each tick) and
+acts on - a single-writer design that makes a torn/concurrent write
+structurally impossible. `import` is validated (schema version, field
+shapes/types) before being adopted; anything malformed is rejected and
+logged with the live state left completely untouched, never partially
+applied.
+
+**Hardware signal extension points - deliberately unimplemented.** Per
+instruction, no reading is fabricated for hardware that isn't
+commissioned yet. `piratebox_progression.py`'s `HARDWARE_SIGNALS`
+registry (`register_hardware_signal(name, reader)` /
+`read_hardware_signals()`) starts empty and stays empty - a future
+commissioning round for the DS3231 RTC, INA226 power telemetry, BME280
+environmental sensor, DS18B20 temperature probes, BH1750 ambient
+light, a future addressable-RGB status light, or a future GPS/travel
+capability registers a real reader there (degrading to `None` on its
+own failure, never crashing a tick) and can reference the resulting
+value from `ctx["hardware"]` in any new achievement/event condition -
+no change needed to the engine itself. A future RGB/lighting round can
+reuse `compute_display_tier()`'s and `compute_silly_expression()`'s/
+`roll_event()`'s existing output the same way the OLED does, with
+Emergency/Fault retaining the same absolute priority - this round
+implements no lighting code at all, only keeps that door open.
+
+**What's deliberately not documented here, per instruction:** the
+complete achievement list (several hidden/secret ones exist,
+undisclosed until unlocked), the exact rare/legendary/secret event
+trigger conditions and their probabilities, and the full quip/scene
+content. All of it is fully explicit in `piratebox_progression.py`
+itself and exhaustively covered by `tools/test_progression.py` (which
+must be, and is, completely un-spoiler-shy - secrecy here is an
+operator-facing UX choice, not a codebase one) - this operational log
+intentionally stops at the architecture level so the operator can
+still discover some of it firsthand, exactly as requested.
+
+**Testing:** `tools/test_progression.py` (new, stdlib `unittest` only,
+no new dependency) - 52 assertions covering persistence (missing/
+corrupt/wrong-schema-version/round-trip/atomic-write/forward-
+compatible-merge), the XP/level curve's monotonicity and increasing
+steepness, anti-farming (cooldowns, daily caps, and the specific
+repeated-reconnect scenario the instruction named), achievements
+(including a regression guard for a real modulo-at-zero bug caught
+during development), the event engine (family fallback, rarity gating
+by condition/cooldown/level, the force-event test hook, every real
+render spec across every family actually drawable), the hardware
+signal registry's fail-degraded behavior, personality-weight
+boundedness, full `observe_tick()` integration, and the reset/import
+request protocol end-to-end. `tools/test_silly_mode.py` (28 assertions,
+pre-existing) updated for `render_silly()`'s new unified render-spec
+interface and re-confirmed passing - no behavior change to anything it
+covers. Full five-suite PHP regression (313/313) re-run and confirmed
+unaffected (this round touched no PHP). `systemd-analyze verify` and a
+tmpfiles.d dry-run both clean before rollout.
+
+---
+
 ## OLED Silly Mode
 
 **Decision date:** 2026-09-04. Adds a user-toggleable, substantially

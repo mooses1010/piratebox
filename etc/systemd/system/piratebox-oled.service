@@ -60,5 +60,16 @@ WorkingDirectory=/tmp
 # restart of this service needed.
 BindReadOnlyPaths=/tmp/piratebox:/tmp/piratebox
 
+# Added 2026-09-04 (Progression round): the one narrow, durable write
+# exception to ProtectSystem=strict this daemon has ever needed - a
+# persistent home for piratebox_progression.py's own state (XP/levels/
+# achievements/history), which must survive a reboot (unlike everything
+# else this daemon touches) and therefore cannot live under /tmp.
+# etc/tmpfiles.d/piratebox-tmp.conf pre-creates this directory, owned by
+# this same piratebox-gpio account, before this service starts. Nothing
+# else this daemon does needs write access anywhere - see the comment
+# above about every other data source being read-only.
+ReadWritePaths=/var/lib/piratebox-oled
+
 [Install]
 WantedBy=multi-user.target

@@ -1,0 +1,507 @@
+#!/usr/bin/env python3
+"""Deterministic tests for piratebox_progression.py (XP/levels/titles/
+achievements/rarity-event-engine/persistence/reset-import) plus its
+integration points in piratebox_oled_daemon.py - matches the project's
+existing dependency-free tools/test_*.py convention (see
+tools/test_silly_mode.py). stdlib unittest only, no new dependency.
+
+Run with: python3 tools/test_progression.py
+
+Deliberately does NOT touch the real /var/lib/piratebox-oled or
+/tmp/piratebox - every persistence-path test patches the module's own
+path constants to a temp directory for the duration of one test, then
+restores them. Nothing here starts the daemon's main() loop or opens
+real hardware.
+
+Per instruction, this file (like piratebox_progression.py itself) is
+allowed to be fully explicit about secret/hidden content - operator-
+facing docs and the feature's own final report deliberately are not.
+"""
+
+import importlib.util
+import json
+import os
+import random
+import shutil
+import sys
+import tempfile
+import time
+import unittest
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+PROG_PATH = os.path.join(HERE, "..", "piratebox_progression.py")
+DAEMON_PATH = os.path.join(HERE, "..", "piratebox_oled_daemon.py")
+
+spec = importlib.util.spec_from_file_location("piratebox_progression", PROG_PATH)
+prog = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(prog)
+
+daemon_spec = importlib.util.spec_from_file_location("piratebox_oled_daemon", DAEMON_PATH)
+oled = importlib.util.module_from_spec(daemon_spec)
+daemon_spec.loader.exec_module(oled)
+
+
+HEALTHY_CTX = {
+    "now": 1_800_000_000.0, "dt": 3.0, "tier": "ok", "current_clients": None,
+    "ssh_active": False, "idle_seconds": 0.0, "emergency_exercised": False,
+    "silly_enabled": False, "external_radio": False, "wake_count_today": 0,
+    "hardware": {},
+}
+
+
+def ctx(**overrides):
+    c = dict(HEALTHY_CTX)
+    c.update(overrides)
+    return c
+
+
+class TempDataDir(unittest.TestCase):
+    """Base class: every persistence-touching test gets its own temp
+    DATA_DIR/DATA_FILE and the real /tmp/piratebox request-file paths
+    redirected too, restored afterward - never touches real device state."""
+
+    def setUp(self):
+        self._orig_dir = prog.DATA_DIR
+        self._orig_file = prog.DATA_FILE
+        self._orig_reset = prog.RESET_REQUEST_FILE
+        self._orig_import = prog.IMPORT_REQUEST_FILE
+        self.tmp = tempfile.mkdtemp()
+        prog.DATA_DIR = self.tmp
+        prog.DATA_FILE = os.path.join(self.tmp, "progression.json")
+        prog.RESET_REQUEST_FILE = os.path.join(self.tmp, "reset-request")
+        prog.IMPORT_REQUEST_FILE = os.path.join(self.tmp, "import-request")
+
+    def tearDown(self):
+        prog.DATA_DIR = self._orig_dir
+        prog.DATA_FILE = self._orig_file
+        prog.RESET_REQUEST_FILE = self._orig_reset
+        prog.IMPORT_REQUEST_FILE = self._orig_import
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+
+class PersistenceTests(TempDataDir):
+    def test_missing_file_gives_fresh_default_state(self):
+        s = prog.load_state()
+        self.assertEqual(s["xp"]["total"], 0)
+        self.assertEqual(s["xp"]["level"], 1)
+        self.assertEqual(s["achievements"], [])
+
+    def test_corrupt_file_degrades_to_fresh_default_not_a_crash(self):
+        with open(prog.DATA_FILE, "w") as f:
+            f.write("{not valid json at all")
+        s = prog.load_state()
+        self.assertEqual(s["xp"]["total"], 0)
+
+    def test_wrong_schema_version_degrades_to_fresh_default(self):
+        with open(prog.DATA_FILE, "w") as f:
+            json.dump({"schema_version": 999, "xp": {"total": 5000}}, f)
+        s = prog.load_state()
+        self.assertEqual(s["xp"]["total"], 0)
+
+    def test_save_then_load_round_trips(self):
+        s = prog._default_state()
+        s["xp"]["total"] = 1234
+        s["achievements"] = ["uptime_1d"]
+        self.assertTrue(prog.save_state(s))
+        loaded = prog.load_state()
+        self.assertEqual(loaded["xp"]["total"], 1234)
+        self.assertEqual(loaded["achievements"], ["uptime_1d"])
+
+    def test_save_is_atomic_no_temp_file_left_behind(self):
+        s = prog._default_state()
+        prog.save_state(s)
+        leftovers = [f for f in os.listdir(self.tmp) if ".tmp-" in f]
+        self.assertEqual(leftovers, [])
+
+    def test_a_future_field_addition_does_not_break_loading_older_files(self):
+        # Simulates: a file written by an older version of this schema,
+        # missing a key a newer _default_state() has - must merge, not KeyError.
+        old_shape = prog._default_state()
+        del old_shape["weights"]["resilience"]
+        with open(prog.DATA_FILE, "w") as f:
+            json.dump(old_shape, f)
+        s = prog.load_state()
+        self.assertIn("resilience", s["weights"])  # filled back in from the fresh default
+
+
+class XpLevelTitleTests(unittest.TestCase):
+    def test_level_1_needs_zero_xp(self):
+        self.assertEqual(prog.xp_for_level(1), 0)
+
+    def test_level_curve_is_strictly_increasing(self):
+        prev = -1
+        for lvl in range(1, 60):
+            need = prog.xp_for_level(lvl)
+            self.assertGreater(need, prev)
+            prev = need
+
+    def test_level_curve_gets_progressively_steeper(self):
+        # The GAP between consecutive levels should grow, not stay flat
+        # or shrink - "meaningful for months/years," not a flat grind.
+        gap_early = prog.xp_for_level(3) - prog.xp_for_level(2)
+        gap_late = prog.xp_for_level(30) - prog.xp_for_level(29)
+        self.assertGreater(gap_late, gap_early)
+
+    def test_level_for_xp_matches_xp_for_level_inverse(self):
+        for lvl in (1, 2, 5, 10, 25, 50):
+            xp = prog.xp_for_level(lvl)
+            self.assertEqual(prog.level_for_xp(xp), lvl)
+            self.assertEqual(prog.level_for_xp(xp - 1), lvl - 1 if lvl > 1 else 1)
+
+    def test_title_for_level_is_monotonic_non_decreasing_in_seniority(self):
+        titles_seen = [prog.title_for_level(lvl) for lvl in (1, 5, 15, 30, 60, 120)]
+        # Every threshold's title should differ from the very first once
+        # level clears it - i.e. titles actually change across this range.
+        self.assertGreater(len(set(titles_seen)), 1)
+
+    def test_every_title_fits_the_display_at_font_small(self):
+        _, font_small, _ = oled.load_fonts()
+        for _, title in prog.TITLES:
+            w = font_small.getbbox(title)[2]
+            self.assertLessEqual(w, 128, f"Title too wide: {title!r} ({w}px)")
+
+
+class AntiFarmingTests(unittest.TestCase):
+    def test_cooldown_blocks_immediate_repeat(self):
+        s = prog._default_state()
+        now = 1000.0
+        self.assertTrue(prog.award_once(s, "k", now, cooldown_s=100))
+        self.assertFalse(prog.award_once(s, "k", now + 50, cooldown_s=100))
+        self.assertTrue(prog.award_once(s, "k", now + 150, cooldown_s=100))
+
+    def test_daily_cap_blocks_after_limit_same_day(self):
+        s = prog._default_state()
+        base = time.mktime((2026, 1, 1, 12, 0, 0, 0, 0, -1))
+        for i in range(3):
+            self.assertTrue(prog.award_once(s, "k", base + i, daily_cap=3))
+        self.assertFalse(prog.award_once(s, "k", base + 3, daily_cap=3))
+
+    def test_daily_cap_resets_on_a_new_day(self):
+        s = prog._default_state()
+        day1 = time.mktime((2026, 1, 1, 12, 0, 0, 0, 0, -1))
+        day2 = time.mktime((2026, 1, 2, 12, 0, 0, 0, 0, -1))
+        self.assertTrue(prog.award_once(s, "k", day1, daily_cap=1))
+        self.assertFalse(prog.award_once(s, "k", day1 + 10, daily_cap=1))
+        self.assertTrue(prog.award_once(s, "k", day2, daily_cap=1))
+
+    def test_bare_award_once_ever_without_cooldown_or_cap(self):
+        s = prog._default_state()
+        self.assertTrue(prog.award_once(s, "k", 1.0))
+        self.assertFalse(prog.award_once(s, "k", 999999.0))
+
+    def test_repeated_identical_client_arrivals_are_capped_per_day(self):
+        """Directly exercises the anti-farming requirement: reconnecting
+        the same device over and over cannot produce unlimited XP.
+        Day 1 legitimately includes one-time bonuses (first encounter,
+        10th encounter, first simultaneous-client record) that can't
+        recur - those aren't farming, they're real milestones. Day 2
+        repeats the identical flapping pattern with no new milestones
+        left to claim, isolating the steady-state, ongoing-farming case
+        the daily cap actually exists to bound."""
+        s = prog._default_state()
+        base = time.mktime((2026, 1, 1, 0, 0, 0, 0, 0, -1))
+        for i in range(50):  # far more than the daily cap
+            t = base + i * 60  # every 60s - a flapping device, not real distinct visitors
+            prog.observe_tick(s, ctx(now=t, current_clients=(1 if i % 2 == 0 else 0)))
+
+        xp_before_day2 = s["xp"]["total"]
+        day2 = base + 86400
+        for i in range(50):
+            t = day2 + i * 60
+            prog.observe_tick(s, ctx(now=t, current_clients=(1 if i % 2 == 0 else 0)))
+        gained_day2 = s["xp"]["total"] - xp_before_day2
+        # Only the daily-capped client_arrival source remains available
+        # on day 2 (10 awards * 8 XP = 80) - no one-time bonus left to claim.
+        self.assertLessEqual(gained_day2, 80)
+
+
+class AchievementTests(unittest.TestCase):
+    def test_no_spurious_unlocks_on_a_fresh_state(self):
+        s = prog._default_state()
+        self.assertEqual(prog.check_achievements(s, ctx(now=1_700_000_000.0)), [])
+
+    def test_uptime_achievement_unlocks_exactly_once(self):
+        s = prog._default_state()
+        s["stats"]["lifetime_uptime_seconds"] = 86400
+        first = prog.check_achievements(s, ctx())
+        self.assertIn("uptime_1d", first)
+        second = prog.check_achievements(s, ctx())
+        self.assertNotIn("uptime_1d", second)
+
+    def test_unlock_awards_its_xp(self):
+        s = prog._default_state()
+        s["stats"]["lifetime_uptime_seconds"] = 86400
+        before = s["xp"]["total"]
+        prog.check_achievements(s, ctx())
+        self.assertGreater(s["xp"]["total"], before)
+
+    def test_hidden_leet_does_not_fire_at_zero_uptime(self):
+        """Regression guard for a real bug caught during development:
+        modulo-based thresholds must not spuriously match at zero."""
+        s = prog._default_state()
+        self.assertEqual(s["stats"]["lifetime_uptime_seconds"], 0)
+        unlocked = prog.check_achievements(s, ctx())
+        self.assertNotIn("hidden_leet", unlocked)
+
+    def test_a_bad_predicate_never_crashes_the_check(self):
+        s = prog._default_state()
+        prog.ACHIEVEMENTS["_test_broken"] = prog._mk(
+            "Broken", 1, True, lambda s, c: 1 / 0,
+        )
+        try:
+            unlocked = prog.check_achievements(s, ctx())
+            self.assertNotIn("_test_broken", unlocked)
+        finally:
+            del prog.ACHIEVEMENTS["_test_broken"]
+
+    def test_every_achievement_name_fits_the_display_at_font_small(self):
+        _, font_small, _ = oled.load_fonts()
+        for aid, spec in prog.ACHIEVEMENTS.items():
+            w = font_small.getbbox(spec["name"])[2]
+            self.assertLessEqual(w, 128, f"{aid}: name too wide ({w}px): {spec['name']!r}")
+
+
+class EventEngineTests(unittest.TestCase):
+    def test_every_family_always_returns_something_when_it_has_a_plain_default(self):
+        s = prog._default_state()
+        rng = random.Random(7)
+        for family in ("client_arrival", "wake", "flourish"):
+            v = prog.roll_event(family, s, ctx(), rng)
+            self.assertIsNotNone(v)
+
+    def test_ambient_family_usually_returns_none(self):
+        s = prog._default_state()
+        rng = random.Random(3)
+        none_count = sum(1 for _ in range(200) if prog.roll_event("ambient", s, ctx(), rng) is None)
+        self.assertGreater(none_count, 150)
+
+    def test_unknown_family_returns_none(self):
+        s = prog._default_state()
+        self.assertIsNone(prog.roll_event("no_such_family", s, ctx(), random.Random()))
+
+    def test_min_level_gates_a_variant_out(self):
+        s = prog._default_state()
+        s["xp"]["level"] = 1
+        rng = random.Random(0)
+        seen_ids = set()
+        for _ in range(500):
+            v = prog.roll_event("client_arrival", s, ctx(), rng)
+            if v:
+                seen_ids.add(v["id"])
+        self.assertNotIn("client_arrival.rare_royal", seen_ids)  # min_level=5
+
+    def test_condition_gates_a_variant_out(self):
+        s = prog._default_state()
+        s["xp"]["level"] = 99
+        s["stats"]["total_client_encounters"] = 0  # rare_royal requires >= 10
+        rng = random.Random(0)
+        for _ in range(300):
+            v = prog.roll_event("client_arrival", s, ctx(), rng)
+            self.assertNotEqual((v or {}).get("id"), "client_arrival.rare_royal")
+
+    def test_cooldown_suppresses_a_variant_right_after_it_fires(self):
+        s = prog._default_state()
+        prog.force_next_event("wake", "wake.uncommon_groggy")
+        v1 = prog.roll_event("wake", s, ctx(now=1000.0), random.Random(1))
+        self.assertEqual(v1["id"], "wake.uncommon_groggy")
+        # Immediately after, a normal (non-forced) roll must not pick the
+        # same variant again - its cooldown was just set.
+        seen = {prog.roll_event("wake", s, ctx(now=1005.0), random.Random(i))["id"] for i in range(200)}
+        self.assertNotIn("wake.uncommon_groggy", seen)
+
+    def test_force_next_event_is_exact_and_one_shot(self):
+        s = prog._default_state()
+        prog.force_next_event("flourish", "flourish.common")
+        v = prog.roll_event("flourish", s, ctx(), random.Random())
+        self.assertEqual(v["id"], "flourish.common")
+        # The queue is now empty - the NEXT roll is a real (unforced) roll.
+        self.assertEqual(prog._forced_queue, [])
+
+    def test_seen_events_history_is_recorded(self):
+        s = prog._default_state()
+        prog.force_next_event("flourish", "flourish.common")
+        prog.roll_event("flourish", s, ctx(now=42.0), random.Random())
+        self.assertEqual(s["seen_events"]["flourish.common"]["count"], 1)
+        self.assertEqual(s["seen_events"]["flourish.common"]["last"], 42.0)
+
+    def test_every_render_spec_is_drawable(self):
+        """Every variant across every family must produce a render dict
+        the OLED daemon can actually draw (regression guard for the
+        expression/scene-name typo class of bug)."""
+        class FakeDevice:
+            mode, size = "1", (128, 64)
+        font, font_small, font_big = oled.load_fonts()
+        dev = FakeDevice()
+        for family, variants in prog.EVENT_FAMILIES.items():
+            for v in variants:
+                render = v["render"]
+                if "expression" in render and render["expression"] != "pirate_flourish":
+                    self.assertIn(render["expression"], oled.EXPRESSIONS, f"{v['id']}: unknown expression")
+                img = oled.build_frame(
+                    dev, "silly", font, font_small, font_big, None, False, "normal",
+                    alive_on=True, extra={"render": render, "tier": "ok"},
+                )
+                self.assertEqual(img.size, (128, 64))
+
+
+class HardwareSignalTests(unittest.TestCase):
+    def tearDown(self):
+        prog.HARDWARE_SIGNALS.clear()
+
+    def test_starts_empty(self):
+        self.assertEqual(prog.HARDWARE_SIGNALS, {})
+
+    def test_register_and_read(self):
+        prog.register_hardware_signal("fake_temp_c", lambda: 21.5)
+        self.assertEqual(prog.read_hardware_signals(), {"fake_temp_c": 21.5})
+
+    def test_a_raising_reader_degrades_to_none_not_a_crash(self):
+        prog.register_hardware_signal("broken", lambda: 1 / 0)
+        self.assertEqual(prog.read_hardware_signals(), {"broken": None})
+
+
+class PersonalityWeightTests(unittest.TestCase):
+    def test_nudge_moves_toward_target(self):
+        s = prog._default_state()
+        before = s["weights"]["sociability"]
+        prog.nudge_weight(s, "sociability", 1.0)
+        self.assertGreater(s["weights"]["sociability"], before)
+
+    def test_weights_stay_clamped_after_many_nudges(self):
+        s = prog._default_state()
+        for _ in range(10000):
+            prog.nudge_weight(s, "sociability", 1.0)
+        self.assertLessEqual(s["weights"]["sociability"], 1.0)
+        for _ in range(10000):
+            prog.nudge_weight(s, "sociability", 0.0)
+        self.assertGreaterEqual(s["weights"]["sociability"], 0.0)
+
+
+class ObserveTickIntegrationTests(unittest.TestCase):
+    def test_passive_xp_accrues_only_in_ok_or_warning_tier(self):
+        s = prog._default_state()
+        prog.observe_tick(s, ctx(tier="fault", dt=3600.0))
+        self.assertEqual(s["xp"]["total"], 0)
+        prog.observe_tick(s, ctx(tier="ok", dt=3600.0))
+        self.assertGreater(s["xp"]["total"], 0)
+
+    def test_lifetime_uptime_accrues_regardless_of_tier(self):
+        s = prog._default_state()
+        prog.observe_tick(s, ctx(tier="fault", dt=100.0))
+        self.assertEqual(s["stats"]["lifetime_uptime_seconds"], 100.0)
+
+    def test_client_arrival_from_zero_increments_encounters_and_xp(self):
+        s = prog._default_state()
+        prog.observe_tick(s, ctx(current_clients=0))
+        before = s["xp"]["total"]
+        prog.observe_tick(s, ctx(current_clients=1))
+        self.assertEqual(s["stats"]["total_client_encounters"], 1)
+        self.assertGreater(s["xp"]["total"], before)
+
+    def test_simultaneous_record_is_monotonic_and_ungated(self):
+        s = prog._default_state()
+        prog.observe_tick(s, ctx(current_clients=3))
+        self.assertEqual(s["stats"]["max_simultaneous_clients"], 3)
+        prog.observe_tick(s, ctx(current_clients=2))
+        self.assertEqual(s["stats"]["max_simultaneous_clients"], 3)  # never decreases
+        prog.observe_tick(s, ctx(current_clients=5))
+        self.assertEqual(s["stats"]["max_simultaneous_clients"], 5)
+
+    def test_emergency_exercise_increments_stat_and_resilience(self):
+        s = prog._default_state()
+        before = s["weights"]["resilience"]
+        prog.observe_tick(s, ctx(emergency_exercised=True))
+        self.assertEqual(s["stats"]["emergency_exercises"], 1)
+        self.assertGreater(s["weights"]["resilience"], before)
+
+    def test_external_radio_flag_is_sticky_once_true(self):
+        s = prog._default_state()
+        prog.observe_tick(s, ctx(external_radio=True))
+        self.assertTrue(s["stats"]["external_radio_commissioned"])
+        prog.observe_tick(s, ctx(external_radio=False))
+        self.assertTrue(s["stats"]["external_radio_commissioned"])  # never un-set
+
+    def test_level_up_is_reported_when_a_threshold_is_crossed(self):
+        s = prog._default_state()
+        s["xp"]["total"] = prog.xp_for_level(2) - 1
+        s["xp"]["level"] = 1
+        # A big single tick (an hour of "ok" tier = 2 XP) may not be
+        # enough - directly add_xp to cross the boundary deterministically.
+        leveled = prog.add_xp(s, 5)
+        self.assertTrue(leveled)
+        self.assertEqual(s["xp"]["level"], 2)
+
+
+class ResetImportTests(TempDataDir):
+    def test_reset_request_without_correct_token_is_ignored(self):
+        s = prog._default_state()
+        s["xp"]["total"] = 500
+        with open(prog.RESET_REQUEST_FILE, "w") as f:
+            f.write("not the real token")
+        self.assertFalse(prog.check_reset_request(s, {}))
+        self.assertEqual(s["xp"]["total"], 500)
+
+    def test_reset_request_with_correct_token_wipes_state(self):
+        s = prog._default_state()
+        s["xp"]["total"] = 500
+        s["achievements"] = ["uptime_1d"]
+        with open(prog.RESET_REQUEST_FILE, "w") as f:
+            f.write(prog.RESET_CONFIRM_TOKEN)
+        self.assertTrue(prog.check_reset_request(s, {}))
+        self.assertEqual(s["xp"]["total"], 0)
+        self.assertEqual(s["achievements"], [])
+        # And it was actually saved to disk, not just mutated in memory.
+        self.assertEqual(prog.load_state()["xp"]["total"], 0)
+
+    def test_reset_request_only_applies_once_per_file_write(self):
+        s = prog._default_state()
+        with open(prog.RESET_REQUEST_FILE, "w") as f:
+            f.write(prog.RESET_CONFIRM_TOKEN)
+        markers = {}
+        self.assertTrue(prog.check_reset_request(s, markers))
+        s["xp"]["total"] = 42  # simulate activity after the reset
+        self.assertFalse(prog.check_reset_request(s, markers))  # same file, same mtime
+        self.assertEqual(s["xp"]["total"], 42)  # not wiped again
+
+    def test_missing_reset_request_file_is_a_silent_no_op(self):
+        s = prog._default_state()
+        self.assertFalse(prog.check_reset_request(s, {}))
+
+    def test_import_rejects_invalid_json(self):
+        s = prog._default_state()
+        s["xp"]["total"] = 777
+        with open(prog.IMPORT_REQUEST_FILE, "w") as f:
+            f.write("{not json")
+        self.assertFalse(prog.check_import_request(s, {}))
+        self.assertEqual(s["xp"]["total"], 777)
+
+    def test_import_rejects_wrong_schema_version(self):
+        s = prog._default_state()
+        s["xp"]["total"] = 777
+        with open(prog.IMPORT_REQUEST_FILE, "w") as f:
+            json.dump({"schema_version": 999, "xp": {"total": 1}, "stats": {}, "achievements": []}, f)
+        self.assertFalse(prog.check_import_request(s, {}))
+        self.assertEqual(s["xp"]["total"], 777)
+
+    def test_import_rejects_malformed_achievements_field(self):
+        s = prog._default_state()
+        candidate = prog._default_state()
+        candidate["achievements"] = [1, 2, 3]  # must be strings
+        with open(prog.IMPORT_REQUEST_FILE, "w") as f:
+            json.dump(candidate, f)
+        self.assertFalse(prog.check_import_request(s, {}))
+
+    def test_import_accepts_a_valid_export(self):
+        exported = prog._default_state()
+        exported["xp"]["total"] = 9001
+        exported["achievements"] = ["uptime_1d", "encounter_1"]
+        with open(prog.IMPORT_REQUEST_FILE, "w") as f:
+            json.dump(exported, f)
+        s = prog._default_state()
+        self.assertTrue(prog.check_import_request(s, {}))
+        self.assertEqual(s["xp"]["total"], 9001)
+        self.assertEqual(prog.load_state()["xp"]["total"], 9001)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

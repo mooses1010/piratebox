@@ -242,6 +242,26 @@ further in this file per this section's own established convention
 (implementation detail lives in the script; this file stays at the
 hardware/architecture level).
 
+**Progression (added 2026-09-04):** a persistent XP/level/title/
+achievement/history layer underneath Silly Mode, in its own module
+(`piratebox_progression.py`) - durable state at `/var/lib/piratebox-
+oled/progression.json` (the one narrow `ReadWritePaths` exception this
+otherwise-read-only daemon has), surviving reboot and Silly Mode being
+off. Full design: `docs/OPERATIONAL-DECISIONS.md` → "PirateBox
+Progression". **Relevant to this file specifically:** Progression
+defines a `HARDWARE_SIGNALS` registry (`register_hardware_signal()` /
+`read_hardware_signals()`) as the intended future integration point for
+this section's own not-yet-commissioned hardware - the DS3231 RTC
+(§ RTC-TIME-READINESS-DESIGN.md), INA226 power telemetry, BME280
+environmental sensor, DS18B20 temperature probes, BH1750 ambient
+light, a future addressable-RGB status light, and a future GPS/travel
+capability. **Nothing in that registry is populated yet** - per
+instruction, no reading is fabricated for hardware that isn't wired and
+confirmed. When any of the above is actually commissioned, registering
+its reader there (and, if wanted, a few new achievements/events keyed
+off it) is the intended extension path - no change needed to
+Progression's own engine.
+
 ---
 
 ## 6. Likely packages

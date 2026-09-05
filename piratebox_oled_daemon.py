@@ -309,6 +309,7 @@
 import json
 import logging
 import os
+import random
 import re
 import signal
 import sys
@@ -816,6 +817,7 @@ EXPRESSIONS = {
     "confused":      ("open",       "one_raised",   "wavy",        None),
     "smug":          ("half",       "one_raised",   "smirk",       None),
     "ssh_watch":     ("open",       "flat",         "smirk",       None),
+    "royal_welcome": ("wide",       "raised",       "smile_big",   "crown"),
 }
 
 
@@ -823,9 +825,22 @@ def draw_face(draw, eyes: str, brows: str, mouth: str, decoration: str = None) -
     cx, cy = FACE_CX, FACE_CY
     lx, rx = cx - EYE_DX, cx + EYE_DX
 
+    if decoration == "crown":
+        draw.polygon(
+            [(cx - 16, cy - EYE_R - 12), (cx - 10, cy - EYE_R - 22), (cx - 4, cy - EYE_R - 12),
+             (cx, cy - EYE_R - 22), (cx + 4, cy - EYE_R - 12), (cx + 10, cy - EYE_R - 22),
+             (cx + 16, cy - EYE_R - 12)],
+            outline="white",
+        )
+
     for ex in (lx, rx):
+        # "wink" closes only the right eye, regardless of the base
+        # `eyes` param for that side - the only per-eye asymmetry this
+        # face system needs, so it's handled as a narrow special case
+        # rather than a whole parallel eyes vocabulary.
+        this_eye = "closed" if (decoration == "wink" and ex == rx) else eyes
         box = (ex - EYE_R, cy - EYE_R, ex + EYE_R, cy + EYE_R)
-        if eyes == "closed":
+        if this_eye == "closed":
             draw.line((ex - EYE_R, cy, ex + EYE_R, cy), fill="white", width=2)
         elif eyes == "half":
             draw.arc(box, start=190, end=350, fill="white", width=2)
@@ -893,20 +908,74 @@ def draw_pirate_flourish(draw, font, font_small, quip: str) -> None:
     draw.text((0, 46), quip, font=font_small, fill="white")
 
 
-def render_silly(draw, font, font_small, expression: str, quip, tier: str, alive_on: bool) -> None:
-    """Renders exactly one Silly Mode frame. `tier` is "ok" or "warning"
-    only (callers never reach this with "emergency"/"fault" - see
-    compute_display_tier()) - "warning" draws the small persistent
-    badge, unconditionally, regardless of which expression is showing,
-    per the mandatory priority design (the warning must stay
-    unmistakable, not just possible to stumble across)."""
-    if expression == "pirate_flourish":
-        draw_pirate_flourish(draw, font, font_small, quip)
+def draw_scene(draw, font, font_small, scene: str) -> None:
+    """Legendary/secret "scene" beats - a step up from a plain face,
+    still just plain Pillow primitives, still no image asset. Each is
+    hand-drawn once here; piratebox_progression.py never imports this
+    module or any drawing library - it only ever hands back a plain
+    `{"scene": "<name>"}` dict, keeping state/logic and rendering
+    cleanly separated (see that module's own header)."""
+    cx, cy = FACE_CX, FACE_CY
+    if scene == "shooting_star":
+        for sx, sy in ((14, 8), (100, 14), (60, 4), (30, 20), (110, 30)):
+            draw.point((sx, sy), fill="white")
+        draw.line((20, 10, 55, 24), fill="white", width=2)
+        draw.polygon([(55, 24), (49, 20), (51, 27)], fill="white")
+        draw_face(draw, "open", "raised", "o_small")
+    elif scene == "message_bottle":
+        draw.line((cx - 6, cy - 18, cx - 6, cy + 8), fill="white", width=2)
+        draw.line((cx + 6, cy - 18, cx + 6, cy + 8), fill="white", width=2)
+        draw.arc((cx - 6, cy - 4, cx + 6, cy + 14), start=0, end=180, fill="white", width=2)
+        draw.line((cx - 6, cy + 8, cx + 6, cy + 8), fill="white")
+        draw.line((cx - 3, cy - 22, cx - 3, cy - 18), fill="white", width=2)
+        draw.line((cx + 3, cy - 22, cx + 3, cy - 18), fill="white", width=2)
+        draw.rectangle((cx - 4, cy - 10, cx + 4, cy - 2), outline="white")  # the note, rolled inside
+    elif scene == "treasure_glimmer":
+        draw.rectangle((cx - 16, cy, cx + 16, cy + 14), outline="white")
+        draw.arc((cx - 16, cy - 10, cx + 16, cy + 6), start=180, end=360, fill="white", width=2)
+        for gx, gy in ((cx - 22, cy - 6), (cx + 20, cy - 4), (cx, cy - 14)):
+            draw.line((gx - 3, gy, gx + 3, gy), fill="white")
+            draw.line((gx, gy - 3, gx, gy + 3), fill="white")
+    elif scene == "reunion":
+        draw_face(draw, "wide", "raised", "smile_big")
+        for dx, dy in ((-30, 10), (28, 6), (-22, -20), (34, -16), (0, -26)):
+            draw.point((cx + dx, cy + dy), fill="white")
+    elif scene == "logbook":
+        draw.rectangle((cx - 20, cy - 16, cx + 20, cy + 16), outline="white")
+        for ly in range(cy - 10, cy + 12, 6):
+            draw.line((cx - 14, ly, cx + 14, ly), fill="white")
     else:
-        eyes, brows, mouth, decoration = EXPRESSIONS[expression]
-        draw_face(draw, eyes, brows, mouth, decoration)
+        draw_face(draw, "open", "none", "smile_small")
+
+
+def render_silly(draw, font, font_small, render: dict, tier: str, alive_on: bool) -> None:
+    """Renders exactly one Silly Mode frame from a render-spec dict:
+    `{"expression": <EXPRESSIONS key>}` for a face (optionally
+    overriding its default decoration or adding a quip line), or
+    `{"scene": <name>}` for a legendary/secret set-piece (see
+    draw_scene()). `tier` is "ok" or "warning" only (callers never reach
+    this with "emergency"/"fault" - see compute_display_tier()) -
+    "warning" draws the small persistent badge unconditionally,
+    regardless of what else is showing, per the mandatory priority
+    design (the warning must stay unmistakable, not just possible to
+    stumble across)."""
+    expression = render.get("expression")
+    scene = render.get("scene")
+    quip = render.get("quip")
+
+    if expression == "pirate_flourish":
+        draw_pirate_flourish(draw, font, font_small, quip or "")
+    elif scene is not None:
+        draw_scene(draw, font, font_small, scene)
+        if quip:
+            draw.text((0, 54), quip, font=font_small, fill="white")
+    elif expression is not None:
+        eyes, brows, mouth, default_decoration = EXPRESSIONS[expression]
+        draw_face(draw, eyes, brows, mouth, render.get("decoration", default_decoration))
         if expression == "sleeping":
             draw_zzz(draw, font_small, 0 if alive_on else 1)
+        if quip:
+            draw.text((0, 54), quip, font=font_small, fill="white")
 
     # Small always-on heartbeat dot, top-right - same "proof the loop is
     # alive" convention every serious page's header_bar already uses.
@@ -921,6 +990,34 @@ def render_silly(draw, font, font_small, expression: str, quip, tier: str, alive
     if tier == "warning":
         draw.rectangle((1, 1, 11, 11), outline="white")
         draw.text((4, 1), "!", font=font_small, fill="white")
+
+
+def render_level_up(draw, font, font_small, font_big, level: int, title: str) -> None:
+    """A brief, one-shot, full-frame celebration - not personality-
+    gated any differently than the rest of Silly Mode (callers only
+    reach this from the same ok/warning-tier, Silly-enabled branch), but
+    visually distinct (inverted, like the existing mode-transition
+    banner) since a level-up is a bigger deal than an ambient face. The
+    title is drawn at font_small (verified by tools/test_progression.py
+    to fit every real title) - level-up is rare enough that legibility
+    matters more than a bigger font here."""
+    draw.rectangle((0, 0, 127, 63), fill="white")
+    draw_skull_and_crossbones(draw, 4, 4)
+    draw.text((40, 10), "LEVEL UP!", font=font_big, fill="black")
+    draw.text((40, 30), f"Level {level}", font=font, fill="black")
+    draw.text((0, 48), title, font=font_small, fill="black")
+
+
+def render_achievement(draw, font, font_small, name: str) -> None:
+    """A brief one-shot achievement banner - boxed, not inverted (kept
+    visually distinct from the rarer/bigger level-up banner above). The
+    name is drawn full-width at font_small so even the longest
+    achievement title (verified by tools/test_progression.py) fits
+    without clipping."""
+    draw.rectangle((2, 2, 125, 61), outline="white")
+    draw.text((8, 6), "ACHIEVEMENT", font=font_small, fill="white")
+    draw_skull_and_crossbones(draw, 6, 18)
+    draw.text((2, 48), name, font=font_small, fill="white")
 
 
 def draw_skull_and_crossbones(draw, x: int, y: int) -> None:
@@ -970,7 +1067,11 @@ def build_frame(
     elif page == "health":
         render_health(draw, font, font_small, status, stale, alive_on)
     elif page == "silly":
-        render_silly(draw, font, font_small, extra["expression"], extra["quip"], extra["tier"], alive_on)
+        render_silly(draw, font, font_small, extra["render"], extra["tier"], alive_on)
+    elif page == "level_up":
+        render_level_up(draw, font, font_small, font_big, extra["level"], extra["title"])
+    elif page == "achievement":
+        render_achievement(draw, font, font_small, extra["name"])
     elif page == "mode_transition":
         render_mode_transition(draw, font_big, extra["new_mode"])
     return img
@@ -1068,14 +1169,48 @@ def main() -> int:
     last_mode_seen = None
 
     # Silly Mode bookkeeping - plain in-memory state, never written to
-    # disk (see the header note above); resets on every restart.
+    # disk (see the header note above); resets on every restart. Idle/
+    # sleep tracking is computed every tick regardless of Silly Mode's
+    # own on/off toggle now, because Progression (below) needs it too -
+    # "is the device idle" is a fact about the device, not about
+    # whether its cosmetic display happens to be switched on.
     silly_last_clients = None    # previous tick's wifi_clients, for event detection
     silly_zero_since = None      # wall-clock time.time() clients last became 0
     silly_sleeping = False
-    silly_hold_expr = None       # a held one-shot expression (excited/surprised/
+    silly_hold_render = None     # a held one-shot render-spec (excited/surprised/
                                    # confused/waking), shown for a few ticks
     silly_hold_remaining = 0
     silly_peek_index = 0         # rotates the occasional real-status peek
+    wake_count_today = 0
+    wake_count_day = None
+
+    # Progression (piratebox_progression.py) - a separate, persistent,
+    # always-on subsystem underneath Silly Mode. Loaded once at startup;
+    # see that module's own header for the full design. A load/import
+    # failure here degrades to Silly Mode continuing exactly as it did
+    # before Progression existed - it must never take the ordinary OLED
+    # display down with it.
+    progression = None
+    progression_state = None
+    progression_rng = random.Random()
+    progression_last_save = 0.0
+    progression_dirty = False
+    progression_request_markers = {}   # reset/import request de-dup - see check_*_request()
+    pending_reveals = []   # queue of ("level_up", {...}) / ("achievement", {...})
+    try:
+        import piratebox_progression as progression
+        progression_state = progression.load_state(log=log)
+        progression.ensure_identity(progression_state, progression_rng)
+        progression.observe_boot(progression_state)
+        progression_dirty = True
+        log.info(
+            "Progression loaded: %s, level %d, %d achievement(s).",
+            progression_state["device"]["name"], progression_state["xp"]["level"],
+            len(progression_state["achievements"]),
+        )
+    except Exception as exc:  # noqa: BLE001 - Progression is fully optional to Silly Mode
+        log.warning("Progression subsystem unavailable (%s) - Silly Mode continues without it.", exc)
+        progression = None
 
     while not stop:
         if device is None:
@@ -1090,12 +1225,15 @@ def main() -> int:
         mode = read_mode()
         tick += 1
         alive_on = (tick % 2 == 0)
+        now = time.time()
 
         # Always-on, never Silly-gated: a mode change is serious
         # operational information that must still show in Emergency
         # Mode or under a degraded condition.
-        mode_transition = mode if (last_mode_seen is not None and mode != last_mode_seen) else None
+        prev_mode = last_mode_seen
+        mode_transition = mode if (prev_mode is not None and mode != prev_mode) else None
         last_mode_seen = mode
+        emergency_exercised = (mode_transition == "normal" and prev_mode == "emergency")
 
         current_clients = None
         if not stale and isinstance(status, dict):
@@ -1116,7 +1254,72 @@ def main() -> int:
 
         tier = compute_display_tier(mode, status, stale)
         silly_enabled = read_silly_enabled()
+        ssh_active = read_ssh_established()
         transition_wipe = False
+
+        # Idle/sleep tracking - always computed now (not just when
+        # Silly Mode is on), because Progression needs "how long has it
+        # been idle" and "did it just wake up" regardless of whether the
+        # cosmetic display is currently switched on.
+        if current_clients is not None and current_clients > 0:
+            silly_zero_since = None
+        elif silly_zero_since is None:
+            silly_zero_since = now
+        idle_seconds = (now - silly_zero_since) if silly_zero_since is not None else 0.0
+
+        was_sleeping = silly_sleeping
+        if idle_seconds >= SILLY_SLEEP_AFTER_SECONDS and not ssh_active:
+            silly_sleeping = True
+        elif (current_clients or 0) > 0 or ssh_active:
+            silly_sleeping = False
+        woke_this_tick = was_sleeping and not silly_sleeping
+        if woke_this_tick:
+            today = time.strftime("%Y-%m-%d", time.localtime(now))
+            if wake_count_day != today:
+                wake_count_day, wake_count_today = today, 0
+            wake_count_today += 1
+
+        # --- Progression: always runs, regardless of Silly Mode's own
+        # toggle or the current tier - see piratebox_progression.py's
+        # header for why. A missing/broken subsystem here must never
+        # affect the display below it.
+        if progression is not None:
+            try:
+                if progression.check_reset_request(progression_state, progression_request_markers, log=log):
+                    pending_reveals.clear()
+                elif progression.check_import_request(progression_state, progression_request_markers, log=log):
+                    pending_reveals.clear()
+                external_radio = (
+                    isinstance(status, dict)
+                    and status.get("visitor_ap", {}).get("provider") == "external"
+                )
+                p_ctx = {
+                    "now": now, "dt": REFRESH_SECONDS, "tier": tier,
+                    "current_clients": current_clients, "ssh_active": ssh_active,
+                    "idle_seconds": idle_seconds, "emergency_exercised": emergency_exercised,
+                    "silly_enabled": silly_enabled, "external_radio": external_radio,
+                    "wake_count_today": wake_count_today,
+                    "hardware": progression.read_hardware_signals(),
+                }
+                p_result = progression.observe_tick(progression_state, p_ctx)
+                if p_result["leveled_up"]:
+                    pending_reveals.append((
+                        "level_up",
+                        {"level": p_result["new_level"], "title": progression.title_for_level(p_result["new_level"])},
+                    ))
+                for aid in p_result["new_achievements"]:
+                    spec = progression.ACHIEVEMENTS.get(aid)
+                    if spec is not None:
+                        pending_reveals.append(("achievement", {"name": spec["name"]}))
+                if p_result["leveled_up"] or p_result["new_achievements"]:
+                    progression_dirty = True
+                progression_last_save, saved = progression.maybe_save_and_report(
+                    progression_state, progression_dirty, progression_last_save, now, log=log,
+                )
+                if saved:
+                    progression_dirty = False
+            except Exception as exc:  # noqa: BLE001 - Progression must never break the display
+                log.warning("Progression tick failed (%s) - continuing without it this tick.", exc)
 
         if mode_transition is not None:
             # A real mode flip always wins outright - never gated,
@@ -1128,14 +1331,14 @@ def main() -> int:
             # as this daemon behaved before Silly Mode existed. Silly
             # Mode disabled behaves identically - no quips, no faces,
             # matching the "default off = exactly today's display"
-            # requirement.
+            # requirement. Note: pending level-up/achievement reveals
+            # are simply left queued - they surface the next time this
+            # branch isn't taken, never interrupting a fault/emergency
+            # or a deliberately-off display.
             page, extra = PAGE_ORDER[page_index], None
             transition_wipe = seconds_on_current_page == 0.0 and last_image is not None
         else:
             # tier is "ok" or "warning" and Silly Mode is on.
-            now = time.time()
-            ssh_active = read_ssh_established()
-
             event = None
             if current_clients is not None and silly_last_clients is not None:
                 if current_clients > silly_last_clients:
@@ -1144,48 +1347,85 @@ def main() -> int:
                     event = "confused"
             if current_clients is not None:
                 silly_last_clients = current_clients
-
-            if current_clients is not None and current_clients > 0:
-                silly_zero_since = None
-            elif silly_zero_since is None:
-                silly_zero_since = now
-            idle_seconds = (now - silly_zero_since) if silly_zero_since is not None else 0.0
-
-            was_sleeping = silly_sleeping
-            if idle_seconds >= SILLY_SLEEP_AFTER_SECONDS and not ssh_active:
-                silly_sleeping = True
-            elif (current_clients or 0) > 0 or ssh_active:
-                silly_sleeping = False
-            if was_sleeping and not silly_sleeping:
+            if woke_this_tick:
                 event = "waking"  # the bigger transition wins over a same-tick client event
 
             had_hold_before = silly_hold_remaining > 0
             in_special_state = (event is not None) or silly_sleeping or had_hold_before
 
             if event is not None:
-                silly_hold_expr, silly_hold_remaining = event, SILLY_ONE_SHOT_HOLD_TICKS
+                # The rarity engine gets first say on how a freshly-
+                # detected event actually looks - most of the time this
+                # is indistinguishable from the plain reaction (the
+                # family's own "common" variant), occasionally it isn't.
+                family = {"excited": "client_arrival", "surprised": "client_arrival", "waking": "wake"}.get(event)
+                render = None
+                if progression is not None and family is not None:
+                    try:
+                        variant = progression.roll_event(family, progression_state, {
+                            "now": now, "idle_seconds": idle_seconds, "ssh_active": ssh_active,
+                            "current_clients": current_clients,
+                        }, progression_rng)
+                        if variant is not None:
+                            render = dict(variant["render"])
+                    except Exception:  # noqa: BLE001
+                        render = None
+                if render is None:
+                    render = {"expression": event}
+                silly_hold_render, silly_hold_remaining = render, SILLY_ONE_SHOT_HOLD_TICKS
 
-            if silly_sleeping and event is None:
-                expression = "sleeping"
+            if pending_reveals and not in_special_state:
+                kind, payload = pending_reveals.pop(0)
+                page, extra = kind, payload
+            elif silly_sleeping and event is None:
+                page, extra = "silly", {"render": {"expression": "sleeping"}, "tier": tier}
             elif silly_hold_remaining > 0:
-                expression = silly_hold_expr
+                render = silly_hold_render
                 silly_hold_remaining -= 1
-            else:
-                expression = compute_silly_expression(
-                    tick, has_clients=(current_clients or 0) > 0, ssh_active=ssh_active,
-                )
-
-            if not in_special_state and tick % SILLY_STATUS_PEEK_EVERY_TICKS == 0:
+                page, extra = "silly", {"render": render, "tier": tier}
+            elif not in_special_state and tick % SILLY_STATUS_PEEK_EVERY_TICKS == 0:
                 # A brief, occasional glance at real status - keeps
                 # information reachable without needing Silly Mode off.
                 page, extra = PAGE_ORDER[silly_peek_index % len(PAGE_ORDER)], None
                 silly_peek_index += 1
-            elif expression == "pirate_flourish":
-                n = current_clients if current_clients is not None else 0
-                quip = SILLY_QUIPS[(tick // SILLY_FLOURISH_EVERY_TICKS - 1) % len(SILLY_QUIPS)].format(n=n)
-                page, extra = "silly", {"expression": expression, "quip": quip, "tier": tier}
             else:
-                page, extra = "silly", {"expression": expression, "quip": None, "tier": tier}
+                expression = compute_silly_expression(
+                    tick, has_clients=(current_clients or 0) > 0, ssh_active=ssh_active,
+                )
+                render = {"expression": expression}
+                if expression == "pirate_flourish":
+                    family = "flourish"
+                    variant = None
+                    if progression is not None:
+                        try:
+                            variant = progression.roll_event(family, progression_state, {
+                                "now": now, "idle_seconds": idle_seconds, "ssh_active": ssh_active,
+                                "current_clients": current_clients,
+                            }, progression_rng)
+                        except Exception:  # noqa: BLE001
+                            variant = None
+                    if variant is not None:
+                        render = dict(variant["render"])
+                    if "quip" not in render or render.get("quip") is None:
+                        n = current_clients if current_clients is not None else 0
+                        render = dict(render)
+                        render["quip"] = SILLY_QUIPS[
+                            (tick // SILLY_FLOURISH_EVERY_TICKS - 1) % len(SILLY_QUIPS)
+                        ].format(n=n)
+                elif progression is not None:
+                    # Rare/secret ambient texture, layered opportunistically
+                    # on top of the plain ambient cycle - almost always a
+                    # no-op (see EVENT_FAMILIES["ambient"]'s own header note).
+                    try:
+                        variant = progression.roll_event("ambient", progression_state, {
+                            "now": now, "idle_seconds": idle_seconds, "ssh_active": ssh_active,
+                            "current_clients": current_clients,
+                        }, progression_rng)
+                        if variant is not None:
+                            render = dict(variant["render"])
+                    except Exception:  # noqa: BLE001
+                        pass
+                page, extra = "silly", {"render": render, "tier": tier}
 
         try:
             new_image = build_frame(

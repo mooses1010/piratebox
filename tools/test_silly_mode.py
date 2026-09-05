@@ -229,7 +229,7 @@ class ExpressionRenderingTests(unittest.TestCase):
                 img = oled.build_frame(
                     self.device, "silly", self.font, self.font_small, self.font_big,
                     HEALTHY_STATUS, False, "normal", alive_on=True,
-                    extra={"expression": expr, "quip": None, "tier": tier},
+                    extra={"render": {"expression": expr}, "tier": tier},
                 )
                 self.assertEqual(img.size, (128, 64))
 
@@ -239,7 +239,7 @@ class ExpressionRenderingTests(unittest.TestCase):
             img = oled.build_frame(
                 self.device, "silly", self.font, self.font_small, self.font_big,
                 HEALTHY_STATUS, False, "normal", alive_on=True,
-                extra={"expression": "pirate_flourish", "quip": quip, "tier": "ok"},
+                extra={"render": {"expression": "pirate_flourish", "quip": quip}, "tier": "ok"},
             )
             self.assertEqual(img.size, (128, 64))
 

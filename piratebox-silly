@@ -1,49 +1,85 @@
 #!/bin/bash
 #
-# Toggle PirateBox OLED Silly Mode - a cosmetic, expressive-face desk-toy
-# personality layer for the OLED daemon (see piratebox_oled_daemon.py's
-# "SILLY MODE" header note for the full design). This is deliberately
-# NOT set_piratebox_mode.sh: Silly Mode is not trusted operational state
-# (it can never appear, or hide, Emergency Mode or a real fault - see
-# compute_display_tier() in the daemon), it's a desk-facing cosmetic
-# toggle, so this script needs no root and no sudoers entry.
+# Toggle and inspect PirateBox OLED Silly Mode + its underlying
+# Progression subsystem (XP/levels/titles/achievements/history - see
+# piratebox_progression.py's own header for the full design). This is
+# deliberately NOT set_piratebox_mode.sh: none of this is trusted
+# operational state (it can never appear, or hide, Emergency Mode or a
+# real fault - see compute_display_tier() in the daemon), it's a desk-
+# facing cosmetic/history layer, so this script needs no root and no
+# sudoers entry for its everyday commands.
 #
-#   piratebox-silly on       - enable Silly Mode
-#   piratebox-silly off      - disable Silly Mode (back to the plain
-#                               four-page status rotation, no personality)
-#   piratebox-silly status   - print the current state
+#   piratebox-silly on               - enable Silly Mode
+#   piratebox-silly off              - disable Silly Mode (plain status rotation)
+#   piratebox-silly status           - current Silly Mode + Emergency Mode state
+#   piratebox-silly stats            - Progression summary (level, title, XP,
+#                                       lifetime stats, achievement count)
+#   piratebox-silly backup [path]    - copy the live Progression file out,
+#                                       timestamped, to ~/piratebox-progression-
+#                                       backups/ by default
+#   piratebox-silly reset --confirm-i-am-sure
+#                                     - ERASE all XP/levels/achievements/history
+#                                       back to a fresh device. Requires typing
+#                                       a confirmation phrase interactively
+#                                       (or --yes for scripted use) - see below.
+#   piratebox-silly import <file>    - stage a previously-exported file for the
+#                                       daemon to validate and adopt
 #
-# State lives in /tmp/piratebox/silly (tmpfs) - resets to the default
-# OFF on every reboot, same rationale as MODE_FILE. The OLED daemon
-# reads this file live, every redraw (~3s) - no service restart or
-# signal needed after toggling; a change is visible within a few
-# seconds, same responsiveness as any other status.json-driven change.
+# Silly Mode's own toggle state lives in /tmp/piratebox/silly (tmpfs) -
+# resets to the default OFF on every reboot, same rationale as
+# MODE_FILE. The OLED daemon reads this file live, every redraw (~3s) -
+# no service restart or signal needed after toggling.
 #
-# The directory is normally pre-created at boot (root:root 0755) by
-# etc/tmpfiles.d/piratebox-tmp.conf specifically so piratebox-
+# Progression's durable state lives at /var/lib/piratebox-oled/
+# progression.json (real disk, survives reboot and Silly Mode being
+# off) - owned by the piratebox-gpio account the OLED daemon runs as,
+# group `gpio` (which this account's own invoking user is normally
+# already a member of - see docs/HARDWARE-INTEGRATION-DESIGN.md §8),
+# so `stats`/`backup` can read it directly. This script NEVER writes
+# that file directly - only the OLED daemon does (single-writer
+# design, see piratebox_progression.py's own header) - `reset`/`import`
+# instead drop a request into the already-bind-mounted /tmp/piratebox
+# for the daemon to notice and act on, then remove the request file
+# themselves a few seconds later.
+#
+# The state directory is normally pre-created at boot (root:root 0755)
+# by etc/tmpfiles.d/piratebox-tmp.conf specifically so piratebox-
 # oled.service's BindReadOnlyPaths has something to bind before this
 # script ever runs - `mkdir -p` below is only a defensive fallback for
 # the unlikely case that rule hasn't applied yet (e.g. a manual dev
 # environment), matching set_piratebox_mode.sh's own belt-and-suspenders
-# style. Because the toggle FILE itself (not the directory) is owned by
-# the invoking user via that same tmpfiles rule, no directory-write
-# permission is needed for the everyday on/off/status path.
+# style.
 
 set -euo pipefail
 
 STATE_DIR="/tmp/piratebox"
-STATE_FILE="$STATE_DIR/silly"
+SILLY_FILE="$STATE_DIR/silly"
+RESET_REQUEST_FILE="$STATE_DIR/progression-reset-request"
+IMPORT_REQUEST_FILE="$STATE_DIR/progression-import-request"
+PROGRESSION_FILE="/var/lib/piratebox-oled/progression.json"
+RESET_CONFIRM_TOKEN="RESET-CONFIRMED"
+BACKUP_DIR="$HOME/piratebox-progression-backups"
 
 usage() {
-    echo "Usage: piratebox-silly {on|off|status}" >&2
+    cat >&2 <<'USAGE'
+Usage:
+  piratebox-silly on
+  piratebox-silly off
+  piratebox-silly status
+  piratebox-silly stats
+  piratebox-silly backup [path]
+  piratebox-silly reset --confirm-i-am-sure [--yes]
+  piratebox-silly import <file>
+USAGE
     exit 1
 }
 
-if [ "$#" -ne 1 ]; then
+if [ "$#" -lt 1 ]; then
     usage
 fi
 
 ACTION="$1"
+shift
 
 case "$ACTION" in
     on|off)
@@ -55,7 +91,7 @@ case "$ACTION" in
         # torn write is harmless, and a plain write needs no directory-
         # write permission on the (root-owned) parent directory, only
         # on the (moose-owned) file itself.
-        printf '%s\n' "$ACTION" > "$STATE_FILE"
+        printf '%s\n' "$ACTION" > "$SILLY_FILE"
         if [ "$ACTION" = "on" ]; then
             echo "Silly Mode: ON - the OLED will get expressive within a few seconds"
             echo "(unless Emergency Mode or a real fault is active - see 'piratebox-silly status')."
@@ -63,9 +99,10 @@ case "$ACTION" in
             echo "Silly Mode: OFF - the OLED returns to the plain status rotation."
         fi
         ;;
+
     status)
         current="off"
-        if [ -r "$STATE_FILE" ] && [ "$(tr -d '[:space:]' < "$STATE_FILE" 2>/dev/null)" = "on" ]; then
+        if [ -r "$SILLY_FILE" ] && [ "$(tr -d '[:space:]' < "$SILLY_FILE" 2>/dev/null)" = "on" ]; then
             current="on"
         fi
         echo "Silly Mode: $current"
@@ -73,6 +110,116 @@ case "$ACTION" in
             echo "Note: Emergency Mode is active - Silly Mode is suppressed regardless of this setting."
         fi
         ;;
+
+    stats)
+        if [ ! -r "$PROGRESSION_FILE" ]; then
+            echo "No Progression data yet (the OLED daemon creates this on first run)." >&2
+            exit 1
+        fi
+        python3 - "$PROGRESSION_FILE" <<'PYEOF'
+import json, sys, time
+sys.path.insert(0, "/usr/local/bin")
+with open(sys.argv[1]) as f:
+    s = json.load(f)
+xp, stats = s.get("xp", {}), s.get("stats", {})
+name = (s.get("device") or {}).get("name") or "(unnamed)"
+title = ""
+try:
+    import piratebox_progression as prog
+    title = f" - {prog.title_for_level(xp.get('level', 1))}"
+except Exception:
+    pass
+print(f"{name} - Level {xp.get('level', 1)}{title}, {xp.get('total', 0)} XP")
+up = stats.get("lifetime_uptime_seconds", 0)
+days = up / 86400.0
+print(f"Lifetime uptime: {days:.1f} days")
+print(f"Boots observed: {stats.get('boots_observed', 0)}")
+print(f"Client encounters (aggregate): {stats.get('total_client_encounters', 0)}")
+print(f"Max simultaneous clients: {stats.get('max_simultaneous_clients', 0)}")
+print(f"Emergency Mode exercises: {stats.get('emergency_exercises', 0)}")
+print(f"SSH sessions observed: {stats.get('ssh_sessions_observed', 0)}")
+print(f"Silly Mode days used: {stats.get('silly_days_used', 0)}")
+print(f"Achievements unlocked: {len(s.get('achievements', []))}")
+age = time.time() - s.get("updated_at", 0)
+print(f"(last updated {age:.0f}s ago)")
+PYEOF
+        ;;
+
+    backup)
+        TARGET="${1:-}"
+        if [ ! -r "$PROGRESSION_FILE" ]; then
+            echo "No Progression data yet - nothing to back up." >&2
+            exit 1
+        fi
+        if [ -n "$TARGET" ]; then
+            cp "$PROGRESSION_FILE" "$TARGET"
+            echo "Backed up to: $TARGET"
+        else
+            mkdir -p "$BACKUP_DIR"
+            OUT="$BACKUP_DIR/progression-$(date +%Y%m%d-%H%M%S).json"
+            cp "$PROGRESSION_FILE" "$OUT"
+            echo "Backed up to: $OUT"
+        fi
+        ;;
+
+    reset)
+        CONFIRMED=0
+        FORCE=0
+        for arg in "$@"; do
+            case "$arg" in
+                --confirm-i-am-sure) CONFIRMED=1 ;;
+                --yes|-y) FORCE=1 ;;
+            esac
+        done
+        if [ "$CONFIRMED" -ne 1 ]; then
+            echo "This PERMANENTLY erases all XP, levels, achievements, and history." >&2
+            echo "It does NOT affect networking, Emergency Mode, or any core PirateBox function." >&2
+            echo "Usage: piratebox-silly reset --confirm-i-am-sure [--yes]" >&2
+            exit 1
+        fi
+        if [ "$FORCE" -ne 1 ]; then
+            echo "This PERMANENTLY erases all Progression history (XP, levels, achievements)."
+            printf 'Type RESET to confirm: '
+            read -r reply
+            if [ "$reply" != "RESET" ]; then
+                echo "Not confirmed - nothing was changed."
+                exit 1
+            fi
+        fi
+        mkdir -p "$STATE_DIR" 2>/dev/null || true
+        printf '%s\n' "$RESET_CONFIRM_TOKEN" > "$RESET_REQUEST_FILE"
+        echo "Reset requested - waiting for the OLED daemon to apply it..."
+        sleep 4
+        rm -f "$RESET_REQUEST_FILE" 2>/dev/null || true
+        if [ -r "$PROGRESSION_FILE" ]; then
+            python3 - "$PROGRESSION_FILE" <<'PYEOF'
+import json, sys
+with open(sys.argv[1]) as f:
+    s = json.load(f)
+print("Progression reset." if s.get("xp", {}).get("total", -1) == 0 else
+      "Reset requested, but could not be confirmed yet - check again with 'piratebox-silly stats'.")
+PYEOF
+        else
+            echo "Reset requested (no prior data file existed to confirm against)."
+        fi
+        ;;
+
+    import)
+        SRC="${1:-}"
+        if [ -z "$SRC" ] || [ ! -r "$SRC" ]; then
+            echo "Usage: piratebox-silly import <file>" >&2
+            exit 1
+        fi
+        mkdir -p "$STATE_DIR" 2>/dev/null || true
+        cp "$SRC" "$IMPORT_REQUEST_FILE"
+        echo "Import requested - waiting for the OLED daemon to validate it..."
+        sleep 4
+        rm -f "$IMPORT_REQUEST_FILE" 2>/dev/null || true
+        echo "Done - check 'piratebox-silly stats' to confirm it was adopted, or"
+        echo "'journalctl -u piratebox-oled -n 20' if it looks unchanged (a malformed"
+        echo "file is rejected and logged, never partially applied)."
+        ;;
+
     *)
         usage
         ;;

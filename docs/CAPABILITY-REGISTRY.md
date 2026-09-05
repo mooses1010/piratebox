@@ -399,6 +399,22 @@ it is.**
   is currently established. Full rationale: `docs/OPERATIONAL-
   DECISIONS.md` → "OLED Silly Mode"; design detail: the daemon's own
   "SILLY MODE" header comment.
+- **Progression (added 2026-09-04):** a persistent XP/level/title/
+  achievement/lifetime-statistics layer underneath Silly Mode, in its
+  own module (`piratebox_progression.py`) - durable at `/var/lib/
+  piratebox-oled/progression.json`, survives reboot and Silly Mode
+  being off, never unlocks or gates any core capability (cosmetic-only
+  rewards throughout). Anti-farming (cooldowns/daily caps) and privacy
+  (aggregate-only client counts, no MAC/IP/identity ever touched) both
+  by construction, not policy alone. Includes a rarity-tiered event/
+  reaction engine (common/uncommon/rare/legendary/secret alternates for
+  situations Silly Mode already reacts to) and a `HARDWARE_SIGNALS`
+  extension-point registry for the not-yet-commissioned sensors listed
+  in `docs/HARDWARE-INTEGRATION-DESIGN.md` §5 - currently empty, no
+  reading fabricated for anything not actually wired. Full rationale:
+  `docs/OPERATIONAL-DECISIONS.md` → "PirateBox Progression" (deliberately
+  stops at the architecture level - hidden achievements and exact
+  rare-event triggers are not spoiled there or here, per instruction).
 
 ### Undervoltage / power-quality monitoring (software)
 
