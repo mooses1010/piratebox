@@ -231,6 +231,17 @@ info if available, AP status) - uptime is already read by the admin page
 battery/mains status depends entirely on Stage 12's future power hardware
 and cannot be designed further until that hardware is chosen.
 
+**Silly Mode (added 2026-09-04):** a user-toggleable (`piratebox-silly
+{on,off,status}`), substantially more expressive face/personality layer,
+layered entirely inside `piratebox_oled_daemon.py` on top of the four
+pages above - never a fifth *operational* mode, and always subordinate
+to Emergency Mode / a real fault (see `compute_display_tier()`). Full
+design and rationale: the daemon's own "SILLY MODE" header comment and
+`docs/OPERATIONAL-DECISIONS.md` → "OLED Silly Mode". Not documented
+further in this file per this section's own established convention
+(implementation detail lives in the script; this file stays at the
+hardware/architecture level).
+
 ---
 
 ## 6. Likely packages

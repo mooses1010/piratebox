@@ -43,6 +43,22 @@ WorkingDirectory=/tmp
 # This daemon touches no PirateBox data file at all (see the script's
 # own header - every data source it reads is opened read-only), so it
 # needs no other writable paths under ProtectSystem=strict.
+#
+# BUG FIX (2026-09-04, Silly Mode round): PrivateTmp=yes above means
+# this service has always had its OWN private /tmp, never the real
+# host one - it could never actually see /tmp/piratebox/mode (the
+# Emergency Mode toggle set_piratebox_mode.sh writes) or the new Silly
+# Mode toggle. read_mode() has silently always returned "normal" here
+# regardless of real state. Fixed with a read-only bind of the real
+# host directory into this service's private /tmp namespace -
+# etc/tmpfiles.d/piratebox-tmp.conf now pre-creates /tmp/piratebox at
+# boot (BEFORE this service starts, via the default tmpfiles-setup
+# ordering) specifically so this bind always has something to mount;
+# because it's a live bind of the directory (not a one-time copy),
+# files created inside it later - a fresh `sudo ./set_piratebox_mode.sh
+# emergency` or `piratebox-silly on` - become visible immediately, no
+# restart of this service needed.
+BindReadOnlyPaths=/tmp/piratebox:/tmp/piratebox
 
 [Install]
 WantedBy=multi-user.target

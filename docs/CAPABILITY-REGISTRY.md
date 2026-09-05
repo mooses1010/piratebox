@@ -387,6 +387,18 @@ it is.**
   SSID, client count, service health, storage, uptime, power state) -
   nothing not already visible on the Stats/About pages to anyone on the
   network.
+- **Silly Mode (added 2026-09-04):** an optional, user-toggleable
+  (`piratebox-silly {on,off,status}`, default OFF every boot),
+  substantially more expressive face/personality display state layered
+  on top of the four pages above - never a fifth operational mode, and
+  always subordinate to Emergency Mode / a real fault
+  (`compute_display_tier()`: emergency > fault > warning-with-badge > ok).
+  Replaces the earlier always-on "Personality Mode" (round 7/8), which
+  is removed. Reacts to client join/leave, idle duration, and (via a
+  single cheap `/proc/net/tcp` read, no logging) whether an SSH session
+  is currently established. Full rationale: `docs/OPERATIONAL-
+  DECISIONS.md` → "OLED Silly Mode"; design detail: the daemon's own
+  "SILLY MODE" header comment.
 
 ### Undervoltage / power-quality monitoring (software)
 

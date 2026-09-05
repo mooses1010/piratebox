@@ -126,6 +126,149 @@
 #     dependency: the skull is drawn with a handful of Pillow
 #     primitives (ellipses/lines) already used by every other page.
 #
+# SILLY MODE (added 2026-09-04) - REPLACES the "PERSONALITY MODE" block
+# above with a single, user-toggleable, substantially more expressive
+# personality layer. The old always-on sparse quip/celebration/milestone
+# frames described above are GONE, folded into this - per instruction,
+# this project doesn't keep two unrelated personality systems side by
+# side. If Silly Mode is off (the default, every boot), the OLED is
+# exactly the four serious pages, nothing else - no quips, no
+# celebrations, no milestones. This is a deliberate behavior change from
+# the old always-on-when-healthy quip, not an oversight.
+#
+#   - Explicit, instant, user-controlled toggle: `piratebox-silly
+#     {on,off,status}` (unprivileged - this is a cosmetic desk toy, not
+#     trusted operational state like Normal/Emergency Mode, so it does
+#     NOT go through set_piratebox_mode.sh's root-only path). State
+#     lives in one plain-text file, /tmp/piratebox/silly, containing
+#     "on" or anything else (missing/garbage/"off" -> off, same
+#     fail-safe-default discipline as MODE_FILE) - tmpfs, so it resets
+#     to the default OFF on every reboot, matching the instruction that
+#     there's no compelling reason to persist it.
+#
+#   - REAL, PREVIOUSLY-LATENT BUG FIXED as a prerequisite: this service
+#     has always run with PrivateTmp=yes (originally added so Pillow's
+#     font cache and gpiozero's notification pipe get a writable /tmp -
+#     see the WorkingDirectory note above), which gives it its OWN
+#     private /tmp mount namespace - it could never actually see the
+#     real /tmp/piratebox/mode the operator's set_piratebox_mode.sh
+#     writes, or (until now) any new /tmp/piratebox/silly toggle
+#     either. `read_mode()` has silently always returned "normal" here,
+#     regardless of the real state - meaning the existing mode-
+#     transition banner and personality gating have never actually
+#     reacted to a real Emergency Mode toggle on this hardware. Fixed
+#     by pre-creating /tmp/piratebox (root:root 0755, matching
+#     set_piratebox_mode.sh's own mkdir/chmod) via etc/tmpfiles.d/
+#     piratebox-tmp.conf at boot - BEFORE this service starts, so it's
+#     guaranteed to exist - and adding `BindReadOnlyPaths=/tmp/
+#     piratebox:/tmp/piratebox` to piratebox-oled.service, which bind-
+#     mounts that real host directory (read-only) into this service's
+#     private /tmp namespace. Because it's a live bind of the
+#     directory (not a one-time copy), files created inside it later -
+#     including the very first `sudo ./set_piratebox_mode.sh emergency`
+#     or the very first `piratebox-silly on` after a fresh boot -
+#     become visible immediately, no service restart needed. This is a
+#     correctness fix for the exact safety property Silly Mode depends
+#     on (Emergency Mode must actually be observable to take priority),
+#     not new Silly Mode behavior itself.
+#
+#   - PRIORITY MODEL (mandatory, checked fresh every tick, never
+#     cached): compute_display_tier() below returns exactly one of:
+#       "emergency" - Emergency Mode is active (MODE_FILE == "emergency").
+#                      Always wins. Silly Mode never runs; the existing
+#                      serious rotation + mode-transition banner are the
+#                      entire display, unchanged from before this round.
+#       "fault"     - status.json missing/stale, or any Core service
+#                      (hostapd/dnsmasq/nginx/php8.4-fpm) is down. A
+#                      real, actionable, currently-unknown-duration
+#                      problem - Silly Mode never runs; falls straight
+#                      to the serious rotation, same as "emergency"
+#                      (this is the old personality_allowed()'s
+#                      strictest gate, preserved exactly).
+#       "warning"   - otherwise healthy, but power.undervoltage_now is
+#                      true (this Pi's known, chronic, already-
+#                      documented condition - see docs/POWER-INTEGRITY-
+#                      DIAGNOSIS.md - not a new/actionable event).
+#                      Silly Mode MAY run if enabled, but every Silly
+#                      frame carries a small, fixed, always-drawn
+#                      warning badge (top-left corner) so the condition
+#                      stays unmistakable without blocking the display's
+#                      fun purpose over an already-known, non-worsening
+#                      condition - per instruction, "a persistent
+#                      warning indicator may be better than permanently
+#                      suppressing all personality."
+#       "ok"        - fully healthy. Silly Mode may run with no badge.
+#     Silly Mode itself is only ever considered at all when the tier is
+#     "warning" or "ok" AND the operator has it toggled on - "emergency"
+#     and "fault" both fall straight through to the exact same serious-
+#     page code path that ran before this round, untouched.
+#
+#   - EXPRESSIONS: a face (two eyes, optional brows, a mouth, optional
+#     decoration) drawn with the same plain Pillow primitives every
+#     other page already uses - no image asset, no icon font, no new
+#     dependency. See EXPRESSIONS below for the full set: idle/blink/
+#     look-left/look-right (ambient), sleeping/waking (idle-triggered),
+#     happy/excited/surprised (activity-triggered), confused (a client
+#     leaving, or ambient while idle), smug (ambient, ordinary healthy
+#     activity), ssh_watch (someone's SSHed in right now - see below),
+#     and pirate_flourish (the evolved skull-and-crossbones + a short
+#     original quip, replacing the old standalone "personality" page).
+#
+#   - REACTS TO REAL STATE, CHEAPLY, WITH NO NEW POLLING:
+#       - wifi_clients rising/falling: the exact same status.json field
+#         every other page already reads every tick - a rise from zero
+#         triggers "excited," a further rise triggers "surprised," a
+#         drop to zero triggers "confused," matching this project's
+#         "no per-client tracking, aggregate count only" privacy
+#         discipline exactly.
+#       - idle duration: in-memory only (a timestamp updated whenever
+#         the client count changes, compared against time.time() every
+#         tick) - no new file, no new read. Past SILLY_SLEEP_AFTER_
+#         SECONDS with zero clients, the face goes to "sleeping" until
+#         a client reappears ("waking", one-shot) or SSH activity is
+#         observed.
+#       - SSH/admin activity: read_ssh_established() below reads
+#         /proc/net/tcp(6) - already-exposed, unprivileged, whole-
+#         system socket state Linux always maintains, checked for
+#         local port 22 in state ESTABLISHED. This is ONE cheap file
+#         read (no subprocess, no `ss`/`netstat` spawn), reused at the
+#         same REFRESH_SECONDS cadence as everything else, and reports
+#         only a live yes/no for "is anyone connected right now" - no
+#         session content, no source IP/duration logged or persisted
+#         anywhere, satisfying the "clean, lightweight, privacy-
+#         preserving, no invasive session logging" instruction exactly.
+#       - service health / the tier itself: same status.json read as
+#         above, nothing new.
+#
+#   - NO NEW POLLING, NO FASTER REDRAW LOOP: Silly Mode redraws on the
+#     exact same REFRESH_SECONDS=3.0s cadence as every other page - it
+#     does not add a second loop, a thread, or a shorter sleep.
+#     "Animation" (blinking, looking around) is simply which expression
+#     gets chosen this tick, driven by a plain tick-counter modulo - see
+#     compute_silly_expression() - so it looks alive without writing to
+#     the display any more often than before. An occasional real-status
+#     "peek" (one of the four serious pages, for one tick, every
+#     SILLY_STATUS_PEEK_EVERY_TICKS ticks) keeps glanceable status
+#     honestly reachable without needing to turn Silly Mode off.
+#
+#   - FUTURE RGB COMPATIBILITY (not implemented now, per instruction):
+#     compute_display_tier() and compute_silly_expression() are pure
+#     functions of already-available state, deliberately kept separate
+#     from any OLED-specific drawing code. A future addressable-RGB
+#     status light can import/re-derive the same tier + expression
+#     values and just skip the drawing step - this file does not import
+#     or reference any lighting library, so no new dependency exists
+#     yet, but the *shape* of "one personality/activity signal, one
+#     priority order with Emergency/Fault always on top" is already
+#     right here for that to plug into later without a redesign.
+#
+#   - Zero new state files beyond the one plain toggle: everything else
+#     (idle timers, one-shot hold counters, last-seen client count) is
+#     the same kind of plain in-memory bookkeeping main() already used
+#     for the old personality/pulse features - resets on restart, never
+#     written to disk, per this file's existing "no unnecessary SD card
+#     writes" contract.
+#
 # INSTRUMENT-PANEL POLISH (round 8, 2026-09-03) - improves how the four
 # serious pages themselves present, without changing what they're
 # allowed to show or when. Philosophy: mostly static information plus
@@ -187,29 +330,63 @@ STALE_AFTER_SECONDS = 300     # matches includes/metrics.php's own
                                # window exactly, so both readers agree
 
 MODE_FILE = "/tmp/piratebox/mode"
+SILLY_FILE = "/tmp/piratebox/silly"   # see "SILLY MODE" header note - same
+                                       # directory as MODE_FILE, now
+                                       # reliably bind-mounted into this
+                                       # service's private /tmp (see
+                                       # piratebox-oled.service)
 STATUS_FILE = "/run/piratebox/status.json"
 TRANSITIONS_LOG = "/var/www/html/data/mode-transitions.log"
 HOSTAPD_CONF = "/etc/hostapd/hostapd.conf"
 FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+SSH_TCP_TABLES = ("/proc/net/tcp", "/proc/net/tcp6")
+SSH_PORT = 22
 
 # Fixed by this project's network design (static dhcpcd config) - not
 # looked up, per docs/HARDWARE-INTEGRATION-DESIGN.md §5's own content
 # plan ("already known/fixed... no lookup needed").
 AP_IP_ADDRESS = "10.0.0.1"
 
-# Personality mode (see header note above): shown once every this many
-# full rotations of the four serious pages - deliberately "occasional,"
-# not "every cycle." At PAGE_SECONDS=8s x 4 pages = 32s per rotation,
-# 6 rotations is roughly 3 minutes between quips.
-PERSONALITY_EVERY_N_CYCLES = 6
+# Silly Mode tuning (see header note above). All cadences are expressed
+# in ticks - one tick = one REFRESH_SECONDS redraw (3s) - so Silly Mode
+# never redraws any faster than the rest of this daemon already does.
+SILLY_SLEEP_AFTER_SECONDS = 600.0     # 10 idle minutes (zero clients) -> sleeping
+SILLY_ONE_SHOT_HOLD_TICKS = 3         # how long an event reaction (excited/
+                                       # surprised/confused/waking) stays up
+                                       # before falling back to ambient (~9s)
+SILLY_FLOURISH_EVERY_TICKS = 45       # ~135s between pirate-flourish/quip beats
+SILLY_SSH_WATCH_EVERY_TICKS = 14      # ~42s - only actually shown if SSH is active
+SILLY_STATUS_PEEK_EVERY_TICKS = 20    # ~60s - one real serious page, one tick
 
-QUIPS = [
-    "All quiet on the high seas.",
-    "No leaks detected below decks.",
-    "Charts and compass both in order.",
-    "Powder's dry, crew's accounted for.",
-    "Fair winds, following seas.",
-    "Nothin' to report, cap'n.",
+# Ambient (no event happening) expression cycles - one entry picked per
+# tick via tick % len(cycle), so the face is never static for long but
+# never redraws faster than the existing loop already does. Two
+# separate cycles (idle vs. active) so the "vibe" matches whether anyone
+# is actually connected right now.
+AMBIENT_NO_CLIENTS = [
+    "idle", "idle", "blink", "look_left", "idle",
+    "confused", "idle", "look_right", "idle", "blink",
+]
+AMBIENT_WITH_CLIENTS = [
+    "happy", "idle", "blink", "look_right", "happy",
+    "smug", "idle", "look_left", "happy", "blink",
+]
+
+# Original PirateBox-flavored one-liners for the occasional pirate-
+# flourish beat - deliberately short (fits font_small at 128px), and
+# deliberately NOT a copy of any other project's persona/phrasing.
+# {n} is substituted with the current client count where present.
+SILLY_QUIPS = [
+    "Radio go brrr.",
+    "Oh hai, matey.",
+    "LAN acquired.",
+    "{n} scallywag(s)!",
+    "Offline. As intended.",
+    "Channel six, ahoy.",
+    "Few bars, big heart.",
+    "Off-grid, lovin' it.",
+    "Mast up, hope's low.",
+    "Come aboard, matey.",
 ]
 
 logging.basicConfig(
@@ -288,6 +465,47 @@ def read_emergency_runtime_seconds() -> float:
     if emergency_started_at is not None:
         total += max(0, time.time() - emergency_started_at)
     return total
+
+
+def read_silly_enabled() -> bool:
+    """Mirrors read_mode()'s exact fail-safe shape: missing file,
+    unreadable file, or any content other than the literal string 'on'
+    resolves to False (off) - the only safe default, matching the
+    instruction that Silly Mode starts OFF after every boot. Written by
+    the unprivileged `piratebox-silly` CLI, not by set_piratebox_mode.sh -
+    this is a cosmetic toggle, not trusted operational state."""
+    try:
+        with open(SILLY_FILE, "r") as f:
+            return f.read().strip().lower() == "on"
+    except OSError:
+        return False
+
+
+def read_ssh_established() -> bool:
+    """Whole-system 'is anyone SSHed in right now' - a single cheap read
+    of the kernel's own already-exposed, unprivileged TCP socket table
+    (no subprocess, no `ss`/`netstat`), checked for local port 22 in
+    state 01 (ESTABLISHED). Reports only a live yes/no for this instant;
+    nothing about who, when, or for how long is read, kept, or written
+    anywhere - satisfies the "no invasive session logging" instruction
+    by construction, not by omission. Missing/unreadable table(s)
+    (e.g. IPv6 disabled) degrade to "not found" for that table only,
+    never an error."""
+    port_hex = f"{SSH_PORT:04X}"
+    for path in SSH_TCP_TABLES:
+        try:
+            with open(path, "r") as f:
+                lines = f.readlines()[1:]  # skip the header row
+        except OSError:
+            continue
+        for line in lines:
+            fields = line.split()
+            if len(fields) < 4:
+                continue
+            local_addr, state = fields[1], fields[3]
+            if state == "01" and local_addr.rsplit(":", 1)[-1].upper() == port_hex:
+                return True
+    return False
 
 
 def read_ssid() -> str:
@@ -523,26 +741,186 @@ def render_mode_transition(draw, font_big, new_mode: str) -> None:
     draw.text((6, 36), sub, font=font_big, fill="black")
 
 
-def personality_allowed(mode: str, status, stale: bool) -> bool:
-    """Gate for every personality frame (the occasional quip page, the
-    connection celebration, and the uptime milestone). A serious
-    condition always wins: Emergency Mode, a stale/missing status
-    snapshot, any Core service down, or active undervoltage all
-    suppress personality frames entirely - the display falls straight
-    through to a normal serious page instead. This is checked fresh
-    every time a personality frame would be shown, not cached, so a
-    condition that appears *during* the personality-quiet window takes
-    effect on the very next redraw."""
+def compute_display_tier(mode: str, status, stale: bool) -> str:
+    """The mandatory priority gate: Emergency > required operational
+    warning > Silly Mode > normal cosmetic personality (see the "SILLY
+    MODE" header note for the full rationale). Returns exactly one of
+    "emergency" / "fault" / "warning" / "ok". Checked fresh every tick,
+    never cached, so a condition that appears while Silly Mode is
+    showing takes effect on the very next redraw - the same discipline
+    the old personality_allowed() already used, now with an explicit,
+    named middle tier instead of one all-or-nothing boolean.
+
+    "emergency" and "fault" both mean Silly Mode must not run at all
+    this tick (checked identically by callers) - kept as two distinct
+    names rather than collapsing them because they're diagnostically
+    different (a real Emergency Mode toggle vs. a data/service
+    problem), even though today's display behavior for both is the
+    same fall-through to the serious rotation."""
     if mode == "emergency":
-        return False
+        return "emergency"
     if stale or not isinstance(status, dict):
-        return False
+        return "fault"
     services = status.get("services", {})
     if any(v is not True for v in services.values()):
-        return False
+        return "fault"
     if status.get("power", {}).get("undervoltage_now") is True:
-        return False
-    return True
+        return "warning"
+    return "ok"
+
+
+def compute_silly_expression(tick: int, has_clients: bool, ssh_active: bool, forced: str = None) -> str:
+    """Pure, deterministic "what face shows this tick" function - the
+    only inputs are already-computed booleans/counters, no I/O, so this
+    is directly unit-testable without a display or real status data.
+    `forced` (an event-driven one-shot: excited/surprised/confused/
+    waking/sleeping, decided by main()'s own stateful bookkeeping)
+    always wins when set. Otherwise: the occasional pirate-flourish beat
+    wins next (rarest), then the SSH-watch beat (only when someone's
+    actually connected), then plain ambient cycling keyed off whether
+    anyone's associated right now."""
+    if forced is not None:
+        return forced
+    if tick % SILLY_FLOURISH_EVERY_TICKS == 0:
+        return "pirate_flourish"
+    if ssh_active and tick % SILLY_SSH_WATCH_EVERY_TICKS == 0:
+        return "ssh_watch"
+    cycle = AMBIENT_WITH_CLIENTS if has_clients else AMBIENT_NO_CLIENTS
+    return cycle[tick % len(cycle)]
+
+
+# --- Silly Mode face rendering ------------------------------------------
+# One parametrized primitive (draw_face) plus a small table mapping each
+# named expression to its (eyes, brows, mouth, decoration) parameters -
+# deliberately not one bespoke drawing function per expression, so
+# adding/tuning an expression is a one-line table edit, not new drawing
+# code. Every shape is a plain Pillow ellipse/arc/line/polygon, exactly
+# like every other page on this display already uses.
+
+FACE_CX, FACE_CY = 64, 27   # face center, leaving room above for the
+                             # corner badges and below for a quip line
+EYE_DX = 17                  # horizontal offset of each eye from center
+EYE_R = 9                    # eye socket radius
+
+EXPRESSIONS = {
+    # name:          (eyes,         brows,          mouth,        decoration)
+    "idle":          ("open",       "none",         "smile_small", None),
+    "blink":         ("closed",     "none",         "smile_small", None),
+    "look_left":     ("look_left",  "none",         "smile_small", None),
+    "look_right":    ("look_right", "none",         "smile_small", None),
+    "sleeping":      ("closed",     "none",         "flat",        None),
+    "waking":        ("half",       "raised",       "o",           None),
+    "happy":         ("open",       "none",         "smile_big",   None),
+    "excited":       ("wide",       "raised",       "o",           "sparkle"),
+    "surprised":     ("wide",       "raised",       "o_small",     None),
+    "confused":      ("open",       "one_raised",   "wavy",        None),
+    "smug":          ("half",       "one_raised",   "smirk",       None),
+    "ssh_watch":     ("open",       "flat",         "smirk",       None),
+}
+
+
+def draw_face(draw, eyes: str, brows: str, mouth: str, decoration: str = None) -> None:
+    cx, cy = FACE_CX, FACE_CY
+    lx, rx = cx - EYE_DX, cx + EYE_DX
+
+    for ex in (lx, rx):
+        box = (ex - EYE_R, cy - EYE_R, ex + EYE_R, cy + EYE_R)
+        if eyes == "closed":
+            draw.line((ex - EYE_R, cy, ex + EYE_R, cy), fill="white", width=2)
+        elif eyes == "half":
+            draw.arc(box, start=190, end=350, fill="white", width=2)
+        elif eyes == "wide":
+            wbox = (ex - EYE_R - 2, cy - EYE_R - 2, ex + EYE_R + 2, cy + EYE_R + 2)
+            draw.ellipse(wbox, outline="white", width=2)
+            draw.ellipse((ex - 3, cy - 3, ex + 3, cy + 3), fill="white")
+        elif eyes in ("look_left", "look_right"):
+            # Pupil pushed almost to the socket's edge (rather than a
+            # small nudge from center) - a subtle few-pixel shift reads
+            # as noise at this size, this reads as a clear direction.
+            draw.ellipse(box, outline="white", width=2)
+            shift = -(EYE_R - 4) if eyes == "look_left" else (EYE_R - 4)
+            draw.ellipse((ex + shift - 3, cy - 3, ex + shift + 3, cy + 3), fill="white")
+        else:  # "open"
+            draw.ellipse(box, outline="white", width=2)
+            draw.ellipse((ex - 3, cy - 3, ex + 3, cy + 3), fill="white")
+
+        if brows == "raised":
+            draw.line((ex - EYE_R, cy - EYE_R - 5, ex + EYE_R, cy - EYE_R - 8), fill="white", width=2)
+        elif brows == "flat":
+            draw.line((ex - EYE_R, cy - EYE_R - 4, ex + EYE_R, cy - EYE_R - 4), fill="white", width=2)
+        elif brows == "one_raised" and ex == rx:
+            draw.line((ex - EYE_R, cy - EYE_R - 3, ex + EYE_R, cy - EYE_R - 9), fill="white", width=2)
+
+        if decoration == "sparkle":
+            # A couple of short radiating tick marks above each eye -
+            # distinguishes "excited" from the otherwise-similar
+            # "surprised" (both wide-eyed) at a glance.
+            draw.line((ex - EYE_R - 3, cy - EYE_R - 2, ex - EYE_R - 7, cy - EYE_R - 6), fill="white", width=1)
+            draw.line((ex + EYE_R + 3, cy - EYE_R - 2, ex + EYE_R + 7, cy - EYE_R - 6), fill="white", width=1)
+
+    my = cy + 20
+    if mouth == "smile_small":
+        draw.arc((cx - 10, my - 6, cx + 10, my + 6), start=200, end=340, fill="white", width=2)
+    elif mouth == "smile_big":
+        draw.arc((cx - 16, my - 10, cx + 16, my + 8), start=200, end=340, fill="white", width=2)
+    elif mouth == "o":
+        draw.ellipse((cx - 6, my - 6, cx + 6, my + 6), outline="white", width=2)
+    elif mouth == "o_small":
+        draw.ellipse((cx - 4, my - 4, cx + 4, my + 4), outline="white", width=2)
+    elif mouth == "flat":
+        draw.line((cx - 8, my, cx + 8, my), fill="white", width=2)
+    elif mouth == "wavy":
+        draw.line([(cx - 10, my - 2), (cx - 4, my + 3), (cx + 2, my - 3), (cx + 8, my + 2)], fill="white", width=2)
+    elif mouth == "smirk":
+        draw.line((cx - 6, my + 2, cx + 8, my - 2), fill="white", width=2)
+
+
+def draw_zzz(draw, font_small, tick: int) -> None:
+    """A couple of small 'z's near the top-right of a sleeping face -
+    alternates size on tick parity for the only bit of "life" a resting
+    face needs."""
+    big = (tick % 2 == 0)
+    draw.text((FACE_CX + 22, FACE_CY - 26), "z" if big else "Z", font=font_small, fill="white")
+    draw.text((FACE_CX + 13, FACE_CY - 18), "Z" if big else "z", font=font_small, fill="white")
+
+
+def draw_pirate_flourish(draw, font, font_small, quip: str) -> None:
+    """The evolved skull-and-crossbones beat - same primitive as before
+    (draw_skull_and_crossbones), now one entry in Silly Mode's own
+    rotation rather than a standalone always-present page."""
+    draw_skull_and_crossbones(draw, 2, 4)
+    draw.text((38, 10), "PIRATEBOX", font=font, fill="white")
+    draw.text((0, 46), quip, font=font_small, fill="white")
+
+
+def render_silly(draw, font, font_small, expression: str, quip, tier: str, alive_on: bool) -> None:
+    """Renders exactly one Silly Mode frame. `tier` is "ok" or "warning"
+    only (callers never reach this with "emergency"/"fault" - see
+    compute_display_tier()) - "warning" draws the small persistent
+    badge, unconditionally, regardless of which expression is showing,
+    per the mandatory priority design (the warning must stay
+    unmistakable, not just possible to stumble across)."""
+    if expression == "pirate_flourish":
+        draw_pirate_flourish(draw, font, font_small, quip)
+    else:
+        eyes, brows, mouth, decoration = EXPRESSIONS[expression]
+        draw_face(draw, eyes, brows, mouth, decoration)
+        if expression == "sleeping":
+            draw_zzz(draw, font_small, 0 if alive_on else 1)
+
+    # Small always-on heartbeat dot, top-right - same "proof the loop is
+    # alive" convention every serious page's header_bar already uses.
+    if alive_on:
+        draw.ellipse((120, 2, 125, 7), fill="white")
+    else:
+        draw.ellipse((120, 2, 125, 7), outline="white")
+
+    # The mandatory persistent warning badge - drawn last so nothing
+    # else can ever cover it, small and fixed in the top-left corner,
+    # every single Silly frame, whenever tier == "warning".
+    if tier == "warning":
+        draw.rectangle((1, 1, 11, 11), outline="white")
+        draw.text((4, 1), "!", font=font_small, fill="white")
 
 
 def draw_skull_and_crossbones(draw, x: int, y: int) -> None:
@@ -563,25 +941,6 @@ def draw_skull_and_crossbones(draw, x: int, y: int) -> None:
     # Crossbones behind/below
     draw.line((x - 4, y + 28, x + 28, y + 20), fill="white", width=2)
     draw.line((x - 4, y + 20, x + 28, y + 28), fill="white", width=2)
-
-
-def render_personality(draw, font, quip: str) -> None:
-    draw_skull_and_crossbones(draw, 2, 4)
-    draw.text((38, 8), "PIRATEBOX", font=font, fill="white")
-    draw.text((38, 20), "OK", font=font, fill="white")
-    draw.text((0, 40), quip, font=font, fill="white")
-
-
-def render_celebration(draw, font, client_count) -> None:
-    draw_skull_and_crossbones(draw, 2, 4)
-    draw.text((38, 8), "AHOY!", font=font, fill="white")
-    draw.text((0, 40), f"A client boarded! ({client_count} aboard)", font=font, fill="white")
-
-
-def render_milestone(draw, font, message: str) -> None:
-    draw_skull_and_crossbones(draw, 2, 4)
-    draw.text((38, 8), "MILESTONE", font=font, fill="white")
-    draw.text((0, 40), message, font=font, fill="white")
 
 
 PAGE_ORDER = ["status", "time", "network", "health"]
@@ -610,12 +969,8 @@ def build_frame(
         render_network(draw, font, font_small, status, stale, alive_on)
     elif page == "health":
         render_health(draw, font, font_small, status, stale, alive_on)
-    elif page == "personality":
-        render_personality(draw, font, extra["quip"])
-    elif page == "celebration":
-        render_celebration(draw, font, extra["client_count"])
-    elif page == "milestone":
-        render_milestone(draw, font, extra["message"])
+    elif page == "silly":
+        render_silly(draw, font, font_small, extra["expression"], extra["quip"], extra["tier"], alive_on)
     elif page == "mode_transition":
         render_mode_transition(draw, font_big, extra["new_mode"])
     return img
@@ -691,11 +1046,12 @@ def main() -> int:
     font, font_small, font_big = load_fonts()
     log.info(
         "Started. I2C bus %d address 0x%02X, %.0fs refresh, %.0fs/page "
-        "(auto-rotating - no cycle button wired yet), %d-page cycle, "
-        "personality quip every %d rotations (suppressed in Emergency "
-        "Mode or any degraded condition).",
+        "(auto-rotating - no cycle button wired yet), %d-page cycle. "
+        "Silly Mode: user-toggled via %s, off by default, always "
+        "suppressed in Emergency Mode or any fault (missing/stale "
+        "status, any Core service down) - see compute_display_tier().",
         I2C_PORT, I2C_ADDRESS, REFRESH_SECONDS, PAGE_SECONDS, len(PAGE_ORDER),
-        PERSONALITY_EVERY_N_CYCLES,
+        SILLY_FILE,
     )
 
     page_index = 0
@@ -704,22 +1060,22 @@ def main() -> int:
     last_image = None  # previous displayed frame, for the slide transition
     tick = 0            # increments every redraw; drives the heartbeat dot
 
-    # Personality-mode bookkeeping - deliberately plain in-memory state,
-    # never written to disk (see the header note above).
-    rotation_count = 0
-    last_wifi_clients = None
-    milestones_shown = set()
-
-    # Round-8 instrument-panel bookkeeping - also plain in-memory state,
-    # also never written to disk. Tracked separately from the
-    # personality-only last_wifi_clients above because these two must
-    # keep working even when personality_allowed() is False (Emergency
-    # Mode, a stale snapshot, a down service, or active undervoltage) -
-    # a client-count pulse and a mode-change banner are both plain
-    # operational information, not personality.
+    # Always-on, never Silly-gated - a client-count pulse and a mode-
+    # change banner are both plain operational information, not
+    # personality, so they must keep working under any tier.
     last_seen_clients_for_pulse = None
     pulse_ticks_remaining = 0
     last_mode_seen = None
+
+    # Silly Mode bookkeeping - plain in-memory state, never written to
+    # disk (see the header note above); resets on every restart.
+    silly_last_clients = None    # previous tick's wifi_clients, for event detection
+    silly_zero_since = None      # wall-clock time.time() clients last became 0
+    silly_sleeping = False
+    silly_hold_expr = None       # a held one-shot expression (excited/surprised/
+                                   # confused/waking), shown for a few ticks
+    silly_hold_remaining = 0
+    silly_peek_index = 0         # rotates the occasional real-status peek
 
     while not stop:
         if device is None:
@@ -735,71 +1091,101 @@ def main() -> int:
         tick += 1
         alive_on = (tick % 2 == 0)
 
-        # Always-on, never personality-gated: a mode change is serious
+        # Always-on, never Silly-gated: a mode change is serious
         # operational information that must still show in Emergency
         # Mode or under a degraded condition.
         mode_transition = mode if (last_mode_seen is not None and mode != last_mode_seen) else None
         last_mode_seen = mode
 
-        # Always-on, never personality-gated: the client-count pulse.
-        # Shown for a couple of redraw ticks (not just one) so it's
-        # actually visible at REFRESH_SECONDS=3s, not a single blink.
+        current_clients = None
         if not stale and isinstance(status, dict):
-            current_clients = status.get("wifi_clients")
-            if isinstance(current_clients, int):
-                if last_seen_clients_for_pulse is not None and current_clients > last_seen_clients_for_pulse:
-                    pulse_ticks_remaining = 2
-                last_seen_clients_for_pulse = current_clients
+            cc = status.get("wifi_clients")
+            if isinstance(cc, int):
+                current_clients = cc
+
+        # Always-on, never Silly-gated: the client-count pulse. Shown
+        # for a couple of redraw ticks (not just one) so it's actually
+        # visible at REFRESH_SECONDS=3s, not a single blink.
+        if current_clients is not None:
+            if last_seen_clients_for_pulse is not None and current_clients > last_seen_clients_for_pulse:
+                pulse_ticks_remaining = 2
+            last_seen_clients_for_pulse = current_clients
         pulse_now = pulse_ticks_remaining > 0
         if pulse_ticks_remaining > 0:
             pulse_ticks_remaining -= 1
 
-        allowed = personality_allowed(mode, status, stale)
+        tier = compute_display_tier(mode, status, stale)
+        silly_enabled = read_silly_enabled()
+        transition_wipe = False
 
-        # One-shot frames (connection celebration, uptime milestone) can
-        # preempt whatever would otherwise show, but only ever a plain
-        # data read - no new tracking, no per-client information kept.
-        one_shot = None
-        if allowed and not stale and isinstance(status, dict):
-            current_clients = status.get("wifi_clients")
-            if isinstance(current_clients, int):
-                if last_wifi_clients is not None and current_clients > last_wifi_clients:
-                    one_shot = ("celebration", {"client_count": current_clients})
-                last_wifi_clients = current_clients
-        if one_shot is None and allowed:
-            uptime_days = read_uptime_seconds() / 86400.0
-            for threshold, label in ((1, "1 day"), (7, "1 week")):
-                if uptime_days >= threshold and threshold not in milestones_shown:
-                    milestones_shown.add(threshold)
-                    one_shot = ("milestone", {"message": f"Underway for {label}!"})
-                    break
-
-        # Priority order: a real mode change always wins (never gated),
-        # then the personality one-shots (gated), then the occasional
-        # personality quip slot, then the normal serious rotation.
         if mode_transition is not None:
+            # A real mode flip always wins outright - never gated,
+            # never mixed with Silly Mode.
             page, extra = "mode_transition", {"new_mode": mode_transition}
-        elif one_shot is not None:
-            page, extra = one_shot
-        elif (
-            page_index == 0
-            and rotation_count > 0
-            and rotation_count % PERSONALITY_EVERY_N_CYCLES == 0
-            and allowed
-        ):
-            # The whole "status" slot for this rotation becomes a
-            # personality slot instead - occasional, not constant.
-            quip = QUIPS[(rotation_count // PERSONALITY_EVERY_N_CYCLES - 1) % len(QUIPS)]
-            page, extra = "personality", {"quip": quip}
-        else:
+        elif tier in ("emergency", "fault") or not silly_enabled:
+            # The mandatory priority floor: Emergency/fault always fall
+            # straight through to the plain serious rotation, exactly
+            # as this daemon behaved before Silly Mode existed. Silly
+            # Mode disabled behaves identically - no quips, no faces,
+            # matching the "default off = exactly today's display"
+            # requirement.
             page, extra = PAGE_ORDER[page_index], None
+            transition_wipe = seconds_on_current_page == 0.0 and last_image is not None
+        else:
+            # tier is "ok" or "warning" and Silly Mode is on.
+            now = time.time()
+            ssh_active = read_ssh_established()
 
-        # The brief slide wipe (see display_frame()) is reserved for an
-        # actual page change in the normal rotation - seconds_on_current_
-        # page resets to 0.0 exactly on the redraw right after page_index
-        # advances, so this is true only on that one redraw, never on a
-        # same-page refresh and never for a one-shot/personality frame.
-        transition_wipe = page in PAGE_ORDER and seconds_on_current_page == 0.0 and last_image is not None
+            event = None
+            if current_clients is not None and silly_last_clients is not None:
+                if current_clients > silly_last_clients:
+                    event = "excited" if silly_last_clients == 0 else "surprised"
+                elif current_clients == 0 and silly_last_clients > 0:
+                    event = "confused"
+            if current_clients is not None:
+                silly_last_clients = current_clients
+
+            if current_clients is not None and current_clients > 0:
+                silly_zero_since = None
+            elif silly_zero_since is None:
+                silly_zero_since = now
+            idle_seconds = (now - silly_zero_since) if silly_zero_since is not None else 0.0
+
+            was_sleeping = silly_sleeping
+            if idle_seconds >= SILLY_SLEEP_AFTER_SECONDS and not ssh_active:
+                silly_sleeping = True
+            elif (current_clients or 0) > 0 or ssh_active:
+                silly_sleeping = False
+            if was_sleeping and not silly_sleeping:
+                event = "waking"  # the bigger transition wins over a same-tick client event
+
+            had_hold_before = silly_hold_remaining > 0
+            in_special_state = (event is not None) or silly_sleeping or had_hold_before
+
+            if event is not None:
+                silly_hold_expr, silly_hold_remaining = event, SILLY_ONE_SHOT_HOLD_TICKS
+
+            if silly_sleeping and event is None:
+                expression = "sleeping"
+            elif silly_hold_remaining > 0:
+                expression = silly_hold_expr
+                silly_hold_remaining -= 1
+            else:
+                expression = compute_silly_expression(
+                    tick, has_clients=(current_clients or 0) > 0, ssh_active=ssh_active,
+                )
+
+            if not in_special_state and tick % SILLY_STATUS_PEEK_EVERY_TICKS == 0:
+                # A brief, occasional glance at real status - keeps
+                # information reachable without needing Silly Mode off.
+                page, extra = PAGE_ORDER[silly_peek_index % len(PAGE_ORDER)], None
+                silly_peek_index += 1
+            elif expression == "pirate_flourish":
+                n = current_clients if current_clients is not None else 0
+                quip = SILLY_QUIPS[(tick // SILLY_FLOURISH_EVERY_TICKS - 1) % len(SILLY_QUIPS)].format(n=n)
+                page, extra = "silly", {"expression": expression, "quip": quip, "tier": tier}
+            else:
+                page, extra = "silly", {"expression": expression, "quip": None, "tier": tier}
 
         try:
             new_image = build_frame(
@@ -824,8 +1210,6 @@ def main() -> int:
         if seconds_on_current_page >= PAGE_SECONDS:
             page_index = (page_index + 1) % len(PAGE_ORDER)
             seconds_on_current_page = 0.0
-            if page_index == 0:
-                rotation_count += 1
 
     return 0
 

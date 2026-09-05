@@ -6,6 +6,160 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## OLED Silly Mode
+
+**Decision date:** 2026-09-04. Adds a user-toggleable, substantially
+more expressive personality layer to the OLED daemon - inspired by the
+general idea of an expressive personality display (Pwnagotchi-style),
+but an original PirateBox persona (a face, not a dog; PirateBox-flavored
+quips, not stolen phrasing) and explicitly NOT performing or implying
+any attack/offensive capability this project doesn't have. Full design
+rationale lives in `piratebox_oled_daemon.py`'s own "SILLY MODE" header
+comment (this project's established convention: daemon-behavior detail
+lives in the script, this log records the decision and why).
+
+**Architecture rule enforced, not merely followed:** Silly Mode is a
+*display/personality* state, not a third operational mode - Normal/
+Emergency Mode (`/tmp/piratebox/mode`, `set_piratebox_mode.sh`,
+`includes/mode.php`) are completely untouched. Silly Mode has its own
+separate toggle (`/tmp/piratebox/silly`, `piratebox-silly` CLI - see
+below) and is layered entirely inside the OLED daemon's own display
+logic; nothing about Normal/Emergency semantics, the two-value mode
+file, or any page/PHP code that reads mode changed.
+
+**A real, previously-latent bug found and fixed as a prerequisite, not
+new-feature scope creep:** `piratebox-oled.service` has always run with
+`PrivateTmp=yes` (added earlier for Pillow's font cache / gpiozero's
+notification pipe), which gives it its own *private* `/tmp` - it could
+never actually see the real `/tmp/piratebox/mode` `set_piratebox_mode.sh`
+writes. `read_mode()` has silently always returned `"normal"` on this
+service, regardless of real state, since the day `PrivateTmp=yes` was
+added - meaning the existing mode-transition banner and the old
+personality-mode gating have never actually reacted to a real Emergency
+Mode toggle on this hardware. This was found while investigating how to
+guarantee Silly Mode's own mandatory Emergency-priority requirement,
+confirmed from first principles (`man systemd.exec`'s own description
+of `PrivateTmp=`) and from live evidence (`/tmp/piratebox` did not exist
+on this Pi at investigation time, confirming it had never been
+successfully read this boot either). **Fixed**: `etc/tmpfiles.d/
+piratebox-tmp.conf` now pre-creates `/tmp/piratebox` (root:root 0755,
+matching `set_piratebox_mode.sh`'s own `mkdir`/`chmod`) at boot, before
+this service starts (via the default `sysinit.target`/tmpfiles-setup
+ordering every service gets unless it opts out), and `piratebox-
+oled.service` gained `BindReadOnlyPaths=/tmp/piratebox:/tmp/piratebox` -
+a live, read-only bind of the real directory into the service's private
+namespace. Because it's a bind of the directory (not a one-time copy),
+a file created inside it *after* the service starts - a fresh
+`sudo ./set_piratebox_mode.sh emergency`, or the new `piratebox-silly on` -
+becomes visible immediately, no service restart required. Verified via
+`systemd-analyze verify` and a tmpfiles.d dry-run before rollout (see
+`docs/CHECKPOINTS.md` for the live post-deploy re-verification).
+
+**Priority model, mandatory and tested** (`compute_display_tier()`):
+`"emergency"` (Emergency Mode active) > `"fault"` (status.json missing/
+stale, or any Core service down) > `"warning"` (otherwise healthy, but
+the known chronic `0x50005` undervoltage condition - see
+`docs/POWER-INTEGRITY-DIAGNOSIS.md` - is active) > `"ok"`. Silly Mode is
+only ever considered at all when the tier is `"warning"` or `"ok"` -
+`"emergency"`/`"fault"` fall straight through to the exact serious-page
+code path that ran before this round, unchanged. **The chronic
+undervoltage case was deliberately NOT treated as a hard block**, per
+instruction: since it's a known, already-extensively-diagnosed,
+non-worsening condition (not a new actionable event), Silly Mode may
+still run under it - but every Silly frame in the `"warning"` tier
+carries a small, fixed, always-drawn badge (top-left corner, boxed `!`)
+so the condition stays unmistakable rather than needing the operator to
+turn Silly Mode off to notice it. This is a deliberate design choice,
+not a loosened safety bar - a real fault or Emergency Mode still fully
+suppresses Silly Mode with no badge/blend option.
+
+**Two unrelated personality systems, consolidated into one, per
+instruction:** the earlier "Personality Mode" (round 7/8: an always-on-
+when-healthy skull-and-crossbones quip page, a client-join celebration,
+and uptime milestones, all gated by a single `personality_allowed()`
+boolean) is **removed and folded into Silly Mode** rather than kept
+alongside it. `personality_allowed()` no longer exists (replaced by
+`compute_display_tier()`); the old standalone quip/celebration/milestone
+frames are gone. **Real, deliberate behavior change, recorded honestly:**
+with Silly Mode off (the default, every boot), the OLED is now *exactly*
+the four serious pages and nothing else - no quips ever appear
+unprompted, where previously they occasionally did whenever conditions
+allowed. This matches the instruction directly ("Default Silly Mode OFF
+... don't leave two unrelated personality systems") and is judged a net
+improvement: the old quip's gating already silently never fired on this
+specific Pi anyway, because `power.undervoltage_now` has been
+continuously `true` since before the ALFA even existed - the old
+"Personality Mode" has, in practice, never once been visible on real
+production hardware. Silly Mode's separate warning-tier handling (above)
+specifically fixes that dead-on-arrival problem going forward.
+
+**What Silly Mode actually does, briefly** (full detail in the daemon's
+own header): a large monochrome face (two eyes, optional brows, a
+mouth) drawn with the same plain Pillow primitives every other page
+already uses - no image asset, no new dependency. Twelve expressions:
+idle, blink, look-left, look-right (ambient cycling), sleeping/waking
+(after `SILLY_SLEEP_AFTER_SECONDS`=10 idle minutes with zero clients),
+happy/excited/surprised (client count rising - excited the first client
+after zero, surprised a further rise), confused (client count dropping
+to zero), smug (ambient, while clients are present), ssh_watch
+(occasional, only while an SSH session is actually established), and an
+evolved pirate-flourish beat (the old skull-and-crossbones, now paired
+with one of ten original short quips, occasional - not a copy of any
+other project's phrasing). Reacts to: `wifi_clients` rising/falling
+(the same aggregate-only field every other page already reads - no new
+per-client tracking, preserving this project's existing privacy
+discipline), idle duration (in-memory timer, no new file), and SSH/
+admin activity via a new `read_ssh_established()` - a single cheap read
+of `/proc/net/tcp(6)` (already-exposed, unprivileged, whole-system
+socket state Linux always maintains) checked for local port 22 in state
+ESTABLISHED, reporting only a live yes/no for "is anyone connected right
+now" - no subprocess, no session content, source IP, or duration ever
+read, kept, or logged anywhere, satisfying the "no invasive session
+logging" instruction by construction. No new polling and no faster
+redraw loop: Silly Mode redraws on the exact same `REFRESH_SECONDS`=3s
+cadence as every other page; "animation" is purely which expression a
+tick-counter-modulo picks, not a second loop or a shorter sleep. An
+occasional real-status "peek" (one of the four serious pages, one tick,
+every `SILLY_STATUS_PEEK_EVERY_TICKS`≈60s) keeps glanceable status
+honestly reachable without needing Silly Mode off.
+
+**Toggle: `piratebox-silly {on,off,status}`, deliberately unprivileged.**
+Silly Mode is a cosmetic desk-toy state, not trusted operational state
+like Normal/Emergency Mode, so it does NOT go through
+`set_piratebox_mode.sh`'s root-only path or get a `sudoers.d` entry -
+the CLI just writes `/tmp/piratebox/silly` directly. The toggle file is
+pre-created at boot (owned by `moose`, per the tmpfiles.d rule above)
+specifically so the unprivileged CLI can overwrite its content with a
+plain write, needing no write permission on the root-owned parent
+directory. **Default OFF after every boot** (tmpfs, same rationale as
+`MODE_FILE`) - no compelling reason found to persist it, per
+instruction.
+
+**Future RGB compatibility, deliberately not implemented now:**
+`compute_display_tier()` and `compute_silly_expression()` are pure
+functions of already-available state, kept separate from any OLED-
+specific drawing code and importing nothing lighting-related - a future
+addressable-RGB status light can reuse the same tier/expression values
+and just add its own drawing step, with Emergency/Fault retaining the
+same absolute priority, without this round needing to guess at that
+design now.
+
+**Testing:** `tools/test_silly_mode.py` (new, stdlib `unittest` only, no
+new dependency) - 28 assertions covering `compute_display_tier()`'s full
+priority matrix, the toggle file's fail-safe parsing (missing/garbage/
+case-insensitive, mirroring `read_mode()`'s own discipline),
+`read_ssh_established()` against synthetic `/proc/net/tcp`-shaped text
+(established vs. listening vs. wrong-port vs. missing table), the
+ambient/beat cycling function's determinism, every one of the twelve
+expressions (plus every quip) rendering without a drawing exception
+across both tiers, and a regression check that the four serious pages
+and the mode-transition banner still render unchanged. Full five-suite
+PHP regression (313/313) re-run and confirmed unaffected (this round
+touched no PHP). `systemd-analyze verify` and a tmpfiles.d dry-run both
+clean before rollout.
+
+---
+
 ## Two-QR PirateBox Onboarding Restored
 
 **Decision date:** 2026-09-03. Reverses part of "QR Onboarding

@@ -1,0 +1,79 @@
+#!/bin/bash
+#
+# Toggle PirateBox OLED Silly Mode - a cosmetic, expressive-face desk-toy
+# personality layer for the OLED daemon (see piratebox_oled_daemon.py's
+# "SILLY MODE" header note for the full design). This is deliberately
+# NOT set_piratebox_mode.sh: Silly Mode is not trusted operational state
+# (it can never appear, or hide, Emergency Mode or a real fault - see
+# compute_display_tier() in the daemon), it's a desk-facing cosmetic
+# toggle, so this script needs no root and no sudoers entry.
+#
+#   piratebox-silly on       - enable Silly Mode
+#   piratebox-silly off      - disable Silly Mode (back to the plain
+#                               four-page status rotation, no personality)
+#   piratebox-silly status   - print the current state
+#
+# State lives in /tmp/piratebox/silly (tmpfs) - resets to the default
+# OFF on every reboot, same rationale as MODE_FILE. The OLED daemon
+# reads this file live, every redraw (~3s) - no service restart or
+# signal needed after toggling; a change is visible within a few
+# seconds, same responsiveness as any other status.json-driven change.
+#
+# The directory is normally pre-created at boot (root:root 0755) by
+# etc/tmpfiles.d/piratebox-tmp.conf specifically so piratebox-
+# oled.service's BindReadOnlyPaths has something to bind before this
+# script ever runs - `mkdir -p` below is only a defensive fallback for
+# the unlikely case that rule hasn't applied yet (e.g. a manual dev
+# environment), matching set_piratebox_mode.sh's own belt-and-suspenders
+# style. Because the toggle FILE itself (not the directory) is owned by
+# the invoking user via that same tmpfiles rule, no directory-write
+# permission is needed for the everyday on/off/status path.
+
+set -euo pipefail
+
+STATE_DIR="/tmp/piratebox"
+STATE_FILE="$STATE_DIR/silly"
+
+usage() {
+    echo "Usage: piratebox-silly {on|off|status}" >&2
+    exit 1
+}
+
+if [ "$#" -ne 1 ]; then
+    usage
+fi
+
+ACTION="$1"
+
+case "$ACTION" in
+    on|off)
+        mkdir -p "$STATE_DIR" 2>/dev/null || true
+        # Plain overwrite, not the mktemp+rename atomic pattern
+        # set_piratebox_mode.sh uses for trusted state - this is a
+        # cosmetic toggle read only by a display loop that already
+        # treats anything unexpected as "off," so the tiny window of a
+        # torn write is harmless, and a plain write needs no directory-
+        # write permission on the (root-owned) parent directory, only
+        # on the (moose-owned) file itself.
+        printf '%s\n' "$ACTION" > "$STATE_FILE"
+        if [ "$ACTION" = "on" ]; then
+            echo "Silly Mode: ON - the OLED will get expressive within a few seconds"
+            echo "(unless Emergency Mode or a real fault is active - see 'piratebox-silly status')."
+        else
+            echo "Silly Mode: OFF - the OLED returns to the plain status rotation."
+        fi
+        ;;
+    status)
+        current="off"
+        if [ -r "$STATE_FILE" ] && [ "$(tr -d '[:space:]' < "$STATE_FILE" 2>/dev/null)" = "on" ]; then
+            current="on"
+        fi
+        echo "Silly Mode: $current"
+        if [ -r /tmp/piratebox/mode ] && [ "$(tr -d '[:space:]' < /tmp/piratebox/mode 2>/dev/null)" = "emergency" ]; then
+            echo "Note: Emergency Mode is active - Silly Mode is suppressed regardless of this setting."
+        fi
+        ;;
+    *)
+        usage
+        ;;
+esac
