@@ -90,7 +90,7 @@ it is.**
 | Lightning detection | Optional/Field | CANDIDATE | Integrated or Companion |
 | Radiation measurement | Optional/Field | CANDIDATE | Integrated or Companion |
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
-| SDR (e.g. RTL-SDR) | Optional/Field | CANDIDATE | Attachable |
+| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | OWNED / INCOMING | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
 | Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | CANDIDATE | Network Companion |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
@@ -762,12 +762,35 @@ it is.**
   exposing Core GPIO directly.
 - **State:** CANDIDATE. Layer: Optional/Field. Core dependency: No.
 
-### SDR (e.g. RTL-SDR)
+### SDR (Malahit-derived receiver + RTL-SDR, owned; browser-SDR "Radio" capability)
 
 - **Purpose:** wideband receive, complementary to (not a replacement
-  for) `/utility/radio/`'s existing static reference content.
-- **State:** CANDIDATE. Layer: Optional/Field. Classification:
-  Attachable (USB). Core dependency: No.
+  for) `/utility/radio/`'s existing static reference content. Full
+  investigation: `docs/RADIO-SDR-ARCHITECTURE-DESIGN.md`.
+- **State:** Hardware itself is **OWNED / INCOMING** - a "Malahit DSP SDR
+  V3" receiver (manufactured by HiDY, made in China - a documented
+  clone/derivative of the Russian MALAHITEAM Malahit-DSP line, NOT a
+  confirmed genuine original; own internal battery), an RTL-SDR dongle
+  (exact model/revision not yet identified), and an outdoor magnetic-
+  loop antenna are already owned but none are yet connected to or
+  integrated with this Pi. The RECEIVE CAPABILITY ITSELF (a browser-
+  accessible SDR backend/UI) remains **CANDIDATE** - no software stack
+  installed, no hardware connected to the Pi, and several real
+  unknowns unresolved (this specific unit's firmware/USB behavior,
+  whether any existing SDR-software Malahit support actually applies
+  to this hardware variant, real Pi 3B+ performance under an actual
+  SDR web-server workload) - see the design doc's own open-questions
+  list. Layer: Optional/Field. Classification: Attachable (USB). Core
+  dependency: No.
+- **Candidate software backend:** OpenWebRX+ (`luarvique/openwebrx`)
+  is the current leading candidate for the software layer - actively
+  maintained, Debian Trixie-aware, self-hosted with no CDN dependency,
+  and the only researched option with any documented support for the
+  broader Malahit-branded ecosystem (via a third-party `SoapyMalahitRR`
+  plugin). Whether that plugin - named for a "Malahit-R1" product -
+  actually applies to this owned handheld "V3" unit is unresolved and,
+  per the design doc's own analysis, more likely NOT to apply than
+  originally estimated. Nothing has been installed.
 
 ### Ham-radio interface
 
