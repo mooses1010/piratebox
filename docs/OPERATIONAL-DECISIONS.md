@@ -6,6 +6,183 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Distance / Glance Display (large-format at-a-distance OLED pages)
+
+**Decision date:** 2026-09-04. Adds a large-format "glance" presentation
+layer to the OLED so a small amount of state is readable from across a
+desk/room, where the existing detailed Status/Time/Network/Health pages
+and even Expression Engine v2's faces become hard to read. Explicitly
+additive - no new operational mode, no Distance Mode to switch into,
+and every previously-validated behavior (faces, animations, rare/secret
+content, the serious rotation, STATUS CHECK, single/double/hold button
+behavior, Emergency/fault priority) is unchanged in shape.
+
+**New module: `piratebox_glance.py`.** Same three-way split Expression
+Engine v2 already established: state acquisition (reading `/proc/stat`,
+`/proc/meminfo`, `/sys/class/thermal/...`, `status.json`) stays in
+`piratebox_oled_daemon.py` alongside every other `read_*()` helper that
+file already has; this new module owns exactly eligibility/weighting
+selection (`select_glance_page()`) and pixel-level rendering
+(`render_glance_page()`) - zero I/O of its own, exactly like
+`piratebox_expressions.py`'s own discipline. `piratebox_oled_daemon.py`
+gained two new raw readers (`read_meminfo_kb()`, `read_cpu_jiffies()`)
+mirroring its existing `read_cpu_temp_c()`/`read_disk_free_total()`
+precedent, plus a pure `compute_cpu_percent()` transform and one
+orchestration function (`build_glance_metrics()`) that assembles the
+whole metrics dict once per glance-phase-entry, not every tick.
+
+**What's shown, and why these and not others.** Audited what's
+genuinely already cheap (a plain file read, no subprocess) before
+picking anything: CPU temp, uptime, and disk free/total were already
+read by `render_health()`; RAM needed one new `/proc/meminfo` read
+(same pattern PHP's own `includes/metrics.php` already uses); CPU
+utilization genuinely didn't exist anywhere in this codebase yet and
+needed a `/proc/stat` delta between two samples (still no subprocess).
+Client count and the chronic undervoltage flag were already in
+`status.json`. Deliberately did NOT add: a "MODE" glance page (would
+always read "NORMAL" in practice, since Emergency already pre-empts
+glance entirely at a higher priority tier - see below - so it would
+convey nothing); a `vcgencmd measure_temp` subprocess call (the
+existing sysfs read is strictly cheaper and already proven). Time is
+shown only when NTP-synced or a real RTC is detected - a device with
+neither still gets every other glance page, just never an
+unsubstantiated clock.
+
+**One question per page, large text, minimal decoration** - each
+renderer is a short label (small font) plus one or two large,
+`textbbox`-measured, actually-centered values (never a fixed x-offset,
+so "8%" and "100%" both end up genuinely centered, not just present).
+No boxes/icons on these pages - every pixel goes to legibility at
+distance, the opposite instinct from the rest of this OLED's chrome.
+Verified visually before wiring anything in (rendered real sample
+frames - both digit-count extremes, negative temperature, missing-
+metric placeholders - to PNG and inspected them directly), not just
+"renders without raising an exception."
+
+**Context-aware selection, deliberately small and deterministic - not
+a scoring system.** `select_glance_page()` is the same `random.
+choices()`-driven weighted pick the rarity engine already uses
+elsewhere in this project, over a small table of `eligible()`/
+`weight()` functions per page: client count gets a much higher weight
+right after it actually changes (reuses the daemon's own existing
+client-count "pulse" edge - the same signal `render_status()`'s
+inverted-box cue already uses - not a new signal), and a smaller but
+real boost whenever anyone is currently connected at all; storage gets
+a higher weight once meaningfully full (≥80%); the chronic undervoltage
+warning page is eligible only when the condition is real, at a
+cooldown (15 minutes) long enough that it can never monopolize the
+rotation despite being chronically true on this hardware today, while
+still surfacing periodically and honestly rather than being suppressed
+outright. The scheduler also avoids repeating the immediately-previous
+page whenever a genuine alternative exists, so two consecutive glance
+slots don't show the same thing by pure chance.
+
+**Scheduler integration - evolved the existing cadence rather than
+inventing a rigid new sequence.** Inspected `advance_silly_cadence()`
+(the existing personality/status alternation) before designing
+anything: it generalizes cleanly from a 2-phase toggle to a 3-phase
+rotation (personality → glance → status → repeat) with an unchanged
+function signature - existing callers are unaffected, only the actual
+sequence changed. `SILLY_CADENCE_PERSONALITY_SECONDS` was trimmed from
+36s to 30s to make room for an 8s glance slot without lengthening the
+overall cycle or growing `SILLY_CADENCE_STATUS_SECONDS` (still 15s,
+exactly as before this round) - personality remains comfortably the
+largest share (tested explicitly). A SEPARATE, simpler two-phase
+cadence (`advance_offline_glance_cadence()`, rotation ↔ glance, 40s/8s)
+gives glance pages the same kind of occasional airtime when Silly Mode
+is OFF too, per instruction that glance must not require Silly to be
+on - kept as its own function rather than forcing the Silly-on cadence
+to also handle a context with no sleep/hold/pending-reveal states to
+respect, which would have meant extra conditionals purely to ignore
+irrelevant state. A glance page is picked and its metrics read ONCE on
+fresh entry into either cadence's "glance" phase, then held for the
+whole slot - exactly like every other held render in this daemon
+already works (event reactions, the status phase itself).
+
+**Priority ordering - unchanged floor, one new tier for the operator
+preview.** The full chain remains `mode_transition` > `tier in
+(emergency, fault)` > `silly_toggle_just_happened` > [NEW]
+`glance_preview_active` > `not silly_enabled` (now itself capable of
+showing glance, via its own cadence) > `status_check_active` >
+`preview_active` > the Silly-on branch (whose own cadence can now also
+show glance). Emergency/fault and a real mode transition still win
+outright, exactly as before - a glance page is ordinary presentation,
+never a safety-critical blocker, and is checked for exactly nowhere
+above those two branches. `status_check_active` is unaffected: a
+single tap still produces the exact same detailed Status → Time →
+Network → Health sequence for ~15s, never a glance page - the button's
+job stays "show me the detailed real status now," distinct from
+glance's passive, at-a-distance role.
+
+**Operator-only preview: `piratebox-silly glance-preview`.** Same
+recency-based, no-acknowledge signal-file pattern as the existing
+`piratebox-silly preview` (Expression Engine v2), its own independent
+request file - deliberately NOT gated on Silly Mode being on (unlike
+that command), since glance pages are not Silly content and already
+appear in the plain rotation when Silly is off. Cycles the six ordinary
+baseline pages once each; the conditional power-warning page is
+deliberately excluded from the fixed preview list (showing it when not
+genuinely active would misrepresent the device, and the operator
+already sees it live, honestly, whenever it's actually eligible).
+
+**Future sensor hardware plugs in with zero code change here when it
+arrives** - a future page (INA226 power, BME280 room climate, DS18B20
+enclosure temp, a DS3231-backed time-confidence upgrade) is added the
+same way every page already is: a new `GLANCE_PAGES` entry whose
+`eligible()` checks a metrics-dict key that stays absent/None until
+`build_glance_metrics()` actually starts populating it from a real,
+registered `piratebox_progression.HARDWARE_SIGNALS` reader. Nothing
+fabricated this round; a dedicated test confirms `GLANCE_PAGES`
+contains exactly today's documented baseline set, not a speculative one.
+
+**A future SDR capability (RTL-SDR + magnetic-loop antenna, a separate,
+later project phase) was deliberately kept in mind, not built:** the
+same "a new eligible page needs only a new metrics-dict key" shape
+means a future receiver-activity/frequency glance page could be added
+the same way, if that's ever wanted - nothing here assumes today's
+seven pages are the whole future set. No SDR package, driver, service,
+or hardware touched in this round.
+
+**Performance.** No new dependency, no new subprocess (the two new
+reads are plain file opens, same cost class as every existing `read_*`
+helper), no faster redraw loop (glance pages redraw on the exact same
+3s `REFRESH_SECONDS` cadence as everything else), no new SD-card
+writes (all new state is in-memory only, same discipline as every
+other Silly Mode bookkeeping variable). Metrics are read at most once
+per glance-phase-entry (~every 38-55s depending on which cadence),
+never every tick.
+
+**Testing:** new `tools/test_glance.py` (22 tests) - every declared
+page renders at boundary values (0%/100%, negative temperature, 3-digit
+client counts, every metric missing at once), an actual centering
+regression guard (margins measured, not just "didn't raise"), and a
+fully deterministic scheduler suite (eligibility/weighting/cooldown/
+no-immediate-repeat, a direct test that `GLANCE_PAGES` contains no
+speculative future-hardware entries). `tools/test_silly_mode.py` grew
+from 63 to 103 (the cadence's 2→3-phase evolution re-verified rather
+than just re-asserted, the new offline cadence, `compute_cpu_percent()`
+boundary/clamping behavior, `build_glance_metrics()` degradation, the
+new `build_frame()` "glance" arm, the new preview override's own
+signal-file tests, and a priority-integration suite covering Emergency/
+fault pre-emption, Silly on/off reachability, and STATUS CHECK
+remaining untouched). A real bug was caught and fixed IN this round's
+own test suite before it could hide anything: an early draft of one
+scheduler test shallow-copied `GLANCE_PAGES` to simulate an all-
+ineligible registry, which actually mutated the shared module-level
+spec dicts in place and silently broke every later test in the file -
+fixed by swapping the whole module attribute out and back in, never
+touching the real dicts. A full `main()`-loop integration smoke test
+(fake device, both Silly on and off, plus glance-preview active, plus
+a forced Emergency transition mid-run) confirmed glance actually
+appears in both contexts, glance-preview shows only glance pages, and
+Emergency still pre-empts everything from the very next tick. Full
+existing regression re-confirmed unaffected: PHP 339/339, `tools/
+test_expressions.py` 19/19, `tools/test_progression.py` 76/76, `tools/
+test_button_daemon.py` 19/19. `systemd-analyze verify` and a
+tmpfiles.d dry-run both clean - no systemd unit files changed this
+round (the one new signal file lives inside the already-bound `/tmp/
+piratebox` directory).
+
 ## Expression Engine v2 (Silly Mode's visual personality, substantially deepened)
 
 **Decision date:** 2026-09-04. Evolves Silly Mode's existing face

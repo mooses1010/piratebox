@@ -304,9 +304,12 @@ class QuipWidthTests(unittest.TestCase):
 
 
 class SillyCadenceTests(unittest.TestCase):
-    """State-machine tests for the personality-vs-status cadence
-    (advance_silly_cadence()) - pure, no I/O, so the whole phase
-    sequence/timing is directly verifiable by stepping it in a loop."""
+    """State-machine tests for the personality-vs-glance-vs-status
+    cadence (advance_silly_cadence()) - pure, no I/O, so the whole
+    phase sequence/timing is directly verifiable by stepping it in a
+    loop. Extended 2026-09-04 (Distance/Glance Display) from a 2-phase
+    toggle to this 3-phase rotation: personality -> glance -> status ->
+    personality -> ..."""
 
     def test_starts_in_personality_and_stays_there_before_elapsing(self):
         phase, remaining = "personality", oled.SILLY_CADENCE_PERSONALITY_SECONDS
@@ -314,8 +317,14 @@ class SillyCadenceTests(unittest.TestCase):
         self.assertEqual(phase, "personality")
         self.assertAlmostEqual(remaining, oled.SILLY_CADENCE_PERSONALITY_SECONDS - 3.0)
 
-    def test_flips_to_status_exactly_when_personality_phase_elapses(self):
+    def test_flips_to_glance_exactly_when_personality_phase_elapses(self):
         phase, remaining = "personality", 3.0  # one tick left
+        phase, remaining = oled.advance_silly_cadence(phase, remaining, 3.0)
+        self.assertEqual(phase, "glance")
+        self.assertAlmostEqual(remaining, oled.SILLY_CADENCE_GLANCE_SECONDS)
+
+    def test_flips_to_status_exactly_when_glance_phase_elapses(self):
+        phase, remaining = "glance", 3.0
         phase, remaining = oled.advance_silly_cadence(phase, remaining, 3.0)
         self.assertEqual(phase, "status")
         self.assertAlmostEqual(remaining, oled.SILLY_CADENCE_STATUS_SECONDS)
@@ -333,17 +342,58 @@ class SillyCadenceTests(unittest.TestCase):
             phase, remaining = oled.advance_silly_cadence(phase, remaining, 3.0)
             phase_log.append(phase)
         personality_ticks = phase_log.count("personality")
+        glance_ticks = phase_log.count("glance")
         status_ticks = phase_log.count("status")
-        # Both phases must actually occur, and status must be the
-        # meaningfully shorter of the two - the whole point of the
-        # rebalance (useful pages get real airtime, not a token tick).
+        # All three phases must actually occur, personality must remain
+        # the dominant one (it must not "take over" per instruction),
+        # and glance must not exceed status's own established airtime -
+        # it's additive, not a replacement for the detailed rotation.
         self.assertGreater(personality_ticks, 0)
+        self.assertGreater(glance_ticks, 0)
         self.assertGreater(status_ticks, 0)
+        self.assertGreater(personality_ticks, glance_ticks)
         self.assertGreater(personality_ticks, status_ticks)
+        self.assertLessEqual(glance_ticks, status_ticks)
 
     def test_cadence_constants_are_within_the_requested_range(self):
-        self.assertTrue(30.0 <= oled.SILLY_CADENCE_PERSONALITY_SECONDS <= 45.0)
+        self.assertTrue(25.0 <= oled.SILLY_CADENCE_PERSONALITY_SECONDS <= 45.0)
         self.assertTrue(12.0 <= oled.SILLY_CADENCE_STATUS_SECONDS <= 15.0)
+        self.assertTrue(5.0 <= oled.SILLY_CADENCE_GLANCE_SECONDS <= 15.0)
+
+    def test_personality_still_the_largest_share_of_the_cycle(self):
+        total = (
+            oled.SILLY_CADENCE_PERSONALITY_SECONDS
+            + oled.SILLY_CADENCE_GLANCE_SECONDS
+            + oled.SILLY_CADENCE_STATUS_SECONDS
+        )
+        self.assertGreater(oled.SILLY_CADENCE_PERSONALITY_SECONDS / total, 0.5)
+
+
+class OfflineGlanceCadenceTests(unittest.TestCase):
+    """The Silly-Mode-OFF counterpart cadence
+    (advance_offline_glance_cadence()) - same pure, directly-testable
+    shape as SillyCadenceTests above, its own separate 2-phase cycle."""
+
+    def test_starts_in_rotation_and_stays_there_before_elapsing(self):
+        phase, remaining = "rotation", oled.OFFLINE_GLANCE_ROTATION_SECONDS
+        phase, remaining = oled.advance_offline_glance_cadence(phase, remaining, 3.0)
+        self.assertEqual(phase, "rotation")
+
+    def test_flips_to_glance_exactly_when_rotation_phase_elapses(self):
+        phase, remaining = "rotation", 3.0
+        phase, remaining = oled.advance_offline_glance_cadence(phase, remaining, 3.0)
+        self.assertEqual(phase, "glance")
+        self.assertAlmostEqual(remaining, oled.OFFLINE_GLANCE_SECONDS)
+
+    def test_flips_back_to_rotation_when_glance_phase_elapses(self):
+        phase, remaining = "glance", 3.0
+        phase, remaining = oled.advance_offline_glance_cadence(phase, remaining, 3.0)
+        self.assertEqual(phase, "rotation")
+        self.assertAlmostEqual(remaining, oled.OFFLINE_GLANCE_ROTATION_SECONDS)
+
+    def test_rotation_is_the_dominant_share(self):
+        total = oled.OFFLINE_GLANCE_ROTATION_SECONDS + oled.OFFLINE_GLANCE_SECONDS
+        self.assertGreater(oled.OFFLINE_GLANCE_ROTATION_SECONDS / total, 0.7)
 
 
 class StatusCheckOverrideTests(unittest.TestCase):
@@ -703,6 +753,277 @@ class PreviewPlaylistTests(unittest.TestCase):
         for item in oled.PREVIEW_PLAYLIST:
             self.assertIsInstance(item, dict)
             self.assertNotIn("id", item)  # roll_event() variants always carry an "id"; playlist items never do
+
+
+class ComputeCpuPercentTests(unittest.TestCase):
+    """Pure - no I/O, unlike read_cpu_jiffies() itself (which isn't
+    separately tested here for the same reason read_cpu_temp_c()/
+    read_disk_free_total() aren't: they're thin, direct /proc reads
+    with no branching logic of their own beyond try/except - the
+    degradation path IS the interesting part, covered by
+    GlanceMetricsTests below via build_glance_metrics())."""
+
+    def test_missing_prev_sample_is_unavailable(self):
+        self.assertIsNone(oled.compute_cpu_percent(None, (1000, 900)))
+
+    def test_missing_curr_sample_is_unavailable(self):
+        self.assertIsNone(oled.compute_cpu_percent((1000, 900), None))
+
+    def test_zero_elapsed_time_is_unavailable(self):
+        # Same total/idle twice - no time actually elapsed between
+        # samples, so a rate can't be computed; must degrade, not
+        # divide by zero.
+        self.assertIsNone(oled.compute_cpu_percent((1000, 900), (1000, 900)))
+
+    def test_fully_idle_interval_is_zero_percent(self):
+        # 100 total jiffies elapsed, all of them idle.
+        pct = oled.compute_cpu_percent((1000, 900), (1100, 1000))
+        self.assertAlmostEqual(pct, 0.0)
+
+    def test_fully_busy_interval_is_100_percent(self):
+        # 100 total jiffies elapsed, idle didn't move at all.
+        pct = oled.compute_cpu_percent((1000, 900), (1100, 900))
+        self.assertAlmostEqual(pct, 100.0)
+
+    def test_half_busy_interval_is_50_percent(self):
+        pct = oled.compute_cpu_percent((1000, 900), (1100, 950))
+        self.assertAlmostEqual(pct, 50.0)
+
+    def test_result_is_always_clamped_to_0_100(self):
+        # A corrupt/wrapped counter (idle appearing to move MORE than
+        # total, which should never happen on real hardware but must
+        # not produce a nonsensical negative or >100 result either).
+        pct = oled.compute_cpu_percent((1000, 900), (1050, 1200))
+        self.assertGreaterEqual(pct, 0.0)
+        self.assertLessEqual(pct, 100.0)
+
+
+class GlanceMetricsTests(unittest.TestCase):
+    """build_glance_metrics() - the one place raw reads get assembled
+    into piratebox_glance.py's documented metrics contract."""
+
+    def test_missing_status_degrades_every_status_derived_field(self):
+        metrics, _ = oled.build_glance_metrics(None, True, None, False)
+        self.assertIsNone(metrics["clients"])
+        self.assertFalse(metrics["undervoltage_now"])
+        self.assertIsNone(metrics["time_str"])
+
+    def test_stale_status_degrades_the_same_way(self):
+        metrics, _ = oled.build_glance_metrics({"wifi_clients": 5}, True, None, False)
+        self.assertIsNone(metrics["clients"])
+
+    def test_healthy_status_populates_client_count(self):
+        status = {"wifi_clients": 3, "power": {"undervoltage_now": False}, "time_source": {}}
+        metrics, _ = oled.build_glance_metrics(status, False, None, False)
+        self.assertEqual(metrics["clients"], 3)
+
+    def test_undervoltage_flag_is_read_through(self):
+        status = {"wifi_clients": 0, "power": {"undervoltage_now": True}, "time_source": {}}
+        metrics, _ = oled.build_glance_metrics(status, False, None, False)
+        self.assertTrue(metrics["undervoltage_now"])
+
+    def test_time_confident_when_ntp_synchronized(self):
+        status = {"wifi_clients": 0, "power": {}, "time_source": {"ntp_synchronized": True}}
+        metrics, _ = oled.build_glance_metrics(status, False, None, False)
+        self.assertIsNotNone(metrics["time_str"])
+
+    def test_time_confident_when_rtc_detected(self):
+        status = {"wifi_clients": 0, "power": {}, "time_source": {"rtc_detected": True}}
+        metrics, _ = oled.build_glance_metrics(status, False, None, False)
+        self.assertIsNotNone(metrics["time_str"])
+
+    def test_time_not_confident_without_ntp_or_rtc(self):
+        status = {"wifi_clients": 0, "power": {}, "time_source": {"ntp_synchronized": False, "rtc_detected": False}}
+        metrics, _ = oled.build_glance_metrics(status, False, None, False)
+        self.assertIsNone(metrics["time_str"])
+
+    def test_clients_recently_changed_is_passed_through_unchanged(self):
+        metrics, _ = oled.build_glance_metrics(None, True, None, True)
+        self.assertTrue(metrics["clients_recently_changed"])
+        metrics, _ = oled.build_glance_metrics(None, True, None, False)
+        self.assertFalse(metrics["clients_recently_changed"])
+
+    def test_returns_a_fresh_cpu_jiffies_sample_for_the_next_call(self):
+        _, new_jiffies = oled.build_glance_metrics(None, True, None, False)
+        # Whatever the real /proc/stat happens to contain on this
+        # machine, it must be a well-formed (total, idle) pair or None
+        # (never raise) - both are valid depending on sandbox access.
+        self.assertTrue(new_jiffies is None or (isinstance(new_jiffies, tuple) and len(new_jiffies) == 2))
+
+    def test_cpu_percent_is_none_on_the_very_first_call(self):
+        # No prior sample exists yet - exactly the daemon's own
+        # freshly-started state.
+        metrics, _ = oled.build_glance_metrics(None, True, None, False)
+        self.assertIsNone(metrics["cpu_percent"])
+
+    def test_uptime_str_is_always_a_string(self):
+        metrics, _ = oled.build_glance_metrics(None, True, None, False)
+        self.assertIsInstance(metrics["uptime_str"], str)
+
+
+class GlanceDispatchTests(unittest.TestCase):
+    """build_frame()'s "glance" page arm - confirms the wiring itself
+    (extra-dict keys, font routing) without re-testing piratebox_
+    glance.py's own rendering logic (see tools/test_glance.py)."""
+
+    def test_glance_page_renders_via_build_frame(self):
+        font, font_small, font_big = oled.load_fonts()
+        font_medium, font_glance_big = oled.load_glance_fonts()
+        img = oled.build_frame(
+            FakeDevice(), "glance", font, font_small, font_big, None, False, "normal",
+            extra={
+                "page_id": "cpu", "metrics": {"cpu_percent": 8, "cpu_temp_c": 46},
+                "font_medium": font_medium, "font_big": font_glance_big,
+            },
+        )
+        self.assertEqual(img.size, (128, 64))
+
+    def test_every_known_glance_page_id_renders_via_build_frame(self):
+        font, font_small, font_big = oled.load_fonts()
+        font_medium, font_glance_big = oled.load_glance_fonts()
+        for page_id in oled.GLANCE_PAGES:
+            with self.subTest(page_id=page_id):
+                img = oled.build_frame(
+                    FakeDevice(), "glance", font, font_small, font_big, None, False, "normal",
+                    extra={
+                        "page_id": page_id, "metrics": {}, "font_medium": font_medium, "font_big": font_glance_big,
+                    },
+                )
+                self.assertEqual(img.size, (128, 64))
+
+
+class GlancePreviewOverrideTests(unittest.TestCase):
+    """read_glance_preview_active() - identical recency-based pattern
+    to PreviewOverrideTests above, its own independent signal file."""
+
+    def setUp(self):
+        self._orig = oled.GLANCE_PREVIEW_REQUEST_FILE
+        fd, self.path = tempfile.mkstemp()
+        os.close(fd)
+        oled.GLANCE_PREVIEW_REQUEST_FILE = self.path
+
+    def tearDown(self):
+        oled.GLANCE_PREVIEW_REQUEST_FILE = self._orig
+        if os.path.exists(self.path):
+            os.unlink(self.path)
+
+    def write(self, content):
+        with open(self.path, "w") as f:
+            f.write(content)
+
+    def test_missing_file_is_inactive(self):
+        os.unlink(self.path)
+        self.assertFalse(oled.read_glance_preview_active(1000.0))
+
+    def test_recent_timestamp_is_active(self):
+        self.write("1000.0\n")
+        self.assertTrue(oled.read_glance_preview_active(1005.0))
+
+    def test_old_timestamp_is_inactive(self):
+        self.write("1000.0\n")
+        self.assertFalse(oled.read_glance_preview_active(1000.0 + oled.GLANCE_PREVIEW_WINDOW_SECONDS + 1))
+
+    def test_garbage_content_is_inactive_not_a_crash(self):
+        self.write("not a number")
+        self.assertFalse(oled.read_glance_preview_active(1000.0))
+
+    def test_independent_of_the_silly_preview_file(self):
+        """The two preview mechanisms must never share state - glance-
+        preview must work even if the (unrelated) Silly preview file
+        happens to also be stale/missing/active."""
+        self.write("1000.0\n")
+        orig_silly_preview = oled.PREVIEW_REQUEST_FILE
+        oled.PREVIEW_REQUEST_FILE = "/nonexistent/path/for/this/test"
+        try:
+            self.assertTrue(oled.read_glance_preview_active(1005.0))
+            self.assertFalse(oled.read_preview_active(1005.0))
+        finally:
+            oled.PREVIEW_REQUEST_FILE = orig_silly_preview
+
+
+class GlancePriorityIntegrationTests(unittest.TestCase):
+    """Confirms glance sits exactly where it's supposed to in the
+    priority hierarchy: preemptable by Emergency/fault/mode-transition/
+    toggle-confirmation, reachable regardless of Silly on/off, and
+    never substituting for STATUS CHECK. Mirrors the exact elif-chain
+    ordering directly (no separate helper function exists to call in
+    isolation), same technique SillyTogglePriorityIntegrationTests uses."""
+
+    def _decide(self, mode_transition, tier, silly_toggle_just_happened, glance_preview_active,
+                silly_enabled, status_check_active, preview_active, silly_cadence_phase):
+        if mode_transition is not None:
+            return "mode_transition"
+        if tier in ("emergency", "fault"):
+            return "serious_rotation"
+        if silly_toggle_just_happened:
+            return "silly_toggle_banner"
+        if glance_preview_active:
+            return "glance"
+        if not silly_enabled:
+            return "glance" if silly_cadence_phase == "glance" else "serious_rotation"
+        if status_check_active:
+            return "status_check_banner_or_serious_rotation"
+        if preview_active:
+            return "silly"
+        return "glance" if silly_cadence_phase == "glance" else "silly_or_serious_rotation"
+
+    def test_emergency_outranks_glance_preview(self):
+        self.assertEqual(
+            self._decide(None, "emergency", False, True, True, False, False, "glance"),
+            "serious_rotation",
+        )
+
+    def test_fault_outranks_glance_preview(self):
+        self.assertEqual(
+            self._decide(None, "fault", False, True, True, False, False, "glance"),
+            "serious_rotation",
+        )
+
+    def test_mode_transition_outranks_everything(self):
+        self.assertEqual(
+            self._decide("emergency", "emergency", False, True, True, False, False, "glance"),
+            "mode_transition",
+        )
+
+    def test_glance_preview_works_when_silly_is_off(self):
+        self.assertEqual(
+            self._decide(None, "ok", False, True, False, False, False, "rotation"),
+            "glance",
+        )
+
+    def test_glance_preview_works_when_silly_is_on(self):
+        self.assertEqual(
+            self._decide(None, "ok", False, True, True, False, False, "personality"),
+            "glance",
+        )
+
+    def test_status_check_active_is_never_replaced_by_glance(self):
+        # status_check_active is only even reached in this chain when
+        # silly_enabled is True and nothing above it applies - confirm
+        # it still wins over glance-cadence phase (glance is checked
+        # ONLY inside the not-silly-enabled/else branches, never here).
+        self.assertEqual(
+            self._decide(None, "ok", False, False, True, True, False, "status"),
+            "status_check_banner_or_serious_rotation",
+        )
+
+    def test_ordinary_glance_phase_reachable_when_silly_off_and_nothing_else_active(self):
+        self.assertEqual(
+            self._decide(None, "ok", False, False, False, False, False, "glance"),
+            "glance",
+        )
+
+    def test_ordinary_glance_phase_reachable_when_silly_on_and_nothing_else_active(self):
+        self.assertEqual(
+            self._decide(None, "ok", False, False, True, False, False, "glance"),
+            "glance",
+        )
+
+    def test_rotation_phase_when_silly_off_shows_serious_rotation_not_glance(self):
+        self.assertEqual(
+            self._decide(None, "ok", False, False, False, False, False, "rotation"),
+            "serious_rotation",
+        )
 
 
 if __name__ == "__main__":

@@ -260,7 +260,15 @@ operator-only physical-validation command that demos a fixed, non-
 secret sampler on the real display. See `docs/OPERATIONAL-DECISIONS.md`
 → "Expression Engine v2" for the full architecture; per that entry's
 own spoiler policy, the new visual catalog itself isn't enumerated
-here either.
+here either. **2026-09-04 (Distance/Glance Display):** a large-format,
+at-a-distance presentation layer (`piratebox_glance.py`) - a handful of
+one-question-at-a-time pages (CPU, RAM, disk, client count, uptime,
+time, the chronic power warning) shown in large centered text,
+interleaved with both the Silly-on and Silly-off rotations via an
+evolved (2→3-phase) cadence, never a separate operational mode.
+`piratebox-silly glance-preview` is the equivalent operator-only
+physical-validation command for this layer. See `docs/OPERATIONAL-
+DECISIONS.md` → "Distance / Glance Display" for the full architecture.
 
 **Progression (added 2026-09-04):** a persistent XP/level/title/
 achievement/history layer underneath Silly Mode, in its own module

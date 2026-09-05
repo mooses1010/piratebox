@@ -272,24 +272,41 @@
 #     writes" contract.
 #
 # PERSONALITY-VS-STATUS CADENCE (added 2026-09-04, "OLED cadence
-# rebalance" round) - makes Silly Mode read as "a useful status display
-# with a personality," not "a face display with occasional stats."
-# While Silly Mode is on and healthy (tier "ok"/"warning", no override
-# active - see below), the display alternates between two phases:
-#   - "personality": SILLY_CADENCE_PERSONALITY_SECONDS (~36s) of the
+# rebalance" round; extended 2026-09-04, "Distance/Glance Display"
+# round) - makes Silly Mode read as "a useful status display with a
+# personality," not "a face display with occasional stats." While
+# Silly Mode is on and healthy (tier "ok"/"warning", no override active
+# - see below), the display cycles through three phases:
+#   - "personality": SILLY_CADENCE_PERSONALITY_SECONDS (~30s) of the
 #     ambient/event/flourish behavior described above, unchanged.
+#   - "glance": SILLY_CADENCE_GLANCE_SECONDS (~8s) of ONE large-format,
+#     at-a-distance page (CPU/RAM/disk/clients/uptime/time/power - see
+#     piratebox_glance.py) - added this round, trimming personality's
+#     own share slightly to make room rather than lengthening the
+#     overall cycle, per instruction not to let glance take over.
 #   - "status": SILLY_CADENCE_STATUS_SECONDS (~15s) of the exact same
 #     serious Status/Time/Network/Health rotation this daemon always
 #     had - not a special "silly-mode status page," the real one,
 #     including its own undervoltage-warning box on the Health page.
+#     Deliberately UNCHANGED duration/share from before this round -
+#     the detailed-status baseline this file's own instructions
+#     protect is the "status" phase, not "glance," which is new,
+#     additive airtime alongside it, not a replacement for any of it.
 # The phase clock only advances while this cadence is actually driving
 # the display - a sleep/one-shot-event-hold/pending-achievement-reveal/
 # short-press-override interruption (all of which already took priority
 # over ambient cycling before this round) PAUSES it rather than losing
 # time, so "important events may interrupt this cadence" (per
 # instruction) falls out of the existing precedence order for free,
-# with no special-casing needed against the cadence itself. Replaces
-# the old single-tick-every-60s "peek" mechanic entirely.
+# with no special-casing needed against the cadence itself. A SEPARATE,
+# simpler two-phase cadence (advance_offline_glance_cadence() below)
+# gives glance pages the same kind of occasional airtime when Silly
+# Mode is OFF, alternating with the plain serious rotation instead of
+# with personality - see that function's own comment for why a second,
+# smaller cadence was the cleaner choice here rather than forcing one
+# mechanism to serve two genuinely different contexts (the Silly-on
+# cadence also has to respect sleep/hold/reveal states that simply
+# don't exist when Silly is off at all).
 #
 # SHORT-PRESS STATUS-CHECK OVERRIDE (added 2026-09-04, same round) -
 # reuses the existing physical shutdown button's ALREADY-tested
@@ -370,6 +387,16 @@ from piratebox_expressions import (
     draw_skull_and_crossbones, resolve_animation_frames, bias_ambient_expression,
 )
 
+# Distance / Glance Display (2026-09-04) - large-format, at-a-distance
+# pages. Same separation as the Expression Engine v2 import above: this
+# daemon owns state acquisition (reading /proc, status.json) and
+# scheduling integration; piratebox_glance.py owns eligibility/
+# weighting selection and pixel-level rendering, and touches no I/O of
+# its own - see that module's own header for the full rationale.
+from piratebox_glance import (
+    GLANCE_PAGES, GLANCE_PREVIEW_ORDER, render_glance_page, select_glance_page,
+)
+
 I2C_PORT = 1
 I2C_ADDRESS = 0x3C
 RETRY_SECONDS = 20.0          # how long to wait between init attempts
@@ -414,6 +441,17 @@ PREVIEW_WINDOW_SECONDS = 45.0         # long enough to see the whole
                                        # relaxed pace, short enough that
                                        # a forgotten preview can't run
                                        # for long unattended
+GLANCE_PREVIEW_REQUEST_FILE = "/tmp/piratebox/glance-preview-request"  # operator-
+                                       # only "show me the ordinary glance
+                                       # pages" request from `piratebox-silly
+                                       # glance-preview` - independent of
+                                       # PREVIEW_REQUEST_FILE above (that one
+                                       # demos Silly content and requires
+                                       # Silly Mode on; glance pages work
+                                       # regardless of Silly on/off, so this
+                                       # gets its own signal file rather
+                                       # than reusing that one's gate).
+GLANCE_PREVIEW_WINDOW_SECONDS = 45.0
 STATUS_FILE = "/run/piratebox/status.json"
 TRANSITIONS_LOG = "/var/www/html/data/mode-transitions.log"
 HOSTAPD_CONF = "/etc/hostapd/hostapd.conf"
@@ -447,9 +485,26 @@ SILLY_SSH_WATCH_EVERY_TICKS = 14      # ~42s - only actually shown if SSH is act
 # it rather than losing time. Replaces the old single-tick-every-60s
 # "peek" mechanic entirely - a five-tick status interlude reads as
 # genuinely useful, a one-tick glance didn't.
-SILLY_CADENCE_PERSONALITY_SECONDS = 36.0   # ~30-45s of faces/personality
+SILLY_CADENCE_PERSONALITY_SECONDS = 30.0   # trimmed slightly from 36s
+                                             # (2026-09-04) to make room
+                                             # for the new glance phase
+                                             # below, without lengthening
+                                             # the overall cycle
+SILLY_CADENCE_GLANCE_SECONDS = 8.0          # NEW (2026-09-04) - one
+                                             # large-format at-a-distance
+                                             # page, see piratebox_glance.py
 SILLY_CADENCE_STATUS_SECONDS = 15.0        # ~12-15s of the real Status/Time/
-                                             # Network/Health rotation
+                                             # Network/Health rotation -
+                                             # UNCHANGED by the glance round
+
+# Offline (Silly Mode OFF) glance cadence - see advance_offline_
+# glance_cadence() below. Deliberately a much larger rotation share
+# than glance's share of the Silly-on cadence above: when Silly is off,
+# the plain serious rotation IS the primary display, not a competing
+# phase alongside personality - glance is a genuinely occasional guest
+# here, not a co-equal partner.
+OFFLINE_GLANCE_ROTATION_SECONDS = 40.0
+OFFLINE_GLANCE_SECONDS = 8.0
 
 # Ambient (no event happening) expression cycles - one entry picked per
 # tick via tick % len(cycle), so the face is never static for long but
@@ -639,6 +694,21 @@ def read_preview_active(now: float) -> bool:
     return 0.0 <= age < PREVIEW_WINDOW_SECONDS
 
 
+def read_glance_preview_active(now: float) -> bool:
+    """`piratebox-silly glance-preview` (operator-only, see that
+    script) - identical recency-based pattern to read_preview_active()
+    just above, its own independent request file (see GLANCE_PREVIEW_
+    REQUEST_FILE's own comment for why). Distance/Glance Display
+    (2026-09-04)."""
+    try:
+        with open(GLANCE_PREVIEW_REQUEST_FILE, "r") as f:
+            ts = float(f.read().strip())
+    except (OSError, ValueError):
+        return False
+    age = now - ts
+    return 0.0 <= age < GLANCE_PREVIEW_WINDOW_SECONDS
+
+
 # A fixed, hand-picked, deterministic sampler of ordinary/common Silly
 # Mode content for `piratebox-silly preview` (see read_preview_active()
 # above) - built ENTIRELY from plain render-spec dicts, never by
@@ -729,6 +799,65 @@ def read_cpu_temp_c():
         return None
 
 
+def read_meminfo_kb():
+    """(total_kb, available_kb) for RAM - same two `/proc/meminfo`
+    fields (and the same plain-file-read approach, no subprocess) the
+    admin page's own `piratebox_get_meminfo_kb()` already uses
+    (includes/metrics.php) - read directly here rather than through
+    PHP, matching read_disk_free_total()'s own precedent just above.
+    Distance/Glance Display (2026-09-04)."""
+    try:
+        with open("/proc/meminfo", "r") as f:
+            raw = f.read()
+    except OSError:
+        return None, None
+    total = available = None
+    for line in raw.splitlines():
+        if line.startswith("MemTotal:"):
+            total = int(line.split()[1])
+        elif line.startswith("MemAvailable:"):
+            available = int(line.split()[1])
+    return total, available
+
+
+def read_cpu_jiffies():
+    """(total_jiffies, idle_jiffies) from the first line of `/proc/
+    stat` - a single cheap file read, no subprocess. A single sample is
+    meaningless on its own; CPU utilization needs a DELTA between two
+    samples taken some time apart - see compute_cpu_percent() just
+    below, which takes two of these tuples. Distance/Glance Display
+    (2026-09-04)."""
+    try:
+        with open("/proc/stat", "r") as f:
+            fields = f.readline().split()[1:]
+        values = [int(x) for x in fields]
+        idle = values[3] + (values[4] if len(values) > 4 else 0)  # idle + iowait
+        return sum(values), idle
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+def compute_cpu_percent(prev, curr):
+    """Pure - no I/O, unlike read_cpu_jiffies() above. Kept in this
+    file (not piratebox_glance.py) deliberately: it's a transform
+    specific to /proc/stat's own jiffie-counter format, the same reason
+    read_cpu_jiffies() itself lives here - piratebox_glance.py never
+    needs to know what a "jiffy" is, it only ever sees the resulting
+    plain percentage in the metrics dict. Returns None if either sample
+    is missing/unreadable, or if no time has actually elapsed between
+    them (a zero-length interval can't produce a rate) - both degrade
+    to "unavailable," never a crash or a nonsensical value."""
+    if prev is None or curr is None:
+        return None
+    prev_total, prev_idle = prev
+    curr_total, curr_idle = curr
+    total_delta = curr_total - prev_total
+    idle_delta = curr_idle - prev_idle
+    if total_delta <= 0:
+        return None
+    return max(0.0, min(100.0, 100.0 * (1.0 - idle_delta / total_delta)))
+
+
 def format_bytes_gb(n: int) -> str:
     return f"{n / (1024 ** 3):.0f}G"
 
@@ -743,6 +872,64 @@ def format_duration(seconds: float) -> str:
     if hours > 0:
         return f"{hours}h {minutes:02d}m"
     return f"{minutes}m"
+
+
+def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently_changed: bool):
+    """Assembles the one-shot `metrics` dict piratebox_glance.py's
+    scheduler/renderers consume (see that module's own documented
+    contract) - the ONE place in this daemon where raw reads (several
+    already used by render_health() above, plus the two new ones added
+    for this feature) get combined into that shape. Called once per
+    glance-phase-ENTRY, not every tick - see main()'s own comment - a
+    glance page holds the SAME metrics for its whole ~8-10s slot,
+    exactly like every other held render in this daemon already does,
+    so this does at most one read of each source per slot, not per
+    tick. Returns (metrics, new_cpu_jiffies) - the caller threads
+    new_cpu_jiffies back in as next time's prev_cpu_jiffies, the same
+    explicit-state-threading pattern main() already uses for
+    silly_hold_render/silly_last_clients/etc. `clients_recently_
+    changed` is passed in rather than computed here because main()
+    already has it for free (the existing client-count "pulse" used by
+    render_status()'s own inverted-box cue) - reused, not duplicated."""
+    curr_cpu_jiffies = read_cpu_jiffies()
+    cpu_percent = compute_cpu_percent(prev_cpu_jiffies, curr_cpu_jiffies)
+
+    total_kb, available_kb = read_meminfo_kb()
+    ram_percent = None
+    if total_kb and available_kb is not None and total_kb > 0:
+        ram_percent = max(0.0, min(100.0, 100.0 * (1.0 - available_kb / total_kb)))
+
+    free, total = read_disk_free_total()
+    disk_percent = (1.0 - free / total) * 100.0 if total > 0 else None
+
+    clients = None
+    undervoltage_now = False
+    time_confident = False
+    if not stale and isinstance(status, dict):
+        wc = status.get("wifi_clients")
+        if isinstance(wc, int):
+            clients = wc
+        undervoltage_now = status.get("power", {}).get("undervoltage_now") is True
+        ts = status.get("time_source", {})
+        # Deliberately conservative: only claim confidence when NTP is
+        # actually synced or a real RTC is detected - matching the
+        # instruction "if time confidence permits." A device that has
+        # neither still shows every other glance page; it just never
+        # shows a large clock it can't vouch for.
+        time_confident = bool(ts.get("ntp_synchronized")) or bool(ts.get("rtc_detected"))
+
+    metrics = {
+        "cpu_percent": cpu_percent,
+        "cpu_temp_c": read_cpu_temp_c(),
+        "ram_percent": ram_percent,
+        "disk_percent": disk_percent,
+        "clients": clients,
+        "clients_recently_changed": clients_recently_changed,
+        "uptime_str": format_duration(read_uptime_seconds()),
+        "time_str": time.strftime("%H:%M") if time_confident else None,
+        "undervoltage_now": undervoltage_now,
+    }
+    return metrics, curr_cpu_jiffies
 
 
 # --- Tiny procedural icons + instrument-panel chrome (round 8) --------
@@ -997,22 +1184,68 @@ def compute_silly_expression(tick: int, has_clients: bool, ssh_active: bool, for
     return cycle[tick % len(cycle)]
 
 
+_SILLY_CADENCE_ORDER = ("personality", "glance", "status")
+_SILLY_CADENCE_DURATIONS = {
+    "personality": SILLY_CADENCE_PERSONALITY_SECONDS,
+    "glance": SILLY_CADENCE_GLANCE_SECONDS,
+    "status": SILLY_CADENCE_STATUS_SECONDS,
+}
+
+
 def advance_silly_cadence(phase: str, seconds_remaining: float, refresh_seconds: float):
-    """Pure state-machine step for the personality-vs-status cadence
-    (see the "PERSONALITY-VS-STATUS CADENCE" header note) - decrements
-    the phase clock by one tick's worth of real time and flips phase
-    exactly when it elapses, resetting to the new phase's own duration.
-    No I/O, no reference to `main()`'s other state - directly unit-
-    testable by calling it in a loop and asserting the resulting phase
-    sequence/timing. Callers are responsible for only calling this once
-    per tick, and only while this cadence is actually driving the
-    display (see main()'s own "pauses rather than drifts" comment)."""
+    """Pure state-machine step for the personality-vs-glance-vs-status
+    cadence (see the "PERSONALITY-VS-STATUS CADENCE" header note) -
+    decrements the phase clock by one tick's worth of real time and
+    advances to the NEXT phase in `_SILLY_CADENCE_ORDER` exactly when
+    it elapses, resetting to that phase's own duration. Extended
+    2026-09-04 (Distance/Glance Display) from a 2-phase toggle
+    (personality<->status) to this 3-phase rotation - existing callers
+    are unaffected (same signature, same return shape), but the actual
+    SEQUENCE changed: a phase now always advances to the next entry in
+    `_SILLY_CADENCE_ORDER`, wrapping around, rather than simply
+    flipping between two names. No I/O, no reference to `main()`'s
+    other state - directly unit-testable by calling it in a loop and
+    asserting the resulting phase sequence/timing. Callers are
+    responsible for only calling this once per tick, and only while
+    this cadence is actually driving the display (see main()'s own
+    "pauses rather than drifts" comment)."""
     seconds_remaining -= refresh_seconds
     if seconds_remaining <= 0:
-        phase = "status" if phase == "personality" else "personality"
-        seconds_remaining = (
-            SILLY_CADENCE_STATUS_SECONDS if phase == "status" else SILLY_CADENCE_PERSONALITY_SECONDS
-        )
+        idx = _SILLY_CADENCE_ORDER.index(phase)
+        phase = _SILLY_CADENCE_ORDER[(idx + 1) % len(_SILLY_CADENCE_ORDER)]
+        seconds_remaining = _SILLY_CADENCE_DURATIONS[phase]
+    return phase, seconds_remaining
+
+
+_OFFLINE_GLANCE_ORDER = ("rotation", "glance")
+_OFFLINE_GLANCE_DURATIONS = {
+    "rotation": OFFLINE_GLANCE_ROTATION_SECONDS,
+    "glance": OFFLINE_GLANCE_SECONDS,
+}
+
+
+def advance_offline_glance_cadence(phase: str, seconds_remaining: float, refresh_seconds: float):
+    """The Silly-Mode-OFF counterpart to advance_silly_cadence() above -
+    a separate, simpler two-phase cycle (plain serious rotation
+    <-> one glance page) rather than reusing the 3-phase Silly cadence
+    with "personality" simply skipped: the Silly-on cadence also has to
+    respect sleep/one-shot-hold/pending-reveal interruptions that don't
+    exist at all when Silly is off, so forcing one mechanism to serve
+    both contexts would mean either a false shared dependency or extra
+    conditionals here just to ignore state that's irrelevant in this
+    context - a second small, independently-testable pure function was
+    the cleaner choice. Same shape/contract as advance_silly_cadence()
+    otherwise: pure, decrements by one tick's worth of real time,
+    advances to the next phase and resets its duration when the clock
+    elapses. Callers only advance this while Silly Mode is actually
+    off AND no higher-priority override (Emergency/fault/mode-
+    transition/status-check/preview) is active - see main()'s own
+    `not silly_enabled` branch."""
+    seconds_remaining -= refresh_seconds
+    if seconds_remaining <= 0:
+        idx = _OFFLINE_GLANCE_ORDER.index(phase)
+        phase = _OFFLINE_GLANCE_ORDER[(idx + 1) % len(_OFFLINE_GLANCE_ORDER)]
+        seconds_remaining = _OFFLINE_GLANCE_DURATIONS[phase]
     return phase, seconds_remaining
 
 
@@ -1144,6 +1377,11 @@ def build_frame(
         render_status_check_banner(draw, font_big)
     elif page == "silly_toggle_banner":
         render_silly_toggle_banner(draw, font, font_big, extra["new_state"])
+    elif page == "glance":
+        render_glance_page(
+            draw, font_small, extra["font_medium"], extra["font_big"],
+            extra["page_id"], extra["metrics"],
+        )
     return img
 
 
@@ -1235,6 +1473,32 @@ def load_fonts():
         return default, default, default
 
 
+def load_glance_fonts():
+    """Two more sizes of the same face, for the Distance/Glance Display
+    (2026-09-04) - kept as a SEPARATE function rather than widening
+    load_fonts()'s own return tuple, since that tuple's exact 3-item
+    shape (`font, font_small, font_big = load_fonts()`) is already
+    unpacked positionally in a couple dozen places across this file and
+    every test that loads it - changing its arity would be a needless,
+    wide-blast-radius risk for what is really an unrelated, additive
+    need. 22pt ("medium") is used for a page with two stacked values
+    (e.g. CPU's percent-and-temperature) or a longer string (uptime);
+    32pt ("big") is used for a page with exactly one short value,
+    letting it fill as much of the 128x64 canvas as legibly possible -
+    see piratebox_glance.py's own render functions for exactly which
+    page uses which. Same fail-safe fallback as load_fonts() - a
+    missing TTF degrades to PIL's bitmap default, never a crash."""
+    try:
+        return (
+            ImageFont.truetype(FONT_PATH, 22),
+            ImageFont.truetype(FONT_PATH, 32),
+        )
+    except OSError:
+        log.warning("Could not load %s for glance fonts, falling back to PIL default bitmap font.", FONT_PATH)
+        default = ImageFont.load_default()
+        return default, default
+
+
 def init_device():
     """One attempt to bring up the display. Returns the device on
     success, None on any failure - callers loop on this, they never
@@ -1265,11 +1529,14 @@ def main() -> int:
         "Silly Mode: user-toggled via %s, off by default, always "
         "suppressed in Emergency Mode or any fault (missing/stale "
         "status, any Core service down) - see compute_display_tier(). "
-        "Cadence: ~%.0fs personality / ~%.0fs status interlude. "
-        "Short-press status-check override: %s, ~%.0fs window.",
+        "Cadence: ~%.0fs personality / ~%.0fs glance / ~%.0fs status "
+        "interlude (Silly on); ~%.0fs rotation / ~%.0fs glance (Silly off). "
+        "Short-press status-check override: %s, ~%.0fs window. "
+        "%d glance page(s) registered.",
         I2C_PORT, I2C_ADDRESS, REFRESH_SECONDS, PAGE_SECONDS, len(PAGE_ORDER),
-        SILLY_FILE, SILLY_CADENCE_PERSONALITY_SECONDS, SILLY_CADENCE_STATUS_SECONDS,
-        STATUS_CHECK_REQUEST_FILE, STATUS_CHECK_WINDOW_SECONDS,
+        SILLY_FILE, SILLY_CADENCE_PERSONALITY_SECONDS, SILLY_CADENCE_GLANCE_SECONDS,
+        SILLY_CADENCE_STATUS_SECONDS, OFFLINE_GLANCE_ROTATION_SECONDS, OFFLINE_GLANCE_SECONDS,
+        STATUS_CHECK_REQUEST_FILE, STATUS_CHECK_WINDOW_SECONDS, len(GLANCE_PAGES),
     )
 
     page_index = 0
@@ -1332,6 +1599,46 @@ def main() -> int:
     preview_started_at = None
     preview_last_index = -1
     preview_current_render = None
+
+    # Distance/Glance Display (2026-09-04). The existing `silly_
+    # cadence_phase`/`silly_cadence_seconds_remaining` above now drive
+    # a 3-phase cycle including "glance" (see SILLY_CADENCE_* above);
+    # `offline_glance_phase` drives the separate, simpler Silly-OFF
+    # cadence (see OFFLINE_GLANCE_* above).
+    # `glance_page_id`/`glance_metrics`/`prev_cpu_jiffies`/`glance_
+    # cooldowns` are SHARED between both contexts on purpose - only one
+    # of the two cadences is ever actually advancing on a given tick
+    # (Silly is either on or off), so there's no real "which one owns
+    # this" conflict, and sharing means a page's cooldown/last-shown
+    # bookkeeping stays continuous across a Silly Mode toggle rather
+    # than silently resetting. Nothing here is persisted to disk -
+    # display-scheduling trivia, not history worth remembering, same
+    # discipline as every other in-memory Silly Mode bookkeeping var.
+    offline_glance_phase = "rotation"
+    offline_glance_seconds_remaining = OFFLINE_GLANCE_ROTATION_SECONDS
+    # Separate edge-detection flags for the two cadences (even though
+    # the page/metrics/cooldown state above is shared) - keeps a Silly
+    # Mode toggle that happens to land mid-glance-phase from confusing
+    # one context's "did I already pick a page for this slot" with the
+    # other's, since silly_enabled being flipped can switch which
+    # branch is even reached from one tick to the next.
+    silly_glance_was_active = False
+    offline_glance_was_active = False
+    glance_page_id = None
+    glance_metrics = None
+    glance_cooldowns = {}
+    prev_cpu_jiffies = None
+    glance_rng = random.Random()
+
+    # Operator-only "preview the ordinary glance pages" request - same
+    # shape as the Silly preview state above, but its own independent
+    # signal file/state, since it must work regardless of whether Silly
+    # Mode is on or off (glance pages are not Silly content).
+    glance_preview_was_active = False
+    glance_preview_started_at = None
+    glance_preview_last_index = -1
+
+    font_glance_medium, font_glance_big = load_glance_fonts()
 
     # Progression (piratebox_progression.py) - a separate, persistent,
     # always-on subsystem underneath Silly Mode. Loaded once at startup;
@@ -1414,6 +1721,12 @@ def main() -> int:
             preview_last_index = -1
             preview_current_render = None
         preview_was_active = preview_active
+        glance_preview_active = read_glance_preview_active(now)
+        glance_preview_just_started = glance_preview_active and not glance_preview_was_active
+        if glance_preview_just_started:
+            glance_preview_started_at = now
+            glance_preview_last_index = -1
+        glance_preview_was_active = glance_preview_active
         # Double-tap Silly toggle confirmation - edge is consumed every
         # single tick, even during Emergency/fault (see the branch below
         # for why): a toggle that happens mid-Emergency must never queue
@@ -1522,16 +1835,66 @@ def main() -> int:
             # trade-off the status-check banner immediately above it
             # already makes for its own one-shot tick.
             page, extra = "silly_toggle_banner", {"new_state": silly_enabled}
+        elif glance_preview_active:
+            # Operator-only "show me the ordinary glance pages" demo
+            # (Distance/Glance Display physical-validation aid, see
+            # `piratebox-silly glance-preview` and GLANCE_PREVIEW_ORDER).
+            # Deliberately placed ABOVE `not silly_enabled` below (unlike
+            # the Silly preview, which sits below it) - glance pages are
+            # not Silly content, so this must work whether Silly Mode is
+            # on or off; ranked below Emergency/fault/toggle-confirmation
+            # per the same mandatory priority every override here
+            # respects. Cycles the fixed, always-eligible page list once
+            # every PREVIEW_SECONDS_PER_ITEM, reusing that same pacing
+            # constant the Silly preview already uses - no separate
+            # timing constant needed for an equivalent purpose.
+            elapsed = now - (glance_preview_started_at or now)
+            glance_preview_index = int(elapsed // PREVIEW_SECONDS_PER_ITEM) % len(GLANCE_PREVIEW_ORDER)
+            if glance_preview_index != glance_preview_last_index or glance_metrics is None:
+                glance_preview_last_index = glance_preview_index
+                glance_page_id = GLANCE_PREVIEW_ORDER[glance_preview_index]
+                glance_metrics, prev_cpu_jiffies = build_glance_metrics(status, stale, prev_cpu_jiffies, pulse_now)
+            page, extra = "glance", {
+                "page_id": glance_page_id, "metrics": glance_metrics,
+                "font_medium": font_glance_medium, "font_big": font_glance_big,
+            }
         elif not silly_enabled:
             # Silly Mode is off - exactly today's plain serious rotation,
             # matching the "default off = exactly today's display"
-            # requirement. (A status-check press here would be a visual
-            # no-op anyway, since this already IS the real status
-            # rotation - so it's deliberately not specially detected in
-            # this branch; see status_check_active below for where it
-            # actually changes anything.)
-            page, extra = PAGE_ORDER[page_index], None
-            transition_wipe = seconds_on_current_page == 0.0 and last_image is not None
+            # requirement, EXCEPT for one addition (2026-09-04, Distance/
+            # Glance Display): a separate, simpler cadence (see
+            # advance_offline_glance_cadence()) occasionally interleaves
+            # one large-format glance page into this rotation too, per
+            # instruction that glance pages must not require Silly Mode
+            # to be on. (A status-check press here would still be a
+            # visual no-op the rest of the time anyway, since this
+            # already IS the real status rotation - so it's deliberately
+            # not specially detected in this branch; see status_check_
+            # active below for where it actually changes anything.)
+            offline_glance_phase, offline_glance_seconds_remaining = advance_offline_glance_cadence(
+                offline_glance_phase, offline_glance_seconds_remaining, REFRESH_SECONDS,
+            )
+            if offline_glance_phase == "glance":
+                if not offline_glance_was_active:
+                    # Fresh entry into this glance slot - pick a page and
+                    # read its metrics ONCE, then hold both for the whole
+                    # slot (exactly like every other held render in this
+                    # daemon), not re-picked/re-read every tick.
+                    glance_metrics, prev_cpu_jiffies = build_glance_metrics(
+                        status, stale, prev_cpu_jiffies, pulse_now,
+                    )
+                    glance_page_id = select_glance_page(
+                        glance_metrics, glance_rng, glance_page_id, glance_cooldowns, now,
+                    )
+                    offline_glance_was_active = True
+                page, extra = "glance", {
+                    "page_id": glance_page_id, "metrics": glance_metrics,
+                    "font_medium": font_glance_medium, "font_big": font_glance_big,
+                }
+            else:
+                offline_glance_was_active = False
+                page, extra = PAGE_ORDER[page_index], None
+                transition_wipe = seconds_on_current_page == 0.0 and last_image is not None
         elif status_check_active:
             # Explicit temporary override (a short press on the physical
             # button, or any future trigger of the same signal file) -
@@ -1650,7 +2013,28 @@ def main() -> int:
                 render = silly_hold_render
                 silly_hold_remaining -= 1
                 page, extra = "silly", {"render": render, "tier": tier}
+            elif silly_cadence_phase == "glance":
+                # One large-format, at-a-distance page (Distance/Glance
+                # Display, 2026-09-04) - see piratebox_glance.py. Picked
+                # and read ONCE on fresh entry into this slot, then held
+                # for the whole ~8s, exactly like the "status" phase
+                # right below holds the same serious page for its own
+                # duration rather than re-rendering a fresh decision
+                # every tick.
+                if not silly_glance_was_active:
+                    glance_metrics, prev_cpu_jiffies = build_glance_metrics(
+                        status, stale, prev_cpu_jiffies, pulse_now,
+                    )
+                    glance_page_id = select_glance_page(
+                        glance_metrics, glance_rng, glance_page_id, glance_cooldowns, now,
+                    )
+                    silly_glance_was_active = True
+                page, extra = "glance", {
+                    "page_id": glance_page_id, "metrics": glance_metrics,
+                    "font_medium": font_glance_medium, "font_big": font_glance_big,
+                }
             elif silly_cadence_phase == "status":
+                silly_glance_was_active = False
                 # The regular, automatic status interlude (see
                 # SILLY_CADENCE_* above) - the ordinary serious rotation,
                 # for real airtime (~12-15s), not a one-tick glance.

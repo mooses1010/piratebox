@@ -20,6 +20,11 @@
 #                                       be on) - operator-only, never shows
 #                                       uncommon/rare/legendary/secret content,
 #                                       auto-expires on its own (see below)
+#   piratebox-silly glance-preview   - briefly demo the ordinary large-format
+#                                       glance pages (CPU/RAM/disk/clients/
+#                                       uptime/time) on the real OLED -
+#                                       operator-only, works regardless of
+#                                       Silly Mode on/off, auto-expires (below)
 #   piratebox-silly backup [path]    - copy the live Progression file out,
 #                                       timestamped, to ~/piratebox-progression-
 #                                       backups/ by default
@@ -49,6 +54,12 @@
 # an uncommon/rare/legendary/secret variant regardless of the real
 # device's level/history or how many times it's run.
 #
+# `glance-preview` (Distance/Glance Display, 2026-09-04) is the same
+# pattern, its own independent signal file
+# (/tmp/piratebox/glance-preview-request) - deliberately NOT gated on
+# Silly Mode being on, since glance pages are not Silly content and
+# already appear in the plain serious rotation when Silly is off too.
+#
 # Progression's durable state lives at /var/lib/piratebox-oled/
 # progression.json (real disk, survives reboot and Silly Mode being
 # off) - owned by the piratebox-gpio account the OLED daemon runs as,
@@ -77,6 +88,8 @@ RESET_REQUEST_FILE="$STATE_DIR/progression-reset-request"
 IMPORT_REQUEST_FILE="$STATE_DIR/progression-import-request"
 PREVIEW_REQUEST_FILE="$STATE_DIR/silly-preview-request"
 PREVIEW_WINDOW_SECONDS=45
+GLANCE_PREVIEW_REQUEST_FILE="$STATE_DIR/glance-preview-request"
+GLANCE_PREVIEW_WINDOW_SECONDS=45
 PROGRESSION_FILE="/var/lib/piratebox-oled/progression.json"
 RESET_CONFIRM_TOKEN="RESET-CONFIRMED"
 BACKUP_DIR="$HOME/piratebox-progression-backups"
@@ -89,6 +102,7 @@ Usage:
   piratebox-silly status
   piratebox-silly stats
   piratebox-silly preview
+  piratebox-silly glance-preview
   piratebox-silly backup [path]
   piratebox-silly reset --confirm-i-am-sure [--yes]
   piratebox-silly import <file>
@@ -189,6 +203,25 @@ PYEOF
         echo "This cycles a small sampler of ordinary expressions/animations only -"
         echo "never anything uncommon/rare/legendary/secret, regardless of this"
         echo "device's real level or history - then returns to normal on its own."
+        ;;
+
+    glance-preview)
+        # Unlike `preview` above, this does NOT require Silly Mode to
+        # be on - the Distance/Glance Display's large-format pages
+        # (CPU/RAM/disk/clients/uptime/time) are shown in the plain
+        # serious rotation too when Silly Mode is off, so a preview of
+        # them shouldn't require or imply turning Silly Mode on.
+        if [ -r /tmp/piratebox/mode ] && [ "$(tr -d '[:space:]' < /tmp/piratebox/mode 2>/dev/null)" = "emergency" ]; then
+            echo "Emergency Mode is active - the preview would not be visible right now" >&2
+            echo "(Emergency Mode always takes the display, by design). Try again once" >&2
+            echo "Emergency Mode clears, or check 'piratebox-silly status'." >&2
+            exit 1
+        fi
+        mkdir -p "$STATE_DIR" 2>/dev/null || true
+        printf '%s\n' "$(date +%s)" > "$GLANCE_PREVIEW_REQUEST_FILE"
+        echo "Glance preview started - watch the real OLED for about ${GLANCE_PREVIEW_WINDOW_SECONDS}s."
+        echo "This cycles the ordinary large-format glance pages (CPU, RAM, disk,"
+        echo "clients, uptime, time) once each, then returns to normal on its own."
         ;;
 
     backup)
