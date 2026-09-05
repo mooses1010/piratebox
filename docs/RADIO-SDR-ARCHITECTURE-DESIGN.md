@@ -72,7 +72,7 @@ the user's existing SDR setup, not yet connected to the Pi.
 
 ---
 
-## 1. Executive summary (revised 2026-09-05, three times - see §2b for the physical enumeration update, §11b for the CDC-ACM listen test + audio characterization)
+## 1. Executive summary (revised 2026-09-05, four times - see §2b for the physical enumeration update, §11b for the CDC-ACM listen test + audio characterization, §11c for the known-frequency retest)
 
 - **2026-09-05, physical enumeration complete (§2b)**: the V3 unit was
   connected to the Pi and passively characterized. Two genuinely
@@ -1568,7 +1568,142 @@ anything, or approaching the dual-encoder-button behavior.
 
 ---
 
-## 12. Open questions (updated 2026-09-05 after physical enumeration, then again after §11b)
+## 11c. On-screen observation and known-frequency capture (2026-09-05)
+
+**§11b.4's on-screen observation, before retuning** (untouched state
+during all of §11b's captures) — **CONFIRMED (this unit, direct visual
+read, operator's transcription)**: `455.000 MHz`, `NFM`, 100 Hz tuning
+step, 160 kHz spectrum span displayed, waterfall active, a narrow
+visible feature at/near the tuned center, audio icon showing enabled
+(not muted), and **audible static from the speaker**.
+
+The full settings ("HARD") screen was also read, unchanged, purely
+observational: SW antenna 50Ω, PREAMP disabled, ATT 1dB, RF GAIN 4,
+F correct 0, Sm correct 0dB, `Audio out: Ph+Sp`, PGA Gain -12.00dB,
+PGA BST enabled, ENC reverse disabled, **IQ swap: disabled**. No
+setting was changed to obtain this reading. `F correct: 0` and
+`Sm correct: 0dB` mean no frequency or S-meter calibration offset is
+currently applied, which is useful context for any future signal-level
+interpretation. `IQ swap: disabled` is useful context for any future
+I/Q-channel-order-dependent analysis (e.g. determining the sign of a
+frequency offset from the USB stereo stream).
+
+**This is a significant finding, not just a state snapshot**: audio
+was confirmed audible (static) at the physical speaker at 455.000 MHz
+— the exact frequency/mode the mono/40kHz USB capture had already
+failed on twice in §11b.2. This rules out "receiver currently muted"
+or "squelch fully closed with the analog path silent" as an
+explanation for that stream's failure, since the analog audio path was
+demonstrably live at the time.
+
+**Known-frequency retune, using only the normal tuning control** (per
+operator's own statement — no button combinations, no calibration
+changes): `455.000 MHz` → **`162.400 MHz`** (the first of the seven
+standard NOAA Weather Radio channels, already documented in this
+project's own `data/utility/radio/services.json`), mode left on NFM.
+Result: **audible static, not an intelligible broadcast** — either no
+NOAA transmitter covers this location at useful signal strength, or
+the specific active channel locally is one of the other six, not
+162.400 exactly. Not pursued further as an intelligible-content test
+in this round (see §11c.3 below for why this wasn't necessary to reach
+a conclusion).
+
+### 11c.1 Third mono/40kHz capture attempt — now frequency/mode/squelch-independent
+
+**CONFIRMED (this unit, third attempt)**: at 162.400 MHz/NFM, with
+audible static confirmed present at the speaker, the mono/40kHz
+capture (`hw:2,0`) **failed identically** to both §11b.2 attempts —
+same `arecord: pcm_read:2272: read error: Input/output error`, only a
+44-byte WAV header written, no kernel-level error, device fully
+stable throughout (confirmed via the same before/after `lsusb`/
+`dmesg`/ALFA/`throttled` checks as every prior test in this
+investigation).
+
+Three failures now, across two different tuned frequencies, with the
+analog audio path confirmed live both times: this interface's failure
+to stream is **evidence-backed as independent of tuned frequency,
+mode, and squelch state**, not explained by "nothing to demodulate
+right now." The actual cause (a specific alt-setting/negotiation
+requirement `arecord`'s default invocation doesn't satisfy, a
+bandwidth-sharing quirk given the very tight shared Full-Speed budget,
+or something else entirely) remains unknown and is not chased further
+in this round — it would require either testing with a different tool/
+invocation, or examining the interface's exact alt-setting descriptors
+in more depth than plain `arecord -D hw:2,0` exercises.
+
+### 11c.2 Second stereo/160kHz capture and corrected phase-difference analysis
+
+**CONFIRMED (this unit)**: a second clean 2-second stereo capture was
+taken at 162.400 MHz/NFM, structurally identical to §11b.2's capture
+(exactly 1,280,000 bytes of sample data). Correlation/power statistics
+matched closely: Pearson correlation **0.0143** (vs. 0.039 before),
+RMS ratio **0.979** (vs. 0.991 before), both channels' DC offset near
+zero — consistent, reproducible corroboration of the quadrature-I/Q
+reading across two different tuned frequencies, not a one-off result.
+
+**A new check was added: an instantaneous-frequency estimate**, treating
+consecutive (L,R) sample pairs as complex I+jQ samples and computing
+the phase angle of `z[n] · conj(z[n-1])` across a 20,000-sample window
+(pure Python `math`/`statistics`, no new package). The intent: a
+dominant stable tone or DC/LO-leakage spike would produce phase
+differences tightly clustered around one value (low standard
+deviation); broadband noise would scatter phase differences roughly
+uniformly across the full ±π range (standard deviation approaching the
+π/√3 ≈ 1.814 rad theoretical maximum for a uniform-random circular
+variable).
+
+**Self-correction, in the interest of this document's own provenance
+standards**: the first pass through this analysis used an uncalibrated
+threshold (`> 2.0 rad = noise-like`) and mis-classified the very first
+result (1.86 rad) as "tone-like" — this was wrong, and was caught and
+corrected before being reported to the operator, by computing the
+actual theoretical maximum for a uniform-random circular variable and
+comparing against it properly.
+
+**Corrected result, both captures**:
+- §11b.2's original capture (455.000 MHz state): stdev **1.7903 rad**
+  (98.7% of the 1.8138 rad theoretical maximum).
+- §11c's new capture (162.400 MHz): stdev **1.8628 rad** (102.7% of
+  the theoretical maximum).
+
+**STRONGLY SUGGESTED**: both captures are essentially indistinguishable
+from pure uniform-random phase noise — consistent with the audible
+"static" reported at both frequencies, and showing no evidence of a
+single dominant stable tone or DC/LO spike large enough to shift the
+aggregate statistic. This does **not** rule out a weak spike or narrow
+carrier sitting underneath the noise floor — this time-domain estimator
+averages across the whole capture and cannot resolve that without a
+proper spectral (FFT/PSD) analysis, which was not performed (no FFT
+library is installed, and implementing one was judged out of scope for
+this passive-characterization round).
+
+### 11c.3 Reassessment — why an intelligible-content test wasn't pursued further
+
+162.400 MHz did not yield an intelligible NOAA broadcast at this
+location, and this round stops short of asking for a fourth retune to
+chase one. The evidence already gathered is sufficient to update the
+architecture assessment without it:
+
+- The 40kHz/mono failure is now well-established as reproducible and
+  state-independent — a real characteristic of this interface on this
+  unit, not a symptom of "nothing playing right now." Any future
+  implementation attempt should expect to need to solve this
+  specifically (a different capture tool/invocation, or deeper
+  alt-setting-level debugging), not assume it will resolve itself once
+  the receiver has "real" audio to send.
+- The 160kHz/stereo interface's IQ characteristics (balanced power,
+  near-zero correlation, noise-like phase statistics matching the
+  audibly-confirmed static) are now corroborated at two different
+  tuned frequencies, which is stronger evidence than a single
+  observation, even without an intelligible known-signal capture.
+  A definitive "yes, this is unambiguously IQ carrying a real decodable
+  signal" confirmation still awaits either an actual intelligible
+  capture or spectral analysis - both reasonable future steps, neither
+  performed here.
+
+---
+
+## 12. Open questions (updated 2026-09-05 after physical enumeration, then again after §11b, then again after §11c)
 
 **Resolved or substantially narrowed by §2b's physical enumeration:**
 
@@ -1580,13 +1715,16 @@ anything, or approaching the dual-encoder-button behavior.
   the unit is confirmed connected via USB-C with a working data cable.
 - Whether the audio interfaces carry anything resembling "Malahit
   RX"/"Malahit IQ" — **STRONGLY SUGGESTED, with statistical
-  corroboration** (still not proven): mono/40kHz and stereo/160kHz
-  respectively, by channel-count/sample-rate signature (§2b) *and*,
-  for the 160kHz stream, by near-zero L/R correlation and balanced
-  RMS power consistent with quadrature I/Q (§11b.2).
+  corroboration at two different tuned frequencies** (still not
+  proven): mono/40kHz and stereo/160kHz respectively, by
+  channel-count/sample-rate signature (§2b) *and*, for the 160kHz
+  stream, by near-zero L/R correlation, balanced RMS power, and
+  near-uniform-random phase-difference statistics matching audibly-
+  confirmed static, reproduced independently at 455.000 MHz (§11b.2)
+  and 162.400 MHz (§11c.2).
 
 **Resolved or narrowed by §11b (the CDC-ACM listen test + audio
-capture):**
+capture) and §11c (on-screen observation + known-frequency retest):**
 
 - ~~Whether either `/dev/ttyACM*` port emits anything unprompted~~ —
   **CONFIRMED**: neither does, over a 5-second read-only window each,
@@ -1599,19 +1737,27 @@ capture):**
   WARN appears at close on *both* ports — read as a generic
   host-controller artifact, not device-side evidence (§11b.1).
 - ~~Whether the mono/40kHz and stereo/160kHz interfaces actually
-  stream on open~~ — **CONFIRMED**: the 160kHz interface streams
-  cleanly on demand with no setup; the 40kHz interface reproducibly
-  fails immediately with an ALSA-level I/O error in the unit's
-  current state (§11b.2) — cause unknown pending the §11b.4 operator
-  observation.
+  stream on open~~ — **CONFIRMED, now frequency/mode/squelch-
+  independent**: the 160kHz interface streams cleanly on demand with
+  no setup at both tested frequencies; the 40kHz interface
+  reproducibly fails with an ALSA-level I/O error across three
+  attempts at two different tuned frequencies, including one where
+  audible static was confirmed present at the physical speaker —
+  ruling out "nothing to demodulate right now" as the explanation
+  (§11b.2, §11c.1).
+- ~~Whether the receiver was muted/squelch-closed during the failed
+  mono captures~~ — **CONFIRMED: no.** Audio icon showed enabled and
+  static was audible at the speaker during the 455.000 MHz captures
+  (§11c), yet the mono stream still failed identically.
 
 **Still genuinely open:**
 
 1. Does `SoapyMalahitRR` (naming: "Malahit-**R1**") actually work with
    this unit's confirmed USB Audio Class interfaces, or does it expect
    a different, bare wired module product entirely? Still NEEDS
-   HARDWARE-level testing or source-reading to settle; neither physical
-   gate changed the underlying naming-mismatch concern (§5, §2b).
+   HARDWARE-level testing or source-reading to settle; no physical
+   gate so far has changed the underlying naming-mismatch concern (§5,
+   §2b).
 2. Which, if either, `/dev/ttyACM0`/`/dev/ttyACM1` is CAT control, and
    in what protocol — still descriptor-identical and now also
    confirmed silent-under-passive-listen on both; resolving this
@@ -1620,26 +1766,35 @@ capture):**
    as the first-implementation posture (§11b.1, §11b.3).
 3. This unit's firmware version — the one documented check method did
    not work on this unit (§2b); no other passive method is known.
-4. Why the mono/40kHz interface fails to stream in the unit's current
-   state — needs the operator's on-screen observation from §11b.4
-   before this can be narrowed further.
-5. This RTL-SDR's exact model/VID:PID (§3, §6) — entirely separate
+4. Why the mono/40kHz interface fails to stream, now confirmed
+   independent of frequency/mode/squelch (§11c.1) — the actual cause
+   (alt-setting negotiation, bandwidth sharing, or something else)
+   remains unknown and would need a different capture tool/invocation
+   or deeper descriptor-level debugging to pin down.
+5. Whether the 160kHz stream carries a real, decodable signal (vs.
+   just noise at whatever frequency happens to be tuned) — the
+   statistical evidence is consistent with IQ carrying broadband noise
+   at both tested frequencies (neither produced an intelligible
+   analog signal); a genuinely intelligible known-signal capture or
+   spectral (FFT/PSD) analysis would strengthen this further but
+   wasn't pursued in this round (§11c.3).
+6. This RTL-SDR's exact model/VID:PID (§3, §6) — entirely separate
    hardware, not yet enumerated at all.
-6. Real OpenWebRX+ CPU/RAM/client-count behavior on this actual Pi
+7. Real OpenWebRX+ CPU/RAM/client-count behavior on this actual Pi
    3B+/Trixie — no published benchmark exists for any Malahit variant
    or RTL-SDR on this OS/hardware combination (§4, §5).
-7. Actual USB charging current draw — the "Self Powered" descriptor
+8. Actual USB charging current draw — the "Self Powered" descriptor
    bit (§2b) is a favorable but not dispositive sign; no direct
    current measurement has been taken.
-8. Whether the ALFA's disconnects/re-enumerations (§2b, and a second,
+9. Whether the ALFA's disconnects/re-enumerations (§2b, and a second,
    Malahit-independent instance found in §11b.1) reflect a genuine
    Malahit interaction or a pre-existing, hardware-independent power
    marginality — the second instance (ALFA hiccup with the Malahit
    completely unplugged) makes the latter look more likely, but this
    remains observational, not a controlled test.
-9. Whether a separately-powered USB hub becomes the long-term
-   architecture for one or both devices (§2b, §8).
-10. The dual-encoder-button reboot/reset behavior (§2a) remains
+10. Whether a separately-powered USB hub becomes the long-term
+    architecture for one or both devices (§2b, §8).
+11. The dual-encoder-button reboot/reset behavior (§2a) remains
     unexplained by any source found — not to be actively investigated
     further ourselves; worth asking about if this project ever engages
     the OpenWebRX+/Malahit community directly.

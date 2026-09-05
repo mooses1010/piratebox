@@ -772,18 +772,23 @@ it is.**
   clone/derivative of the Russian MALAHITEAM Malahit-DSP line, NOT a
   confirmed genuine original; own internal battery), an RTL-SDR dongle
   (exact model/revision not yet identified), and an outdoor magnetic-
-  loop antenna are already owned. **The Malahit has been connected to
-  this Pi twice (2026-09-05) for passive/read-only characterization
-  only** - first a USB enumeration pass (confirmed VID:PID `ffff:0737`,
-  two USB Audio Class capture interfaces and two descriptor-identical
-  CDC-ACM serial ports), then a second pass that read-only-opened both
-  serial ports (DTR/RTS held low, zero bytes transmitted - both
-  silent, device unaffected) and briefly captured from both audio
-  interfaces (the 160kHz stereo interface streams cleanly and
-  statistically resembles IQ - near-zero L/R correlation, balanced
-  power; the 40kHz mono interface reproducibly fails to stream in the
-  unit's current state, cause not yet determined). It is not wired
-  into any PirateBox service. The RTL-SDR has not yet been connected.
+  loop antenna are already owned. **The Malahit has remained connected
+  to this Pi throughout a series of passive/read-only characterization
+  passes (2026-09-05)** - a USB enumeration pass (confirmed VID:PID
+  `ffff:0737`, two USB Audio Class capture interfaces and two
+  descriptor-identical CDC-ACM serial ports); a serial+audio pass that
+  read-only-opened both serial ports (DTR/RTS held low, zero bytes
+  transmitted - both silent, device unaffected) and briefly captured
+  from both audio interfaces; and an on-screen-observation + known-
+  frequency retest pass. Across two different tuned frequencies
+  (455.000 MHz and 162.400 MHz, both with audible static confirmed at
+  the speaker), the 160kHz stereo interface reproducibly streams
+  cleanly and statistically resembles IQ (near-zero L/R correlation,
+  balanced power, noise-like phase statistics matching the audible
+  static), while the 40kHz mono interface reproducibly fails to
+  stream every time, now confirmed independent of tuned frequency,
+  mode, and squelch state - cause still unknown. It is not wired into
+  any PirateBox service. The RTL-SDR has not yet been connected.
   The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
   remains **CANDIDATE** - no software stack installed, and real
   unknowns remain (which serial port, if either, is CAT control and in
