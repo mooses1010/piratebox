@@ -767,37 +767,46 @@ it is.**
 - **Purpose:** wideband receive, complementary to (not a replacement
   for) `/utility/radio/`'s existing static reference content. Full
   investigation: `docs/RADIO-SDR-ARCHITECTURE-DESIGN.md`.
-- **State:** Hardware itself is **OWNED / INCOMING** - a "Malahit DSP SDR
+- **State:** Hardware itself is **OWNED** - a "Malahit DSP SDR
   V3" receiver (manufactured by HiDY, made in China - a documented
   clone/derivative of the Russian MALAHITEAM Malahit-DSP line, NOT a
-  confirmed genuine original; own internal battery), an RTL-SDR dongle
-  (exact model/revision not yet identified), and an outdoor magnetic-
-  loop antenna are already owned. **The Malahit has remained connected
-  to this Pi throughout a series of passive/read-only characterization
-  passes (2026-09-05)** - a USB enumeration pass (confirmed VID:PID
-  `ffff:0737`, two USB Audio Class capture interfaces and two
-  descriptor-identical CDC-ACM serial ports); a serial+audio pass that
-  read-only-opened both serial ports (DTR/RTS held low, zero bytes
-  transmitted - both silent, device unaffected) and briefly captured
-  from both audio interfaces; and an on-screen-observation + known-
-  frequency retest pass. Across two different tuned frequencies
-  (455.000 MHz and 162.400 MHz, both with audible static confirmed at
-  the speaker), the 160kHz stereo interface reproducibly streams
-  cleanly and statistically resembles IQ (near-zero L/R correlation,
-  balanced power, noise-like phase statistics matching the audible
-  static), while the 40kHz mono interface reproducibly fails to
-  stream every time, now confirmed independent of tuned frequency,
-  mode, and squelch state - cause still unknown. It is not wired into
-  any PirateBox service. The RTL-SDR has not yet been connected.
+  confirmed genuine original; own internal battery), an RTL-SDR dongle,
+  and an MLA-50+ active loop antenna (separately powered) are owned and
+  have all been connected and characterized at least once (2026-09-05).
+  **Malahit**: a series of passive/read-only characterization passes -
+  a USB enumeration pass (confirmed VID:PID `ffff:0737`, two USB Audio
+  Class capture interfaces and two descriptor-identical CDC-ACM serial
+  ports); a serial+audio pass that read-only-opened both serial ports
+  (DTR/RTS held low, zero bytes transmitted - both silent, device
+  unaffected) and briefly captured from both audio interfaces; and an
+  on-screen-observation + known-frequency retest pass. Across two
+  different tuned frequencies (455.000 MHz and 162.400 MHz, both with
+  audible static confirmed at the speaker), the 160kHz stereo interface
+  reproducibly streams cleanly and statistically resembles IQ
+  (near-zero L/R correlation, balanced power, noise-like phase
+  statistics matching the audible static), while the 40kHz mono
+  interface reproducibly fails to stream every time, confirmed
+  independent of tuned frequency, mode, and squelch state - cause
+  still unknown. **RTL-SDR**: confirmed genuine `0bda:2838` (Realtek
+  RTL2832U + Rafael Micro R820T, the most standard/best-supported
+  RTL-SDR chipset combination), USB 2.0 High Speed. A receive sanity
+  test via the kernel's own already-present V4L2 SDR driver (zero
+  package installs) showed real, frequency-dependent signal variation
+  with the MLA-50+ antenna attached, in that path's limited 0.3-3.2MHz
+  direct-sampling range; the R820T tuner's actual wideband range
+  (~24MHz-1766MHz) has not yet been exercised - that needs
+  `rtl-sdr`/SoapySDR installed, not yet approved. Neither device is
+  wired into any PirateBox service.
   The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
   remains **CANDIDATE** - no software stack installed, and real
-  unknowns remain (which serial port, if either, is CAT control and in
-  what protocol; why the 40kHz audio interface won't stream; whether
-  any existing SDR-software Malahit support actually applies to this
-  hardware variant; real Pi 3B+ performance under an actual SDR
-  web-server workload) - see the design doc's own open-questions list.
-  Layer: Optional/Field. Classification: Attachable (USB). Core
-  dependency: No.
+  unknowns remain (which Malahit serial port, if either, is CAT
+  control and in what protocol; why the Malahit's 40kHz audio
+  interface won't stream; whether any existing SDR-software Malahit
+  support actually applies to this hardware variant; the RTL-SDR's
+  wideband tuner range untested pending a package-install decision;
+  real Pi 3B+ performance under an actual SDR web-server workload) -
+  see the design doc's own open-questions list. Layer: Optional/Field.
+  Classification: Attachable (USB). Core dependency: No.
 - **Candidate software backend:** OpenWebRX+ (`luarvique/openwebrx`)
   is the current leading candidate for the software layer - actively
   maintained, Debian Trixie-aware, self-hosted with no CDN dependency,

@@ -72,7 +72,7 @@ the user's existing SDR setup, not yet connected to the Pi.
 
 ---
 
-## 1. Executive summary (revised 2026-09-05, four times - see §2b for the physical enumeration update, §11b for the CDC-ACM listen test + audio characterization, §11c for the known-frequency retest)
+## 1. Executive summary (revised 2026-09-05, five times - see §2b for the physical enumeration update, §11b for the CDC-ACM listen test + audio characterization, §11c for the known-frequency retest, §3a for RTL-SDR identification + receive test)
 
 - **2026-09-05, physical enumeration complete (§2b)**: the V3 unit was
   connected to the Pi and passively characterized. Two genuinely
@@ -646,6 +646,11 @@ here. Use §11's procedure, not this list, as the actual next step.
 
 ## 3. RTL-SDR as a second backend
 
+**Update 2026-09-05: physically identified and receive-tested - see
+§3a.** The generic reasoning below (written before identification) is
+kept intact as background; §3a is the unit-specific, evidence-backed
+section.
+
 Per instruction, the exact dongle model/revision is **unknown** and
 must not be assumed (not necessarily RTL-SDR Blog V3/V4, direct
 sampling, Bias-T, or HF-capable). This will be resolved the same way
@@ -677,6 +682,203 @@ justified by this real difference, not abstraction for its own sake —
 one backend already has a known-working software path (RTL-SDR + any
 candidate), the other has exactly one candidate with one plugin whose
 fit is still unconfirmed.
+
+---
+
+## 3a. RTL-SDR — first physical identification and receive sanity test (2026-09-05)
+
+**Physical setup**: the RTL-SDR is connected via the ALFA's own
+passive USB extension cable (reused for port-crowding reasons, not a
+purpose-built RTL-SDR cable), with an MLA-50+ active loop antenna
+attached, whose bias/power box is powered separately from the wall -
+not drawing from the Pi. The antenna system itself is out of scope
+for this round; it appears below only as an incidental real RF source
+for the sanity test.
+
+**A genuine physical gate occurred first**: the RTL-SDR initially
+showed **zero USB enumeration trace at all** - not a failed/partial
+enumeration, not a descriptor error, nothing in `dmesg` whatsoever,
+and no over-current/hub-port-disable messages anywhere in the boot's
+kernel log either. Reseating the connection once did not resolve it
+and, as an incidental side effect, caused the ALFA to blip (proving
+real electrical continuity in that area, just not for the RTL-SDR
+specifically). Only a second reseat brought the RTL-SDR up. **Cause of
+the initial non-enumeration is not established** - most likely an
+imperfect seat on a passive, reused extension cable, but this was
+never proven since the device simply started working; not investigated
+further since the operator's own instruction was to move on once
+enumeration succeeded.
+
+### 3a.1 USB identification - CONFIRMED
+
+- **VID:PID `0bda:2838`** (Realtek Semiconductor Corp., "RTL2838
+  DVB-T"), `bcdDevice 1.00`, `iProduct` string **"RTL2838UHIDIR"**
+  (the "UHIDIR" suffix is this specific unit's own string, not a
+  generic Realtek default), `iSerial` **"00000001"** (a placeholder-
+  looking serial, common on generic/unbranded RTL-SDR dongles - not
+  treated as a meaningful per-unit identifier).
+- **USB 2.0, negotiated High Speed (480 Mbit/s)** - confirmed via
+  `lsusb -v` (`bcdUSB 2.00`, "Negotiated speed: High Speed"). This is
+  a real, structural difference from the Malahit, which negotiates
+  Full Speed (12 Mbit/s) only and shares that ceiling across all 10 of
+  its own interfaces at once (§2b, §4). The RTL-SDR has no such
+  shared-bandwidth constraint from its own USB side.
+- **Topology**: enumerates behind the same 3-port hub as the Malahit
+  did (`1-1.1.3`), a different branch from the ALFA (`1-1.3`, behind
+  the first 4-port hub) - same shared 5V feed as everything else on
+  this Pi, no dedicated power path.
+- **Two USB interfaces**: interface 0 (Vendor Specific Class, one
+  bulk-IN endpoint, `wMaxPacketSize 512 bytes`) is claimed by the
+  kernel's own `dvb_usb_rtl28xxu` driver; interface 1 (Vendor Specific
+  Class) shows driver `[none]` - not claimed by anything. Device
+  descriptor: Bus Powered, `MaxPower 500mA`.
+- **Bus Powered** (not Self Powered like the Malahit) - the RTL-SDR
+  draws its ~500mA budget entirely from the Pi's own 5V rail, unlike
+  the Malahit's own internal battery. This is a real, structural power
+  difference worth keeping in mind given the chronic `0x50005`
+  condition (§3a.4).
+
+### 3a.2 Chip/tuner identification - CONFIRMED (kernel-probed, not assumed)
+
+The kernel's own driver stack positively identified the actual silicon
+via I2C probing, not inferred from the USB VID:PID alone:
+
+- **Demodulator: Realtek RTL2832** - `rtl2832 11-0010: Realtek RTL2832
+  successfully attached`.
+- **Tuner: Rafael Micro R820T** - `r820t 12-001a: Rafael Micro r820t
+  successfully identified, chip type: R820T`. **Note**: the Linux
+  `r820t` kernel driver does not distinguish R820T from the later,
+  functionally-compatible R820T2 revision in its own log output - both
+  print identically as "R820T". This unit's exact revision (T vs. T2)
+  remains **NEEDS HARDWARE** (would require opening the case or a
+  vendor label check the driver itself can't provide), but this
+  doesn't affect software compatibility either way - both are the same
+  well-supported tuner family from `librtlsdr`/SoapySDR's perspective.
+  The R820T/R820T2 is the most common, most widely-supported RTL-SDR
+  tuner (roughly 24 MHz-1766 MHz coverage), not one of the rarer
+  E4000/FC0012/FC0013 alternatives.
+- This is a genuine, positively-identified, well-supported RTL-SDR -
+  not a rebrand of unknown/exotic silicon.
+
+### 3a.3 Existing software support - CONFIRMED
+
+- **No `rtl-sdr`, `librtlsdr`, or SoapySDR package is installed** -
+  confirmed via `dpkg -l` and `which rtl_test rtl_sdr rtl_eeprom
+  rtl_tcp SoapySDRUtil` (all empty). **No package was installed for
+  this round.**
+- **The kernel's own built-in DVB/V4L2 stack already claimed the
+  device automatically**, with no package install needed for this
+  part - it ships as part of the mainline kernel: `dvb_usb_rtl28xxu`
+  (interface 0, control) plus its companion `rtl2832_sdr` V4L2 SDR-API
+  driver, which registered a **`/dev/swradio0`** device node.
+- **`v4l2-ctl` (part of `v4l-utils`) was already installed** (a
+  standard Raspberry Pi OS package for the camera/media stack, not
+  installed for this round) and can query/capture from `/dev/swradio0`
+  with zero new packages.
+- **Important limitation of this no-install path, confirmed by direct
+  query**: `/dev/swradio0`'s own reported tuner range is **0.300000
+  MHz - 3.200000 MHz only** - this is the RTL2832's raw ADC **direct-
+  sampling** mode, which bypasses the R820T tuner entirely. It does
+  **not** expose the tuner's actual ~24 MHz-1766 MHz range at all. This
+  is a real, structural distinction: the standard way RTL-SDR dongles
+  are normally used for VHF/UHF reception (FM broadcast, NOAA weather,
+  ADS-B, etc.) is via `librtlsdr`/SoapySDR talking to the tuner
+  directly over USB - a different, better-known path than this V4L2
+  fallback, and the one any real OpenWebRX+ integration would actually
+  use.
+- **PACKAGE-INSTALL GATE, not performed**: a **wideband** sanity test
+  (e.g. at an actual FM broadcast or NOAA frequency, matching what the
+  Malahit round tested) genuinely requires installing `rtl-sdr`
+  (`librtlsdr0` + the `rtl-sdr` command-line tools) or `SoapySDR` +
+  its RTL-SDR module - there is no way to exercise the R820T tuner
+  itself without one of these. Per instruction, this was **not**
+  installed; if/when pursued, `rtl_test -t` (a fast, deliberately
+  transmit-incapable USB/tuner self-test) would be the natural first
+  command, needing explicit operator go-ahead first.
+
+### 3a.4 Receive sanity test - CONFIRMED, real signal-dependent result
+
+Performed entirely with already-installed `v4l2-ctl`, against
+`/dev/swradio0`'s direct-sampling mode (0.3-3.2 MHz), with the
+MLA-50+ as a real, independently-powered RF source. Two short (~1
+second, 50-buffer) raw `CU08` (8-bit unsigned complex I/Q) captures
+were taken and analyzed with the Python standard library only (no new
+package):
+
+- At **3.200000 MHz** (the range's upper edge, reached accidentally by
+  a `v4l2-ctl` units mistake on the first attempt - `--set-freq` takes
+  **MHz**, not Hz): I/Q stdev **9.18/9.19**, range roughly 86-167,
+  82-83/256 unique byte values.
+- At the intended **1.000000 MHz** (squarely in the AM/mediumwave
+  broadcast band): I/Q stdev **16.72/16.70**, range roughly 15-252,
+  212-214/256 unique byte values - **substantially more variation**
+  than the 3.2 MHz capture.
+- Both captures: real, varying data (not stuck/all-zero/all-same-
+  value), and both centered almost exactly on the expected 127.5
+  midpoint for unsigned 8-bit ADC samples (offsets of only -0.09 to
+  -0.13), indicating a well-biased ADC front end with no gross DC
+  fault.
+
+**STRONGLY SUGGESTED**: the frequency-dependent difference (~1.8x
+higher standard deviation, ~2.6x more unique byte values at 1 MHz vs.
+3.2 MHz) is consistent with genuinely receiving more RF energy in the
+AM broadcast band than near the direct-sampling range's quiet upper
+edge - i.e., real signal, not just ADC self-noise. This is not
+conclusively proven (no attempt was made to demodulate actual
+broadcast audio content, and this round deliberately avoided turning
+into an antenna-performance investigation per instruction), but it is
+genuine, end-to-end evidence that the full chain - MLA-50+ antenna,
+its separately-powered bias box, the RTL-SDR's ADC, and the kernel
+driver stack - passes real, frequency-dependent RF energy through to
+a captured file, achieved with **zero new package installs**.
+
+### 3a.5 Power/ALFA observations during this round
+
+- **Two ALFA disconnect/re-enumeration events occurred during RTL-SDR
+  physical handling**, both **directly attributable to physically
+  reseating a shared USB connection point** while working on the
+  RTL-SDR - not spontaneous, and not caused by the RTL-SDR's own
+  operation once seated. Both times, `hostapd`'s `BindsTo=`/
+  `ConditionPathExists=` behavior (from the same-day hostapd incident
+  fix) correctly stopped hostapd cleanly with no thrashing, but the
+  udev `SYSTEMD_WANTS` auto-restart trigger did not fire either time -
+  already recorded as a known, separately-tracked issue (see
+  `docs/OPERATIONAL-DECISIONS.md`'s "New known issue found after
+  closure" entry) and **not re-investigated or redesigned here**, per
+  explicit instruction to keep this round about the RTL-SDR.
+- **No ALFA/USB events occurred during the receive-test captures
+  themselves** (only during physical cable handling beforehand) -
+  actually operating the RTL-SDR (setting frequency, streaming) caused
+  no observable instability of any kind.
+- **`throttled` remained `0x50005` throughout** - the same pre-
+  existing chronic condition (§ POWER-INTEGRITY-DIAGNOSIS.md), no new
+  bit set, no new event coincident with any RTL-SDR activity
+  specifically.
+- The RTL-SDR itself stayed at the same USB device number for its
+  entire characterization (no re-enumeration once seated) - it was not
+  the source of any of this round's USB instability.
+
+### 3a.6 Reassessed comparison: RTL-SDR vs. Malahit as a PirateBox backend
+
+| | RTL-SDR (this unit) | Malahit V3 (HiDY), §2b/§11b |
+|---|---|---|
+| USB speed | High Speed (480 Mbit/s) | Full Speed (12 Mbit/s), shared across 10 interfaces |
+| Power | Bus Powered, ~500mA from the Pi's own rail | Self Powered claim + own internal battery, charging behavior still unconfirmed |
+| Software path | `librtlsdr`/SoapySDR - the ecosystem's de facto standard (§3, §5); genuinely tested this round only via the narrower no-install V4L2 direct-sampling path | Generic `SoapyAudio` on a confirmed, statistically IQ-like 160kHz USB-audio stream (§11b) - concrete but custom, no ready-made plugin confirmed to fit |
+| Frequency range demonstrated | 0.3-3.2 MHz only, via the no-install V4L2 path (tuner's real ~24 MHz-1766 MHz range not yet exercised - needs the package-install gate) | Whatever the receiver itself is tuned to (455.000 MHz and 162.400 MHz both exercised, §11c) - much wider practical range already demonstrated, but via a bespoke path |
+| Serial/CAT control | None needed for IQ - tuning is via the standard V4L2/librtlsdr API itself, no separate protocol to reverse-engineer | Two descriptor-identical, still-unidentified CDC-ACM ports; CAT protocol entirely unresolved (§11b.1) |
+| OpenWebRX+ fit | Native, first-class support - no plugin, no bridge, the most standard possible integration | Doubtful `SoapyMalahitRR` fit; a generic-audio-plus-bridge path is plausible but unbuilt |
+| Confidence this becomes a working browser-SDR backend | **High** - the only genuinely open question is Pi 3B+ CPU/RAM headroom (§4), not software support | **Moderate at best** - real, positive evidence exists (§11b/§11c), but CAT/tuning and firm OpenWebRX+ compatibility remain unresolved |
+
+**Architectural conclusion, updated**: this round's physical evidence
+reinforces rather than changes §3's original reasoning - RTL-SDR
+remains the safer, better-trodden path to an actually-working
+OpenWebRX+ integration, and this specific unit is a genuine,
+positively-identified, well-supported chipset (not an unknown/exotic
+one), which removes what had been the single biggest RTL-SDR unknown
+in this document. The Malahit path is not weakened by this - the two
+remain complementary candidate backends in the multi-backend design
+(§8), and nothing here suggests preferring one over building both.
 
 ---
 
@@ -886,7 +1088,7 @@ Key details behind the table:
 
 ---
 
-## 6. What we still need (updated 2026-09-05 after physical enumeration, then again after §11b)
+## 6. What we still need (updated 2026-09-05 after physical enumeration, then again after §11b, then again after §3a's RTL-SDR round)
 
 1. **Malahit DSP SDR V3 (HiDY)** — most of what could be learned from
    the unit alone via USB is now in hand (§2b: VID:PID, interface
@@ -907,11 +1109,17 @@ Key details behind the table:
      observation (§11b.4) before this can be narrowed further.
    - PCB revision marking — optional, only if the case is opened for
      an unrelated reason; not required.
-2. **RTL-SDR**: no advance information needed, and not yet started —
-   this gets identified the same way the ALFA was: real `lsusb` output
-   once connected, and a photo of the printed label if the VID:PID/
-   product string is ambiguous (rebranded units are common in this
-   ecosystem).
+2. **RTL-SDR**: identified (§3a) — `0bda:2838`, genuine RTL2832U +
+   Rafael Micro R820T (revision T vs. T2 not distinguishable from
+   software, doesn't matter functionally). Still needed:
+   - A wideband receive test actually exercising the R820T tuner
+     (the only test performed so far used the no-install V4L2 direct-
+     sampling path, limited to 0.3-3.2 MHz) — needs the `rtl-sdr`/
+     SoapySDR package-install gate flagged in §3a.3, not yet approved
+     or performed.
+   - R820T vs. R820T2 exact revision — cosmetic only, `NEEDS HARDWARE`
+     (would need opening the case or a vendor label check), not
+     required for software planning.
 3. **Magnetic-loop antenna**: no electrical unknowns block this
    investigation phase — it only matters once an actual receive test
    is attempted, well past this document's scope.
@@ -975,9 +1183,11 @@ Radio Capability (optional, Operational-adjacent but Optional/Field layer)
 │   │       for IQ, plus whichever /dev/ttyACM* turns out to be CAT
 │   │       (§11a) for tuning - two separate, ordinary Linux interfaces
 │   │       rather than one Malahit-specific plugin
-│   ├── RTL-SDR backend   (native rtl-connector or SoapySDR - well-trodden,
-│   │   unaffected by anything found this round - remains the more
-│   │   certain-to-work backend)
+│   ├── RTL-SDR backend   (native rtl-connector or SoapySDR - well-trodden;
+│   │   §3a confirms this specific unit is a genuine RTL2832U + R820T,
+│   │   the most standard, best-supported RTL-SDR chipset combination -
+│   │   remains the more certain-to-work backend, now with the single
+│   │   biggest unknown - "what chip is this actually" - resolved)
 │   └── (future backends - same shape, no redesign needed)
 ├── OpenWebRX+ (or, if it turns out unfit, a lighter RTL-SDR-only
 │   candidate from §5's table) - bound to localhost only, never
@@ -1703,7 +1913,7 @@ architecture assessment without it:
 
 ---
 
-## 12. Open questions (updated 2026-09-05 after physical enumeration, then again after §11b, then again after §11c)
+## 12. Open questions (updated 2026-09-05 after physical enumeration, then again after §11b, then again after §11c, then again after §3a's RTL-SDR round)
 
 **Resolved or substantially narrowed by §2b's physical enumeration:**
 
@@ -1778,22 +1988,36 @@ capture) and §11c (on-screen observation + known-frequency retest):**
    analog signal); a genuinely intelligible known-signal capture or
    spectral (FFT/PSD) analysis would strengthen this further but
    wasn't pursued in this round (§11c.3).
-6. This RTL-SDR's exact model/VID:PID (§3, §6) — entirely separate
-   hardware, not yet enumerated at all.
+6. ~~This RTL-SDR's exact model/VID:PID~~ — **CONFIRMED** (§3a):
+   `0bda:2838`, genuine Realtek RTL2832U + Rafael Micro R820T
+   (T vs. T2 revision undistinguishable from software, doesn't matter
+   functionally). A **wideband** receive test actually exercising the
+   R820T tuner remains open - the only test performed so far used the
+   no-install V4L2 direct-sampling path (0.3-3.2 MHz only); a real
+   `librtlsdr`/SoapySDR test needs the package-install gate flagged in
+   §3a.3.
 7. Real OpenWebRX+ CPU/RAM/client-count behavior on this actual Pi
    3B+/Trixie — no published benchmark exists for any Malahit variant
    or RTL-SDR on this OS/hardware combination (§4, §5).
 8. Actual USB charging current draw — the "Self Powered" descriptor
    bit (§2b) is a favorable but not dispositive sign; no direct
    current measurement has been taken.
-9. Whether the ALFA's disconnects/re-enumerations (§2b, and a second,
-   Malahit-independent instance found in §11b.1) reflect a genuine
-   Malahit interaction or a pre-existing, hardware-independent power
-   marginality — the second instance (ALFA hiccup with the Malahit
-   completely unplugged) makes the latter look more likely, but this
-   remains observational, not a controlled test.
+9. Whether the ALFA's disconnects/re-enumerations reflect a genuine
+   hardware-interaction pattern or a pre-existing, hardware-
+   independent power marginality — now observed **four** times across
+   this investigation (§2b, a Malahit-independent instance in §11b.1,
+   and two more in §3a.5, both directly attributable to physical
+   handling of a shared USB connection point while working on the
+   RTL-SDR, not spontaneous). The pattern increasingly looks like
+   "physical disturbance of a marginal connection triggers a blip,
+   regardless of which device is involved" rather than anything
+   specific to the Malahit or the RTL-SDR - still observational, not a
+   controlled test, but the accumulated evidence points more toward
+   general connection/power marginality than device-specific causation.
 10. Whether a separately-powered USB hub becomes the long-term
-    architecture for one or both devices (§2b, §8).
+    architecture for one or both devices (§2b, §8) - the RTL-SDR
+    round's repeated physical-handling-triggers-ALFA-blip pattern
+    (§3a.5) makes this more attractive, not less.
 11. The dual-encoder-button reboot/reset behavior (§2a) remains
     unexplained by any source found — not to be actively investigated
     further ourselves; worth asking about if this project ever engages
