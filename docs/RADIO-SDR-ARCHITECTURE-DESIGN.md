@@ -72,7 +72,7 @@ the user's existing SDR setup, not yet connected to the Pi.
 
 ---
 
-## 1. Executive summary (revised 2026-09-05, five times - see §2b for the physical enumeration update, §11b for the CDC-ACM listen test + audio characterization, §11c for the known-frequency retest, §3a for RTL-SDR identification + receive test)
+## 1. Executive summary (revised 2026-09-05, six times - see §2b for the physical enumeration update, §11b for the CDC-ACM listen test + audio characterization, §11c for the known-frequency retest, §3a for RTL-SDR identification + receive test, §3b for the librtlsdr wideband tuner characterization)
 
 - **2026-09-05, physical enumeration complete (§2b)**: the V3 unit was
   connected to the Pi and passively characterized. Two genuinely
@@ -865,7 +865,7 @@ a captured file, achieved with **zero new package installs**.
 | USB speed | High Speed (480 Mbit/s) | Full Speed (12 Mbit/s), shared across 10 interfaces |
 | Power | Bus Powered, ~500mA from the Pi's own rail | Self Powered claim + own internal battery, charging behavior still unconfirmed |
 | Software path | `librtlsdr`/SoapySDR - the ecosystem's de facto standard (§3, §5); genuinely tested this round only via the narrower no-install V4L2 direct-sampling path | Generic `SoapyAudio` on a confirmed, statistically IQ-like 160kHz USB-audio stream (§11b) - concrete but custom, no ready-made plugin confirmed to fit |
-| Frequency range demonstrated | 0.3-3.2 MHz only, via the no-install V4L2 path (tuner's real ~24 MHz-1766 MHz range not yet exercised - needs the package-install gate) | Whatever the receiver itself is tuned to (455.000 MHz and 162.400 MHz both exercised, §11c) - much wider practical range already demonstrated, but via a bespoke path |
+| Frequency range demonstrated | 27.185 MHz and 100.1 MHz both exercised via the real R820T tuner (§3b.3), plus 0.3-3.2 MHz via the no-install V4L2 path (§3a) - full ~24 MHz-1766 MHz range not exhaustively swept, but the tuner itself is proven functional across a wide span | Whatever the receiver itself is tuned to (455.000 MHz and 162.400 MHz both exercised, §11c) - much wider practical range already demonstrated, but via a bespoke path |
 | Serial/CAT control | None needed for IQ - tuning is via the standard V4L2/librtlsdr API itself, no separate protocol to reverse-engineer | Two descriptor-identical, still-unidentified CDC-ACM ports; CAT protocol entirely unresolved (§11b.1) |
 | OpenWebRX+ fit | Native, first-class support - no plugin, no bridge, the most standard possible integration | Doubtful `SoapyMalahitRR` fit; a generic-audio-plus-bridge path is plausible but unbuilt |
 | Confidence this becomes a working browser-SDR backend | **High** - the only genuinely open question is Pi 3B+ CPU/RAM headroom (§4), not software support | **Moderate at best** - real, positive evidence exists (§11b/§11c), but CAT/tuning and firm OpenWebRX+ compatibility remain unresolved |
@@ -879,6 +879,179 @@ one), which removes what had been the single biggest RTL-SDR unknown
 in this document. The Malahit path is not weakened by this - the two
 remain complementary candidate backends in the multi-backend design
 (§8), and nothing here suggests preferring one over building both.
+
+---
+
+## 3b. `rtl-sdr`/`librtlsdr` package-install gate crossed - wideband tuner characterization (2026-09-05)
+
+**Packages installed, with operator approval, from Debian's own
+trixie/main repo (no third-party source)**: `rtl-sdr` 2.0.2-2+b1 and
+its dependency `librtlsdr0` 2.0.2-2+b1 - exactly the two packages
+`apt-get install rtl-sdr` pulls in, confirmed via a dry-run simulation
+before installing. No other packages were installed; OpenWebRX+ was
+not touched.
+
+### 3b.1 Driver-conflict handling - investigated, no blacklist needed
+
+Per instruction to investigate the normal approach first: **Debian's
+`librtlsdr0` package does NOT blacklist the kernel's DVB driver at
+all.** Its own shipped udev rule
+(`/usr/lib/udev/rules.d/60-librtlsdr0.rules`) only sets device-node
+permissions (`MODE="0660", GROUP="plugdev"`) for a long list of known
+RTL-SDR VID:PIDs, including this unit's exact `0bda:2838` - it does
+not attempt to unbind or blacklist `dvb_usb_rtl28xxu`. This matches
+how `librtlsdr` is actually designed to work: it detaches the kernel
+driver itself, at runtime, via libusb's kernel-driver-detach call,
+each time a tool opens the device, and reattaches it on close - no
+permanent blacklist required, and DVB-T functionality (for anyone
+who'd want it) is left intact for when no SDR tool has the device
+open. **Confirmed working exactly this way, repeatedly, over six
+separate tool invocations this round**: every `rtl_test`/`rtl_sdr` run
+printed `Detached kernel driver` on open and the kernel logged a clean
+`successfully deinitialized and disconnected` at that moment, then
+`Reattached kernel driver` on close, followed by the kernel re-
+attaching `dvb_usb_rtl28xxu`/`rtl2832_sdr` cleanly every time - zero
+errors, zero USB resets, zero leftover conflicts across the whole
+round.
+
+**One extra step was needed, and it wasn't a driver-conflict fix**:
+the newly-installed udev rule only applies to devices on their next
+"add" event - it does not retroactively fix permissions on a device
+that was already enumerated (under the old, pre-install ruleset)
+before the package existed. The device node still showed `root:root
+0644` immediately after installing. Rather than physically
+replugging the RTL-SDR (which had already caused two ALFA blips this
+session via the shared extension cable), the minimal, standard,
+non-destructive fix was a **scoped `udevadm trigger`** matching only
+this device's exact VID:PID:
+
+```
+sudo udevadm trigger --verbose --subsystem-match=usb --attr-match=idVendor=0bda --attr-match=idProduct=2838
+```
+
+Confirmed effective (`crw-rw---- root plugdev`) and confirmed **not**
+to touch the ALFA/hostapd/pb-ap in any way - verified immediately
+before and after.
+
+### 3b.2 Tuner identification, independently reconfirmed
+
+`rtl_test` positively re-identified **"Found Rafael Micro R820T
+tuner"** - the same identification the kernel's own driver made
+independently in §3a, now confirmed a second way, via `librtlsdr`
+itself. 29 discrete gain steps were enumerated, 0.0 dB to 49.6 dB -
+the standard R820T manual gain range.
+
+**`[R82XX] PLL not locked!` - investigated, not dismissed.** This
+warning appeared on every single tune operation across the whole
+round (both `rtl_test`'s internal self-test frequency and every real
+target frequency tried: 27.185 MHz, 100.1 MHz, both with automatic and
+manual gain). Despite the warning, every capture produced the exact
+expected byte count with real, substantial, frequency-dependent
+signal content (§3b.3) - **STRONGLY SUGGESTED** to be a benign,
+cosmetic message from this exact R820T unit/driver-version
+combination (a message printed once during the tuner's initial PLL
+calibration step, common enough in the wider RTL-SDR/R820T community
+to not be unusual, and one this document does not chase further since
+actual reception was demonstrably unaffected) rather than a real
+functional fault - **not proven benign with certainty**, since no
+direct PLL-lock-status register readout was attempted; flagged as
+NEEDS HARDWARE/further-tooling if it ever needs to be settled
+conclusively.
+
+### 3b.3 Wideband receive tests - CONFIRMED, and a real gain/overload finding
+
+Three short (2-second, 4,096,000-sample) captures via `rtl_sdr`,
+analyzed with Python stdlib only (a fast single-pass 256-bucket
+histogram approach, not the `statistics` module, which is
+impractically slow - multiple minutes - on multi-million-sample
+arrays):
+
+- **27.185 MHz** (near the R820T's practical low end, 11m/CB band):
+  automatic gain, full 0-255 byte range used, **14.6% of samples
+  pinned at the extreme rail values (0-2 or 253-255)**.
+- **100.1 MHz** (FM broadcast band), automatic gain: full 0-255 range,
+  **51.7% of ALL samples pinned at the rail** - severe clipping.
+- **100.1 MHz, manual gain forced to 8.70 dB** (down from whatever
+  automatic gain selected): **clipping eliminated entirely - 0.0% of
+  samples at the rail**, with a healthy, well-distributed population
+  (12.2% within a narrow near-center window, consistent with real
+  signal+noise rather than saturation).
+
+**CONFIRMED**: the receive chain (MLA-50+ antenna and its separately-
+powered bias box, through the RTL-SDR's R820T front end, to the ADC)
+was significantly overloaded at automatic gain, especially in the FM
+broadcast band - and manually lowering gain completely resolved it in
+one try. This is a real, useful characterization result about *this
+specific antenna+receiver combination as currently connected*, not a
+receiver defect: the R820T's manual gain control demonstrably works
+correctly and precisely (requested ~9 dB, delivered the nearest actual
+step, 8.70 dB), and the overload is consistent with a broadband active
+loop antenna's own onboard amplifier delivering more signal than the
+front end's default AGC setting was built to expect - a known,
+common, and entirely fixable real-world RTL-SDR/active-antenna
+pairing issue, not investigated further here per instruction (this
+document is not becoming an antenna-performance investigation).
+**Practical implication for any future implementation**: automatic
+gain should not be assumed correct by default with this particular
+antenna attached - a sensible default manual gain (or a proper AGC
+implementation, if the eventual software stack has one) will matter
+in practice.
+
+### 3b.4 Sample rate / stability
+
+- **2.048 Msps** (the RTL-SDR ecosystem's traditional default): stable
+  across every capture at this rate, correct byte counts every time,
+  no dropped-sample warnings.
+- **3.2 Msps** (a commonly-cited practical maximum for this chipset):
+  one 10-second, 32,000,000-sample (64,000,000-byte) capture completed
+  with the **exact** expected byte count and **no "lost bytes" warning**
+  (the specific, explicit signal `rtl_sdr` prints if the USB/host
+  pipeline can't keep up) - clean, stable USB throughput at this rate
+  on this Pi 3B+ over the tested window. `/proc/loadavg`'s 1-minute
+  average moved from 1.17 to 1.29 across the capture - a small,
+  unremarkable bump, not a sign of the Pi struggling. Higher rates
+  (RTL2832U's real ceiling is often cited around 3.2 Msps as the
+  practical safe maximum across the wider ecosystem, not just this
+  Pi) were not tested - not necessary to establish practical viability
+  for typical single-channel VHF/UHF reception, which needs far less
+  than 3.2 Msps.
+- No CPU-bound demodulation was tested (raw IQ capture to a file is a
+  USB-throughput/disk-write workload, not a CPU-bound one) - real
+  OpenWebRX+ CPU/RAM behavior under actual demodulation + a web
+  client remains open (§4, §6, §12), unaffected by this round's clean
+  raw-capture results either way.
+
+### 3b.5 Power/ALFA/AP observations
+
+- **Zero ALFA disconnects, zero USB resets, zero dmesg errors or
+  warnings (beyond the already-discussed `[R82XX] PLL not locked!`)
+  across this entire round** - a meaningful contrast with §3a, where
+  two ALFA blips occurred, both during *physical handling* of the
+  shared extension cable. This round involved no physical handling at
+  all (the RTL-SDR stayed seated throughout, only software tools were
+  run) and correspondingly showed zero instability - further
+  supporting §3a's own conclusion that these blips track physical
+  disturbance of a marginal connection, not RTL-SDR operation itself.
+- `throttled` remained `0x50005` throughout - unchanged, same
+  pre-existing chronic condition.
+- `hostapd`/`pb-ap` remained healthy and untouched before, during, and
+  after every test - verified explicitly around the `udevadm trigger`
+  step and again at the end of the round.
+
+### 3b.6 What this proves for OpenWebRX+, updated
+
+This is now real, direct, tool-level evidence (not just descriptor-
+level plausibility) that the standard `librtlsdr`-based path - the
+same one OpenWebRX+ and every other researched browser-SDR candidate
+(§5) uses for RTL-SDR - works cleanly end-to-end on this exact unit,
+on this exact Pi: kernel-driver handoff, tuner control, gain control,
+and sustained USB streaming at a realistic sample rate, all confirmed
+with zero errors and zero collateral instability. The remaining open
+question for OpenWebRX+ specifically is no longer "does the hardware
+work" (yes) but "how does the Pi 3B+ perform under OpenWebRX+'s own
+CPU-bound demodulation and waterfall-rendering workload, with a real
+web client attached" (§4, §6, §12) - a software-performance question
+now, not a hardware-support one.
 
 ---
 
@@ -1088,7 +1261,7 @@ Key details behind the table:
 
 ---
 
-## 6. What we still need (updated 2026-09-05 after physical enumeration, then again after §11b, then again after §3a's RTL-SDR round)
+## 6. What we still need (updated 2026-09-05 after physical enumeration, then again after §11b, then again after §3a's RTL-SDR round, then again after §3b's librtlsdr characterization)
 
 1. **Malahit DSP SDR V3 (HiDY)** — most of what could be learned from
    the unit alone via USB is now in hand (§2b: VID:PID, interface
@@ -1109,17 +1282,21 @@ Key details behind the table:
      observation (§11b.4) before this can be narrowed further.
    - PCB revision marking — optional, only if the case is opened for
      an unrelated reason; not required.
-2. **RTL-SDR**: identified (§3a) — `0bda:2838`, genuine RTL2832U +
-   Rafael Micro R820T (revision T vs. T2 not distinguishable from
-   software, doesn't matter functionally). Still needed:
-   - A wideband receive test actually exercising the R820T tuner
-     (the only test performed so far used the no-install V4L2 direct-
-     sampling path, limited to 0.3-3.2 MHz) — needs the `rtl-sdr`/
-     SoapySDR package-install gate flagged in §3a.3, not yet approved
-     or performed.
+2. **RTL-SDR**: identified (§3a) and wideband-characterized (§3b) —
+   `0bda:2838`, genuine RTL2832U + Rafael Micro R820T, confirmed via
+   `rtl_test`/`rtl_sdr` at 27.185 MHz and 100.1 MHz, gain control
+   confirmed working (fixed a real overload at automatic gain), USB
+   streaming confirmed stable at 3.2 Msps. Still needed:
+   - Real OpenWebRX+ CPU/RAM/waterfall-rendering behavior on this Pi
+     3B+ with a real web client (§4, §6.item 7, §12) — the hardware/
+     driver/tuner path itself is now proven; this is a software-
+     performance question, not a hardware-support one (§3b.6).
    - R820T vs. R820T2 exact revision — cosmetic only, `NEEDS HARDWARE`
      (would need opening the case or a vendor label check), not
      required for software planning.
+   - `[R82XX] PLL not locked!`'s exact cause — appeared on every tune
+     operation this round without any observed functional impact
+     (§3b.2); not proven benign with certainty, not chased further.
 3. **Magnetic-loop antenna**: no electrical unknowns block this
    investigation phase — it only matters once an actual receive test
    is attempted, well past this document's scope.
@@ -1913,7 +2090,7 @@ architecture assessment without it:
 
 ---
 
-## 12. Open questions (updated 2026-09-05 after physical enumeration, then again after §11b, then again after §11c, then again after §3a's RTL-SDR round)
+## 12. Open questions (updated 2026-09-05 after physical enumeration, then again after §11b, then again after §11c, then again after §3a's RTL-SDR round, then again after §3b's librtlsdr characterization)
 
 **Resolved or substantially narrowed by §2b's physical enumeration:**
 
@@ -1988,14 +2165,15 @@ capture) and §11c (on-screen observation + known-frequency retest):**
    analog signal); a genuinely intelligible known-signal capture or
    spectral (FFT/PSD) analysis would strengthen this further but
    wasn't pursued in this round (§11c.3).
-6. ~~This RTL-SDR's exact model/VID:PID~~ — **CONFIRMED** (§3a):
-   `0bda:2838`, genuine Realtek RTL2832U + Rafael Micro R820T
-   (T vs. T2 revision undistinguishable from software, doesn't matter
-   functionally). A **wideband** receive test actually exercising the
-   R820T tuner remains open - the only test performed so far used the
-   no-install V4L2 direct-sampling path (0.3-3.2 MHz only); a real
-   `librtlsdr`/SoapySDR test needs the package-install gate flagged in
-   §3a.3.
+6. ~~This RTL-SDR's exact model/VID:PID, and whether it works as a
+   wideband tuner via the standard software path~~ — **CONFIRMED**
+   (§3a, §3b): `0bda:2838`, genuine Realtek RTL2832U + Rafael Micro
+   R820T (T vs. T2 revision undistinguishable from software, doesn't
+   matter functionally). `rtl_test`/`rtl_sdr` (the standard
+   `librtlsdr` tools, installed with operator approval) confirmed
+   clean kernel-driver detach/reattach, working gain control (fixed a
+   real automatic-gain overload), and stable 3.2 Msps USB streaming -
+   real tool-level evidence, not just descriptor-level plausibility.
 7. Real OpenWebRX+ CPU/RAM/client-count behavior on this actual Pi
    3B+/Trixie — no published benchmark exists for any Malahit variant
    or RTL-SDR on this OS/hardware combination (§4, §5).

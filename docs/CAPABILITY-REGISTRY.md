@@ -90,7 +90,7 @@ it is.**
 | Lightning detection | Optional/Field | CANDIDATE | Integrated or Companion |
 | Radiation measurement | Optional/Field | CANDIDATE | Integrated or Companion |
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
-| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | OWNED / INCOMING | Attachable |
+| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | OWNED (both devices tested; `rtl-sdr`/`librtlsdr0` installed) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
 | Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | CANDIDATE | Network Companion |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
@@ -793,20 +793,30 @@ it is.**
   test via the kernel's own already-present V4L2 SDR driver (zero
   package installs) showed real, frequency-dependent signal variation
   with the MLA-50+ antenna attached, in that path's limited 0.3-3.2MHz
-  direct-sampling range; the R820T tuner's actual wideband range
-  (~24MHz-1766MHz) has not yet been exercised - that needs
-  `rtl-sdr`/SoapySDR installed, not yet approved. Neither device is
-  wired into any PirateBox service.
+  direct-sampling range. **`rtl-sdr`/`librtlsdr0` (Debian trixie/main,
+  no third-party source) were then installed with operator approval**
+  - the only software installed for this capability so far. Confirmed
+  via `rtl_test`/`rtl_sdr`: clean kernel-driver detach/reattach on
+  every open/close (no blacklist needed - Debian's own package relies
+  on `librtlsdr`'s runtime detach, not a modprobe blacklist), working
+  gain control (fixed a real automatic-gain overload at 100.1MHz -
+  51.7% of samples clipped at automatic gain, 0% at a manually-set
+  8.70dB), and stable USB streaming at 3.2 Msps with no dropped
+  samples. This is real tool-level evidence the standard OpenWebRX+
+  software path works end-to-end on this exact unit and this exact
+  Pi. Neither device is wired into any PirateBox service; OpenWebRX+
+  itself has not been installed.
   The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
-  remains **CANDIDATE** - no software stack installed, and real
-  unknowns remain (which Malahit serial port, if either, is CAT
+  remains **CANDIDATE** - no SDR web-server software stack installed,
+  and real unknowns remain (which Malahit serial port, if either, is CAT
   control and in what protocol; why the Malahit's 40kHz audio
   interface won't stream; whether any existing SDR-software Malahit
-  support actually applies to this hardware variant; the RTL-SDR's
-  wideband tuner range untested pending a package-install decision;
-  real Pi 3B+ performance under an actual SDR web-server workload) -
-  see the design doc's own open-questions list. Layer: Optional/Field.
-  Classification: Attachable (USB). Core dependency: No.
+  support actually applies to this hardware variant; real Pi 3B+
+  CPU/RAM performance under an actual OpenWebRX+ demodulation + web-
+  client workload, now the only remaining open question for the
+  RTL-SDR path specifically) - see the design doc's own open-questions
+  list. Layer: Optional/Field. Classification: Attachable (USB). Core
+  dependency: No.
 - **Candidate software backend:** OpenWebRX+ (`luarvique/openwebrx`)
   is the current leading candidate for the software layer - actively
   maintained, Debian Trixie-aware, self-hosted with no CDN dependency,
