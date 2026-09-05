@@ -6,6 +6,117 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## OLED cadence rebalance + short-press status-check override
+
+**Decision date:** 2026-09-04. Two related refinements requested
+together: (1) Silly Mode alternates between personality and a real
+status interlude on a deliberate cadence, instead of personality almost
+all the time with a one-tick "peek" every 60s; (2) the existing
+physical shutdown button's already-tested short-press/long-hold
+distinction now also drives a temporary "show me real stats" override,
+without touching the shutdown path's own safety guarantees.
+
+**Personality-vs-status cadence.** Replaces `SILLY_STATUS_PEEK_EVERY_
+TICKS` (one tick of a serious page every ~60s) with two named phases -
+`SILLY_CADENCE_PERSONALITY_SECONDS` (~36s) and `SILLY_CADENCE_STATUS_
+SECONDS` (~15s) - implemented as a small, pure, directly-tested state
+machine (`advance_silly_cadence()`) rather than more inline
+conditionals in `main()`. The phase clock only advances while the
+cadence itself is actually driving the display - a sleep/one-shot-
+event-hold/pending-achievement-reveal/status-check-override
+interruption (all of which already outranked ambient cycling before
+this round) pauses it rather than losing time, so "important events may
+interrupt this cadence" falls out of the existing precedence order for
+free, with zero special-casing against the cadence itself. The status
+phase shows the exact same serious Status/Time/Network/Health rotation
+this daemon always had (including that rotation's own undervoltage-
+warning box on the Health page) - not a separate "Silly-Mode status
+page." No new render logic, no new data source, no faster refresh.
+
+**Short-press status-check override.** Reuses `piratebox_button_
+daemon.py`'s existing, already-hardware-validated short-press/long-hold
+distinction rather than adding a second button or a new debounce/hold
+state machine. On a genuine short press, `on_released()` writes one
+Unix timestamp to `/tmp/piratebox/status-check-request` (world-
+readable-by-design, tmpfs, non-persistent across reboot); the OLED
+daemon's `read_status_check_active()` treats it as "active" purely by
+recency (`now - timestamp < 15s`) - no request/acknowledge protocol, no
+consume step, so a repeated press naturally re-extends the window just
+by writing a newer timestamp, and the daemon needs no per-request
+bookkeeping at all. Ranks above Silly Mode/personality but below
+Emergency/fault in the display priority order (a button tap gets a
+quick real-status glance, it can never hide an actual problem) - the
+final hierarchy is `mode_transition` (always) > Emergency/fault >
+Silly-Mode-off (plain rotation, unchanged) > status-check override >
+Silly Mode/personality.
+
+**Architecture, per instruction: no OLED knowledge in the GPIO
+service.** `piratebox_button_daemon.py` only ever writes a plain
+timestamp - it has zero knowledge of pages, Silly Mode, or any display
+concept, and the OLED daemon is the only thing that interprets the
+signal. This means any future second button, a CLI command, or an
+admin-UI action could produce the identical signal (just write the same
+timestamp file) with no change needed on the OLED side at all.
+
+**The mandatory safety guarantee, and how it's actually enforced:** a
+long hold that triggers shutdown must never also fire the short-press
+action on release. gpiozero's `Button` fires `when_released` on EVERY
+release, including the one that follows an already-fired `when_held` -
+so `on_held()` now sets a module-level flag (`_hold_just_fired`, set
+FIRST, before the shutdown call is even attempted, so a failed shutdown
+call can't leave this ambiguous) and `on_released()` checks it: if set,
+the release is the tail end of an already-handled long press and does
+nothing but clear the flag; otherwise it's a genuine short press and
+writes the request file. A short press can never itself set that flag
+(only `HOLD_SECONDS` of continuous press does), so "a short press must
+never risk shutdown" was already structurally true - `on_released()`
+only ever writes a plain timestamp, nothing privilege-related, ever.
+Directly tested (`tools/test_button_daemon.py`,
+`test_long_press_does_not_also_fire_the_short_press_action`): a
+sentinel value is placed in the request file, a full held->released
+sequence is run, and the sentinel is asserted untouched.
+
+**PrivateTmp fix, same class of gap as Silly Mode's own bring-up
+found:** `piratebox-button.service` has always run with `PrivateTmp=
+yes` - without a bind, the real host `/tmp/piratebox/status-check-
+request` would be invisible to it, exactly the issue `piratebox-
+oled.service`'s own `BindReadOnlyPaths` fix addressed for a different
+file. Fixed with the single narrowest bind that works:
+`BindPaths=/tmp/piratebox/status-check-request:/tmp/piratebox/status-
+check-request` (read-write, one named file, not the whole directory -
+this daemon has no legitimate reason to see the mode file, Silly
+Mode's toggle, or Progression's request files). The file itself is
+pre-created by `etc/tmpfiles.d/piratebox-tmp.conf`, owned by the same
+`piratebox-gpio` account both daemons already run as - the OLED
+daemon's existing `BindReadOnlyPaths=/tmp/piratebox:/tmp/piratebox`
+already covers reading this new file too, no change needed there.
+Every other hardening directive on `piratebox-button.service` -
+`ProtectSystem=strict`, `ProtectHome=yes`, the deliberate absence of
+`NoNewPrivileges=yes` for the sudo escalation - is unchanged, per
+instruction to preserve the existing safe-shutdown service unless a
+narrowly justified change is required.
+
+**Testing:** `tools/test_button_daemon.py` (new, 9 assertions) -
+never constructs a real `gpiozero.Button()` (would attempt to claim the
+real GPIO25 line, a genuine conflict risk against the live service) and
+never lets a real `sudo systemctl poweroff` execute (every SHUTDOWN_
+ENABLED-path test mocks `subprocess.run` first) - only the plain
+callback functions and the suppression flag are exercised. `tools/
+test_silly_mode.py` gained `SillyCadenceTests` (state-machine
+sequencing/timing, including that status is the meaningfully shorter
+phase) and `StatusCheckOverrideTests`/`StatusCheckBannerRenderingTests`
+(recency logic including clock-skew/garbage-content/exact-boundary
+cases, and render-without-exception) - 41 total, up from 28. A full
+`main()`-loop integration smoke test (fake device, a simulated short
+press mid-run) confirmed the banner shows exactly once and the
+following ticks are all real serious pages for the rest of the
+override window. Full existing PHP regression (339/339) and
+`test_progression.py` (73/73) re-confirmed unaffected - this round
+touched no PHP and no Progression logic. `systemd-analyze verify` and
+a tmpfiles.d dry-run both clean before rollout.
+
+---
+
 ## Captain's Log web profile
 
 **Decision date:** 2026-09-04. Adds a read-only, site-facing

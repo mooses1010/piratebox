@@ -42,9 +42,23 @@ PrivateTmp=yes
 # backed /tmp (PrivateTmp=yes above) - writable, and RAM-only, so this
 # still produces zero SD card writes.
 WorkingDirectory=/tmp
-# This daemon touches no PirateBox data at all (see the script's own
-# header - no per-event file, no JSON store), so it needs no other
-# writable paths under ProtectSystem=strict.
+# This daemon touches no other PirateBox data (see the script's own
+# header) beyond the one exception directly below.
+#
+# Added 2026-09-04 (OLED cadence rebalance round): a short press now
+# writes a small timestamp signal for the OLED daemon to interpret (see
+# piratebox_button_daemon.py's own STATUS_CHECK_REQUEST_FILE comment).
+# PrivateTmp=yes above means this service has its OWN private /tmp -
+# without this line, the real host path would be invisible to it, the
+# same class of gap Silly Mode's own bring-up found for the OLED
+# daemon's read side. Deliberately the single narrowest bind that
+# works: read-write access to exactly this one pre-existing file
+# (etc/tmpfiles.d/piratebox-tmp.conf creates it, owned by this same
+# piratebox-gpio account, before this service starts) - not the whole
+# /tmp/piratebox directory, which this daemon has no legitimate reason
+# to see any other file in (the mode toggle, Silly Mode's toggle,
+# Progression's request files).
+BindPaths=/tmp/piratebox/status-check-request:/tmp/piratebox/status-check-request
 
 [Install]
 WantedBy=multi-user.target

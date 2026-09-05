@@ -13,14 +13,33 @@
 # hold).
 #
 # WHAT THIS DOES:
-#   - A short press/tap does absolutely nothing - not even a log line.
-#     There is no code path from a short press to any action.
 #   - A press held continuously for HOLD_SECONDS (4.0s) triggers exactly
 #     once: it logs one line and then requests a clean shutdown via
 #     `sudo -n systemctl poweroff`. Holding longer than the threshold
 #     does not re-trigger (hold_repeat=False) - matching Stage 29 §3's
 #     "no countdown-abort undo after zero, but no repeated action either"
 #     design.
+#   - A short press (released before HOLD_SECONDS) writes a small,
+#     non-persistent timestamp to STATUS_CHECK_REQUEST_FILE (2026-09-04,
+#     "OLED cadence rebalance" round) - see that constant's own comment
+#     for the full design. This is the ONLY thing a short press does:
+#     no OLED rendering knowledge lives in this file, no direct call
+#     into the display daemon - just "the button was tapped, at time T,"
+#     for some other process to interpret however it likes. This keeps
+#     the same "GPIO daemon has exactly one job" shape this file already
+#     had for the long-press/shutdown path, and means a future second
+#     button, a CLI command, or an admin-UI action could produce the
+#     exact same signal without this file changing at all.
+#   - CRITICAL, load-bearing ordering guarantee: a long press that
+#     triggers shutdown must NEVER also produce the short-press signal
+#     on release. gpiozero fires `when_released` on every release,
+#     including one that follows an already-fired `when_held` - so
+#     `on_released()` below checks a plain in-memory flag `on_held()`
+#     sets, and does nothing at all if it's set (clearing it for next
+#     time) rather than writing the request file. A short press never
+#     sets that flag, so it can never suppress itself - only an actual
+#     completed long-press/shutdown-trigger can suppress the release
+#     action that would otherwise follow it.
 #
 # FAILS SAFELY:
 #   - The real shutdown call is gated behind an explicit opt-in
@@ -75,6 +94,32 @@ DEBOUNCE_S = 0.05
 HOLD_SECONDS = 4.0
 SHUTDOWN_ENABLED = os.environ.get("PIRATEBOX_BUTTON_ENABLE_SHUTDOWN") == "1"
 
+# Short-press "show me real stats" signal (2026-09-04). A plain text file
+# containing one Unix timestamp - "a short press happened at time T,"
+# nothing else. Deliberately NOT a request/acknowledgment protocol like
+# Progression's reset/import requests (piratebox_progression.py) - there
+# is nothing to consume or validate here, just a recency check ("is now
+# within STATUS_CHECK_WINDOW_SECONDS of the last write") - so any
+# consumer (the OLED daemon today; conceivably a future second button,
+# a CLI command, or an admin-UI action later, per instruction) can just
+# stat/read this file on its own schedule with no coordination needed.
+# A repeated short press naturally re-extends the window - each write
+# simply replaces the timestamp with a newer one.
+#
+# Lives in /tmp/piratebox/ (tmpfs) - explicitly non-persistent, gone on
+# reboot, matching every other transient signal in that directory
+# (Silly Mode's own toggle, Progression's request files). Pre-created
+# (owned piratebox-gpio:piratebox-gpio) by etc/tmpfiles.d/
+# piratebox-tmp.conf, with a single-file `BindPaths=` (read-write) in
+# piratebox-button.service - this daemon's PrivateTmp=yes would
+# otherwise hide the real host path entirely (the same class of issue
+# Silly Mode's own bring-up found and fixed for the OLED daemon's
+# BindReadOnlyPaths) - deliberately the single narrowest bind that
+# works: this daemon gets read-write access to exactly this one file,
+# nothing else in that directory (it has no legitimate reason to see
+# the mode file, the Silly Mode toggle, or Progression's requests).
+STATUS_CHECK_REQUEST_FILE = "/tmp/piratebox/status-check-request"
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s piratebox-button: %(message)s",
@@ -84,10 +129,21 @@ logging.basicConfig(
 log = logging.getLogger("piratebox-button")
 
 
+_hold_just_fired = False   # see on_released() below - the one flag that
+                            # makes "long press -> shutdown" and "short
+                            # press -> status-check signal" mutually
+                            # exclusive on the SAME physical release event
+
+
 def on_held() -> None:
     """Fires exactly once after HOLD_SECONDS of continuous press
-    (gpiozero's hold_repeat=False below) - never on a short tap, which
-    has no callback wired to it at all."""
+    (gpiozero's hold_repeat=False below). Sets `_hold_just_fired` FIRST,
+    before anything else - even if the shutdown call itself somehow
+    raises, the flag is already set, so the release that follows this
+    (however this function exits) can never be mistaken for a short
+    press."""
+    global _hold_just_fired
+    _hold_just_fired = True
     if SHUTDOWN_ENABLED:
         log.info(
             "Long press detected on GPIO%d (held %.0fs) - requesting shutdown.",
@@ -115,6 +171,32 @@ def on_held() -> None:
         )
 
 
+def on_released() -> None:
+    """Fires on EVERY release, short or long - gpiozero does not
+    distinguish. If `_hold_just_fired` is set, this release is the tail
+    end of an already-handled long press: do nothing but clear the flag,
+    per the mandatory "long hold must not also fire the short-press
+    action" requirement. Otherwise, this is a genuine short press-and-
+    release: write the status-check request file. A short press can
+    never itself set `_hold_just_fired` (only HOLD_SECONDS of continuous
+    press does, via on_held() above), so this direction of the guarantee
+    - "a short press must never risk shutdown" - was already true before
+    this function existed; on_released() only ever writes a plain
+    timestamp file, never anything privilege-related."""
+    global _hold_just_fired
+    if _hold_just_fired:
+        _hold_just_fired = False
+        return
+    try:
+        with open(STATUS_CHECK_REQUEST_FILE, "w") as f:
+            f.write(f"{time.time()}\n")
+    except OSError as exc:
+        # Same fail-safe direction as everywhere else in this file: a
+        # write failure here degrades to "the short press did nothing
+        # visible," never a crash, never retried in a tight loop.
+        log.warning("Could not write status-check request (%s) - ignoring.", exc)
+
+
 def main() -> int:
     try:
         button = Button(
@@ -129,14 +211,18 @@ def main() -> int:
         return 1
 
     button.when_held = on_held
-    # Deliberately no when_pressed/when_released handler at all - a
-    # short press has no code path to anything, consequential or not.
+    button.when_released = on_released
+    # Deliberately no when_pressed handler - nothing needs to react to
+    # the press itself, only to how it resolves (held to the threshold,
+    # or released before it).
 
     log.info(
         "Started. Watching BCM GPIO%d (physical pin 22), %dms debounce, "
-        "%.0fs hold threshold. Real shutdown %s.",
+        "%.0fs hold threshold. Real shutdown %s. Short press writes a "
+        "status-check request to %s.",
         GPIO_PIN, int(DEBOUNCE_S * 1000), HOLD_SECONDS,
         "ENABLED" if SHUTDOWN_ENABLED else "disabled (dry-run/log-only)",
+        STATUS_CHECK_REQUEST_FILE,
     )
 
     def handle_term(signum, frame):

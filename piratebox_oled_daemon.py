@@ -246,10 +246,12 @@
 #     "Animation" (blinking, looking around) is simply which expression
 #     gets chosen this tick, driven by a plain tick-counter modulo - see
 #     compute_silly_expression() - so it looks alive without writing to
-#     the display any more often than before. An occasional real-status
-#     "peek" (one of the four serious pages, for one tick, every
-#     SILLY_STATUS_PEEK_EVERY_TICKS ticks) keeps glanceable status
-#     honestly reachable without needing to turn Silly Mode off.
+#     the display any more often than before. A periodic status
+#     interlude (SILLY_CADENCE_STATUS_SECONDS of the real serious
+#     rotation, alternating with SILLY_CADENCE_PERSONALITY_SECONDS of
+#     ambient personality - see "PERSONALITY-VS-STATUS CADENCE" below)
+#     keeps glanceable status genuinely reachable without needing to
+#     turn Silly Mode off - real airtime, not a one-tick glance.
 #
 #   - FUTURE RGB COMPATIBILITY (not implemented now, per instruction):
 #     compute_display_tier() and compute_silly_expression() are pure
@@ -268,6 +270,46 @@
 #     for the old personality/pulse features - resets on restart, never
 #     written to disk, per this file's existing "no unnecessary SD card
 #     writes" contract.
+#
+# PERSONALITY-VS-STATUS CADENCE (added 2026-09-04, "OLED cadence
+# rebalance" round) - makes Silly Mode read as "a useful status display
+# with a personality," not "a face display with occasional stats."
+# While Silly Mode is on and healthy (tier "ok"/"warning", no override
+# active - see below), the display alternates between two phases:
+#   - "personality": SILLY_CADENCE_PERSONALITY_SECONDS (~36s) of the
+#     ambient/event/flourish behavior described above, unchanged.
+#   - "status": SILLY_CADENCE_STATUS_SECONDS (~15s) of the exact same
+#     serious Status/Time/Network/Health rotation this daemon always
+#     had - not a special "silly-mode status page," the real one,
+#     including its own undervoltage-warning box on the Health page.
+# The phase clock only advances while this cadence is actually driving
+# the display - a sleep/one-shot-event-hold/pending-achievement-reveal/
+# short-press-override interruption (all of which already took priority
+# over ambient cycling before this round) PAUSES it rather than losing
+# time, so "important events may interrupt this cadence" (per
+# instruction) falls out of the existing precedence order for free,
+# with no special-casing needed against the cadence itself. Replaces
+# the old single-tick-every-60s "peek" mechanic entirely.
+#
+# SHORT-PRESS STATUS-CHECK OVERRIDE (added 2026-09-04, same round) -
+# reuses the existing physical shutdown button's ALREADY-tested
+# short-press/long-hold distinction (piratebox_button_daemon.py) rather
+# than adding a second button or a new debounce/hold state machine.
+# That daemon's on_released() writes a plain Unix timestamp to
+# STATUS_CHECK_REQUEST_FILE on a genuine short press (never on the
+# release that follows a triggered long-press/shutdown - see that
+# file's own `_hold_just_fired` guard) - this daemon reads it fresh
+# every tick via read_status_check_active() and treats it as "active"
+# for STATUS_CHECK_WINDOW_SECONDS (~15s) purely by recency, no request/
+# acknowledge protocol needed. A repeated press naturally re-extends the
+# window (a newer timestamp overwrites the old one). Ranks above Silly
+# Mode/personality but below Emergency/fault in the priority order (see
+# main()'s own branch chain) - a button tap can get you a quick real-
+# status glance, it can never hide an actual problem. Deliberately a
+# generic file-based signal, not a direct call from the button daemon
+# into this one: per instruction, ANY future trigger (another button, a
+# CLI command, an admin-UI action) could produce the identical signal
+# with zero change needed here.
 #
 # INSTRUMENT-PANEL POLISH (round 8, 2026-09-03) - improves how the four
 # serious pages themselves present, without changing what they're
@@ -336,6 +378,12 @@ SILLY_FILE = "/tmp/piratebox/silly"   # see "SILLY MODE" header note - same
                                        # reliably bind-mounted into this
                                        # service's private /tmp (see
                                        # piratebox-oled.service)
+STATUS_CHECK_REQUEST_FILE = "/tmp/piratebox/status-check-request"  # short-
+                                       # press signal from piratebox_button_
+                                       # daemon.py - see read_status_check_
+                                       # active() below and that file's own
+                                       # STATUS_CHECK_REQUEST_FILE comment
+STATUS_CHECK_WINDOW_SECONDS = 15.0    # how long a press keeps the override active
 STATUS_FILE = "/run/piratebox/status.json"
 TRANSITIONS_LOG = "/var/www/html/data/mode-transitions.log"
 HOSTAPD_CONF = "/etc/hostapd/hostapd.conf"
@@ -357,7 +405,21 @@ SILLY_ONE_SHOT_HOLD_TICKS = 3         # how long an event reaction (excited/
                                        # before falling back to ambient (~9s)
 SILLY_FLOURISH_EVERY_TICKS = 45       # ~135s between pirate-flourish/quip beats
 SILLY_SSH_WATCH_EVERY_TICKS = 14      # ~42s - only actually shown if SSH is active
-SILLY_STATUS_PEEK_EVERY_TICKS = 20    # ~60s - one real serious page, one tick
+
+# Personality-vs-status cadence (2026-09-04, "OLED cadence rebalance"
+# round): Silly Mode alternates between an ambient/personality phase and
+# a status-interlude phase, so the OLED reads as "a useful status
+# display with a personality," not "a face display with occasional
+# stats." Both are expressed in seconds (not ticks, unlike the other
+# SILLY_* constants above) because the phase clock only advances while
+# this cadence is actually the active display mode - see main()'s own
+# comment on why an event hold/sleep/pending-reveal effectively PAUSES
+# it rather than losing time. Replaces the old single-tick-every-60s
+# "peek" mechanic entirely - a five-tick status interlude reads as
+# genuinely useful, a one-tick glance didn't.
+SILLY_CADENCE_PERSONALITY_SECONDS = 36.0   # ~30-45s of faces/personality
+SILLY_CADENCE_STATUS_SECONDS = 15.0        # ~12-15s of the real Status/Time/
+                                             # Network/Health rotation
 
 # Ambient (no event happening) expression cycles - one entry picked per
 # tick via tick % len(cycle), so the face is never static for long but
@@ -507,6 +569,26 @@ def read_ssh_established() -> bool:
             if state == "01" and local_addr.rsplit(":", 1)[-1].upper() == port_hex:
                 return True
     return False
+
+
+def read_status_check_active(now: float) -> bool:
+    """A short press on the physical shutdown button (piratebox_button_
+    daemon.py's on_released()) writes a plain Unix timestamp here - this
+    is "active" for exactly as long as that timestamp is recent, no
+    consume/acknowledge step needed (a repeated press naturally re-
+    extends the window just by writing a newer timestamp - see that
+    file's own comment). Missing file, unreadable, non-numeric content,
+    or a nonsensical future timestamp (clock skew, a corrupt write) all
+    degrade to "not active," never a crash and never a stuck-forever
+    override - this daemon has no way to distinguish "malformed" from
+    "absent" and doesn't need to; both mean the same thing here."""
+    try:
+        with open(STATUS_CHECK_REQUEST_FILE, "r") as f:
+            ts = float(f.read().strip())
+    except (OSError, ValueError):
+        return False
+    age = now - ts
+    return 0.0 <= age < STATUS_CHECK_WINDOW_SECONDS
 
 
 def read_ssid() -> str:
@@ -742,6 +824,19 @@ def render_mode_transition(draw, font_big, new_mode: str) -> None:
     draw.text((6, 36), sub, font=font_big, fill="black")
 
 
+def render_status_check_banner(draw, font_big) -> None:
+    """A brief, one-shot, full-frame banner shown exactly once, the
+    tick a short-press status-check request is first noticed - not on
+    every tick it stays active (see main()'s own edge-detection). This
+    is the one visual acknowledgment reserved for the deliberate, on-
+    demand button press specifically - the same phase change happening
+    automatically as part of the ordinary personality/status cadence
+    (see SILLY_CADENCE_* above) does NOT get this banner, so it doesn't
+    become repetitive noise every 30-45 seconds forever."""
+    draw.rectangle((0, 0, 127, 63), fill="white")
+    draw.text((6, 24), "STATUS CHECK", font=font_big, fill="black")
+
+
 def compute_display_tier(mode: str, status, stale: bool) -> str:
     """The mandatory priority gate: Emergency > required operational
     warning > Silly Mode > normal cosmetic personality (see the "SILLY
@@ -788,6 +883,25 @@ def compute_silly_expression(tick: int, has_clients: bool, ssh_active: bool, for
         return "ssh_watch"
     cycle = AMBIENT_WITH_CLIENTS if has_clients else AMBIENT_NO_CLIENTS
     return cycle[tick % len(cycle)]
+
+
+def advance_silly_cadence(phase: str, seconds_remaining: float, refresh_seconds: float):
+    """Pure state-machine step for the personality-vs-status cadence
+    (see the "PERSONALITY-VS-STATUS CADENCE" header note) - decrements
+    the phase clock by one tick's worth of real time and flips phase
+    exactly when it elapses, resetting to the new phase's own duration.
+    No I/O, no reference to `main()`'s other state - directly unit-
+    testable by calling it in a loop and asserting the resulting phase
+    sequence/timing. Callers are responsible for only calling this once
+    per tick, and only while this cadence is actually driving the
+    display (see main()'s own "pauses rather than drifts" comment)."""
+    seconds_remaining -= refresh_seconds
+    if seconds_remaining <= 0:
+        phase = "status" if phase == "personality" else "personality"
+        seconds_remaining = (
+            SILLY_CADENCE_STATUS_SECONDS if phase == "status" else SILLY_CADENCE_PERSONALITY_SECONDS
+        )
+    return phase, seconds_remaining
 
 
 # --- Silly Mode face rendering ------------------------------------------
@@ -1074,6 +1188,8 @@ def build_frame(
         render_achievement(draw, font, font_small, extra["name"])
     elif page == "mode_transition":
         render_mode_transition(draw, font_big, extra["new_mode"])
+    elif page == "status_check_banner":
+        render_status_check_banner(draw, font_big)
     return img
 
 
@@ -1150,9 +1266,12 @@ def main() -> int:
         "(auto-rotating - no cycle button wired yet), %d-page cycle. "
         "Silly Mode: user-toggled via %s, off by default, always "
         "suppressed in Emergency Mode or any fault (missing/stale "
-        "status, any Core service down) - see compute_display_tier().",
+        "status, any Core service down) - see compute_display_tier(). "
+        "Cadence: ~%.0fs personality / ~%.0fs status interlude. "
+        "Short-press status-check override: %s, ~%.0fs window.",
         I2C_PORT, I2C_ADDRESS, REFRESH_SECONDS, PAGE_SECONDS, len(PAGE_ORDER),
-        SILLY_FILE,
+        SILLY_FILE, SILLY_CADENCE_PERSONALITY_SECONDS, SILLY_CADENCE_STATUS_SECONDS,
+        STATUS_CHECK_REQUEST_FILE, STATUS_CHECK_WINDOW_SECONDS,
     )
 
     page_index = 0
@@ -1180,9 +1299,24 @@ def main() -> int:
     silly_hold_render = None     # a held one-shot render-spec (excited/surprised/
                                    # confused/waking), shown for a few ticks
     silly_hold_remaining = 0
-    silly_peek_index = 0         # rotates the occasional real-status peek
     wake_count_today = 0
     wake_count_day = None
+
+    # Personality-vs-status cadence (see SILLY_CADENCE_* above) - starts
+    # in the personality phase so a freshly-enabled Silly Mode opens
+    # with faces, not an immediate status interlude. The clock only
+    # advances while this cadence is actually driving the display (see
+    # its own decrement below), so it naturally pauses - not drifts -
+    # during a sleep/event-hold/pending-reveal/status-check-override
+    # interruption and picks up exactly where it left off after.
+    silly_cadence_phase = "personality"
+    silly_cadence_seconds_remaining = SILLY_CADENCE_PERSONALITY_SECONDS
+
+    # Short-press "show me real stats" override - see
+    # read_status_check_active()'s own docstring. Edge-detected (like
+    # mode_transition above) so the STATUS CHECK banner shows exactly
+    # once per press, not on every tick the window stays open.
+    status_check_was_active = False
 
     # Progression (piratebox_progression.py) - a separate, persistent,
     # always-on subsystem underneath Silly Mode. Loaded once at startup;
@@ -1255,6 +1389,9 @@ def main() -> int:
         tier = compute_display_tier(mode, status, stale)
         silly_enabled = read_silly_enabled()
         ssh_active = read_ssh_established()
+        status_check_active = read_status_check_active(now)
+        status_check_just_started = status_check_active and not status_check_was_active
+        status_check_was_active = status_check_active
         transition_wipe = False
 
         # Idle/sleep tracking - always computed now (not just when
@@ -1323,22 +1460,46 @@ def main() -> int:
 
         if mode_transition is not None:
             # A real mode flip always wins outright - never gated,
-            # never mixed with Silly Mode.
+            # never mixed with Silly Mode or the status-check override.
             page, extra = "mode_transition", {"new_mode": mode_transition}
-        elif tier in ("emergency", "fault") or not silly_enabled:
+        elif tier in ("emergency", "fault"):
             # The mandatory priority floor: Emergency/fault always fall
             # straight through to the plain serious rotation, exactly
-            # as this daemon behaved before Silly Mode existed. Silly
-            # Mode disabled behaves identically - no quips, no faces,
-            # matching the "default off = exactly today's display"
-            # requirement. Note: pending level-up/achievement reveals
-            # are simply left queued - they surface the next time this
-            # branch isn't taken, never interrupting a fault/emergency
-            # or a deliberately-off display.
+            # as this daemon behaved before Silly Mode existed - ahead
+            # of Silly Mode AND ahead of a short-press override (a
+            # button tap cannot hide an actual fault). Note: pending
+            # level-up/achievement reveals are simply left queued - they
+            # surface the next time this branch isn't taken, never
+            # interrupting a fault/emergency.
             page, extra = PAGE_ORDER[page_index], None
             transition_wipe = seconds_on_current_page == 0.0 and last_image is not None
+        elif not silly_enabled:
+            # Silly Mode is off - exactly today's plain serious rotation,
+            # matching the "default off = exactly today's display"
+            # requirement. (A status-check press here would be a visual
+            # no-op anyway, since this already IS the real status
+            # rotation - so it's deliberately not specially detected in
+            # this branch; see status_check_active below for where it
+            # actually changes anything.)
+            page, extra = PAGE_ORDER[page_index], None
+            transition_wipe = seconds_on_current_page == 0.0 and last_image is not None
+        elif status_check_active:
+            # Explicit temporary override (a short press on the physical
+            # button, or any future trigger of the same signal file) -
+            # ranks above Silly Mode/personality, below Emergency/fault
+            # (already excluded by the elif chain above). Shows the same
+            # serious rotation "not silly_enabled" does, so the known
+            # chronic undervoltage warning is represented exactly the
+            # way it already is there (the Health page's own boxed
+            # notice) - no separate badge logic needed for this branch.
+            if status_check_just_started:
+                page, extra = "status_check_banner", {}
+            else:
+                page, extra = PAGE_ORDER[page_index], None
+                transition_wipe = seconds_on_current_page == 0.0 and last_image is not None
         else:
-            # tier is "ok" or "warning" and Silly Mode is on.
+            # tier is "ok" or "warning," Silly Mode is on, and no
+            # override is active.
             event = None
             if current_clients is not None and silly_last_clients is not None:
                 if current_clients > silly_last_clients:
@@ -1352,6 +1513,15 @@ def main() -> int:
 
             had_hold_before = silly_hold_remaining > 0
             in_special_state = (event is not None) or silly_sleeping or had_hold_before
+
+            # Personality-vs-status cadence clock - only advances here,
+            # i.e. only while this branch is actually the one deciding
+            # the display, so a sleep/hold/pending-reveal/status-check
+            # interruption pauses it rather than losing time (see the
+            # state's own initialization comment above).
+            silly_cadence_phase, silly_cadence_seconds_remaining = advance_silly_cadence(
+                silly_cadence_phase, silly_cadence_seconds_remaining, REFRESH_SECONDS,
+            )
 
             if event is not None:
                 # The rarity engine gets first say on how a freshly-
@@ -1383,11 +1553,17 @@ def main() -> int:
                 render = silly_hold_render
                 silly_hold_remaining -= 1
                 page, extra = "silly", {"render": render, "tier": tier}
-            elif not in_special_state and tick % SILLY_STATUS_PEEK_EVERY_TICKS == 0:
-                # A brief, occasional glance at real status - keeps
-                # information reachable without needing Silly Mode off.
-                page, extra = PAGE_ORDER[silly_peek_index % len(PAGE_ORDER)], None
-                silly_peek_index += 1
+            elif silly_cadence_phase == "status":
+                # The regular, automatic status interlude (see
+                # SILLY_CADENCE_* above) - the ordinary serious rotation,
+                # for real airtime (~12-15s), not a one-tick glance.
+                # Deliberately NO special transition banner here (unlike
+                # the button-triggered status_check_active branch above)
+                # - this happens every ~30-45s forever as part of normal
+                # operation, and a banner every cycle would become noise
+                # rather than a helpful cue.
+                page, extra = PAGE_ORDER[page_index], None
+                transition_wipe = seconds_on_current_page == 0.0 and last_image is not None
             else:
                 expression = compute_silly_expression(
                     tick, has_clients=(current_clients or 0) > 0, ssh_active=ssh_active,

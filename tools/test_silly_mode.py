@@ -273,5 +273,108 @@ class QuipWidthTests(unittest.TestCase):
             self.assertLessEqual(width, 128, f"Quip too wide for the display: {text!r} ({width}px)")
 
 
+class SillyCadenceTests(unittest.TestCase):
+    """State-machine tests for the personality-vs-status cadence
+    (advance_silly_cadence()) - pure, no I/O, so the whole phase
+    sequence/timing is directly verifiable by stepping it in a loop."""
+
+    def test_starts_in_personality_and_stays_there_before_elapsing(self):
+        phase, remaining = "personality", oled.SILLY_CADENCE_PERSONALITY_SECONDS
+        phase, remaining = oled.advance_silly_cadence(phase, remaining, 3.0)
+        self.assertEqual(phase, "personality")
+        self.assertAlmostEqual(remaining, oled.SILLY_CADENCE_PERSONALITY_SECONDS - 3.0)
+
+    def test_flips_to_status_exactly_when_personality_phase_elapses(self):
+        phase, remaining = "personality", 3.0  # one tick left
+        phase, remaining = oled.advance_silly_cadence(phase, remaining, 3.0)
+        self.assertEqual(phase, "status")
+        self.assertAlmostEqual(remaining, oled.SILLY_CADENCE_STATUS_SECONDS)
+
+    def test_flips_back_to_personality_when_status_phase_elapses(self):
+        phase, remaining = "status", 3.0
+        phase, remaining = oled.advance_silly_cadence(phase, remaining, 3.0)
+        self.assertEqual(phase, "personality")
+        self.assertAlmostEqual(remaining, oled.SILLY_CADENCE_PERSONALITY_SECONDS)
+
+    def test_full_cycle_spends_the_expected_number_of_ticks_in_each_phase(self):
+        phase, remaining = "personality", oled.SILLY_CADENCE_PERSONALITY_SECONDS
+        phase_log = [phase]
+        for _ in range(40):
+            phase, remaining = oled.advance_silly_cadence(phase, remaining, 3.0)
+            phase_log.append(phase)
+        personality_ticks = phase_log.count("personality")
+        status_ticks = phase_log.count("status")
+        # Both phases must actually occur, and status must be the
+        # meaningfully shorter of the two - the whole point of the
+        # rebalance (useful pages get real airtime, not a token tick).
+        self.assertGreater(personality_ticks, 0)
+        self.assertGreater(status_ticks, 0)
+        self.assertGreater(personality_ticks, status_ticks)
+
+    def test_cadence_constants_are_within_the_requested_range(self):
+        self.assertTrue(30.0 <= oled.SILLY_CADENCE_PERSONALITY_SECONDS <= 45.0)
+        self.assertTrue(12.0 <= oled.SILLY_CADENCE_STATUS_SECONDS <= 15.0)
+
+
+class StatusCheckOverrideTests(unittest.TestCase):
+    """read_status_check_active() - the OLED side of the short-press
+    signal piratebox_button_daemon.py writes."""
+
+    def setUp(self):
+        self._orig = oled.STATUS_CHECK_REQUEST_FILE
+        fd, self.path = tempfile.mkstemp()
+        os.close(fd)
+        oled.STATUS_CHECK_REQUEST_FILE = self.path
+
+    def tearDown(self):
+        oled.STATUS_CHECK_REQUEST_FILE = self._orig
+        if os.path.exists(self.path):
+            os.unlink(self.path)
+
+    def write(self, content):
+        with open(self.path, "w") as f:
+            f.write(content)
+
+    def test_missing_file_is_inactive(self):
+        os.unlink(self.path)
+        self.assertFalse(oled.read_status_check_active(1000.0))
+
+    def test_recent_timestamp_is_active(self):
+        self.write("1000.0\n")
+        self.assertTrue(oled.read_status_check_active(1005.0))  # 5s old
+
+    def test_old_timestamp_is_inactive(self):
+        self.write("1000.0\n")
+        self.assertFalse(oled.read_status_check_active(1000.0 + oled.STATUS_CHECK_WINDOW_SECONDS + 1))
+
+    def test_exactly_at_the_window_boundary_is_inactive(self):
+        self.write("1000.0\n")
+        self.assertFalse(oled.read_status_check_active(1000.0 + oled.STATUS_CHECK_WINDOW_SECONDS))
+
+    def test_garbage_content_is_inactive_not_a_crash(self):
+        self.write("not a number")
+        self.assertFalse(oled.read_status_check_active(1000.0))
+
+    def test_future_timestamp_clock_skew_is_inactive(self):
+        self.write("5000.0\n")  # "now" (1000.0) is before this - nonsensical
+        self.assertFalse(oled.read_status_check_active(1000.0))
+
+    def test_a_repeated_press_extends_the_window(self):
+        self.write("1000.0\n")
+        self.assertFalse(oled.read_status_check_active(1000.0 + oled.STATUS_CHECK_WINDOW_SECONDS + 1))
+        self.write(f"{1000.0 + oled.STATUS_CHECK_WINDOW_SECONDS + 1}\n")  # a fresh press
+        self.assertTrue(oled.read_status_check_active(1000.0 + oled.STATUS_CHECK_WINDOW_SECONDS + 2))
+
+
+class StatusCheckBannerRenderingTests(unittest.TestCase):
+    def test_renders_without_exception(self):
+        font, font_small, font_big = oled.load_fonts()
+        img = oled.build_frame(
+            FakeDevice(), "status_check_banner", font, font_small, font_big,
+            None, False, "normal", extra={},
+        )
+        self.assertEqual(img.size, (128, 64))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
