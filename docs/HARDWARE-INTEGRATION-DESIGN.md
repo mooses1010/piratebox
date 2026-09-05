@@ -262,6 +262,15 @@ its reader there (and, if wanted, a few new achievements/events keyed
 off it) is the intended extension path - no change needed to
 Progression's own engine.
 
+**Captain's Log web profile (added 2026-09-04):** a read-only site page
+(`/utility/captains-log/`) presenting Progression's data to visitors -
+see `docs/OPERATIONAL-DECISIONS.md` → "Captain's Log web profile" for
+the full design, including the `open_basedir` boundary it added (one
+new named file, not a directory widening) to let PHP read Progression's
+already-curated public export. The same empty `HARDWARE_SIGNALS`
+registry flows through to this page automatically - no template change
+needed once real hardware is commissioned and registered.
+
 ---
 
 ## 6. Likely packages

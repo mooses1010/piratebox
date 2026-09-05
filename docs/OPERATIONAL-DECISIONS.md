@@ -6,6 +6,150 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Captain's Log web profile
+
+**Decision date:** 2026-09-04. Adds a read-only, site-facing
+presentation layer over PirateBox Progression (below) - `/utility/
+captains-log/`, a new card in the Utility hub. Shows this specific
+device's persistent identity, level, title, lifetime stats, discovered
+achievements, and a chronological "Captain's Log" of progression-
+significant events. Deliberately a presentation layer only - no change
+to Progression's engine, priority model, or persistence design; see
+"PirateBox Progression" below for that architecture, unchanged by this
+round except for the minimal, additive extension noted there.
+
+**The real architectural problem this round had to solve, not a detail:**
+Progression's durable store (`/var/lib/piratebox-oled/progression.json`)
+is `piratebox-gpio:gpio`, mode `0640` - PHP-FPM runs as `www-data`,
+which is in neither that account nor that group, so it cannot read that
+file, and per instruction that permission was **not** to be loosened
+just to serve a page. The fix reuses this project's own established
+pattern instead of inventing a new one: `piratebox_status_helper.sh`
+already runs as root on a fixed 30s timer specifically to bridge
+privileged reads to public, world-readable tmpfs snapshots (status.json
+being the original example) - it now also invokes `python3
+piratebox_progression.py` (root can always read a `0640` file
+regardless of group) and publishes whatever that prints - **already
+curated by `build_public_summary()`, never the raw file** - to
+`/run/piratebox/progression-public.json` (world-readable, same
+directory, same pattern). `includes/progression.php` reads only that
+export, exactly the way `includes/metrics.php`'s
+`piratebox_get_helper_status()` already reads `status.json`. **Zero
+filesystem permissions were changed anywhere** to make this possible -
+the whole point of routing through the existing root-run helper.
+
+**One real, narrow security-boundary change, made deliberately and
+explained, not slipped in:** PHP-FPM's `open_basedir`
+(`etc/php/8.4/fpm/php.ini`) allowlists exact files, not whole
+directories, and its existing entry only named `/run/piratebox/
+status.json` - it would have silently blocked reading the new export
+file. Per this project's own standing rule ("STOP before making an
+`open_basedir`/security-boundary change," recorded earlier in this same
+log), this is called out explicitly rather than assumed: one new entry
+was added, `/run/piratebox/progression-public.json`, naming that exact
+file only - the existing entry was **not** widened into a whole-
+directory allowance, keeping the restriction exactly as narrow as
+every other entry in that list (each already names one specific file,
+by the same stated philosophy). This requires the operator's own `sudo`
+to deploy (a system file, outside the `var/www/html` tree
+`piratebox_deploy.sh` covers) **and a `php8.4-fpm` reload** (`open_
+basedir` is read once at FPM start) - both stopped for the operator
+rather than assumed, with exact commands given.
+
+**Backend extension, minimal and additive, not a redesign:**
+Progression gained three small pieces of state, all backward-compatible
+(old files missing them simply get the fresh defaults merged in, same
+as any other field addition - see that module's own forward-
+compatibility test): `achievement_unlocked_at` (id -> timestamp, for
+"discovered on..." dates - pre-existing unlocks from before this field
+existed correctly show no date rather than a fabricated one),
+`history` (a bounded, sparse Captain's Log - achievement unlocks, level-
+ups, title changes, and rare/legendary/secret event firings only -
+capped at 200 entries, oldest trimmed, the same bounded-history
+discipline `piratebox_status_helper.sh`'s own `boot_events`/
+`undervoltage_daily` lists already use), and `stats.rare_events_
+witnessed` (one aggregate counter, never which ones). **Deliberately
+NOT logged**: routine common/uncommon ambient reactions - the log stays
+sparse and meaningful, not a raw event stream, matching the explicit
+instruction.
+
+**Spoiler policy, enforced at the data boundary, not the template:**
+`build_public_summary()` (`piratebox_progression.py`) is the ONE
+function that decides what's safe to publish - it never includes an
+achievement or event's internal id, any cooldown/timing internals, or
+`len(ACHIEVEMENTS)` (the total achievement count that exist) in any
+form. Only what this specific device has actually discovered is ever in
+the export `includes/progression.php` reads - the PHP layer has no
+opportunity to leak more than that even if it tried, since the raw
+data never reaches it. Directly tested (`tools/test_progression.py`'s
+`PublicSummaryTests`): the total achievement count is asserted absent
+from the serialized output; every internal id is asserted absent;
+malformed/pre-existing-without-timestamp achievements degrade
+honestly. A rare/legendary/secret event's Captain's Log entry uses its
+own in-universe quip text (already player-facing, already non-
+revealing) or a generic rarity-tier label - never the internal family/
+variant id.
+
+**Personality traits, presented as labels, never raw floats:**
+`personality_traits()` buckets each bounded weight into one of three
+human-readable labels (e.g. "Social"/"Balanced"/"Solitary") - the page
+never sees or could leak the underlying numeric weight.
+
+**Privacy, unchanged from Progression's own guarantees:** every stat on
+the page is an aggregate the backend already tracked - no MAC address,
+IP, per-visitor identity, SSH session detail, or browsing history is
+read or shown anywhere on this page, matching every other public page
+on this site. "Visitors Welcomed"/"Busiest Moment" are explicitly
+captioned as aggregate Wi-Fi-association counts, not a visitor list -
+the same framing the existing Status page already uses for its own
+connection-event numbers.
+
+**Reliability:** `includes/progression.php`'s
+`piratebox_parse_progression_public()` treats the export as untrusted
+input (this project's standing instruction, applied here the same way
+`includes/device_memory.php` and `includes/capability_state.php`
+already apply it elsewhere) - missing file, malformed JSON, an
+unexpected shape, or the daemon's own honest `{"available": false}`
+fallback all degrade to a plain "history unavailable" page state, never
+a PHP error, never affecting any other page. Every rendered field is
+`htmlspecialchars()`-escaped at the template boundary regardless of
+this - defense in depth, since Progression data is written by a
+trusted local process, not visitor input, but costs nothing to still
+enforce.
+
+**Read-only, by construction:** this page contains no form, no POST
+handler, and calls no function that writes anything - `piratebox-
+silly`'s `reset`/`import`/`backup`/the test-only `force_next_event()`
+hook remain exclusively operator-side, unreachable from any web
+request.
+
+**Future hardware:** the export's `hardware` field passes through
+Progression's own `HARDWARE_SIGNALS` registry (currently empty, per
+that module's own "don't fabricate" rule) - the page template already
+handles an empty `hardware` array by simply showing nothing for it, so
+a future commissioning round (DS3231/INA226/BME280/DS18B20/BH1750/RGB/
+GPS) can register a real reader and have it flow through to this page
+with no further plumbing change here.
+
+**Testing:** `tools/test_progression.py` gained `HistoryTests`,
+`PersonalityTraitTests`, and `PublicSummaryTests` (21 new assertions,
+73 total) - history logging/bounding, trait-label bucketing, and the
+spoiler-safety boundary itself. New `tools/test_progression_web.php`
+(26 assertions) covers `piratebox_parse_progression_public()`'s full
+malformed-input matrix (mirroring `test_device_memory.php`'s own
+style) - a real `foreach`-on-non-array bug in the first draft was
+caught and fixed by this suite before it ever reached a browser. The
+page itself was smoke-tested via `php -S` against both an "unavailable"
+state and a fully-populated realistic fixture (multiple achievements
+including a hidden one, a mixed Captain's Log, all nine lifetime
+stats, non-trivial XP-bar math) - confirmed correct HTML, correct
+newest-first log ordering, and no unstyled/broken markup. Full
+existing PHP regression (339/339 across all seven suites) and the
+existing Python suites (`test_progression.py`, `test_silly_mode.py`)
+all re-confirmed unaffected.
+
+---
+
 ## PirateBox Progression (persistent personality/history system)
 
 **Decision date:** 2026-09-04. Expands OLED Silly Mode (below) into a

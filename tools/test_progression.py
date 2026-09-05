@@ -503,5 +503,164 @@ class ResetImportTests(TempDataDir):
         self.assertEqual(prog.load_state()["xp"]["total"], 9001)
 
 
+class HistoryTests(unittest.TestCase):
+    """Captain's Log: sparse, bounded, spoiler-safe entries."""
+
+    def test_achievement_unlock_is_logged_with_its_display_name(self):
+        s = prog._default_state()
+        s["stats"]["lifetime_uptime_seconds"] = 86400
+        prog.check_achievements(s, ctx())
+        kinds = [(e["kind"], e["label"]) for e in s["history"]]
+        self.assertIn(("achievement", "First Full Day"), kinds)
+
+    def test_achievement_unlock_records_a_timestamp(self):
+        s = prog._default_state()
+        s["stats"]["lifetime_uptime_seconds"] = 86400
+        prog.check_achievements(s, ctx(now=12345.0))
+        self.assertEqual(s["achievement_unlocked_at"]["uptime_1d"], 12345.0)
+
+    def test_level_up_is_logged(self):
+        s = prog._default_state()
+        prog.add_xp(s, prog.xp_for_level(2))
+        # add_xp alone doesn't log (only observe_tick does) - simulate
+        # the same crossing through the real entrypoint instead.
+        s2 = prog._default_state()
+        s2["xp"]["total"] = prog.xp_for_level(2) - 5
+        s2["xp"]["level"] = 1
+        prog.observe_tick(s2, ctx(tier="ok", dt=3600 * 10))  # enough passive XP to cross
+        kinds = [e["kind"] for e in s2["history"]]
+        self.assertIn("level_up", kinds)
+
+    def test_title_change_is_logged_only_when_the_title_actually_changes(self):
+        s = prog._default_state()
+        # Jump straight to a level whose title differs from level 1's.
+        target_level = next(lvl for lvl, _ in prog.TITLES if lvl > 1)
+        s["xp"]["total"] = prog.xp_for_level(target_level) - 5
+        s["xp"]["level"] = 1
+        prog.observe_tick(s, ctx(tier="ok", dt=3600 * 1000))
+        kinds = [e["kind"] for e in s["history"]]
+        self.assertIn("title_change", kinds)
+
+    def test_history_is_bounded_by_count(self):
+        s = prog._default_state()
+        for i in range(prog.HISTORY_MAX_ENTRIES + 50):
+            prog._append_history(s, "achievement", f"Entry {i}", float(i))
+        self.assertEqual(len(s["history"]), prog.HISTORY_MAX_ENTRIES)
+        self.assertEqual(s["history"][-1]["label"], f"Entry {prog.HISTORY_MAX_ENTRIES + 49}")
+
+    def test_rare_event_choice_is_logged_and_counted(self):
+        s = prog._default_state()
+        prog.force_next_event("wake", "wake.rare_startled")
+        prog.roll_event("wake", s, ctx(now=1.0), random.Random())
+        self.assertEqual(s["stats"]["rare_events_witnessed"], 1)
+        kinds = [e["kind"] for e in s["history"]]
+        self.assertIn("rare_event", kinds)
+
+    def test_common_event_choice_is_not_logged(self):
+        s = prog._default_state()
+        prog.force_next_event("wake", "wake.common")
+        prog.roll_event("wake", s, ctx(now=1.0), random.Random())
+        self.assertEqual(s["history"], [])
+        self.assertEqual(s["stats"]["rare_events_witnessed"], 0)
+
+    def test_rare_event_log_label_never_contains_the_internal_id(self):
+        s = prog._default_state()
+        prog.force_next_event("wake", "wake.rare_startled")
+        prog.roll_event("wake", s, ctx(now=1.0), random.Random())
+        for e in s["history"]:
+            self.assertNotIn("wake.rare_startled", e["label"])
+
+
+class PersonalityTraitTests(unittest.TestCase):
+    def test_default_weights_give_balanced_labels(self):
+        traits = prog.personality_traits({"sociability": 0.5, "vigilance": 0.5, "resilience": 0.5})
+        self.assertEqual(traits["sociability"], "Balanced")
+
+    def test_high_weight_gives_the_high_label(self):
+        traits = prog.personality_traits({"sociability": 0.9})
+        self.assertEqual(traits["sociability"], "Social")
+
+    def test_low_weight_gives_the_low_label(self):
+        traits = prog.personality_traits({"vigilance": 0.1})
+        self.assertEqual(traits["vigilance"], "Relaxed")
+
+    def test_missing_weight_defaults_to_balanced_midpoint(self):
+        traits = prog.personality_traits({})
+        self.assertEqual(traits["resilience"], "Steady")
+
+
+class PublicSummaryTests(unittest.TestCase):
+    """The one function every web-facing consumer goes through - the
+    highest-stakes spoiler boundary in this whole file."""
+
+    def test_available_true_on_a_normal_state(self):
+        s = prog._default_state()
+        summary = prog.build_public_summary(s, now=1000.0)
+        self.assertTrue(summary["available"])
+
+    def test_never_exposes_the_total_achievement_count(self):
+        s = prog._default_state()
+        summary = prog.build_public_summary(s, now=1000.0)
+        dumped = json.dumps(summary)
+        # The total number of achievements that exist must never leak,
+        # whether directly or as a suspiciously-specific denominator.
+        self.assertNotIn(str(len(prog.ACHIEVEMENTS)), dumped)
+
+    def test_only_unlocked_achievements_appear(self):
+        s = prog._default_state()
+        s["achievements"] = ["uptime_1d"]
+        summary = prog.build_public_summary(s, now=1000.0)
+        names = [a["name"] for a in summary["achievements"]]
+        self.assertEqual(names, ["First Full Day"])
+
+    def test_no_internal_achievement_or_event_ids_leak(self):
+        s = prog._default_state()
+        s["achievements"] = list(prog.ACHIEVEMENTS.keys())
+        s["seen_events"] = {"wake.rare_startled": {"count": 1, "last": 1.0}}
+        summary = prog.build_public_summary(s, now=1000.0)
+        dumped = json.dumps(summary)
+        self.assertNotIn("seen_events", dumped)
+        self.assertNotIn("cooldowns", dumped)
+        for aid in prog.ACHIEVEMENTS:
+            self.assertNotIn(f'"{aid}"', dumped)  # the id string itself, not the name
+
+    def test_pre_existing_unlock_without_a_timestamp_shows_none(self):
+        """Backward compatibility: achievements unlocked before this
+        feature existed have no achievement_unlocked_at entry."""
+        s = prog._default_state()
+        s["achievements"] = ["uptime_1d"]  # no matching achievement_unlocked_at entry
+        summary = prog.build_public_summary(s, now=1000.0)
+        self.assertIsNone(summary["achievements"][0]["unlocked_at"])
+
+    def test_progress_fraction_is_between_zero_and_one(self):
+        s = prog._default_state()
+        s["xp"]["total"] = 50
+        s["xp"]["level"] = 1
+        summary = prog.build_public_summary(s, now=1000.0)
+        self.assertGreaterEqual(summary["xp"]["progress_fraction"], 0.0)
+        self.assertLessEqual(summary["xp"]["progress_fraction"], 1.0)
+
+    def test_traits_are_labels_not_raw_floats(self):
+        s = prog._default_state()
+        summary = prog.build_public_summary(s, now=1000.0)
+        for v in summary["traits"].values():
+            self.assertIsInstance(v, str)
+
+    def test_history_entries_carry_only_the_three_safe_fields(self):
+        s = prog._default_state()
+        prog._append_history(s, "achievement", "Test Entry", 5.0)
+        summary = prog.build_public_summary(s, now=1000.0)
+        self.assertEqual(set(summary["history"][0].keys()), {"ts", "kind", "label"})
+
+    def test_cli_entrypoint_prints_valid_json(self):
+        import subprocess
+        out = subprocess.run(
+            [sys.executable, PROG_PATH], capture_output=True, text=True, timeout=10,
+        )
+        self.assertEqual(out.returncode, 0)
+        parsed = json.loads(out.stdout)
+        self.assertIn("available", parsed)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

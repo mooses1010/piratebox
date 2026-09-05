@@ -84,6 +84,11 @@ session_start();
             <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.materials.title')) ?></span>
             <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.materials.desc')) ?></span>
         </a>
+        <a class="utility-card" href="/utility/captains-log/">
+            <span class="utility-card-icon" aria-hidden="true">📜</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.captainslog.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.captainslog.desc')) ?></span>
+        </a>
         <a class="utility-card" href="/utility/about/">
             <span class="utility-card-icon" aria-hidden="true">ℹ️</span>
             <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.about.title')) ?></span>

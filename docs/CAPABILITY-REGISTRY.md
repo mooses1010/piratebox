@@ -415,6 +415,19 @@ it is.**
   `docs/OPERATIONAL-DECISIONS.md` → "PirateBox Progression" (deliberately
   stops at the architecture level - hidden achievements and exact
   rare-event triggers are not spoiled there or here, per instruction).
+- **Captain's Log web profile (added 2026-09-04):** a read-only site
+  page (`/utility/captains-log/`, linked from the Utility hub)
+  presenting the above to visitors - identity, level/title, XP
+  progress, lifetime stats, discovered achievements, personality
+  traits (as labels, never raw weights), and a sparse chronological
+  log. No reset/import/debug/force-event operation is reachable from
+  the web - those stay CLI-only. Reads Progression's own public export
+  (`/run/piratebox/progression-public.json`, published by
+  `piratebox_status_helper.sh` from `build_public_summary()`) rather
+  than the raw durable file - no filesystem permission was loosened to
+  make this possible; one narrow, explicit `open_basedir` addition
+  (one named file, not a directory) was needed instead. Full rationale:
+  `docs/OPERATIONAL-DECISIONS.md` → "Captain's Log web profile".
 
 ### Undervoltage / power-quality monitoring (software)
 

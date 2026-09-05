@@ -360,6 +360,36 @@ os.replace(tmp, path)
 PYEOF
 fi
 
+# --- Progression public export (Captain's Log web page) ---
+# piratebox_progression.py's durable store (/var/lib/piratebox-oled/
+# progression.json) is deliberately root:piratebox-gpio-only (see that
+# file's own "Web profile export" section and etc/tmpfiles.d's comment)
+# - www-data cannot read it, and per instruction that permission is not
+# to be loosened just to serve a web page. This script already runs as
+# root on a fixed schedule for exactly this class of problem (see this
+# file's own header), so it's the natural bridge: invoke
+# piratebox_progression.py directly (root can always read a 0640 file
+# regardless of group), which prints ONLY the already-curated,
+# spoiler-safe public summary (see that file's build_public_summary())
+# as JSON - never the raw progression.json - to
+# /run/piratebox/progression-public.json (world-readable tmpfs, same
+# pattern as status.json itself). Missing/uninstalled/failing
+# gracefully skips this block entirely - a public export lagging or
+# absent must never affect this script's own primary job (status.json)
+# or the OLED/network stack in any way.
+PROGRESSION_HELPER="/usr/local/bin/piratebox_progression.py"
+PROGRESSION_PUBLIC_FILE="$OUT_DIR/progression-public.json"
+if [ -x "$PROGRESSION_HELPER" ] || [ -f "$PROGRESSION_HELPER" ]; then
+    PROGRESSION_TMP="$PROGRESSION_PUBLIC_FILE.tmp.$$"
+    if python3 "$PROGRESSION_HELPER" > "$PROGRESSION_TMP" 2>/dev/null \
+        && python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$PROGRESSION_TMP" >/dev/null 2>&1; then
+        chmod 0644 "$PROGRESSION_TMP"
+        mv -f "$PROGRESSION_TMP" "$PROGRESSION_PUBLIC_FILE"
+    else
+        rm -f "$PROGRESSION_TMP" 2>/dev/null || true
+    fi
+fi
+
 # --- Time source (Field Tools, Post-Stage-32) ---
 # PHP-FPM's open_basedir (etc/php/8.4/fpm/php.ini) deliberately does not
 # include /sys/class/rtc, /run/systemd/timesync, or /etc/fake-hwclock.data

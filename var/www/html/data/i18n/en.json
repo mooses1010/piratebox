@@ -101,5 +101,7 @@
   "search.no_results": "No matches. Try a different search term or choose \"All\".",
   "search.index_not_built": "Search index not built yet - run tools/build_search_index.py.",
   "search.utility_library_link": "Utility Library",
-  "search.take_with_you_link": "Take This With You"
+  "search.take_with_you_link": "Take This With You",
+  "utility.card.captainslog.title": "Captain's Log",
+  "utility.card.captainslog.desc": "This PirateBox's own identity, level, and history"
 }

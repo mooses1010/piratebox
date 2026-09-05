@@ -108,14 +108,39 @@ def _default_state() -> dict:
             "ssh_sessions_observed": 0,
             "silly_days_used": 0,
             "external_radio_commissioned": False,
+            "rare_events_witnessed": 0,    # count of rare/legendary/secret-tier
+                                             # variants ever chosen by roll_event() -
+                                             # an aggregate only, never which ones
         },
         "achievements": [],            # list of achievement ids, unlocked order
+        "achievement_unlocked_at": {},  # id -> unix ts (best-effort; ids unlocked
+                                          # before this field existed have no entry -
+                                          # see build_public_summary()'s handling)
+        "history": [],                 # bounded Captain's Log entries - see
+                                          # _append_history() - {"ts","kind","label"}
         "weights": {"sociability": 0.5, "vigilance": 0.5, "resilience": 0.5},
         "cooldowns": {},               # key -> {"last": ts, "day": "YYYY-MM-DD", "count": n}
         "seen_events": {},             # event id -> {"count": n, "last": ts}
         "milestones_shown": [],        # uptime-day thresholds already awarded
         "updated_at": now,
     }
+
+
+HISTORY_MAX_ENTRIES = 200   # Captain's Log stays sparse/durable, not a raw event
+                             # log - bounded by count, oldest trimmed, matching
+                             # this project's existing bounded-history convention
+                             # (piratebox_status_helper.sh's own boot_events/
+                             # undervoltage_daily lists use the same discipline).
+
+
+def _append_history(state: dict, kind: str, label: str, now: float) -> None:
+    """kind: "achievement" / "level_up" / "title_change" / "rare_event".
+    `label` must already be spoiler-safe and human-readable - callers
+    are responsible for that (see check_achievements(), observe_tick(),
+    and roll_event() below for what each kind actually puts here)."""
+    state["history"].append({"ts": now, "kind": kind, "label": label})
+    if len(state["history"]) > HISTORY_MAX_ENTRIES:
+        state["history"] = state["history"][-HISTORY_MAX_ENTRIES:]
 
 
 def _atomic_write_json(path: str, data: dict) -> None:
@@ -489,9 +514,7 @@ def roll_event(family: str, state: dict, ctx: dict, rng: random.Random):
     if forced_id is not None:
         for v in variants:
             if v["id"] == forced_id:
-                seen = state["seen_events"].setdefault(v["id"], {"count": 0, "last": 0.0})
-                seen["count"] += 1
-                seen["last"] = ctx["now"]
+                _record_variant_choice(state, v, ctx["now"])
                 return v
         return None
 
@@ -516,10 +539,24 @@ def roll_event(family: str, state: dict, ctx: dict, rng: random.Random):
     chosen = rng.choices(pool, weights=weights, k=1)[0]
     if chosen["cooldown_s"] is not None:
         state["cooldowns"].setdefault(chosen["id"], {"last": 0.0, "day": "", "count": 0})["last"] = now
-    seen = state["seen_events"].setdefault(chosen["id"], {"count": 0, "last": 0.0})
+    _record_variant_choice(state, chosen, now)
+    return chosen
+
+
+def _record_variant_choice(state: dict, variant: dict, now: float) -> None:
+    """Shared bookkeeping for a variant that just won a roll (forced or
+    weighted): updates its seen-history, and - for rare/legendary/secret
+    tiers only - bumps the aggregate `rare_events_witnessed` counter and
+    logs a spoiler-safe Captain's Log entry (the variant's own quip if it
+    has one, else a generic rarity-tier label - never the internal
+    family/variant id, never a hint at how it triggered)."""
+    seen = state["seen_events"].setdefault(variant["id"], {"count": 0, "last": 0.0})
     seen["count"] += 1
     seen["last"] = now
-    return chosen
+    if variant["rarity"] in (RARITY_RARE, RARITY_LEGENDARY, RARITY_SECRET):
+        state["stats"]["rare_events_witnessed"] = state["stats"].get("rare_events_witnessed", 0) + 1
+        label = variant["render"].get("quip") or f"A {variant['rarity']} moment."
+        _append_history(state, "rare_event", label, now)
 
 
 # --- Hardware signal extension points --------------------------------------
@@ -570,7 +607,9 @@ def check_achievements(state: dict, ctx: dict) -> list:
         try:
             if spec["check"](state, ctx):
                 state["achievements"].append(aid)
+                state["achievement_unlocked_at"][aid] = ctx["now"]
                 add_xp(state, spec["xp"])
+                _append_history(state, "achievement", spec["name"], ctx["now"])
                 newly.append(aid)
         except Exception:  # noqa: BLE001 - a bad predicate must never crash the daemon
             continue
@@ -660,9 +699,16 @@ def observe_tick(state: dict, ctx: dict) -> dict:
     new_achievements = check_achievements(state, ctx)
 
     level_after = state["xp"]["level"]
+    leveled_up = level_after > level_before
+    if leveled_up:
+        _append_history(state, "level_up", f"Reached level {level_after}", now)
+        title_before, title_after = title_for_level(level_before), title_for_level(level_after)
+        if title_after != title_before:
+            _append_history(state, "title_change", f"Became {title_after}", now)
+
     return {
-        "leveled_up": level_after > level_before,
-        "new_level": level_after if level_after > level_before else None,
+        "leveled_up": leveled_up,
+        "new_level": level_after if leveled_up else None,
         "new_achievements": new_achievements,
     }
 
@@ -781,3 +827,114 @@ def check_import_request(state: dict, markers: dict, log=None) -> bool:
     if log is not None:
         log.info("Progression state imported (operator-requested via piratebox-silly import).")
     return True
+
+
+# --- Web profile export (Captain's Log page) --------------------------
+# This section decides what's safe to publish to the site-facing
+# Captain's Log / Profile page - the ONE place in this file that has to
+# think about a web visitor as its audience, not the OLED. Deliberately
+# excludes anything that could reveal undiscovered content: internal
+# achievement/event ids, cooldown timers, per-variant seen_events
+# detail, hidden-achievement predicates, or any count of how many
+# achievements/events remain undiscovered (`len(ACHIEVEMENTS)` is never
+# exposed here). Only what has actually happened to THIS device is ever
+# included - see docs/OPERATIONAL-DECISIONS.md's own note on why the
+# full achievement/event list isn't documented anywhere operator-facing
+# either.
+#
+# This module never writes web-reachable state directly (that would
+# mean www-data and piratebox-gpio both needing access to the same
+# path, or loosening this directory's permissions - neither acceptable
+# per this project's existing security boundaries). Instead:
+# `python3 piratebox_progression.py` (this file's own `__main__` below)
+# prints this summary as JSON to stdout; `piratebox_status_helper.sh`
+# (already running as root, on its existing 30s timer) captures that
+# output and publishes it to /run/piratebox/progression-public.json
+# (world-readable tmpfs) - the exact same "privileged reader bridges to
+# a public snapshot" pattern that script already uses for status.json.
+# No permission was loosened anywhere to make this possible.
+
+def _trait_label(value: float, low: str, mid: str, high: str) -> str:
+    if value < 0.35:
+        return low
+    if value > 0.65:
+        return high
+    return mid
+
+
+def personality_traits(weights: dict) -> dict:
+    """Broad, human-readable trait labels derived from the bounded
+    weights - never the raw floats (see the module header's "NOT
+    machine learning" note). Any presentation layer (this web page, a
+    future status light) should use this, never `weights` directly."""
+    return {
+        "sociability": _trait_label(weights.get("sociability", 0.5), "Solitary", "Balanced", "Social"),
+        "vigilance": _trait_label(weights.get("vigilance", 0.5), "Relaxed", "Watchful", "Vigilant"),
+        "resilience": _trait_label(weights.get("resilience", 0.5), "Untested", "Steady", "Resilient"),
+    }
+
+
+def build_public_summary(state: dict, now: float = None) -> dict:
+    """The one function every web-facing consumer of Progression data
+    goes through - see the section header above for the full rationale.
+    Pure (given `state`/`now`), so it's directly unit-testable without
+    touching disk."""
+    if now is None:
+        now = time.time()
+
+    level = state["xp"]["level"]
+    xp_total = state["xp"]["total"]
+    this_level_floor = xp_for_level(level)
+    next_level_need = xp_for_level(level + 1)
+    span = max(1, next_level_need - this_level_floor)
+    progress_fraction = max(0.0, min(1.0, (xp_total - this_level_floor) / span))
+
+    unlocked_at = state.get("achievement_unlocked_at", {})
+    achievements = []
+    for aid in state.get("achievements", []):
+        spec = ACHIEVEMENTS.get(aid)
+        if spec is None:
+            continue  # a removed/renamed achievement id - skip rather than guess
+        achievements.append({
+            "name": spec["name"],
+            "hidden": bool(spec["hidden"]),
+            "unlocked_at": unlocked_at.get(aid),  # None for pre-existing unlocks
+        })
+
+    history = [
+        {"ts": e.get("ts"), "kind": e.get("kind"), "label": e.get("label")}
+        for e in state.get("history", [])
+        if isinstance(e, dict) and isinstance(e.get("label"), str)
+    ]
+
+    return {
+        "available": True,
+        "generated_at": now,
+        "device": {"name": state.get("device", {}).get("name") or "Unnamed PirateBox"},
+        "xp": {
+            "total": xp_total,
+            "level": level,
+            "this_level_floor": this_level_floor,
+            "next_level_at": next_level_need,
+            "progress_fraction": round(progress_fraction, 4),
+        },
+        "title": title_for_level(level),
+        "stats": dict(state.get("stats", {})),
+        "achievements": achievements,
+        "history": history,
+        "traits": personality_traits(state.get("weights", {})),
+        "hardware": read_hardware_signals(),  # empty today - see HARDWARE_SIGNALS
+    }
+
+
+if __name__ == "__main__":
+    # Invoked by piratebox_status_helper.sh, as root, on its existing
+    # 30s timer - never invoked by the web server or in response to a
+    # request. Always prints valid JSON, even on total failure, so the
+    # caller's redirect is never at risk of writing garbage.
+    try:
+        _state = load_state()
+        _summary = build_public_summary(_state)
+    except Exception:  # noqa: BLE001 - this must never fail to produce valid JSON
+        _summary = {"available": False}
+    print(json.dumps(_summary))
