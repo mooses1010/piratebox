@@ -6,6 +6,138 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Incident: PirateBox SSID down for hours after an ALFA USB disconnect/re-enumeration (2026-09-05) - hostapd runtime-reattachment fix
+
+**Incident date:** 2026-09-05. The PirateBox SSID stopped being visible
+on real client devices (confirmed absent from both a laptop and a
+phone) starting some time before ~12:15 PDT and stayed down for
+**hours**, discovered only when the operator noticed it directly - not
+by any of this project's own health checks, all of which reported
+healthy the entire time.
+
+**What actually happened, confirmed via a read-only live-state autopsy
+(no reboot, no service restart, no interface changes, no config
+changes performed before this evidence was gathered):**
+
+- `dmesg`/`journalctl -k` show the ALFA (MediaTek MT7612U, `0e8d:7612`)
+  disconnect at 12:15:28 PDT and re-enumerate as a fresh USB device at
+  12:15:30-32, entirely independent of the unrelated Malahit SDR
+  investigation happening the same day (the Malahit was completely
+  unplugged during this specific window - see
+  `docs/RADIO-SDR-ARCHITECTURE-DESIGN.md` section 11b for that
+  cross-check). `etc/udev/rules.d/99-piratebox-external-ap.rules`
+  correctly renamed the new interface back to `pb-ap` at 12:15:32, as
+  designed - **the rename was never the problem.**
+- `hostapd.service` had been running continuously since **2026-09-04
+  17:38:18 PDT** (`NRestarts=0`, same PID throughout, confirmed via
+  `systemctl show`). Its own journal's **last log line of any kind is
+  08:44:53 PDT** that day - total silence spanning the entire 12:15
+  disconnect and everything after, up to the moment of this
+  investigation (14:40 PDT). hostapd never crashed, never exited,
+  never logged an error - it simply kept running, bound to the OLD
+  wiphy/interface that no longer existed, oblivious to the new one.
+- Live state at investigation time: `pb-ap` existed, `iw dev` reported
+  `type AP`, but `ip link` showed it `DOWN`/`NO-CARRIER` - an AP-typed
+  interface nothing was actually driving. `rfkill` showed nothing
+  blocked. dnsmasq (a separate, unaffected process) was healthy the
+  whole time; DHCP simply had no clients to serve because nothing was
+  beaconing.
+- `/run/piratebox/status.json`'s `services.hostapd: true` reported
+  healthy throughout the entire outage - it (like `systemctl
+  is-active`) only checks that the *process* is running, which was
+  true the entire time. This is a real monitoring blind spot, noted
+  here but not fixed in this round (fixing it would mean status.json
+  actively probing AP/beacon state, not just process liveness - a
+  separate, larger change than this incident's fix).
+- No further ALFA disconnects occurred after 12:15, and the Pi's
+  already-documented chronic undervoltage condition
+  (`docs/POWER-INTEGRITY-DIAGNOSIS.md`) was confirmed present (both
+  live bits set) at investigation time, consistent with being a
+  long-standing background condition rather than a discrete event
+  precisely timestamped to 12:15 - no periodic power-sample log exists
+  to establish a tighter correlation than that.
+
+**Root cause, in two genuinely separate parts, per the operator's own
+explicit instruction not to collapse this into one "it's just power"
+explanation:**
+
+- **(A) Why did the ALFA disconnect?** Best-supported explanation:
+  the Pi's own already-documented marginal 5V rail (a momentary
+  brownout/reset on the shared USB bus). Not proven with certainty -
+  no periodic voltage log exists to pin an exact voltage dip to
+  12:15:28 - but consistent with prior evidence and the simplest
+  explanation available. **Confidence: moderate**, offered as the
+  best current explanation, not a proven cause.
+- **(B) Why did PirateBox fail to recover once the ALFA came back?**
+  **This was a genuine, deterministic software recovery-design gap,
+  not a power problem.** hostapd's existing reliability behavior
+  (`Restart=always`, added in the earlier "Phase 2" round below) only
+  helps when the hostapd *process* exits - it does nothing when the
+  process survives but the network interface it was bound to is
+  destroyed and recreated out from under it with a new kernel object,
+  same name, but no live relationship to the old process's open
+  netlink/nl80211 handles. Nothing in the system was watching for that
+  specific transition. **Confidence: high** - directly confirmed by
+  the `NRestarts=0`/silent-journal/orphaned-AP-interface evidence
+  above, not inferred.
+
+**Fix implemented (software-only, event-driven, no polling loop):**
+`etc/systemd/system/hostapd.service.d/override.conf` gained
+`BindsTo=`/`After=sys-subsystem-net-devices-pb\x2dap.device` (stop
+hostapd cleanly, once, the moment the specific `pb-ap` interface
+disappears - no more running blind against a dead wiphy) plus
+`ConditionPathExists=/sys/class/net/pb-ap` (stops the pre-existing
+`Restart=always` from turning that clean stop into a restart-loop
+while the interface is genuinely absent - a failed `Condition=` check
+does not count against `StartLimitBurst`, so hostapd never lands in
+`failed` state from this). `etc/udev/rules.d/99-piratebox-external-ap.rules`
+gained `ENV{SYSTEMD_WANTS}+="hostapd.service"` on the same rule line
+that renames the interface, so systemd is told to (re)start hostapd
+the moment the interface exists under its final name - the actual
+event-driven recovery trigger, not a timer. Regression coverage:
+`tools/test_hostapd_recovery_config.py` statically asserts both files'
+new directives are present, correctly escaped, and cross-consistent
+(the device-unit name in `override.conf` is independently re-verified
+against live `systemd-escape` output, not just re-derived by the same
+logic that could get it wrong the same way twice).
+
+**Deliberately NOT done, and why:** this fix does not add automatic
+fallback between `pb-ap` and `wlan0`, does not touch dnsmasq, and does
+not change which radio PirateBox considers "the" AP - that is a
+separate, larger, already-considered-and-deliberately-deferred
+decision (`docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md` section 4,
+"Runtime disappearance: explicitly NOT automated this round"). This
+fix is narrower: it only makes hostapd reliably reattach to the SAME
+interface identity it already had, after that identity's underlying
+USB device blips and comes back - it does not introduce the
+dual-hostapd/dnsmasq race risk that section 4 discussion is about, and
+does not reopen or reverse that decision.
+
+**Also corrected while investigating:** `etc/udev/rules.d/99-piratebox-external-ap.rules`'s
+own header comment claimed the rule was "staged, not yet installed" -
+confirmed false against live state (it has been live-installed since
+the ALFA migration and was renaming the interface correctly this
+whole time, including through this incident). Corrected in place
+rather than left to mislead a future reader.
+
+**Immediate recovery**, performed by the operator (outside this
+project's own sudo automation - restarting hostapd was deliberately
+never given a NOPASSWD grant, see `restart_hostapd.sh`'s existing use
+of interactive `sudo`):
+
+```
+cd ~/piratebox
+sudo cp etc/systemd/system/hostapd.service.d/override.conf /etc/systemd/system/hostapd.service.d/override.conf
+sudo cp etc/udev/rules.d/99-piratebox-external-ap.rules /etc/udev/rules.d/99-piratebox-external-ap.rules
+sudo udevadm control --reload-rules
+sudo systemctl daemon-reload
+sudo systemctl restart hostapd
+```
+
+This both resolves the immediate outage and installs the permanent
+fix in the same step, so no separate future maintenance window is
+needed.
+
 ## Distance / Glance Display (large-format at-a-distance OLED pages)
 
 **Decision date:** 2026-09-04. Adds a large-format "glance" presentation

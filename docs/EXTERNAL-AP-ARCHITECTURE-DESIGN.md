@@ -290,6 +290,23 @@ capability/admin state this round already added, actionable by a human
 rebooting or running the staged rollback script, not by an unattended
 automatic transition.
 
+**Not superseded by the 2026-09-05 hostapd-reattachment fix** (see
+`docs/OPERATIONAL-DECISIONS.md`'s dated entry): that incident's fix is
+narrower than what this section deliberately deferred. It makes
+hostapd reliably reattach to the SAME already-chosen `pb-ap` identity
+after that specific interface's underlying USB device blips and comes
+back - it does not switch radios, does not touch `wlan0`, does not
+bring up a second `hostapd`/`dnsmasq` instance, and does not introduce
+the dual-instance race this section's "Automatic bring-up... is the
+real risk" point is specifically about. The "flapping" risk this
+section names is also a different failure shape than what that
+incident's fix addresses: this section worried about a naive *radio
+fallback* flapping between two different adapters; the fix instead
+makes the SAME adapter's own AP correctly resume once it returns,
+which is friendlier to a marginal USB connection, not riskier -
+constant re-flapping between `pb-ap` and `wlan0` was never in scope
+for this fix and remains exactly as deferred as this section says.
+
 ---
 
 ## 5. NetworkManager / ownership

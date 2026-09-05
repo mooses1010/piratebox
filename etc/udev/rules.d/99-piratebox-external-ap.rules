@@ -1,10 +1,14 @@
 # PirateBox: stable interface name for the external USB Wi-Fi AP adapter.
 #
-# STAGED, NOT YET INSTALLED. This file lives in the repo for review and
-# for the eventual migration step - it is not copied to
-# /etc/udev/rules.d/ by any current deploy/setup script. Installing it
-# (see docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md "Migration plan") is a
-# migration-time action, not a side effect of an ordinary deploy.
+# LIVE-INSTALLED at /etc/udev/rules.d/ (confirmed 2026-09-05; installed
+# manually during the ALFA migration, not by any deploy/setup script -
+# this file is still the source of truth, but changes here require a
+# manual re-copy + `udevadm control --reload-rules` to take effect live,
+# same as any other root-owned system config in this project). An
+# earlier revision of this comment claimed it was only staged, pending
+# a future install step - that was accurate when written but is now
+# stale; corrected here rather than left to mislead a future reader
+# against live reality.
 #
 # Problem this solves: Linux assigns "wlan0"/"wlan1"/... in whatever
 # order interfaces enumerate, which depends on USB plug order and boot
@@ -68,4 +72,26 @@
 # rule against persisting visitor MAC addresses (docs/
 # DEVICE-MEMORY-DESIGN.md, tools/backup_piratebox_data.sh) - unaffected
 # by this file.
-SUBSYSTEM=="net", ACTION=="add", ENV{ID_USB_DRIVER}=="mt76x2u", ENV{ID_VENDOR_ID}=="0e8d", ENV{ID_MODEL_ID}=="7612", NAME="pb-ap"
+#
+# Live status correction (2026-09-05 incident investigation): this
+# file's own header above used to claim the rule wasn't yet installed -
+# that was stale. The rule was confirmed live-installed at
+# /etc/udev/rules.d/ during the ALFA migration and has been correctly
+# renaming the interface on every add event since, including through
+# the 2026-09-05 disconnect/
+# re-enumeration incident (confirmed: the interface came back named
+# "pb-ap", not "wlan1" - the rename itself was never the problem; see
+# docs/OPERATIONAL-DECISIONS.md's dated entry and
+# etc/systemd/system/hostapd.service.d/override.conf for what was).
+#
+# ENV{SYSTEMD_WANTS} below is the other half of that incident's fix: it
+# tells systemd-udevd to queue a "start hostapd.service" job the moment
+# this rule finishes applying (i.e. once the interface exists under its
+# final "pb-ap" name) - the event-driven trigger that pairs with
+# override.conf's BindsTo=/ConditionPathExists= to actually reattach
+# hostapd after the interface disappears and comes back, instead of
+# leaving a stale hostapd process running blind against a wiphy that no
+# longer exists. Harmless on an ordinary cold boot too: if hostapd.service
+# is already starting/active via its own multi-user.target enablement,
+# this queues a no-op start job alongside it.
+SUBSYSTEM=="net", ACTION=="add", ENV{ID_USB_DRIVER}=="mt76x2u", ENV{ID_VENDOR_ID}=="0e8d", ENV{ID_MODEL_ID}=="7612", NAME="pb-ap", ENV{SYSTEMD_WANTS}+="hostapd.service"
