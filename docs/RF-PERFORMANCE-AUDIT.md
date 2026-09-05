@@ -622,3 +622,231 @@ informs whether a channel change is worth making alongside the
 channel decision together as one small, reversible `hostapd.conf`
 change**, verified with the §14 A/B method at all four fixed points
 before considering it done.
+
+**Status update (2026-09-04, Tuning Pass 1): the `ht_capab` half of
+step (2) is now done** - see §17. The channel-6-vs-1/11 decision from
+step (1) remains open, still gated on the operator running the `wlan0`
+scan command in §7.
+
+---
+
+## 17. Tuning Pass 1 - `ht_capab` addition (2026-09-04)
+
+**Status: DEPLOYED AND VERIFIED, approved by the operator.** Implements
+§12 recommendation #1 only - the single highest-benefit/lowest-risk
+item. Nothing else from §12 was touched this pass (no channel change,
+no `ctrl_interface`, no 5GHz profile).
+
+### What changed, exactly
+
+One line added to `hostapd.conf`, both the repo-tracked copy and the
+live file:
+
+```
+ht_capab=[LDPC][TX-STBC][RX-STBC1][SHORT-GI-20]
+```
+
+**Every flag maps directly to a capability §4/§5 of this document
+already confirmed the live radio genuinely has** (`iw phy1 info`, Band
+1): `RX LDPC` -> `[LDPC]`, `TX STBC` -> `[TX-STBC]`, `RX STBC 1-stream`
+-> `[RX-STBC1]` (not `[RX-STBC12]`/`[RX-STBC123]` - the hardware only
+reports 1-stream RX STBC, so claiming more would be advertising a
+capability that isn't real), `RX HT20 SGI` -> `[SHORT-GI-20]`. **No
+`[HT40+]`/`[HT40-]`/`[SHORT-GI-40]`** - HT40 stays off, matching the
+explicit instruction and §7's ~30%-busy-channel finding. `hw_mode=g`,
+`channel=6`, `ieee80211n=1`, `wmm_enabled=1`, `country_code=US`, and
+every other line: **unchanged**.
+
+**Repo vs. live, handled deliberately, not overlooked:** the repo's
+tracked `etc/hostapd/hostapd.conf` keeps `interface=wlan0` - per §1 of
+`docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md`, that file is the fresh-
+install template, a separate thing from the live, already-migrated
+`pb-ap` config; the ALFA Migration Round never made the tracked copy
+track `interface=pb-ap`, and this pass doesn't change that convention
+(out of scope - not asked for, and would conflate two separate
+concerns). The `ht_capab` line was added to **both** copies
+independently: the tracked file for future fresh installs, and the
+live file (which already reads `interface=pb-ap`) for production.
+
+### Why: no automated deploy path exists for this file (documented gap)
+
+Unlike `var/www/html/` (`piratebox_deploy.sh`) or the two
+`sudoers.d`-gated scripts, **no repo mechanism deploys `hostapd.conf`
+from the tracked copy to `/etc/hostapd/hostapd.conf`** - it was written
+there once, by hand, during the original install, and again by the
+ALFA migration script for the `interface=` line specifically. This
+session's standing `sudo` automation is exactly `piratebox_deploy.sh`
+and `set_piratebox_mode.sh` (`docs/CLAUDE.md` §2) - neither touches
+`hostapd.conf`, so writing this file and restarting `hostapd` needed
+the operator's own authenticated `sudo`, run directly (not through this
+session's automation), per the project's standing rule that anything
+touching system configuration stops for the operator. **Exact commands
+run, operator-executed:**
+
+```bash
+sudo cp /etc/hostapd/hostapd.conf /etc/hostapd/hostapd.conf.bak-preht
+sudo sed -i '/^ieee80211n=1$/a ht_capab=[LDPC][TX-STBC][RX-STBC1][SHORT-GI-20]' /etc/hostapd/hostapd.conf
+sudo systemctl restart hostapd
+```
+
+No config-validate-only step exists for this hostapd version (confirmed
+during the original ALFA Migration Round - hostapd 2.10 has no such
+flag) - the restart itself, plus the live checks below, is the
+validation, matching this project's own established migration-script
+pattern.
+
+### Baseline, captured before the change (unattended, no root needed)
+
+| Check | Value |
+|---|---|
+| `hostapd.conf` | 10 lines, no `ht_capab` (see §3) |
+| `hostapd` PID/uptime | 955, 4h45m |
+| `iw dev pb-ap info` | channel 6, width 20MHz, txpower 23.00 dBm |
+| Services (`hostapd`/`dnsmasq`/`nginx`/`php8.4-fpm`/`nftables`/OLED/button/status-timer) | all `active` |
+| `pb-ap` survey (ch6) | ~29.4% busy (matches §7's ~29.6% figure, same run) |
+| `10.0.0.1/24` on `pb-ap` | present, correct |
+| `iifname != {eth0,lo}` SSH-reject rule | present in `/etc/nftables.conf` |
+| `curl http://10.0.0.1/` | `200`, ~0.37s |
+| `status.json` | 4/4 services true, `visitor_ap.provider: external`, no multi-AP warning |
+| `vcgencmd get_throttled` | `0x50005` (pre-existing, per `docs/POWER-INTEGRITY-DIAGNOSIS.md`) |
+| `dmesg`/`journalctl -k` (mt76/USB) | only the original boot-time enumeration, zero errors |
+| `systemctl --failed` | empty |
+
+### Post-change verification, independently re-checked (not inferred from "it restarted")
+
+| Check | Result |
+|---|---|
+| Live `hostapd.conf` | new `ht_capab` line present, verified by `cat`, everything else byte-identical |
+| `hostapd` PID/uptime | **new PID (33686 vs. 955)**, confirming a genuine restart, not a stale process |
+| `journalctl -u hostapd` around the restart | `UNINITIALIZED -> COUNTRY_UPDATE -> ENABLED -> AP-ENABLED`, clean, **no capability-rejection or warning lines** - hostapd accepted all four `ht_capab` flags without complaint |
+| Services (same 8 checked in baseline) | all `active`, unchanged |
+| `iw dev pb-ap info` | **channel 6, width 20MHz, txpower 23.00 dBm - identical to baseline** |
+| `rfkill list` | unchanged, nothing blocked |
+| `10.0.0.1/24` on `pb-ap`, `dhcpcd.conf` binding | unchanged |
+| `iifname != {eth0,lo}` SSH-reject rule | unchanged, present |
+| `curl http://10.0.0.1/` | `200`, ~0.31s |
+| `status.json` | 4/4 services true, `visitor_ap.interface: pb-ap`, `provider: external`, no multi-AP warning - unchanged |
+| `vcgencmd get_throttled` | **`0x50005`, unchanged** - this pass neither fixed nor worsened the pre-existing condition, exactly as expected and explicitly not claimed either way |
+| `dmesg`/`journalctl -k` since the restart | **zero new mt76/USB/kernel lines** - no reset, no disconnect, no error triggered by the config change or restart |
+| `systemctl --failed` | empty |
+| Backup file | `/etc/hostapd/hostapd.conf.bak-preht` present, root-owned, contains the pre-change 10-line config |
+
+**What this does and does not prove:** hostapd starting cleanly with no
+capability-rejection warning, against a driver that `iw phy1 info`
+already confirmed supports every flag requested, is strong indirect
+evidence the beacon now advertises LDPC/STBC/SGI-20 correctly. **It is
+not a direct observation of the beacon's HT Capabilities IE** - no
+client was associated during this verification window
+(`wifi_clients: 0` throughout), and capturing the beacon directly would
+need either a client's own negotiation result or a passive scan from
+`wlan0` (root-gated, same limitation as §7). **Direct confirmation is
+deferred to the A/B test itself** (§18) - once the operator's laptop
+re-associates, `iw dev pb-ap station dump` (no root needed) will show
+the negotiated per-station rate/MCS, which is the concrete next
+evidence point.
+
+### Rollback (not needed - recorded for completeness)
+
+```bash
+sudo cp /etc/hostapd/hostapd.conf.bak-preht /etc/hostapd/hostapd.conf
+sudo systemctl restart hostapd
+systemctl is-active hostapd   # expect "active"
+```
+
+Re-run the post-change verification table above against the restored
+config if a rollback is ever performed, for the same reason every other
+change in this project gets verified live rather than trusted from a
+command's exit status.
+
+### What was NOT touched this pass, confirmed
+
+TX power (still 23 dBm/legal ceiling), regulatory domain (still
+`country US`), channel (still 6), channel width (still 20MHz, no HT40),
+SSID (`PirateBox`), security (`wpa=0`, unchanged - matches this
+project's existing open-network design, not something this pass
+touches), DHCP/DNS (`dnsmasq.conf`/`dhcpcd.conf` untouched), `wlan0`
+(still down/unmanaged, never brought up by this pass), 5GHz
+architecture (untouched - this was purely a 2.4GHz `hostapd.conf`
+change), and the power-integrity condition (`0x50005`, confirmed
+unchanged, not attributed to this change in either direction).
+
+---
+
+## 18. A/B test for Tuning Pass 1 - fixed locations, what to actually look for
+
+**Reuses the exact four locations from the original real-world range
+test** (§1), so results are directly comparable to the numbers that
+prompted this whole audit. Per the operator's own framing: **RSSI
+itself is not expected to move** - none of `[LDPC][TX-STBC][RX-STBC1]
+[SHORT-GI-20]` changes TX power or antenna gain (§3's table already
+says this). What they can change is *how well the link holds up and
+performs once signal is already weak* - robustness, loss, retry
+behavior, and throughput at a given RSSI, not the RSSI number itself.
+
+**At each of the four locations, with the laptop connected to
+`PirateBox`, capture all of the following - "before" data is this
+round's pre-change baseline where noted, "after" is the same laptop,
+same spot, same orientation, done now:**
+
+1. **RSSI** (context only, not the pass/fail metric):
+   `iw dev <client-iface> link` on the laptop. Expect it to land close
+   to the original figures (-15 / -30 / -45 to -55 / -60 to -70 dBm) -
+   a large deviation either way suggests something *other* than this
+   config change moved (furniture, a neighbor's new AP, laptop
+   orientation), not the `ht_capab` addition.
+
+2. **AP-side per-station link quality** - the most direct evidence for
+   what actually changed, and it needs no client-side tooling:
+   ```
+   iw dev pb-ap station dump
+   ```
+   run on PirateBox itself while the laptop stays associated at each
+   location. Record `signal:`/`signal avg:`, `tx bitrate:` (note the
+   MCS index and any `STBC`/`short GI` annotation iw prints), `rx
+   bitrate:`, and cumulative `tx retries:`/`tx failed:` - **this is
+   the field to watch for the actual claim being tested**: at the
+   weak-signal locations (3 and 4), a lower retry/failure count and a
+   more gracefully-stepped-down MCS (rather than falling straight to
+   the lowest legacy rate) is the STBC/LDPC benefit materializing. This
+   also directly answers §17's open "is it actually advertised/active"
+   question once a real client is on it.
+
+3. **Ping loss/latency**, from the laptop to `10.0.0.1`:
+   ```
+   ping -c 100 -i 0.2 10.0.0.1
+   ```
+   at each location. Record % loss and RTT min/avg/max (and note any
+   large outliers, not just the average) - loss/latency at locations 3
+   and 4 is the second-most-direct robustness signal.
+
+4. **Throughput**, a real transfer of a fixed, already-present file
+   from PirateBox (no new tooling needed, matching this project's
+   package-install caution) - record transfer time/effective Mbps at
+   each location. Expect near-AP throughput (location 1) to be
+   governed by the USB2 bus ceiling (§9), not this change; expect any
+   throughput *change* to show up mainly at locations 3-4 if it shows
+   up at all - a small SGI-20 gain is possible near the AP, but that's
+   not the point of this specific change.
+
+**Interpreting the result:** treat this as a genuine A/B, not a
+confirmation exercise - if location 4's retry/loss numbers are no
+better than this round's implicit baseline (§17's verification found
+no client connected during the change, so a true numeric "before" for
+station-dump/ping/throughput at these exact spots does not yet exist -
+**this A/B's own "before" run should happen against a rollback,
+per below, if a rigorous same-day comparison is wanted**), that's a
+valid, useful result to record honestly (matches this project's own
+"report negative results, don't rewrite them" discipline throughout
+`docs/POWER-INTEGRITY-DIAGNOSIS.md`) - not a reason to add more
+`ht_capab` flags or move to HT40 without a separate, explicit decision.
+
+**For a rigorous same-session before/after** (optional, only if wanted
+- adds a second brief AP interruption): run the rollback command in
+§17, re-run steps 2-4 at all four locations on the un-tuned config,
+then re-apply (remove the `.bak` restore, re-run the deploy commands)
+and re-run steps 2-4 again. This isolates the `ht_capab` variable
+exactly, matching §14's "change one variable, compare against the
+immediately preceding configuration" discipline. If same-day A/B isn't
+practical, the recorded baseline in §17 plus a fresh set of "after"
+numbers is still meaningful - just less tightly controlled for
+time-of-day channel-congestion variance (§7).
