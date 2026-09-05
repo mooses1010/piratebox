@@ -6,6 +6,126 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Double-tap Silly Mode toggle (physical button)
+
+**Decision date:** 2026-09-04. Adds a third gesture to the existing
+physical shutdown button: a double tap now toggles Silly Mode on/off,
+alongside the already-deployed single-tap "show me real stats" override
+and ~4s-hold shutdown (both unchanged by this round). Toggles the exact
+same state `piratebox-silly on`/`off` already control - deliberately
+not a second, parallel Silly-state mechanism.
+
+**Timing window: 400ms.** `DOUBLE_TAP_WINDOW_S = 0.4`, the middle of
+the requested 350-500ms range, chosen because it comfortably clears a
+human's fastest-plausible deliberate double-tap while staying well
+under the reaction time it'd take to mistake two *separate* short
+presses (e.g. two different single-tap status checks moments apart) for
+one gesture.
+
+**Gesture discrimination.** gpiozero's `Button` gives `when_pressed`/
+`when_released`/`when_held` but no built-in double-tap concept, so this
+is a small state machine on top of those three primitives, using stdlib
+`threading.Timer`/`threading.Lock` (no new dependency):
+`on_pressed()` checks whether a single-tap timer is already pending; if
+so, it cancels that timer and marks "second tap arrived," otherwise it
+does nothing (a press alone is not yet a resolved gesture - see
+`test_on_pressed_alone_does_not_toggle_or_request_anything`).
+`on_released()` checks that marker first: if set, this release
+concludes a double tap - toggle Silly Mode immediately, done. Otherwise
+it's (so far) a lone tap: start a `DOUBLE_TAP_WINDOW_S` timer whose
+callback writes the status-check request - but only if it's still the
+*current* timer when it fires (an identity check under the same lock),
+which is what makes `Timer.cancel()`'s one real limitation (it has no
+effect once the callback has already begun running) harmless here.
+Net effect: a lone tap's status-check request always arrives, just
+`DOUBLE_TAP_WINDOW_S` late - an accepted, explicitly requested trade-off
+("the small delay before a single-tap status check is acceptable") -
+and a double tap produces the toggle with no status-check request ever
+written (`test_double_tap_does_not_also_generate_a_single_tap_request`).
+
+**The mandatory long-hold safety guarantee, extended.** The existing
+`_hold_just_fired` protection (a long hold's own release must never
+also fire the short-press action) had to be joined by a second case
+this round: a *pending* single-tap window followed by a *separate*
+long hold, which must resolve safely as neither a status-check, nor a
+double-tap toggle, nor any interference with the shutdown path.
+`on_held()` clears the "awaiting second tap" marker as its very first
+action, before anything shutdown-related - so by the time a hold
+reaches `HOLD_SECONDS`, any ambiguity about a still-open tap window is
+already gone, and the hold proceeds exactly as it always has, fully
+decoupled from tap-gesture bookkeeping. Directly tested
+(`test_long_press_never_touches_shutdown_with_a_pending_tap_first`): tap
+once (opens a window), then press-hold-release a second, separate
+press - asserts neither the status-check file nor the Silly toggle was
+ever touched.
+
+**Who writes the toggle, and why not the OLED daemon.** Considered
+having the OLED daemon perform the actual toggle (it already reads
+`/tmp/piratebox/silly`), rejected because that daemon's read access is
+deliberately `BindReadOnlyPaths=` - widening it to writable for this one
+feature would weaken an existing, intentional boundary. Instead
+`piratebox_button_daemon.py` writes `/tmp/piratebox/silly` directly -
+the same file the `piratebox-silly` CLI already writes, so this is
+"one more writer of an existing shared control file," not a new
+mechanism. Enabled by changing that file's group ownership to `gpio`
+(shared by both `moose`, via existing membership, and
+`piratebox-button.service`, via its existing `Group=gpio`) rather than
+touching `moose`'s ownership - `moose` keeps write access via the owner
+bit unchanged, "other" still only gets read. A second, purely cosmetic
+signal file (`/tmp/piratebox/silly-toggle-request`, a bare timestamp)
+tells the OLED daemon "something changed just now" so it can show a
+one-shot confirmation - it never carries the new state itself; the OLED
+daemon always reads the real value fresh from `/tmp/piratebox/silly`,
+so there is exactly one source of truth for the state.
+
+**Priority ordering, and the Emergency Mode decision.** Placed in
+`main()`'s elif chain right after the `mode_transition`/Emergency-fault
+checks but *before* the `not silly_enabled` branch - deliberately above
+that branch, not below it, because `silly_enabled` is read fresh every
+tick, already reflecting a toggle that just landed; if this branch sat
+below "not silly_enabled," a double tap that just turned Silly Mode OFF
+would have that branch swallow the tick before the confirmation ever
+got a chance to show, and the operator would only ever see the ON
+confirmation, never OFF. Emergency/fault still wins outright (checked
+first, unchanged) - a double tap that happens to land mid-Emergency
+still silently flips the underlying file (the button daemon has, and
+needs, no Emergency awareness at all), but its confirmation banner is
+skipped that tick rather than covering the Emergency screen; the state
+change simply becomes visible, unannounced, once Emergency clears. The
+toggle-edge check (`read_silly_toggle_edge()`) still runs and consumes
+the edge every single tick regardless of tier, specifically so a toggle
+during Emergency can never queue up a surprising, delayed banner once
+Emergency later clears.
+
+**PrivateTmp fix, same pattern as every prior round's bring-up:**
+`piratebox-button.service` needed two more `BindPaths=` entries (the
+existing `status-check-request` bind was untouched) for
+`/tmp/piratebox/silly` and the new `/tmp/piratebox/silly-toggle-
+request` - both pre-created by `etc/tmpfiles.d/piratebox-tmp.conf`,
+both the narrowest per-file binds that work, not the whole directory.
+Empirically verified (not assumed) that a tmpfiles.d `f` line reapplies
+mode/ownership to an already-existing file on every
+`systemd-tmpfiles --create` run without touching its content, so the
+standard deployment step alone fixes live permissions with no extra
+manual `chown`/`chmod`.
+
+**Testing:** `tools/test_button_daemon.py` grew from 9 to 19 assertions
+(double-tap toggling both directions, exactly-once toggling, repeated
+double-taps toggling predictably, malformed/missing `silly` file
+degradation, confirmation-signal write failures not blocking the actual
+toggle, and the extended long-hold-with-pending-tap safety case above).
+`tools/test_silly_mode.py` grew from 41 to 53 (edge-detection semantics
+for `read_silly_toggle_edge()`, render-without-exception for both ON
+and OFF confirmation banners, and priority-ordering integration cases
+confirming Emergency outranks a pending toggle while an OFF toggle
+still displays correctly). A full `main()`-loop integration smoke test
+(fake device, a simulated double tap mid-run) confirmed the exact
+tick-by-tick sequence: normal Silly personality, one-shot "SILLY MODE /
+OFF" banner exactly once, then a clean return to the plain serious
+rotation. Full existing regression re-confirmed unaffected: PHP 339/339,
+`test_progression.py` 73/73. `systemd-analyze verify` and a tmpfiles.d
+dry-run both clean before rollout.
+
 ## OLED cadence rebalance + short-press status-check override
 
 **Decision date:** 2026-09-04. Two related refinements requested

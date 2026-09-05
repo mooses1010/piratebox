@@ -246,6 +246,28 @@ discovered gap. If real-world experience ever demonstrates this
 tradeoff is wrong in practice, that's a concrete deficiency to revisit
 then - not guessed at now.
 
+**Updated 2026-09-04 (short press, then double tap): the "zero code
+path" bullet above no longer describes the implementation.**
+`when_pressed`/`when_released` are now wired (a short tap drives a
+temporary status-check override; a double tap toggles Silly Mode - see
+`docs/OPERATIONAL-DECISIONS.md` → "OLED cadence rebalance +
+short-press status-check override" and "Double-tap Silly Mode toggle
+(physical button)"). Reviewed against this same accidental-input-
+resistance model rather than assumed safe: a bump or snag can now reach
+a short-tap or double-tap code path that plain `when_held` alone could
+never reach - but neither path can ever cause it to `poweroff`, escalate
+privilege, or touch durable state; the worst an accidental double-tap
+can do is leave the desk-toy Silly Mode display in the other of its two
+cosmetic states until the next real press (a UX nuisance, not a safety
+regression), and the worst an accidental short tap can do is show real
+status pages for ~15s instead of faces. `HOLD_SECONDS`/`hold_repeat`/
+the fail-safe defaults for the one actually consequential action
+(shutdown) are all unchanged from the review above, and the new gesture
+state machine is structurally unable to set the shutdown flag itself
+(see the two `OPERATIONAL-DECISIONS.md` entries' own long-hold-safety
+sections) - so this update narrows the bullet's accuracy, not this
+section's conclusion.
+
 ### 4.2 Panel/transport-lock concept (design only - no lock hardware exists)
 
 A future **Transport Lock** - a deliberate way to make the physical

@@ -72,7 +72,7 @@ avoiding everything in the "never use" list above.
 | Momentary button 2 | GPIO23 | 16 | Not wired | Wake display (Stage 29 §2) |
 | Momentary button 3 | GPIO24 | 18 | Not wired | Reserved, unassigned (Stage 29 §2) |
 | Momentary button 4 | GPIO27 | 13 | Not wired | Reserved, unassigned (Stage 29 §2) |
-| **Momentary button 5** | **GPIO25** | **22** | **WIRED, VERIFIED, IMPLEMENTED, FULL POWER-CYCLE TESTED** | Hold-for-safe-shutdown (Stage 29 §3). Other leg on **physical pin 9 (GND)**. Electrical bring-up: idle HIGH, pressed LOW, clean debounce, 4.0s hold-trigger confirmed exact and non-repeating. Persistent `systemd` service: `piratebox-button.service` / `piratebox_button_daemon.py`. Real hold-to-shutdown, on standalone wall-brick power, taken all the way through poweroff and a clean automatic reboot with the service self-arming - see `docs/OPERATIONAL-DECISIONS.md` ("Stage 29 Real-Hardware Confirmation"), which also flags that wall brick's power headroom as an open question, unrelated to the button logic itself. **2026-09-04:** the same button's short press (released before the 4.0s threshold) now also writes a temporary "show real OLED status" signal - see `docs/OPERATIONAL-DECISIONS.md` → "OLED cadence rebalance + short-press status-check override" for the full design and the mandatory long-hold/short-press mutual-exclusion guarantee; the hold-to-shutdown path itself is unchanged. |
+| **Momentary button 5** | **GPIO25** | **22** | **WIRED, VERIFIED, IMPLEMENTED, FULL POWER-CYCLE TESTED** | Hold-for-safe-shutdown (Stage 29 §3). Other leg on **physical pin 9 (GND)**. Electrical bring-up: idle HIGH, pressed LOW, clean debounce, 4.0s hold-trigger confirmed exact and non-repeating. Persistent `systemd` service: `piratebox-button.service` / `piratebox_button_daemon.py`. Real hold-to-shutdown, on standalone wall-brick power, taken all the way through poweroff and a clean automatic reboot with the service self-arming - see `docs/OPERATIONAL-DECISIONS.md` ("Stage 29 Real-Hardware Confirmation"), which also flags that wall brick's power headroom as an open question, unrelated to the button logic itself. **2026-09-04:** the same button's short press (released before the 4.0s threshold) now also writes a temporary "show real OLED status" signal - see `docs/OPERATIONAL-DECISIONS.md` → "OLED cadence rebalance + short-press status-check override" for the full design and the mandatory long-hold/short-press mutual-exclusion guarantee; the hold-to-shutdown path itself is unchanged. **2026-09-04 (later the same day):** a double tap on this same button now toggles Silly Mode on/off, with its own gesture-discrimination window sitting alongside the single-tap/long-hold logic above - see `docs/OPERATIONAL-DECISIONS.md` → "Double-tap Silly Mode toggle (physical button)"; the shutdown and single-tap paths are both unchanged. |
 
 All buttons: input, internal pull-up, normally-open switch to GND (button
 press = pin reads LOW) - identical electrical pattern to the toggle
@@ -244,7 +244,11 @@ hardware/architecture level). **2026-09-04:** rebalanced to alternate
 with a genuine status interlude (not a one-tick peek) on a deliberate
 cadence, and made interruptible on demand by the shutdown button's
 short press - see `docs/OPERATIONAL-DECISIONS.md` → "OLED cadence
-rebalance + short-press status-check override".
+rebalance + short-press status-check override". Also user-toggleable
+by a double tap on that same physical button now, as an alternative to
+the `piratebox-silly on`/`off` CLI (both control the exact same state) -
+see `docs/OPERATIONAL-DECISIONS.md` → "Double-tap Silly Mode toggle
+(physical button)".
 
 **Progression (added 2026-09-04):** a persistent XP/level/title/
 achievement/history layer underneath Silly Mode, in its own module

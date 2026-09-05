@@ -51,14 +51,24 @@ WorkingDirectory=/tmp
 # PrivateTmp=yes above means this service has its OWN private /tmp -
 # without this line, the real host path would be invisible to it, the
 # same class of gap Silly Mode's own bring-up found for the OLED
-# daemon's read side. Deliberately the single narrowest bind that
-# works: read-write access to exactly this one pre-existing file
-# (etc/tmpfiles.d/piratebox-tmp.conf creates it, owned by this same
-# piratebox-gpio account, before this service starts) - not the whole
-# /tmp/piratebox directory, which this daemon has no legitimate reason
-# to see any other file in (the mode toggle, Silly Mode's toggle,
-# Progression's request files).
+# daemon's read side. Deliberately the narrowest binds that work:
+# read-write access to exactly the specific files below (all pre-
+# created by etc/tmpfiles.d/piratebox-tmp.conf before this service
+# starts) - not the whole /tmp/piratebox directory, which this daemon
+# still has no reason to see the mode toggle or Progression's request
+# files in.
+#
+# Added 2026-09-04 (double-tap Silly toggle round): a double tap now
+# writes /tmp/piratebox/silly directly - the SAME file `piratebox-silly
+# on`/`off` already control (see that file's own updated tmpfiles.d
+# comment: group changed to `gpio`, which this service already runs as
+# via Group=gpio above, giving it write access with no ownership
+# change) - and a second, purely cosmetic timestamp
+# (silly-toggle-request) so the OLED daemon can show a one-shot
+# confirmation.
 BindPaths=/tmp/piratebox/status-check-request:/tmp/piratebox/status-check-request
+BindPaths=/tmp/piratebox/silly:/tmp/piratebox/silly
+BindPaths=/tmp/piratebox/silly-toggle-request:/tmp/piratebox/silly-toggle-request
 
 [Install]
 WantedBy=multi-user.target

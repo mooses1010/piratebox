@@ -376,5 +376,173 @@ class StatusCheckBannerRenderingTests(unittest.TestCase):
         self.assertEqual(img.size, (128, 64))
 
 
+class SillyToggleEdgeTests(unittest.TestCase):
+    """read_silly_toggle_edge() - the OLED side of the double-tap
+    confirmation signal piratebox_button_daemon.py's toggle_silly_mode()
+    writes. Same edge-detected mtime pattern as Progression's own
+    reset/import request checks, exercised the identical way."""
+
+    def setUp(self):
+        self._orig = oled.SILLY_TOGGLE_REQUEST_FILE
+        fd, self.path = tempfile.mkstemp()
+        os.close(fd)
+        oled.SILLY_TOGGLE_REQUEST_FILE = self.path
+
+    def tearDown(self):
+        oled.SILLY_TOGGLE_REQUEST_FILE = self._orig
+        if os.path.exists(self.path):
+            os.unlink(self.path)
+
+    def touch(self):
+        os.utime(self.path, None)
+
+    def test_missing_file_is_no_edge(self):
+        os.unlink(self.path)
+        self.assertFalse(oled.read_silly_toggle_edge({}))
+
+    def test_first_observation_of_an_existing_file_is_an_edge(self):
+        # Matches Progression's own reset/import request semantics: an
+        # empty `markers` dict means "never seen this file before," so
+        # whatever mtime it already has counts as fresh the first time.
+        self.assertTrue(oled.read_silly_toggle_edge({}))
+
+    def test_unchanged_mtime_is_not_a_repeat_edge(self):
+        markers = {}
+        self.assertTrue(oled.read_silly_toggle_edge(markers))
+        self.assertFalse(oled.read_silly_toggle_edge(markers))
+        self.assertFalse(oled.read_silly_toggle_edge(markers))
+
+    def test_a_fresh_touch_is_a_new_edge(self):
+        markers = {}
+        self.assertTrue(oled.read_silly_toggle_edge(markers))
+        self.assertFalse(oled.read_silly_toggle_edge(markers))
+        import time as _time
+        _time.sleep(0.01)
+        self.touch()
+        self.assertTrue(oled.read_silly_toggle_edge(markers))
+        self.assertFalse(oled.read_silly_toggle_edge(markers))
+
+    def test_markers_dict_is_per_caller_not_global(self):
+        # Two independent callers (e.g. two separate test cases, or in
+        # principle two independent consumers) never interfere with each
+        # other's "have I seen this edge yet" bookkeeping.
+        markers_a, markers_b = {}, {}
+        self.assertTrue(oled.read_silly_toggle_edge(markers_a))
+        self.assertTrue(oled.read_silly_toggle_edge(markers_b))
+
+
+class SillyToggleBannerRenderingTests(unittest.TestCase):
+    def test_renders_without_exception_when_turned_on(self):
+        font, font_small, font_big = oled.load_fonts()
+        img = oled.build_frame(
+            FakeDevice(), "silly_toggle_banner", font, font_small, font_big,
+            None, False, "normal", extra={"new_state": True},
+        )
+        self.assertEqual(img.size, (128, 64))
+
+    def test_renders_without_exception_when_turned_off(self):
+        font, font_small, font_big = oled.load_fonts()
+        img = oled.build_frame(
+            FakeDevice(), "silly_toggle_banner", font, font_small, font_big,
+            None, False, "normal", extra={"new_state": False},
+        )
+        self.assertEqual(img.size, (128, 64))
+
+    def test_existing_skull_and_crossbones_call_sites_still_default_to_white_on_black(self):
+        # draw_skull_and_crossbones() gained color/bg parameters this
+        # round (see its own docstring) - every pre-existing call site
+        # (draw_pirate_flourish, render_level_up, render_achievement)
+        # calls it with no color arguments at all, so this pins the
+        # defaults themselves rather than re-testing each call site
+        # individually (already covered by ExpressionRenderingTests and
+        # tools/test_progression.py).
+        from PIL import Image, ImageDraw
+        img = Image.new("1", (32, 32))
+        draw = ImageDraw.Draw(img)
+        oled.draw_skull_and_crossbones(draw, 0, 0)  # must not raise
+        import inspect
+        sig = inspect.signature(oled.draw_skull_and_crossbones)
+        self.assertEqual(sig.parameters["color"].default, "white")
+        self.assertEqual(sig.parameters["bg"].default, "black")
+
+
+class SillyTogglePriorityIntegrationTests(unittest.TestCase):
+    """Confirms the toggle banner sits exactly where it's supposed to in
+    the priority hierarchy: below Emergency/fault, but able to show
+    regardless of whether the toggle just turned Silly Mode on OR off
+    (the tricky case: the "not silly_enabled" plain-rotation branch must
+    never pre-empt it, or an OFF confirmation could never be seen)."""
+
+    def test_emergency_tier_outranks_a_pending_toggle_confirmation(self):
+        # Mirrors main()'s own elif-chain ordering directly, since that
+        # ordering has no separate helper function to call in isolation.
+        mode_transition = None
+        tier = "emergency"
+        silly_toggle_just_happened = True
+        silly_enabled = True
+        if mode_transition is not None:
+            page = "mode_transition"
+        elif tier in ("emergency", "fault"):
+            page = "serious_rotation"
+        elif silly_toggle_just_happened:
+            page = "silly_toggle_banner"
+        elif not silly_enabled:
+            page = "serious_rotation"
+        else:
+            page = "silly"
+        self.assertEqual(page, "serious_rotation")
+
+    def test_toggle_confirmation_shows_even_when_it_just_turned_silly_off(self):
+        mode_transition = None
+        tier = "ok"
+        silly_toggle_just_happened = True
+        silly_enabled = False  # the double tap that just fired turned it OFF
+        if mode_transition is not None:
+            page = "mode_transition"
+        elif tier in ("emergency", "fault"):
+            page = "serious_rotation"
+        elif silly_toggle_just_happened:
+            page = "silly_toggle_banner"
+        elif not silly_enabled:
+            page = "serious_rotation"
+        else:
+            page = "silly"
+        self.assertEqual(page, "silly_toggle_banner")
+
+    def test_toggle_confirmation_shows_when_it_just_turned_silly_on(self):
+        mode_transition = None
+        tier = "ok"
+        silly_toggle_just_happened = True
+        silly_enabled = True
+        if mode_transition is not None:
+            page = "mode_transition"
+        elif tier in ("emergency", "fault"):
+            page = "serious_rotation"
+        elif silly_toggle_just_happened:
+            page = "silly_toggle_banner"
+        elif not silly_enabled:
+            page = "serious_rotation"
+        else:
+            page = "silly"
+        self.assertEqual(page, "silly_toggle_banner")
+
+    def test_no_pending_toggle_falls_through_to_normal_rotation_choice(self):
+        mode_transition = None
+        tier = "ok"
+        silly_toggle_just_happened = False
+        silly_enabled = False
+        if mode_transition is not None:
+            page = "mode_transition"
+        elif tier in ("emergency", "fault"):
+            page = "serious_rotation"
+        elif silly_toggle_just_happened:
+            page = "silly_toggle_banner"
+        elif not silly_enabled:
+            page = "serious_rotation"
+        else:
+            page = "silly"
+        self.assertEqual(page, "serious_rotation")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

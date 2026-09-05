@@ -384,6 +384,15 @@ STATUS_CHECK_REQUEST_FILE = "/tmp/piratebox/status-check-request"  # short-
                                        # active() below and that file's own
                                        # STATUS_CHECK_REQUEST_FILE comment
 STATUS_CHECK_WINDOW_SECONDS = 15.0    # how long a press keeps the override active
+SILLY_TOGGLE_REQUEST_FILE = "/tmp/piratebox/silly-toggle-request"  # double-
+                                       # tap confirmation signal from
+                                       # piratebox_button_daemon.py's
+                                       # toggle_silly_mode() - see
+                                       # read_silly_toggle_edge() below.
+                                       # Purely cosmetic: the actual new
+                                       # state is read fresh from SILLY_FILE
+                                       # itself, never duplicated into this
+                                       # file's own content.
 STATUS_FILE = "/run/piratebox/status.json"
 TRANSITIONS_LOG = "/var/www/html/data/mode-transitions.log"
 HOSTAPD_CONF = "/etc/hostapd/hostapd.conf"
@@ -589,6 +598,28 @@ def read_status_check_active(now: float) -> bool:
         return False
     age = now - ts
     return 0.0 <= age < STATUS_CHECK_WINDOW_SECONDS
+
+
+def read_silly_toggle_edge(markers: dict) -> bool:
+    """A double tap on the physical button touches SILLY_TOGGLE_
+    REQUEST_FILE purely as a cosmetic cue - this returns True exactly
+    once per fresh write (edge-detected via mtime, the same pattern
+    Progression's own reset/import request checks use), never based on
+    the file's content (it's a bare timestamp - the actual new Silly
+    Mode state is read fresh from SILLY_FILE by the caller, never
+    duplicated here). `markers` is a small dict the caller keeps across
+    ticks, never persisted - a toggle confirmation is a one-shot
+    cosmetic cue, not history worth remembering (Progression's own
+    Captain's Log is a different, deliberate mechanism for anything
+    that IS worth remembering)."""
+    try:
+        mtime = os.path.getmtime(SILLY_TOGGLE_REQUEST_FILE)
+    except OSError:
+        return False
+    if mtime <= markers.get("silly_toggle_mtime", 0.0):
+        return False
+    markers["silly_toggle_mtime"] = mtime
+    return True
 
 
 def read_ssid() -> str:
@@ -835,6 +866,21 @@ def render_status_check_banner(draw, font_big) -> None:
     become repetitive noise every 30-45 seconds forever."""
     draw.rectangle((0, 0, 127, 63), fill="white")
     draw.text((6, 24), "STATUS CHECK", font=font_big, fill="black")
+
+
+def render_silly_toggle_banner(draw, font, font_big, new_state: bool) -> None:
+    """A brief, one-shot confirmation shown exactly once, the tick a
+    double tap is first noticed (see main()'s own edge-detection via
+    read_silly_toggle_edge()) - never based on this function's own
+    guess at state; the caller reads the real current value from
+    SILLY_FILE and passes it in. Reuses the existing skull-and-
+    crossbones flourish icon (draw_skull_and_crossbones) for a little
+    charm rather than a plain text-only banner, per instruction -
+    still just the one existing drawing primitive, no new asset."""
+    draw.rectangle((0, 0, 127, 63), fill="white")
+    draw_skull_and_crossbones(draw, 4, 18, color="black", bg="white")
+    draw.text((44, 16), "SILLY MODE", font=font, fill="black")
+    draw.text((44, 34), "ON" if new_state else "OFF", font=font_big, fill="black")
 
 
 def compute_display_tier(mode: str, status, stale: bool) -> str:
@@ -1134,24 +1180,29 @@ def render_achievement(draw, font, font_small, name: str) -> None:
     draw.text((2, 48), name, font=font_small, fill="white")
 
 
-def draw_skull_and_crossbones(draw, x: int, y: int) -> None:
+def draw_skull_and_crossbones(draw, x: int, y: int, color: str = "white", bg: str = "black") -> None:
     """A small (~28x28px) skull-and-crossbones, drawn with plain Pillow
     primitives - no external image file, no font glyph, nothing beyond
-    what every other page on this display already uses."""
+    what every other page on this display already uses. `color`/`bg`
+    default to every existing call site's assumption (a white skull on
+    a black page) - passing `color="black", bg="white"` (added 2026-
+    09-04 for the Silly Mode toggle confirmation banner, which is an
+    inverted white page) draws the same shape correctly there too,
+    without a second, near-duplicate drawing function."""
     # Cranium
-    draw.ellipse((x, y, x + 24, y + 20), outline="white", fill="white")
-    # Eye sockets (punched out in black)
-    draw.ellipse((x + 4, y + 6, x + 10, y + 13), fill="black")
-    draw.ellipse((x + 14, y + 6, x + 20, y + 13), fill="black")
+    draw.ellipse((x, y, x + 24, y + 20), outline=color, fill=color)
+    # Eye sockets (punched out in the background color)
+    draw.ellipse((x + 4, y + 6, x + 10, y + 13), fill=bg)
+    draw.ellipse((x + 14, y + 6, x + 20, y + 13), fill=bg)
     # Nose
-    draw.polygon([(x + 12, y + 13), (x + 10, y + 17), (x + 14, y + 17)], fill="black")
+    draw.polygon([(x + 12, y + 13), (x + 10, y + 17), (x + 14, y + 17)], fill=bg)
     # Jaw/teeth
-    draw.rectangle((x + 4, y + 19, x + 20, y + 24), outline="white", fill="white")
+    draw.rectangle((x + 4, y + 19, x + 20, y + 24), outline=color, fill=color)
     for tx in range(x + 6, x + 20, 3):
-        draw.line((tx, y + 19, tx, y + 24), fill="black")
+        draw.line((tx, y + 19, tx, y + 24), fill=bg)
     # Crossbones behind/below
-    draw.line((x - 4, y + 28, x + 28, y + 20), fill="white", width=2)
-    draw.line((x - 4, y + 20, x + 28, y + 28), fill="white", width=2)
+    draw.line((x - 4, y + 28, x + 28, y + 20), fill=color, width=2)
+    draw.line((x - 4, y + 20, x + 28, y + 28), fill=color, width=2)
 
 
 PAGE_ORDER = ["status", "time", "network", "health"]
@@ -1190,6 +1241,8 @@ def build_frame(
         render_mode_transition(draw, font_big, extra["new_mode"])
     elif page == "status_check_banner":
         render_status_check_banner(draw, font_big)
+    elif page == "silly_toggle_banner":
+        render_silly_toggle_banner(draw, font, font_big, extra["new_state"])
     return img
 
 
@@ -1318,6 +1371,15 @@ def main() -> int:
     # once per press, not on every tick the window stays open.
     status_check_was_active = False
 
+    # Double-tap Silly toggle confirmation - same edge-detected, "in-
+    # memory last seen mtime" pattern Progression's own reset/import
+    # request checks use (see read_silly_toggle_edge() and that
+    # function's own docstring). No "was_active" companion flag is
+    # needed here (unlike status_check_was_active above) because the
+    # signal is a one-shot edge, not a held-open window - it is true for
+    # exactly one tick no matter what.
+    silly_toggle_markers = {}
+
     # Progression (piratebox_progression.py) - a separate, persistent,
     # always-on subsystem underneath Silly Mode. Loaded once at startup;
     # see that module's own header for the full design. A load/import
@@ -1392,6 +1454,11 @@ def main() -> int:
         status_check_active = read_status_check_active(now)
         status_check_just_started = status_check_active and not status_check_was_active
         status_check_was_active = status_check_active
+        # Double-tap Silly toggle confirmation - edge is consumed every
+        # single tick, even during Emergency/fault (see the branch below
+        # for why): a toggle that happens mid-Emergency must never queue
+        # up a delayed, surprising banner once Emergency later clears.
+        silly_toggle_just_happened = read_silly_toggle_edge(silly_toggle_markers)
         transition_wipe = False
 
         # Idle/sleep tracking - always computed now (not just when
@@ -1473,6 +1540,28 @@ def main() -> int:
             # interrupting a fault/emergency.
             page, extra = PAGE_ORDER[page_index], None
             transition_wipe = seconds_on_current_page == 0.0 and last_image is not None
+        elif silly_toggle_just_happened:
+            # Explicit temporary control confirmation - a double tap
+            # just flipped /tmp/piratebox/silly (see
+            # piratebox_button_daemon.py's toggle_silly_mode()).
+            # Deliberately placed ABOVE the "not silly_enabled" branch
+            # below, not below it: `silly_enabled` above was already
+            # read AFTER the toggle took effect, so if the double tap
+            # just turned Silly OFF, that branch would otherwise swallow
+            # this tick before the confirmation ever got a chance to
+            # show - and the user must see "OFF" too, not just "ON".
+            # Ranked below Emergency/fault (the elif above already
+            # excluded those) per the required priority: a toggle that
+            # happens to land mid-Emergency still silently updates the
+            # underlying state (read fresh next tick, no extra code
+            # needed for that), but its visible confirmation is skipped
+            # this tick rather than covering the Emergency screen - it
+            # simply resumes as an ordinary, un-announced state change
+            # once Emergency clears. This one tick briefly does not draw
+            # the tier=="warning" badge either, the same accepted
+            # trade-off the status-check banner immediately above it
+            # already makes for its own one-shot tick.
+            page, extra = "silly_toggle_banner", {"new_state": silly_enabled}
         elif not silly_enabled:
             # Silly Mode is off - exactly today's plain serious rotation,
             # matching the "default off = exactly today's display"
