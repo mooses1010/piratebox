@@ -138,6 +138,105 @@ This both resolves the immediate outage and installs the permanent
 fix in the same step, so no separate future maintenance window is
 needed.
 
+### Update (same day, same incident): the fix as first written was a complete no-op, and a second, distinct recovery gap surfaced after the operator's restart
+
+The operator ran the recovery commands above. RF beaconing came back
+immediately (confirmed: SSID visible from a laptop), which surfaced
+two more things on live verification:
+
+**1. The permanent fix did nothing - a real bug, caught by checking
+hostapd's own journal after the redeploy, exactly as it should be
+checked.** `BindsTo=`, `After=`, and `ConditionPathExists=` are
+`[Unit]`-section directives; the first version of `override.conf` put
+all three under `[Service]` (the file had no `[Unit]` section at all).
+systemd accepted the file with no parse error and logged, at every
+hostapd start: `Unknown key 'BindsTo' in section [Service], ignoring`
+(and the same for `After` and `ConditionPathExists`). The fix was
+never active from the moment it was written - the manual restart that
+brought the AP back worked entirely on its own, independent of
+anything this fix was supposed to add. Corrected by moving all three
+into a proper `[Unit]` section. `tools/test_hostapd_recovery_config.py`
+gained section-aware parsing (`_parse_ini_sections()`) specifically
+because a plain substring search - what the original test did - cannot
+catch this class of mistake at all; confirmed against the previous
+(buggy) commit's exact file content that the new test does fail on it.
+
+**2. A second, distinct recovery gap: hostapd and the kernel driver
+disagree about whether the client is actually associated.** After the
+restart, hostapd's own journal showed a normal-looking sequence for
+the operator's laptop (`authenticated` -> `associated (aid 1)` ->
+RADIUS accounting session start) and dnsmasq's journal showed a
+completed DHCP exchange (`DHCPDISCOVER` -> `DHCPOFFER` -> `DHCPREQUEST`
+-> `DHCPACK`) for that same client, at its known IP. Despite that:
+
+- `iw dev pb-ap station dump` showed **no stations at all**, and
+  `iw dev pb-ap station get <the client's MAC>` returned `command
+  failed: No such file or directory (-2)` - the kernel/mt76x2u driver's
+  own station table has no entry for a client hostapd believes is
+  associated.
+- `ip neigh show dev pb-ap` showed the client's ARP entry as
+  **`FAILED`**, and a diagnostic `arping` (3 broadcast probes) got
+  **zero responses**.
+- `conntrack` showed nothing for the client's IP - consistent with no
+  TCP connection ever actually completing.
+- Interface RX/TX counters showed real traffic had flowed (consistent
+  with the association + DHCP handshake frames themselves, which
+  don't require the driver's STA table to be correctly populated for
+  data-plane forwarding).
+- nftables was checked and ruled out as a cause: the live ruleset's
+  only rule is `iifname != { "lo", "eth0" } tcp dport 22 reject with
+  tcp reset` (an SSH-isolation rule, unrelated), with default-accept
+  policy everywhere else - HTTP is never touched.
+- Local `curl` from the Pi itself to both `127.0.0.1` and `10.0.0.1`
+  returned clean `HTTP 200` - nginx and PHP-FPM are healthy. This does
+  **not** prove client-reachability, though: a locally-destined
+  request to the Pi's own IP resolves through the loopback path
+  internally and never actually exercises the `pb-ap` ingress a real
+  client's packets take, so this result was correctly not treated as
+  ruling out the client-facing failure.
+
+**Best-supported explanation, offered at moderate confidence, not
+proven:** this looks like a known class of USB Wi-Fi driver issue,
+where a fresh `mt76x2u` device instance (recreated by the 12:15 USB
+re-enumeration) plus a hostapd restart issued **hours later** (14:54,
+after the manual recovery command) completed the userspace-level
+802.11 handshake correctly, but the driver's own internal
+add-station operation for that specific association either failed
+silently or never completed, leaving data-plane forwarding for that
+one station non-functional while control-plane (beacons, the
+association response, DHCP's broadcast-based exchange) worked fine.
+**Not yet established as deterministic** - this has been observed
+once, on a device instance that had already survived one earlier
+re-enumeration and a very delayed restart; whether it reproduces on an
+ordinary fresh restart is unverified.
+
+**Recovery status:** not yet complete. **No live change has been made
+by Claude for this second issue** - restarting hostapd (or anything
+else touching the live network stack) remains outside this session's
+sudo grant, exactly as for the first restart. The recommended next
+step, to be run by the operator, is the same two-file redeploy as
+before (now with the corrected `override.conf`) followed by another
+`sudo systemctl restart hostapd`, then reconnecting the client fresh:
+
+```
+cd ~/piratebox
+sudo cp etc/systemd/system/hostapd.service.d/override.conf /etc/systemd/system/hostapd.service.d/override.conf
+sudo systemctl daemon-reload
+sudo systemctl restart hostapd
+```
+
+If the client reassociates cleanly and `iw dev pb-ap station dump`
+then shows it present with a working ARP entry, this was most likely a
+one-off artifact of the earlier unusually-delayed restart, and no
+further fix is needed beyond what's already merged. **If the same
+STA/ARP desync recurs** on a clean restart, that would upgrade this
+from "observed once" to a genuine deterministic driver-state bug,
+and the appropriate escalation (most likely unbinding/rebinding the
+`mt76x2u` driver from the USB device via sysfs, or - only as a last
+resort, and only with the operator's explicit go-ahead - a physical
+USB replug) would need its own dedicated investigation round rather
+than being attempted speculatively here.
+
 ## Distance / Glance Display (large-format at-a-distance OLED pages)
 
 **Decision date:** 2026-09-04. Adds a large-format "glance" presentation
