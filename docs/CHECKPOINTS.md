@@ -1203,3 +1203,47 @@ sweep: `systemctl --failed` empty; `hostapd`/`dnsmasq`/`nginx`/
 Isolation Fix above is undisturbed) and the visitor captive portal
 (`http://10.0.0.1/` → `200`) both still correct.
 
+## OLED Silly Mode: expressive personality display, deployed and live-verified (2026-09-04)
+
+**`f2b8c58`** - the durable known-good recovery point for OLED Silly
+Mode. Full design/rationale in `docs/OPERATIONAL-DECISIONS.md` → "OLED
+Silly Mode" (including a live-fixed pre-existing bug: `piratebox-
+oled.service`'s `PrivateTmp=yes` had always hidden the real
+`/tmp/piratebox/mode` from this daemon, so Emergency Mode was never
+actually observable by it until this round).
+
+A user-toggleable (`piratebox-silly {on,off,status}`, default off every
+boot), substantially more expressive face/personality display state -
+explicitly a display state, never a third operational mode alongside
+Normal/Emergency. Mandatory priority: emergency > fault (missing/stale
+status, any Core service down) > warning (the known chronic `0x50005`
+undervoltage - Silly Mode still runs, with a persistent corner badge) >
+ok. Replaces the earlier always-on "Personality Mode" (round 7/8, which
+in practice never fired on this Pi's own chronic-undervoltage
+condition) rather than keeping two unrelated personality systems.
+Twelve original expressions plus an evolved pirate-flourish/quip beat;
+reacts to client join/leave, idle duration, and SSH activity (a single
+cheap `/proc/net/tcp` read, no session logging) - all on the existing
+3s redraw cadence, no new polling.
+
+**Tested:** `tools/test_silly_mode.py` (28 assertions, stdlib
+`unittest`), full five-suite PHP regression (313/313, unaffected -
+touched no PHP), `systemd-analyze verify` and a tmpfiles.d dry-run both
+clean.
+
+**Deployed and live-verified same day.** Operator ran the deploy by
+hand (outside this session's sudo automation, same pattern as every
+prior OLED update): the tmpfiles.d rule, the daemon, the service unit,
+and the new CLI. Independently re-verified after: all four deployed
+files byte-identical to the repo copies; `piratebox-oled.service`
+`active (running)`, clean restart, new startup log line confirming the
+new code; `/tmp/piratebox` and the bind-mount fix confirmed working in
+practice - the operator ran `piratebox-silly on` and **visually
+confirmed the face display on the physical OLED**, which could only
+happen through the fixed private-tmp bind. Zero new `mt76`/USB/kernel
+errors; `vcgencmd get_throttled` unchanged at `0x50005` (correctly the
+`"warning"` tier, matching the badge the operator described seeing);
+all other services, `systemctl --failed`, `http://10.0.0.1/`, and the
+nftables SSH-protection rule all confirmed unaffected. Silly Mode left
+**ON** at the operator's own choice.
+

@@ -158,6 +158,42 @@ PHP regression (313/313) re-run and confirmed unaffected (this round
 touched no PHP). `systemd-analyze verify` and a tmpfiles.d dry-run both
 clean before rollout.
 
+**Deployed and live-verified (2026-09-04), same day.** The operator ran
+the deploy commands by hand (`sudo cp`/`sudo install` for the tmpfiles.d
+rule, the daemon, the service unit, and the new CLI, then
+`systemd-tmpfiles --create`, `systemctl daemon-reload`, `systemctl
+restart piratebox-oled.service`) - outside this session's two narrow
+`sudoers.d` grants, same operator-gated pattern every prior OLED daemon
+update has used. Independently re-verified after, not trusted from the
+operator's report alone: all four deployed files (`piratebox_oled_
+daemon.py`, `piratebox-silly`, the service unit, the tmpfiles.d rule)
+byte-identical to the repo copies; `piratebox-oled.service` `active
+(running)`, clean restart with its new startup log line ("Silly Mode:
+user-toggled via /tmp/piratebox/silly...") proving the new code is what
+actually started, zero errors/tracebacks; `/tmp/piratebox` now exists
+live (root:root 0755, created by the tmpfiles.d rule) with `silly`
+inside it (moose:moose 0644) - the PrivateTmp/BindReadOnlyPaths fix
+confirmed working in practice, not just by `man systemd.exec`'s
+description: the operator ran `piratebox-silly on` and **visually
+confirmed the face display appeared on the physical OLED** - which
+could only happen if the daemon actually read "on" from
+`/tmp/piratebox/silly` through its private-tmp bind, direct behavioral
+proof the bind mount works, not merely a clean unit-file syntax check.
+Zero new `mt76`/USB/kernel errors across the restart window
+(`journalctl -k`). `vcgencmd get_throttled` unchanged at `0x50005`
+(this Pi's pre-existing chronic condition, per `docs/POWER-INTEGRITY-
+DIAGNOSIS.md` - correctly still present, correctly not attributed to
+this change) - meaning Silly Mode is live-verified running in its
+`"warning"` tier specifically, exactly as designed: the operator's
+description of the face display matches the "warning" tier's expected
+persistent corner badge, not a silent failure to reach the `"warning"`
+code path. All other services (`hostapd`/`dnsmasq`/`nginx`/`php8.4-fpm`/
+`piratebox-button`/`piratebox-status.timer`/`nftables`) confirmed
+active, `systemctl --failed` empty, `http://10.0.0.1/` still `200`, the
+nftables SSH-protection rule still present and unchanged - Silly Mode
+touches none of Core, confirmed rather than assumed. Silly Mode left
+**ON** at the operator's own choice, ending this round.
+
 ---
 
 ## Two-QR PirateBox Onboarding Restored
