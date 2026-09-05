@@ -63,10 +63,16 @@ the user's existing SDR setup, not yet connected to the Pi.
   conventions) but has not been independently proven by actually
   exercising the interface (e.g. capturing and inspecting real audio
   content, or sending a query and reading a real reply).
+- **CONFIRMED (this unit, 2026-09-05 second gate — ACM listen +
+  passive audio capture)** — added after actually opening both serial
+  ports (read-only, DTR/RTS held low, zero bytes transmitted) and
+  capturing short samples from both audio interfaces; the strongest
+  tier available short of active CAT interrogation or a known-signal
+  tuning test (§11b).
 
 ---
 
-## 1. Executive summary (revised 2026-09-05, twice - see §2b for the physical enumeration update)
+## 1. Executive summary (revised 2026-09-05, three times - see §2b for the physical enumeration update, §11b for the CDC-ACM listen test + audio characterization)
 
 - **2026-09-05, physical enumeration complete (§2b)**: the V3 unit was
   connected to the Pi and passively characterized. Two genuinely
@@ -880,18 +886,25 @@ Key details behind the table:
 
 ---
 
-## 6. What we still need (updated 2026-09-05 after physical enumeration)
+## 6. What we still need (updated 2026-09-05 after physical enumeration, then again after §11b)
 
 1. **Malahit DSP SDR V3 (HiDY)** — most of what could be learned from
    the unit alone via USB is now in hand (§2b: VID:PID, interface
-   shape, audio formats, topology). Still needed:
+   shape, audio formats, topology; §11b: serial-port listen result,
+   audio-stream behavior and statistical IQ corroboration). Still
+   needed:
    - Firmware version — the one documented check method (long-press
      power button, no USB) did **not** work on this unit (§2b); no
      other passive method is currently known. Not to be chased further
      with untried button combinations.
    - Which `/dev/ttyACM*` port (if either) is CAT, and in what
-     protocol — needs the DTR-aware approach in §11a, not yet
-     performed.
+     protocol — the DTR-aware listen test (§11b.1) was performed; both
+     ports were silent. Resolving this further needs either an actual
+     protocol probe (a fresh, evidence-backed gate) or accepting
+     manual tuning as the first-implementation posture.
+   - Why the mono/40kHz audio interface fails to stream in the unit's
+     current state (§11b.2) — needs the operator's on-screen
+     observation (§11b.4) before this can be narrowed further.
    - PCB revision marking — optional, only if the case is opened for
      an unrelated reason; not required.
 2. **RTL-SDR**: no advance information needed, and not yet started —
@@ -1287,7 +1300,7 @@ comparison, not combined with this unit's own results.
 
 ---
 
-## 11a. Next gate — why the two serial ports are a deliberate stopping point (added 2026-09-05)
+## 11a. Next gate — why the two serial ports are a deliberate stopping point (added 2026-09-05; EXECUTED same day, see §11b)
 
 §2b's descriptor-level inspection genuinely exhausted what passive USB
 enumeration can prove about `/dev/ttyACM0` vs `/dev/ttyACM1` - both are
@@ -1362,9 +1375,200 @@ wasn't necessary to reach a genuine architectural conclusion. It
 remains available as a next step if firmer confirmation is wanted
 before further architecture decisions are made.
 
+**Update: this step was performed the same day — see §11b.**
+
 ---
 
-## 12. Open questions (updated 2026-09-05 after physical enumeration)
+## 11b. Second physical gate — CDC-ACM listen test and passive audio characterization (2026-09-05)
+
+**Dependency installed:** `python3-serial` was already present on this
+system as the Debian-packaged `python3-serial` 3.5-2 (apt, `all`
+arch), providing `pyserial` 3.5 at
+`/usr/lib/python3/dist-packages/serial/__init__.py`. **No installation
+action was taken or needed** — it predates this investigation.
+Recorded here per the operator's instruction to document anything that
+becomes part of a reproducible diagnostic procedure.
+
+### 11b.1 CDC-ACM listen test (`/dev/ttyACM0`, then `/dev/ttyACM1`)
+
+**Procedure**: a small script opened each port with `dtr=False`,
+`rts=False`, `dsrdtr=False`, `rtscts=False` set *before* `open()` and
+re-asserted immediately after (guarding against the library itself
+touching the lines during setup), then read-only for a fixed 5-second
+window with **zero bytes ever written** to the port, then closed
+cleanly. Full `lsusb`/`lsusb -t`/`dmesg`/`vcgencmd get_throttled`/ALFA
+enumeration snapshots were taken immediately before and after each
+port, one port at a time, ACM0 first.
+
+**ACM0 result** — **CONFIRMED (this unit, second gate)**:
+- Opened successfully with DTR and RTS confirmed low throughout.
+- **0 bytes received** in the 5-second window — silence.
+- Device remained `Bus 001 Device 009` throughout — no
+  disconnect/re-enumeration event, no new `New USB device` line in
+  `dmesg`, all 10 interfaces still present and bound to their original
+  drivers in `lsusb -t`.
+- ALFA (`Dev 008`) and all PirateBox services (hostapd, dnsmasq,
+  nginx, php8.4-fpm) unaffected; `throttled` unchanged at `0x50005`
+  (no new undervoltage event coincident with the test).
+- **Operator visual check**: watched "intermittently, not
+  continuously" (operator's own characterization) during and after the
+  test window; observed **no reboot/startup sequence, no screen
+  flash/flicker, no visible settings change, no blanking** — recorded
+  as "no observed abnormal behavior," explicitly *not* as a
+  continuous-monitoring guarantee.
+- One new, reproducible artifact: two kernel `WARN::
+  dwc_otg_hcd_urb_dequeue:639: Timed out waiting for FSM NP transfer
+  to complete on <N>` lines appeared in `dmesg` at the moment the port
+  was closed. **STRONGLY SUGGESTED** to be a host-controller-side (Pi's
+  own `dwc_otg` driver), not device-side, artifact of the kernel
+  cancelling a pending read URB on `close()` — not a USB disconnect,
+  not accompanied by any interface renumbering, and (see below)
+  reproduced again on ACM1 with a different, larger set of endpoint
+  numbers, which is consistent with a generic close-time driver quirk
+  on this specific host-controller/device combination rather than
+  anything specific to one port or evidence of a device-side event.
+
+**ACM1 result** — **CONFIRMED (this unit, second gate)**: identical
+outcome — opened cleanly, DTR/RTS confirmed low, **0 bytes received**
+in 5 seconds, device stayed at `Dev 009` with no re-enumeration, ALFA/
+services/throttled unchanged. The same `dwc_otg_hcd_urb_dequeue` WARN
+pattern reappeared at close (this time on 4 endpoints instead of 2),
+reinforcing the "generic close-time artifact, not port-specific"
+reading above.
+
+**Conclusion on the two serial ports**: passive listening **did not
+distinguish ACM0 from ACM1** — both are silent under a pure listen.
+Per the operator's own explicit instruction, **this silence is not
+being read as "neither port is CAT."** It may simply mean this
+firmware does not spontaneously emit telemetry in its current
+state/menu, or only responds to a specific query. Resolving which
+port is CAT (if either) still requires either (a) sending an actual,
+protocol-specific probe — which remains gated behind a fresh,
+evidence-backed justification per the operator's own requirement 6,
+not performed here — or (b) further passive inference this
+investigation does not currently have a source for.
+
+**Side finding, corroborating §2b's power/ALFA observation**: the full
+`dmesg` history pulled at the start of this gate showed the ALFA
+disconnecting and re-enumerating on its own at 12:15 PDT while the
+Malahit was **completely unplugged** (it had been removed at 11:08 and
+was not reconnected until 14:03). This is a second, independent ALFA
+hiccup with zero Malahit involvement, and lines up with the operator's
+own observation that the PirateBox Wi-Fi network briefly disappeared
+during that same window. Per the operator's own instruction, this is
+recorded as corroborating — not proving — that the ALFA's earlier
+one-second-coincident disconnect (§2b) reflects a pre-existing,
+Malahit-independent power/enumeration marginality rather than anything
+caused by the Malahit specifically.
+
+### 11b.2 Passive audio characterization
+
+**Procedure**: two-second captures via `arecord`, one interface at a
+time, with the same before/after device-stability checks. No data was
+ever written to the playback interface. No numpy or other new package
+was installed for analysis — statistics (mean/DC-offset, min/max,
+RMS, Pearson correlation) were computed with the Python standard
+library only (`wave`, `struct`, `statistics`, `math`).
+
+**Mono/40kHz interface (`hw:2,0`)** — **CONFIRMED (this unit, second
+gate)**: capture **failed immediately** with `arecord: pcm_read:2272:
+read error: Input/output error` on both of two independent attempts;
+only a bare 44-byte WAV header was ever written (no sample data). No
+kernel-level error was logged for either attempt — this is a
+userspace/ALSA-level read failure, not a device fault — and the
+device remained fully enumerated and stable both times. This is a
+real, reproducible finding (not a one-off glitch): in the unit's
+current state, this interface does not currently deliver a live
+stream on open.
+
+**Stereo/160kHz interface (`hw:2,1`)** — **CONFIRMED (this unit,
+second gate)**: capture **succeeded cleanly**, producing exactly
+1,280,000 bytes of sample data (2s × 160000Hz × 2ch × 2 bytes,
+matching the spec exactly) plus the 44-byte WAV header. This interface
+streams live with no CAT command, no tuning action, and no setup
+beyond a standard ALSA open — right now, in whatever state the
+receiver happens to be in.
+
+**Statistical analysis of the stereo capture** — **STRONGLY SUGGESTED,
+now with statistical corroboration** (still not proof — no known-
+signal test has been performed): Pearson correlation between the two
+channels was **0.039** (near zero), RMS power ratio L:R was **0.991**
+(near-perfectly balanced), and both channels had a DC offset near
+zero (-0.5 on each). This is precisely the statistical signature
+expected of **quadrature I/Q components** — two components meant to be
+in quadrature (90° phase-separated) carry, by design, very little
+linear correlation and (for a healthy receiver front-end) balanced
+power. It is *not* the signature genuine dual-channel program audio
+from a single receiver's output would be expected to show, which
+would typically carry substantially higher L/R correlation (shared
+program content, or an intentional mono-duplicated-to-stereo signal).
+This meaningfully strengthens (without fully proving) §2b's original
+channel-count/sample-rate-based inference that the 160kHz stream
+carries IQ, not audio.
+
+### 11b.3 Reassessed integration path, given §11b.1-§11b.2
+
+- **SoapyAudio / generic USB-audio IQ path**: materially more credible
+  than before this gate. The 160kHz interface is not just
+  correctly-shaped by descriptor (§2b) but now also *behaves*
+  correctly (streams cleanly, on demand, no CAT dependency) and
+  *statistically looks like* IQ (this section). A `SoapyAudio`-backed
+  IQ source needs nothing from the CAT ports at all for basic
+  streaming — only for programmatic tuning, which could otherwise be
+  done manually via the receiver's own controls in a first
+  implementation.
+- **`SoapyMalahitRR`**: unaffected by this round's findings; the
+  naming-mismatch concern from §5/§2b stands exactly as before.
+- **CAT bridge requirements**: still entirely unresolved. Neither port
+  emitted anything unprompted, and both remain descriptor-identical.
+  Determining CAT now requires either (a) locating this firmware's
+  actual documented CAT protocol (Kenwood-style or otherwise) and
+  sending one carefully-chosen, evidence-backed probe with explicit
+  fresh operator go-ahead, or (b) accepting manual tuning (no CAT at
+  all) as the first-implementation posture.
+- **OpenWebRX+ integration**: the generic "sound-card SDR" pattern
+  this document's own concept inventory already names (the FiFi-SDR
+  precedent) now has direct, unit-specific behavioral support, not
+  just descriptor-level plausibility. Whether OpenWebRX+ specifically
+  handles a 160000Hz sample rate cleanly on this Pi 3B+/Trixie
+  combination remains untested (§4, §6) — this gate improved
+  confidence in the *source*, not in the *downstream software or
+  Pi's runtime headroom*.
+- **RTL-SDR**: entirely unaffected; remains the more certain,
+  conventional fallback backend. Not touched in this gate.
+- **Pi 3B+ resource constraints**: unaffected by this round; §4's
+  open questions stand as before.
+- **No production deployment**: nothing was installed, wired, or
+  deployed in this gate either. `python3-serial` was already present
+  and required no installation action; no SDR software, service, or
+  systemd unit exists on this Pi.
+
+### 11b.4 Next gate
+
+Both remaining paths forward need the operator's eyes/hands, not
+further autonomous investigation:
+
+1. **What is the Malahit currently displaying?** — pure observation,
+   zero button-press risk: current frequency, mode, and whether audio
+   is audible from the unit's own speaker/headphone output right now.
+   This alone would explain the mono/40kHz stream's immediate failure
+   (e.g. if the receiver is currently muted, in a mode with no active
+   demodulated-audio output, or otherwise not actively decoding
+   anything).
+2. **Optional**: tune to a known strong local broadcast station using
+   the receiver's own normal tuning control (not any button
+   combination) and report frequency/mode/signal strength as
+   displayed. This would let a future short, passive capture attempt
+   look for expected structure in the 160kHz stream (further
+   corroborating the IQ hypothesis) and re-attempt the 40kHz capture
+   in a state where audio ought definitely to be flowing.
+
+Neither of these requires touching the serial ports again, installing
+anything, or approaching the dual-encoder-button behavior.
+
+---
+
+## 12. Open questions (updated 2026-09-05 after physical enumeration, then again after §11b)
 
 **Resolved or substantially narrowed by §2b's physical enumeration:**
 
@@ -1375,41 +1579,70 @@ before further architecture decisions are made.
 - ~~USB connector type~~ — moot for the Pi-side investigation now that
   the unit is confirmed connected via USB-C with a working data cable.
 - Whether the audio interfaces carry anything resembling "Malahit
-  RX"/"Malahit IQ" — **STRONGLY SUGGESTED** (not proven): mono/40kHz
-  and stereo/160kHz respectively, by channel-count/sample-rate
-  signature (§2b).
+  RX"/"Malahit IQ" — **STRONGLY SUGGESTED, with statistical
+  corroboration** (still not proven): mono/40kHz and stereo/160kHz
+  respectively, by channel-count/sample-rate signature (§2b) *and*,
+  for the 160kHz stream, by near-zero L/R correlation and balanced
+  RMS power consistent with quadrature I/Q (§11b.2).
+
+**Resolved or narrowed by §11b (the CDC-ACM listen test + audio
+capture):**
+
+- ~~Whether either `/dev/ttyACM*` port emits anything unprompted~~ —
+  **CONFIRMED**: neither does, over a 5-second read-only window each,
+  with DTR/RTS held low. Per the operator's own instruction, this is
+  *not* read as proof neither port is CAT (§11b.1).
+- ~~Whether opening either serial port destabilizes the device~~ —
+  **CONFIRMED**: no. Both opens/closes left the device at the same
+  `Bus 001 Device 009`, all 10 interfaces intact, ALFA/services/
+  power unaffected. A reproducible `dwc_otg_hcd_urb_dequeue` kernel
+  WARN appears at close on *both* ports — read as a generic
+  host-controller artifact, not device-side evidence (§11b.1).
+- ~~Whether the mono/40kHz and stereo/160kHz interfaces actually
+  stream on open~~ — **CONFIRMED**: the 160kHz interface streams
+  cleanly on demand with no setup; the 40kHz interface reproducibly
+  fails immediately with an ALSA-level I/O error in the unit's
+  current state (§11b.2) — cause unknown pending the §11b.4 operator
+  observation.
 
 **Still genuinely open:**
 
 1. Does `SoapyMalahitRR` (naming: "Malahit-**R1**") actually work with
    this unit's confirmed USB Audio Class interfaces, or does it expect
    a different, bare wired module product entirely? Still NEEDS
-   HARDWARE-level testing or source-reading to settle; the physical
-   evidence didn't change the underlying naming-mismatch concern (§5,
-   §2b).
+   HARDWARE-level testing or source-reading to settle; neither physical
+   gate changed the underlying naming-mismatch concern (§5, §2b).
 2. Which, if either, `/dev/ttyACM0`/`/dev/ttyACM1` is CAT control, and
-   in what protocol — descriptor-identical, cannot be resolved
-   passively; needs the DTR-aware approach in §11a.
+   in what protocol — still descriptor-identical and now also
+   confirmed silent-under-passive-listen on both; resolving this
+   further requires either an actual protocol-specific probe (a fresh,
+   evidence-backed gate, not yet reached) or accepting manual tuning
+   as the first-implementation posture (§11b.1, §11b.3).
 3. This unit's firmware version — the one documented check method did
    not work on this unit (§2b); no other passive method is known.
-4. This RTL-SDR's exact model/VID:PID (§3, §6) — entirely separate
+4. Why the mono/40kHz interface fails to stream in the unit's current
+   state — needs the operator's on-screen observation from §11b.4
+   before this can be narrowed further.
+5. This RTL-SDR's exact model/VID:PID (§3, §6) — entirely separate
    hardware, not yet enumerated at all.
-5. Real OpenWebRX+ CPU/RAM/client-count behavior on this actual Pi
+6. Real OpenWebRX+ CPU/RAM/client-count behavior on this actual Pi
    3B+/Trixie — no published benchmark exists for any Malahit variant
    or RTL-SDR on this OS/hardware combination (§4, §5).
-6. Actual USB charging current draw — the "Self Powered" descriptor
+7. Actual USB charging current draw — the "Self Powered" descriptor
    bit (§2b) is a favorable but not dispositive sign; no direct
    current measurement has been taken.
-7. Whether the ALFA's one-second-earlier disconnect/re-enumeration
-   (§2b) was genuinely caused by the Malahit's insertion or was
-   coincidental — one observation, consistent with a shared-rail
-   insertion transient, not a controlled/repeated test.
-8. Whether a separately-powered USB hub becomes the long-term
+8. Whether the ALFA's disconnects/re-enumerations (§2b, and a second,
+   Malahit-independent instance found in §11b.1) reflect a genuine
+   Malahit interaction or a pre-existing, hardware-independent power
+   marginality — the second instance (ALFA hiccup with the Malahit
+   completely unplugged) makes the latter look more likely, but this
+   remains observational, not a controlled test.
+9. Whether a separately-powered USB hub becomes the long-term
    architecture for one or both devices (§2b, §8).
-9. The dual-encoder-button reboot/reset behavior (§2a) remains
-   unexplained by any source found — not to be actively investigated
-   further ourselves; worth asking about if this project ever engages
-   the OpenWebRX+/Malahit community directly.
+10. The dual-encoder-button reboot/reset behavior (§2a) remains
+    unexplained by any source found — not to be actively investigated
+    further ourselves; worth asking about if this project ever engages
+    the OpenWebRX+/Malahit community directly.
 
 None of these block writing this document; all of them block writing
 any code.

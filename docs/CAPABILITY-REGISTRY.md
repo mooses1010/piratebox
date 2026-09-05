@@ -773,18 +773,25 @@ it is.**
   confirmed genuine original; own internal battery), an RTL-SDR dongle
   (exact model/revision not yet identified), and an outdoor magnetic-
   loop antenna are already owned. **The Malahit has been connected to
-  this Pi once (2026-09-05) for passive, read-only USB enumeration
-  only** - confirmed VID:PID `ffff:0737`, two USB Audio Class capture
-  interfaces (one likely demodulated audio, one likely IQ) and two
-  indistinguishable CDC-ACM serial ports - it is not wired into any
-  PirateBox service. The RTL-SDR has not yet been connected. The
-  RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
-  remains **CANDIDATE** - no software stack installed, and several
-  real unknowns remain (which serial port, if either, is CAT control;
-  whether any existing SDR-software Malahit support actually applies
-  to this hardware variant; real Pi 3B+ performance under an actual
-  SDR web-server workload) - see the design doc's own open-questions
-  list. Layer: Optional/Field. Classification: Attachable (USB). Core
+  this Pi twice (2026-09-05) for passive/read-only characterization
+  only** - first a USB enumeration pass (confirmed VID:PID `ffff:0737`,
+  two USB Audio Class capture interfaces and two descriptor-identical
+  CDC-ACM serial ports), then a second pass that read-only-opened both
+  serial ports (DTR/RTS held low, zero bytes transmitted - both
+  silent, device unaffected) and briefly captured from both audio
+  interfaces (the 160kHz stereo interface streams cleanly and
+  statistically resembles IQ - near-zero L/R correlation, balanced
+  power; the 40kHz mono interface reproducibly fails to stream in the
+  unit's current state, cause not yet determined). It is not wired
+  into any PirateBox service. The RTL-SDR has not yet been connected.
+  The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
+  remains **CANDIDATE** - no software stack installed, and real
+  unknowns remain (which serial port, if either, is CAT control and in
+  what protocol; why the 40kHz audio interface won't stream; whether
+  any existing SDR-software Malahit support actually applies to this
+  hardware variant; real Pi 3B+ performance under an actual SDR
+  web-server workload) - see the design doc's own open-questions list.
+  Layer: Optional/Field. Classification: Attachable (USB). Core
   dependency: No.
 - **Candidate software backend:** OpenWebRX+ (`luarvique/openwebrx`)
   is the current leading candidate for the software layer - actively
