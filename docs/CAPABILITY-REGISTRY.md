@@ -71,7 +71,7 @@ it is.**
 | OLED (SSD1306 0.96" 128x64) | Operational | **INSTALLED, CURRENT SCOPE** (2026-09-03) | Integrated |
 | Undervoltage / power-quality monitoring (software, `vcgencmd`) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | UPS/battery hardware | Operational | CANDIDATE (requirements only) | Integrated (if adopted) |
-| RTC (DS3231) | Operational | PLANNED (chip chosen, not purchased) | Integrated (planned) |
+| RTC (DS3231) | Operational | **WIRED, CONFIGURED (2026-09-06)** - `dtoverlay=i2c-rtc,ds3231` prepared/verified; awaits one operator `sudo` run to apply on this specific Pi; no coin cell installed yet | Integrated |
 | Self-awareness / capability-state model (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | About This PirateBox page (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | Reference Pack model (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
@@ -519,15 +519,19 @@ it is.**
   gets there first: NTP, unavailable by design here; `fake-hwclock`,
   not installed; or an uncontrolled kernel/filesystem default).
 - **Layer:** Operational.
-- **State:** **PLANNED, not purchased.** DS3231 is the specific chip
-  named repeatedly (`docs/RTC-TIME-READINESS-DESIGN.md` §3's candidate
-  table originally listed it as one example among standard I2C RTC
-  breakouts, e.g. DS3231/PCF8523; `docs/FIELD-TOOLS-DESIGN.md` and
-  `docs/PHYSICAL-CONTROL-UX-DESIGN.md` now refer to it as *the* planned
-  part) - **planned means "this is the specific part intended when RTC
-  hardware is purchased," not "already purchased."**
+- **State:** **WIRED AND CONFIGURED, 2026-09-06** (see
+  `docs/RTC-TIME-READINESS-DESIGN.md` §6 for the full record). The
+  DS3231 breakout (plus its onboard AT24C32 EEPROM) is physically on
+  the I2C1 bus and confirmed live via `i2cdetect` at 0x68/0x57
+  alongside the existing OLED at 0x3c. `tools/configure_rtc_ds3231.sh`
+  is prepared and tested, and is the one remaining operator `sudo` gate
+  to actually load the kernel driver and start using it as the system
+  hardware clock - see that section for exactly what it does. **No coin
+  cell is installed yet** (charging-circuit board, non-rechargeable
+  CR2032 supplied) - see §6 for what that does and doesn't block.
 - **Interface:** I2C1, same bus as the OLED (multi-drop, no pin
-  conflict).
+  conflict; confirmed live, OLED unaffected by the RTC's presence on
+  the bus).
 - **Core dependency:** No.
 - **Failure behavior:** already built and live today, ahead of the
   hardware itself -
@@ -535,8 +539,9 @@ it is.**
   (`includes/fieldtools_time.php`) reports `rtc_detected: false`
   honestly right now, and is written to flip to `true` with **zero
   code changes** the moment a real RTC's kernel device appears at
-  `/sys/class/rtc/` (`docs/FIELD-TOOLS-DESIGN.md` §4). This is the
-  concrete, already-shipped example of `docs/ARCHITECTURE.md` §2's
+  `/sys/class/rtc/` (`docs/FIELD-TOOLS-DESIGN.md` §4) - this is exactly
+  what running `tools/configure_rtc_ds3231.sh` will trigger. This is
+  the concrete, already-shipped example of `docs/ARCHITECTURE.md` §2's
   "optional capability failure degrades, doesn't disable" rule.
 - **UI exposure:** `/utility/fieldtools/time/` already shows this
   status live; a future OLED Clock page is specified to show the same

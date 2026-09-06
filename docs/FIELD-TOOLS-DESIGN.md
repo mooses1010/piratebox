@@ -73,10 +73,17 @@ visible `help-note` block above the calculator.
 
 ## 4. Time-source architecture - built for a DS3231 that isn't here yet
 
-This Pi has **no hardware RTC installed** as of this writing (see
+This Pi had **no hardware RTC installed** as of this writing (see
 `docs/RTC-TIME-READINESS-DESIGN.md`, Stage 28 - that audit's findings
-are unchanged by this stage; a DS3231 remains **planned, not
-installed**). The Time page does not pretend otherwise.
+were unchanged by this stage; a DS3231 was **planned, not
+installed**). **Update 2026-09-06:** the DS3231 is now physically wired
+and configured - see `docs/RTC-TIME-READINESS-DESIGN.md` §6. The
+architecture described below was written in anticipation of exactly
+this and needed no code changes once the hardware arrived; keeping this
+section's original wording rather than rewriting it into past tense,
+since the design reasoning is still the accurate explanation of how the
+feature works. The Time page does not pretend otherwise, in either
+state.
 
 **Found live, corrected before this stage's first deploy:** an earlier
 version of `piratebox_get_time_source_status()` read `/sys/class/rtc/`,

@@ -10,11 +10,16 @@ for explicit approval first, same as every prior stage that touched
 either boundary (Stage 19's `ZipArchive` stop, Stage 11/12's hardware
 designs).
 
-**Still true, unchanged by Field Tools (Post-Stage-32):** no hardware
-RTC or `fake-hwclock` has been installed since this audit - the DS3231
-remains **planned, not installed**. What did change: this audit's own
-live checks (`/sys/class/rtc/`, the NTP-synchronized flag) are now also
-surfaced to visitors, honestly, on the live site itself -
+**Superseded 2026-09-06 - see §6.** The DS3231 is no longer "planned,
+not installed": it is physically wired onto the I2C1 bus and confirmed
+present via `i2cdetect`. `fake-hwclock` remains not installed (correctly
+so - a real RTC makes it redundant, see §6). Read §6 first if you're
+orienting on current state; §§0-5 below are kept for the audit history
+that led here.
+
+**Still true, unchanged by Field Tools (Post-Stage-32):** this audit's
+own live checks (`/sys/class/rtc/`, the NTP-synchronized flag) are now
+also surfaced to visitors, honestly, on the live site itself -
 `includes/fieldtools_time.php`'s `piratebox_get_time_source_status()`
 and `/utility/fieldtools/time/` - and named in `docs/PHYSICAL-CONTROL-
 UX-DESIGN.md`'s OLED Clock page spec as what that future page should
@@ -227,3 +232,115 @@ confirmed by direct inspection of the relevant system state - the
 absence of both a hardware RTC and `fake-hwclock` is sufficient by
 itself to establish the risk in §2 without needing to reproduce it
 live).
+
+## 6. DS3231 physically wired - hardware verification + operator gate (2026-09-06)
+
+**What changed:** the operator wired a DS3231 RTC breakout (with its
+onboard AT24C32 EEPROM) onto the existing I2C1 bus via a breadboard -
+the same bus §3's original candidate table anticipated ("shares Stage
+11's already-reserved I2C bus... not a new pin conflict"). The OLED was
+briefly broken by two wiring mistakes during that work and is now
+confirmed working again.
+
+**Bus scan, this session, before any config change:**
+
+```
+i2cdetect -y 1
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+30: -- -- -- -- -- -- -- -- -- -- -- -- 3c -- -- --
+50: -- -- -- -- -- -- -- 57 -- -- -- -- -- -- -- --
+60: -- -- -- -- -- -- -- -- 68 -- -- -- -- -- -- --
+```
+
+All three expected devices, nothing unexpected: **0x3c** (the existing
+OLED, unaffected), **0x57** (the DS3231 board's AT24C32 EEPROM), **0x68**
+(the DS3231 itself). Note this scan alone only proves each address
+*acknowledges* on the bus - it does not yet prove a kernel driver is
+bound or that the chip's actual RTC registers are readable; §6's script
+(next) verifies that with a real driver bind and a real register
+read/write, not just the raw address probe.
+
+**Configuration state found (before this round):** no RTC overlay in
+`/boot/firmware/config.txt` (only `dtparam=i2c_arm=on` from the OLED
+bring-up), no `/dev/rtc*`, no `/etc/adjtime`, `fake-hwclock` not
+installed (still correctly true - see below), and no udev hwclock rule
+on this OS image. The running kernel (`6.18.39+rpt-rpi-v8`) is
+confirmed built with `CONFIG_RTC_HCTOSYS=y` /
+`CONFIG_RTC_HCTOSYS_DEVICE="rtc0"` (checked directly against
+`/boot/config-$(uname -r)`, not assumed) - meaning **the moment
+`/dev/rtc0` exists, the kernel itself sets the system clock from it,
+very early in every future boot, with no additional service, udev
+rule, or package required.** This is why the fix is exactly one
+`dtoverlay` line plus a live-apply/verify pass, not a larger change.
+
+**What was added:** `tools/configure_rtc_ds3231.sh` (new, idempotent,
+tested - see `tools/test_rtc_ds3231_config.py`, 12 assertions). It:
+1. Adds `dtoverlay=i2c-rtc,ds3231` to `/boot/firmware/config.txt`
+   (backed up first as `config.txt.pre-rtc-bak.<timestamp>`, matching
+   the OLED bring-up's own `config.txt.pre-i2c-bak` convention) - the
+   overlay file (`/boot/firmware/overlays/i2c-rtc.dtbo`) already ships
+   on this OS image, so no package install is involved.
+2. Applies the overlay **live** via the `dtoverlay` command, so the
+   whole chain can be verified in one run without a reboot (the
+   config.txt line still makes it persist across every future boot on
+   its own).
+3. Confirms `/dev/rtc0` and the `dmesg` driver-registration lines.
+4. Reads the RTC **before** writing anything - a fresh, never-set,
+   battery-less DS3231 has no reason to already know the correct time,
+   so a stale/garbage read (or an oscillator-stop-flag warning) at this
+   step is itself positive evidence of real chip communication, not a
+   stub.
+5. Writes the current (NTP-correct) system time to the RTC with
+   `hwclock --systohc --utc`, then reads it back to confirm the round
+   trip.
+6. Re-checks `i2cdetect -y 1` and `piratebox-oled.service` as an
+   explicit regression guard - the RTC is a second device on the OLED's
+   own bus, and this project's discipline is "prove the neighbor is
+   still fine," not assume it.
+
+**Why this is the operator gate, not something completed
+automatically:** per `CLAUDE.md` §2, any system-configuration change
+(`/boot/firmware/config.txt`) and any physical-hardware change are
+explicit stop conditions - this session has no standing `sudo` grant
+covering either, and none was added (a new sudoers line would itself be
+"new privilege escalation," also out of scope). The single command:
+
+```
+sudo tools/configure_rtc_ds3231.sh
+```
+
+**`fake-hwclock` - deliberately still not proposed here.** §3
+originally recommended it as a *near-term, zero-hardware-cost*
+mitigation for a Pi with no RTC at all; now that a real hardware RTC is
+wired and about to be configured, installing `fake-hwclock` alongside
+it would add a redundant fallback mechanism for a gap the RTC itself
+already closes better (an actual absolute clock vs. "time froze at
+shutdown"). Not installed, not needed, no change to that recommendation
+beyond noting why it no longer applies.
+
+**The missing battery - what it does and doesn't block.** This board
+has a charging circuit for a rechargeable cell, and the coin cell
+supplied is a non-rechargeable CR2032 - correctly *not* inserted, since
+charging a non-rechargeable cell is a real safety hazard, not a
+formality. What this means concretely:
+- **Not blocked:** everything §6's script does. The DS3231 runs
+  entirely off Pi power (`VCC`) for as long as the Pi stays on, which is
+  the actual condition under which the script's read/write/round-trip
+  verification happens - this is a completely genuine test of the chip
+  and the kernel/hwclock path, not a simulation.
+- **Blocked, and cannot be honestly tested yet:** the actual point of
+  an RTC - keeping correct time **through a real power-off**. Without a
+  battery (rechargeable, correctly installed, and given time to charge)
+  or the CR2032 swapped onto a non-charging board/holder, a power cycle
+  will make the DS3231 lose time exactly like the Pi's own clock does
+  today, and this document will not claim otherwise. Confirming true
+  persistence requires: fit an appropriate battery, then perform a real,
+  deliberate power-off-and-back-on test and re-read `hwclock -r` - future
+  work, once battery hardware exists, not this round.
+
+**No PirateBox application code changes this round.** Exactly as §4
+already predicted: `piratebox_get_time_source_status()`
+(`includes/fieldtools_time.php`) reads `/sys/class/rtc/` generically and
+will report `rtc_detected: true` the instant `/dev/rtc0`/`/sys/class/
+rtc/rtc0` exists, with zero code changes - this round only had to make
+that device actually exist.
