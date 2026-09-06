@@ -23,6 +23,16 @@ require_once __DIR__ . '/../../../includes/progression.php';
 // toward unknown content) - only what THIS device has actually
 // discovered is ever rendered.
 //
+// 2026-09-06: each discovered achievement now also renders a short
+// `description` - its spoiler-safe MEANING (what actually happened),
+// never its MECHANICS (the exact trigger/threshold that unlocked it).
+// This is exactly as safe as `name` already was: both come from
+// piratebox_progression.py's build_public_summary(), which only ever
+// iterates THIS device's own unlocked achievement list - an
+// undiscovered achievement's description can no more reach this page
+// than its name already could. This page adds no spoiler logic of its
+// own; it only renders what the backend already decided was safe.
+//
 // PRIVACY: every number below is an aggregate device statistic already
 // produced by Progression - no MAC address, IP, per-visitor identity,
 // SSH session detail, or browsing history is read or shown anywhere on
@@ -229,8 +239,11 @@ $discoveredCount = count($data['achievements']);
                             <?php if ($a['hidden']): ?>
                                 <span class="achievement-tag muted">secret</span>
                             <?php endif; ?>
+                            <?php if ($a['description'] !== ''): ?>
+                                <p class="achievement-description"><?= htmlspecialchars($a['description']) ?></p>
+                            <?php endif; ?>
                             <span class="achievement-date muted">
-                                <?= $a['unlocked_at'] !== null ? htmlspecialchars(date('Y-m-d', $a['unlocked_at'])) : 'sometime in this PirateBox\'s history' ?>
+                                <?= $a['unlocked_at'] !== null ? 'Discovered ' . htmlspecialchars(date('M j, Y', $a['unlocked_at'])) : 'Discovered sometime in this PirateBox\'s history' ?>
                             </span>
                         </div>
                     <?php endforeach; ?>

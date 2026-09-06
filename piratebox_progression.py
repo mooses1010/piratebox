@@ -323,74 +323,141 @@ def nudge_weight(state: dict, name: str, target: float) -> None:
 # its own tests) MUST still be fully explicit about what triggers it -
 # secrecy here is an operator-facing UX choice, not a codebase one.
 #
+# `description`: a short, spoiler-safe, human-readable sentence
+# explaining what the achievement MEANS - shown on Captain's Log, but
+# ONLY once an achievement has actually been unlocked (see
+# build_public_summary() below, which only ever iterates the device's
+# own unlocked list, never this whole catalog). This is a REQUIRED
+# positional argument specifically so a future achievement added
+# without one is a loud TypeError at import time, not a silently blank
+# card discovered later. The distinction that matters (2026-09-06,
+# Captain's Log achievement-description round):
+#   MEANING (this field) - what happened / what it recognizes. Safe to
+#     reveal after discovery, and the whole point of this field.
+#   MECHANICS (the `check` lambda below) - the exact threshold/code
+#     condition that unlocked it. Never surfaced anywhere web-facing,
+#     regardless of discovery state - a description must never restate
+#     a `check` lambda's literal number/comparison (see the module's
+#     own BAD/GOOD examples this round: "uptime_seconds >= 604800" is
+#     mechanics; "Kept watch through a very long voyage" is meaning).
+#
 # Every threshold below reads real, already-tracked state - nothing is
 # invented or estimated to make an achievement "hittable."
 
-def _mk(name, xp, hidden, check):
-    return {"name": name, "xp": xp, "hidden": hidden, "check": check}
+def _mk(name, xp, hidden, description, check):
+    return {"name": name, "xp": xp, "hidden": hidden, "description": description, "check": check}
 
 
 ACHIEVEMENTS = {
     # --- Lifetime uptime ---
-    "uptime_1d":    _mk("First Full Day", 40, False, lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 86400),
-    "uptime_1w":    _mk("One Week Underway", 100, False, lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 604800),
-    "uptime_1m":    _mk("A Month at Sea", 250, False, lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 2592000),
-    "uptime_100d":  _mk("Hundred-Day Voyage", 400, False, lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 8640000),
-    "uptime_1y":    _mk("One Year Underway", 1200, False, lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 31536000),
+    "uptime_1d":    _mk("First Full Day", 40, False,
+                        "Clocked a full day of running time since it was first switched on.",
+                        lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 86400),
+    "uptime_1w":    _mk("One Week Underway", 100, False,
+                        "Added up to a full week of running time so far.",
+                        lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 604800),
+    "uptime_1m":    _mk("A Month at Sea", 250, False,
+                        "Tallied a month's worth of running time across its life so far.",
+                        lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 2592000),
+    "uptime_100d":  _mk("Hundred-Day Voyage", 400, False,
+                        "Racked up a hundred days of running time over its life so far.",
+                        lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 8640000),
+    "uptime_1y":    _mk("One Year Underway", 1200, False,
+                        "Reached a full year of accumulated running time since it was first switched on.",
+                        lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 31536000),
 
     # --- Boots / resilience ---
-    "boots_10":     _mk("Ten Landings", 30, False, lambda s, c: s["stats"]["boots_observed"] >= 10),
-    "boots_50":     _mk("Old Salt", 150, False, lambda s, c: s["stats"]["boots_observed"] >= 50),
+    "boots_10":     _mk("Ten Landings", 30, False,
+                        "Has come back online again and again - restarts are old news to it by now.",
+                        lambda s, c: s["stats"]["boots_observed"] >= 10),
+    "boots_50":     _mk("Old Salt", 150, False,
+                        "A true veteran of restarts - nothing about coming back online rattles it anymore.",
+                        lambda s, c: s["stats"]["boots_observed"] >= 50),
 
     # --- Client encounters (aggregate only, never per-device) ---
-    "encounter_1":  _mk("First Contact", 15, False, lambda s, c: s["stats"]["total_client_encounters"] >= 1),
-    "encounter_10": _mk("Small Crowd", 40, False, lambda s, c: s["stats"]["total_client_encounters"] >= 10),
-    "encounter_100": _mk("Regular Haunt", 150, False, lambda s, c: s["stats"]["total_client_encounters"] >= 100),
-    "encounter_1000": _mk("Local Legend", 600, False, lambda s, c: s["stats"]["total_client_encounters"] >= 1000),
+    "encounter_1":  _mk("First Contact", 15, False,
+                        "Welcomed its very first visitor aboard.",
+                        lambda s, c: s["stats"]["total_client_encounters"] >= 1),
+    "encounter_10": _mk("Small Crowd", 40, False,
+                        "Has welcomed a modest, steady trickle of visitors over time.",
+                        lambda s, c: s["stats"]["total_client_encounters"] >= 10),
+    "encounter_100": _mk("Regular Haunt", 150, False,
+                        "Become a regular stop for a good number of visitors by now.",
+                        lambda s, c: s["stats"]["total_client_encounters"] >= 100),
+    "encounter_1000": _mk("Local Legend", 600, False,
+                        "Welcomed enough visitors, over time, to become a fixture of the neighborhood.",
+                        lambda s, c: s["stats"]["total_client_encounters"] >= 1000),
 
     # --- Simultaneous clients ---
-    "simul_2":      _mk("A Pair Aboard", 20, False, lambda s, c: s["stats"]["max_simultaneous_clients"] >= 2),
-    "simul_5":      _mk("Standing Room Only", 80, False, lambda s, c: s["stats"]["max_simultaneous_clients"] >= 5),
-    "simul_10":     _mk("Packed Deck", 250, False, lambda s, c: s["stats"]["max_simultaneous_clients"] >= 10),
+    "simul_2":      _mk("A Pair Aboard", 20, False,
+                        "Had two visitors connected at the very same moment.",
+                        lambda s, c: s["stats"]["max_simultaneous_clients"] >= 2),
+    "simul_5":      _mk("Standing Room Only", 80, False,
+                        "Hosted a genuinely busy moment with several visitors aboard at once.",
+                        lambda s, c: s["stats"]["max_simultaneous_clients"] >= 5),
+    "simul_10":     _mk("Packed Deck", 250, False,
+                        "Hosted its busiest moment yet - a real crowd, all connected at once.",
+                        lambda s, c: s["stats"]["max_simultaneous_clients"] >= 10),
 
     # --- Emergency Mode history ---
-    "emergency_1":  _mk("Weathered the Storm", 50, False, lambda s, c: s["stats"]["emergency_exercises"] >= 1),
-    "emergency_10": _mk("Storm-Tested", 300, False, lambda s, c: s["stats"]["emergency_exercises"] >= 10),
+    "emergency_1":  _mk("Weathered the Storm", 50, False,
+                        "Came through an Emergency Mode exercise and settled back into normal service.",
+                        lambda s, c: s["stats"]["emergency_exercises"] >= 1),
+    "emergency_10": _mk("Storm-Tested", 300, False,
+                        "Has weathered Emergency Mode enough times to be thoroughly practiced at it.",
+                        lambda s, c: s["stats"]["emergency_exercises"] >= 10),
 
     # --- SSH / admin activity ---
-    "ssh_1":        _mk("Bridge Visitor", 15, False, lambda s, c: s["stats"]["ssh_sessions_observed"] >= 1),
-    "ssh_100":      _mk("Well-Worn Terminal", 200, False, lambda s, c: s["stats"]["ssh_sessions_observed"] >= 100),
+    "ssh_1":        _mk("Bridge Visitor", 15, False,
+                        "Received its first visit from someone working directly at the terminal.",
+                        lambda s, c: s["stats"]["ssh_sessions_observed"] >= 1),
+    "ssh_100":      _mk("Well-Worn Terminal", 200, False,
+                        "Has seen the operator sit down at its terminal a great many times.",
+                        lambda s, c: s["stats"]["ssh_sessions_observed"] >= 100),
 
     # --- Silly Mode adoption itself ---
-    "silly_1":      _mk("Let Loose", 10, False, lambda s, c: s["stats"]["silly_days_used"] >= 1),
-    "silly_30":     _mk("Habitual", 120, False, lambda s, c: s["stats"]["silly_days_used"] >= 30),
+    "silly_1":      _mk("Let Loose", 10, False,
+                        "Had its playful side switched on for the very first time.",
+                        lambda s, c: s["stats"]["silly_days_used"] >= 1),
+    "silly_30":     _mk("Habitual", 120, False,
+                        "Its playful side has been switched on so often it's practically routine now.",
+                        lambda s, c: s["stats"]["silly_days_used"] >= 30),
 
     # --- Real hardware/capability milestones (already-available signals only) ---
-    "external_radio": _mk("Upgraded Rigging", 80, False, lambda s, c: s["stats"]["external_radio_commissioned"]),
+    "external_radio": _mk("Upgraded Rigging", 80, False,
+                        "Gained a proper external radio receiver of its own.",
+                        lambda s, c: s["stats"]["external_radio_commissioned"]),
 
     # --- Meta ---
-    "collector_10": _mk("Collector", 150, False, lambda s, c: len(s["achievements"]) >= 10),
+    "collector_10": _mk("Collector", 150, False,
+                        "Amassed a solid handful of achievements along the way.",
+                        lambda s, c: len(s["achievements"]) >= 10),
 
     # --- Hidden / secret (deliberately not summarized in operator docs) ---
     "hidden_night_owl": _mk(
         "Night Owl", 60, True,
+        "Had a visitor drop by in the dead of night.",
         lambda s, c: 2 <= time.localtime(c["now"]).tm_hour < 4 and (c.get("current_clients") or 0) > 0,
     ),
     "hidden_long_watch": _mk(
         "The Long Watch", 90, True,
+        "Stood a long, quiet watch with nobody around to keep it company.",
         lambda s, c: c.get("idle_seconds", 0) >= 86400,
     ),
     "hidden_leet": _mk(
         "Nice", 13, True,
+        "Its lifetime clock ticked past a suspiciously tidy number, right on the nose.",
         lambda s, c: s["stats"]["lifetime_uptime_seconds"] >= 133700
         and int(s["stats"]["lifetime_uptime_seconds"]) % 133700 < 45,
     ),
     "hidden_insomniac": _mk(
         "Insomniac", 70, True,
+        "Was roused from rest again and again within a single day.",
         lambda s, c: c.get("wake_count_today", 0) >= 5,
     ),
     "hidden_full_house": _mk(
         "Full House", 100, True,
+        "Had a full house - visitors aboard and the operator on deck, all at once.",
         lambda s, c: (c.get("current_clients") or 0) >= 3 and c.get("ssh_active"),
     ),
     "hidden_curious_collection": _mk(
@@ -401,6 +468,7 @@ ACHIEVEMENTS = {
         # counter, which every rare/legendary/secret pick already
         # increments regardless of which family/variant it came from).
         "The Curious Collection", 90, True,
+        "Has been lucky enough to witness a handful of its own rarer moments and reactions.",
         lambda s, c: s["stats"].get("rare_events_witnessed", 0) >= 8,
     ),
 }
@@ -906,6 +974,12 @@ def check_import_request(state: dict, markers: dict, log=None) -> bool:
 # full achievement/event list isn't documented anywhere operator-facing
 # either.
 #
+# 2026-09-06 addition: each unlocked achievement now also carries its
+# spoiler-safe `description` (see _mk()'s own header for the MEANING-
+# vs-MECHANICS distinction that governs its wording) - still subject to
+# the exact same "only what's already unlocked" boundary as `name`
+# itself, since both come from the same per-achievement loop below.
+#
 # This module never writes web-reachable state directly (that would
 # mean www-data and piratebox-gpio both needing access to the same
 # path, or loosening this directory's permissions - neither acceptable
@@ -963,6 +1037,14 @@ def build_public_summary(state: dict, now: float = None) -> dict:
             "name": spec["name"],
             "hidden": bool(spec["hidden"]),
             "unlocked_at": unlocked_at.get(aid),  # None for pre-existing unlocks
+            # Spoiler-safe MEANING only (see _mk()'s own header) - safe
+            # to include here specifically because this loop only ever
+            # runs over state["achievements"] (what THIS device has
+            # actually unlocked), never over ACHIEVEMENTS itself. An
+            # achievement not yet in that list never reaches this line
+            # at all, so its description can never leak ahead of
+            # discovery by construction, not by a runtime check here.
+            "description": spec.get("description") or "",
         })
 
     history = [

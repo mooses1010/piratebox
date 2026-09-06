@@ -1629,6 +1629,16 @@ select {
     text-align: center;
 }
 
+/* achievement-grid overrides the shared .stat-grid column width - a
+   discovered achievement's description (added 2026-09-06) reads better
+   with a bit more room per card than the plain numeric stat cards
+   need, on both desktop and mobile (auto-fit still reflows to a single
+   column on a narrow phone exactly as before - only the minimum width
+   per column changed). */
+.achievement-grid {
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
 .achievement-card {
     background: var(--bg-panel);
     border: 1px solid var(--border-subtle);
@@ -1660,6 +1670,17 @@ select {
     text-transform: uppercase;
     border: 1px solid var(--text-muted);
     padding: 0.1rem 0.4rem;
+}
+
+/* The whole point of this round: always visible, never behind a
+   hover/tap-to-expand interaction - readable the instant the page
+   loads, on a phone included, matching this project's own mobile-first
+   instruction for anything achievement-comprehension-related. */
+.achievement-description {
+    font-size: 0.85rem;
+    line-height: 1.3;
+    margin: 0.1rem 0;
+    color: var(--text-primary);
 }
 
 .achievement-date {

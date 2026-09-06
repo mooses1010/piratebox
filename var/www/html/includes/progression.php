@@ -52,7 +52,7 @@ if (!function_exists('piratebox_parse_progression_public')) {
      *   xp_total: ?int, xp_this_level_floor: ?int, xp_next_level_at: ?int,
      *   xp_progress_fraction: ?float,
      *   stats: array<string,int|bool>,
-     *   achievements: list<array{name:string,hidden:bool,unlocked_at:?int}>,
+     *   achievements: list<array{name:string,hidden:bool,unlocked_at:?int,description:string}>,
      *   history: list<array{ts:int,kind:string,label:string}>,
      *   traits: array<string,string>,
      *   hardware: array<string,mixed>
@@ -90,6 +90,13 @@ if (!function_exists('piratebox_parse_progression_public')) {
                 'name' => $a['name'],
                 'hidden' => ($a['hidden'] ?? false) === true,
                 'unlocked_at' => is_numeric($a['unlocked_at'] ?? null) ? (int) $a['unlocked_at'] : null,
+                // Spoiler-safe MEANING text - already scoped to only
+                // this device's actually-discovered achievements by
+                // piratebox_progression.py's build_public_summary()
+                // (see that function's own comment); this file adds no
+                // further spoiler logic of its own, just shape
+                // validation, matching this file's documented role.
+                'description' => is_string($a['description'] ?? null) ? $a['description'] : '',
             ];
         }
 

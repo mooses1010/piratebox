@@ -6,6 +6,120 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Captain's Log: discovered achievements now explain what they mean (2026-09-06)
+
+**Decision date:** 2026-09-06. Extends PirateBox Progression (below) -
+purely a presentation change, no new state, no new triggers. The
+operator's own recurring experience: looking at Captain's Log and
+seeing an achievement Restless Anchor had already earned, with no way
+to recall what it actually represented. The mystery/spoiler philosophy
+for **undiscovered** content is unchanged and non-negotiable (no
+locked-achievement list, no completion denominator, no silhouettes, no
+hints, no exact triggers, no probabilities) - this only changes what
+happens **after** an achievement has already been unlocked.
+
+**The durable rule, worth stating plainly since it governs every future
+achievement too:** *undiscovered achievements are secret; discovered
+achievements may expose a spoiler-safe human-readable meaning, but
+never their private trigger mechanics.* Concretely: `_mk()` (the
+achievement-definition helper in `piratebox_progression.py`) now takes
+a required `description` argument - a short sentence describing what
+happened/what the achievement recognizes (MEANING), never the exact
+threshold or code condition that unlocked it (MECHANICS). Every one of
+the existing achievements got one this round; a future achievement
+added without one fails immediately at import (a required positional
+argument, not an optional field someone can forget).
+
+**Where the spoiler boundary already lived, and why this was safe to
+add without inventing a new one:** `build_public_summary()` was already
+the sole safe-export boundary (see PirateBox Progression's own entry
+below) - it only ever iterates a device's own `state["achievements"]`
+(what THIS device has actually unlocked), never the full `ACHIEVEMENTS`
+catalog. Adding `description` to the per-achievement dict built inside
+that same loop is exactly as safe as `name` already was: an achievement
+not yet unlocked never reaches that line of code at all, so its
+description can no more leak ahead of discovery than its name already
+could - this is a structural guarantee, not a runtime spoiler check
+someone could forget to add. The browser still never receives the
+achievement catalog or any trigger definition - only per-achievement
+`{name, hidden, unlocked_at, description}` for whatever this specific
+device has already discovered, same shape as before plus one field.
+
+**Captain's Log presentation:** the description renders as plain,
+always-visible text directly under each discovered achievement's name -
+no hover, no tap-to-expand, no new JavaScript. Chosen over an
+interactive disclosure specifically because the operator reads this
+page on a phone and "do not make basic meaning depend on desktop hover"
+was an explicit requirement; a simple visible sentence works
+identically on every device with zero extra interaction cost.
+Achievement cards' minimum grid width grew modestly (150px -> 190px,
+`.achievement-grid` only, not the shared `.stat-grid` used elsewhere on
+the page) so a sentence has room to read as a sentence rather than
+wrapping onto four cramped lines - still auto-fits to a single column
+on a narrow phone exactly as before. The existing discovery-date
+line (`unlocked_at`, already present pre-this-round) got a small
+wording polish ("Discovered Sep 5, 2026" instead of a bare ISO date) -
+no new data, no invented precision; an achievement unlocked before that
+field existed still shows the same honest fallback text as before.
+
+**Backward compatibility, verified against the actual live save, not
+just synthetic tests:** loaded this Pi's real `/var/lib/piratebox-oled/
+progression.json` (Restless Anchor's own history - real XP, real
+level, real already-unlocked achievements including one previously-
+hidden one) through the updated code with zero migration. Every
+already-discovered achievement received its new description
+automatically; XP, level, unlock timestamps, and the achievement list
+itself were byte-for-byte unaffected. No reset, no re-award, no
+identity regeneration - exactly the "old saves keep working" guarantee
+this project holds every durable-state format to.
+
+**Testing:** `tools/test_progression.py` grew from 76 to 80 assertions
+- a catalog-wide check that every achievement has a non-empty,
+mobile-length description (`_mk()`'s new required argument already
+catches a missing one at import time; this catches an accidentally
+blank or overlong one), a positive case (a discovered achievement's
+description reaches the export verbatim), a negative case (with only
+one achievement unlocked, no *other* achievement's name **or**
+description appears anywhere in the exported JSON - the specific
+regression this round was built to prevent forever), and an exact-keys
+check on the exported achievement dict (guards against a future edit
+accidentally spreading a whole catalog entry - including its `check`
+lambda - into the export instead of hand-picking safe fields).
+`tools/test_progression_web.php` grew from 26 to 32 assertions - the
+PHP parser correctly carries `description` through for both an
+ordinary and a previously-hidden discovered achievement, defaults it to
+an empty string for an entry from a not-yet-updated daemon export
+(the deploy-ordering case: PHP can land before the Python/daemon side,
+see below), and degrades a malformed non-string value to empty rather
+than crashing. Full existing regression re-run and confirmed unaffected
+- `tools/test_progression.py` (80), `tools/test_silly_mode.py` (103),
+every other `tools/test_*.php` suite (capability state, device memory,
+Field Tools, hardware wiring, reference packs, theme system - all
+green), and the unrelated OpenWebRX+ suites from the same day's earlier
+rounds (all still green, confirming this round touched nothing
+SDR-related).
+
+**Deployment - two independent tracks, since this subsystem spans both
+languages this project deploys differently:** the PHP/CSS side
+(`includes/progression.php`, `public/utility/captains-log/index.php`,
+`public/assets/styles.css`) lives under `var/www/html/` and deploys via
+the already-standing `sudo piratebox_deploy.sh` grant - no operator
+action needed. The Python side (`piratebox_progression.py`) is a
+root-owned file at `/usr/local/bin/`, imported in-process once at
+`piratebox-oled.service` startup with no hot-reload path - this is the
+same "repo vs. deployed" split OpenWebRX+'s own config already has, and
+this round added `tools/update_progression.sh` (the first such script
+for this subsystem - previous Progression work was deployed fully by
+hand) so a future update doesn't require re-deriving the same two
+commands from memory. Deliberately deploys PHP first when both are
+ready: if the operator hasn't yet run the Python-side update, the page
+simply shows achievements without their new description text (the PHP
+parser's own `is_string(...) ?: ''` default), never an error - a
+soft, honest degradation while a deploy is in progress, not a broken
+page.
+
+---
+
 ## Incident: PirateBox SSID down for hours after an ALFA USB disconnect/re-enumeration (2026-09-05) - hostapd runtime-reattachment fix
 
 **Incident date:** 2026-09-05. The PirateBox SSID stopped being visible

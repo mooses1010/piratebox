@@ -51,8 +51,8 @@ $valid = [
     'title' => 'Deckhand',
     'stats' => ['lifetime_uptime_seconds' => 86400, 'boots_observed' => 3],
     'achievements' => [
-        ['name' => 'First Full Day', 'hidden' => false, 'unlocked_at' => 1000],
-        ['name' => 'Nice', 'hidden' => true, 'unlocked_at' => null],
+        ['name' => 'First Full Day', 'hidden' => false, 'unlocked_at' => 1000, 'description' => 'Clocked a full day of running time since it was first switched on.'],
+        ['name' => 'Nice', 'hidden' => true, 'unlocked_at' => null, 'description' => 'A spoiler-safe description text.'],
     ],
     'history' => [
         ['ts' => 100, 'kind' => 'achievement', 'label' => 'Older event'],
@@ -73,6 +73,8 @@ pw_assert_eq('two achievements parsed', count($r['achievements']), 2);
 pw_assert_eq('achievement name preserved', $r['achievements'][0]['name'], 'First Full Day');
 pw_assert_eq('hidden achievement flag preserved (post-discovery, not spoiling anything new)', $r['achievements'][1]['hidden'], true);
 pw_assert_eq('unlocked_at null is preserved honestly, not fabricated', $r['achievements'][1]['unlocked_at'], null);
+pw_assert_eq('description parsed for a discovered achievement', $r['achievements'][0]['description'], 'Clocked a full day of running time since it was first switched on.');
+pw_assert_eq('description parsed for a hidden-but-discovered achievement too - same field, same rules', $r['achievements'][1]['description'], 'A spoiler-safe description text.');
 pw_assert_eq('history sorted newest-first', $r['history'][0]['label'], 'Reached level 5');
 pw_assert_eq('history second entry is the older one', $r['history'][1]['label'], 'Older event');
 pw_assert_eq('traits passed through as strings', $r['traits']['sociability'], 'Balanced');
@@ -89,6 +91,22 @@ $r = piratebox_parse_progression_public(['available' => true, 'achievements' => 
 ]]);
 pw_assert_eq('malformed achievement entries silently skipped, valid one kept', count($r['achievements']), 1);
 pw_assert_eq('the surviving entry is the valid one', $r['achievements'][0]['name'], 'Valid One');
+pw_assert_eq('an achievement entry with no description at all degrades to empty string, not a crash', $r['achievements'][0]['description'], '');
+
+// --- description field: backward compatibility with a daemon that
+// hasn't been updated yet (an old export predating this field
+// entirely) and defensive handling of a malformed value ---
+
+$r = piratebox_parse_progression_public(['available' => true, 'achievements' => [
+    ['name' => 'Pre-Update Achievement', 'hidden' => false, 'unlocked_at' => 1],  // no 'description' key at all
+]]);
+pw_assert_eq('achievement from a not-yet-updated daemon export still parses, description defaults to empty', $r['achievements'][0]['description'], '');
+pw_assert_eq('and its name/unlock still come through unaffected', $r['achievements'][0]['name'], 'Pre-Update Achievement');
+
+$r = piratebox_parse_progression_public(['available' => true, 'achievements' => [
+    ['name' => 'Bad Description Type', 'hidden' => false, 'unlocked_at' => 1, 'description' => ['not' => 'a string']],
+]]);
+pw_assert_eq('a non-string description degrades to empty string, not a crash', $r['achievements'][0]['description'], '');
 
 $r = piratebox_parse_progression_public(['available' => true, 'history' => [
     ['kind' => 'achievement'],  // missing "label" - skipped

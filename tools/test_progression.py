@@ -252,7 +252,7 @@ class AchievementTests(unittest.TestCase):
     def test_a_bad_predicate_never_crashes_the_check(self):
         s = prog._default_state()
         prog.ACHIEVEMENTS["_test_broken"] = prog._mk(
-            "Broken", 1, True, lambda s, c: 1 / 0,
+            "Broken", 1, True, "Test-only description.", lambda s, c: 1 / 0,
         )
         try:
             unlocked = prog.check_achievements(s, ctx())
@@ -265,6 +265,19 @@ class AchievementTests(unittest.TestCase):
         for aid, spec in prog.ACHIEVEMENTS.items():
             w = font_small.getbbox(spec["name"])[2]
             self.assertLessEqual(w, 128, f"{aid}: name too wide ({w}px): {spec['name']!r}")
+
+    def test_every_achievement_has_a_short_spoiler_safe_description(self):
+        """2026-09-06, Captain's Log achievement-description round: every
+        achievement must carry a non-empty, mobile-length description -
+        _mk() now requires one positionally, so a future achievement
+        added without one already fails at import time; this test also
+        catches an accidentally-blank or unreasonably-long string, which
+        a required-argument check alone wouldn't."""
+        for aid, spec in prog.ACHIEVEMENTS.items():
+            desc = spec.get("description")
+            self.assertIsInstance(desc, str, f"{aid}: description is not a string")
+            self.assertTrue(desc.strip(), f"{aid}: description is empty")
+            self.assertLessEqual(len(desc), 140, f"{aid}: description too long for a mobile card ({len(desc)} chars)")
 
     def test_hidden_curious_collection_fires_at_the_threshold_not_before(self):
         """Expression Engine v2 (2026-09-04) - ties an achievement to
@@ -699,6 +712,49 @@ class PublicSummaryTests(unittest.TestCase):
         self.assertNotIn("cooldowns", dumped)
         for aid in prog.ACHIEVEMENTS:
             self.assertNotIn(f'"{aid}"', dumped)  # the id string itself, not the name
+
+    def test_discovered_achievement_exposes_its_description(self):
+        """2026-09-06: the core positive case for the new feature - a
+        discovered achievement's safe description must actually reach
+        the public export, verbatim from its catalog entry."""
+        s = prog._default_state()
+        s["achievements"] = ["uptime_1d"]
+        summary = prog.build_public_summary(s, now=1000.0)
+        self.assertEqual(
+            summary["achievements"][0]["description"],
+            prog.ACHIEVEMENTS["uptime_1d"]["description"],
+        )
+        self.assertTrue(summary["achievements"][0]["description"])
+
+    def test_undiscovered_achievement_name_and_description_never_appear(self):
+        """2026-09-06: the core negative case - with only ONE achievement
+        unlocked, no other achievement's name or description string may
+        appear anywhere in the exported JSON, discovered or not. This is
+        the test that must keep failing if a future round ever changes
+        build_public_summary() to iterate the full catalog instead of
+        only the device's own unlocked list."""
+        s = prog._default_state()
+        s["achievements"] = ["uptime_1d"]
+        summary = prog.build_public_summary(s, now=1000.0)
+        dumped = json.dumps(summary)
+        for aid, spec in prog.ACHIEVEMENTS.items():
+            if aid == "uptime_1d":
+                continue
+            self.assertNotIn(spec["name"], dumped, f"{aid}: undiscovered name leaked")
+            self.assertNotIn(spec["description"], dumped, f"{aid}: undiscovered description leaked")
+
+    def test_exported_achievement_has_exactly_the_safe_fields(self):
+        """Guards against a future edit accidentally spreading the whole
+        catalog spec (e.g. `spec` itself, or its `check` lambda) into the
+        export instead of hand-picking safe fields - `check`/`xp` must
+        never appear on the exported dict, discovered or not."""
+        s = prog._default_state()
+        s["achievements"] = ["uptime_1d"]
+        summary = prog.build_public_summary(s, now=1000.0)
+        self.assertEqual(
+            set(summary["achievements"][0].keys()),
+            {"name", "hidden", "unlocked_at", "description"},
+        )
 
     def test_pre_existing_unlock_without_a_timestamp_shows_none(self):
         """Backward compatibility: achievements unlocked before this
