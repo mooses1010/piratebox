@@ -137,6 +137,13 @@ $rangeHighMhz = 1766;
 
             <p class="radio-live-status" id="radio-live-status" role="status" aria-live="polite"></p>
 
+            <p class="radio-live-hint muted">The receiver below also has
+                its own small <strong>&lt;</strong> / <strong>&gt;</strong>
+                buttons next to the frequency readout - those only nudge
+                within the currently shown slice (a few kHz at a time),
+                they do not move to a different band. Use the presets or
+                the frequency box above to jump broadly.</p>
+
             <div class="radio-live-frame-wrap">
                 <iframe id="radio-live-frame" src="/radio/" title="OpenWebRX+ receiver" loading="lazy"></iframe>
             </div>

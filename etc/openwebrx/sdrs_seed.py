@@ -96,7 +96,7 @@
 # its existing no-PII-exposure posture elsewhere (e.g. visitor MAC
 # addresses are never persisted - docs/DEVICE-MEMORY-DESIGN.md).
 
-version = 8
+version = 9
 
 receiver_name = "PirateBox Radio"
 receiver_location = "PirateBox"
@@ -124,6 +124,32 @@ sdrs = {
         "type": "rtl_sdr",
         "ppm": 0,
         "rf_gain": "8.7",
+        # tuning_step (2026-09-05, third human browser test round): without
+        # this, OpenWebRX+'s own stock "<"/">" frequency-nudge buttons are
+        # not broken but are completely imperceptible - confirmed live via
+        # the actual protocol, not assumed. "tuning_step" is a per-device/
+        # profile config key (owrx/connection.py's sdr_config_keys) that
+        # the frontend (htdocs/openwebrx.js) reads into its own
+        # tuning_step_default variable ONLY if the key is present in a
+        # "config" push at all; when absent (confirmed: this project's own
+        # config never set it, and a live capture of the actual "config"
+        # push showed no "tuning_step" key among 28 others present), the
+        # frontend's own hardcoded initial value silently wins instead:
+        # var tuning_step_default = 1; - one Hertz. Each "<"/">" click
+        # (openwebrx.js's tuneBySteps()) moves the demodulator's offset
+        # frequency by exactly this many Hz - at 1 Hz, an amount with no
+        # visible effect on any frequency readout and no audible effect on
+        # demodulated audio, indistinguishable from "the buttons do
+        # nothing". Not an OpenWebRX+ bug and not something broken by this
+        # project's other changes - a genuinely missing value this seed
+        # file should have set from the start. 5000 (5 kHz), device-wide
+        # like ppm/rf_gain above (this schema has no per-profile override
+        # for it) - the single most common per-mode default in OpenWebRX+'s
+        # own owrx/config/defaults.py "modes" list, small enough to stay
+        # well inside even the narrowest profile here (NOAA/CB's NFM
+        # channels) while large enough to produce a real, noticeable
+        # change in both the frequency display and demodulated audio.
+        "tuning_step": 5000,
         "profiles": {
             "noaa-weather": {
                 "name": "NOAA Weather Radio",

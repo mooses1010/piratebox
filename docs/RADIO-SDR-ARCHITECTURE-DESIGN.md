@@ -2939,4 +2939,103 @@ multi-client diagnostic draft that used more than the then-configured
 `max_clients=2` slots at once - itself part of what motivated raising
 that limit above).
 
+### 13.9 Fourth human browser test: broad retuning confirmed working - the stock `<`/`>` buttons still didn't, for an unrelated reason (2026-09-05)
+
+**Report**: with the `magic_key` fix from §13.8 applied, General SDR
+wide tuning now works correctly in the real browser - entering a
+frequency moves the receiver to the correct broad band and the visible
+spectrum follows it. The one remaining issue: OpenWebRX+'s own stock
+`<`/`>` buttons next to the frequency readout still didn't appear to
+do anything. Scoped narrowly per instruction: investigate this as a
+separate frontend/UX issue, don't touch the now-working retuning.
+
+**What these buttons are, confirmed via source**: `htdocs/index.html`
+wires them to `tuneBySteps(-1)`/`tuneBySteps(1)`
+(`htdocs/openwebrx.js`), which calls `UI.setFrequency()`
+(`htdocs/lib/UI.js`) → `demod.set_offset_frequency()`
+(`htdocs/lib/Demodulator.js`) - exactly the demodulator-offset-within-
+window mechanism identified in §13.7, not an SDR center-retune. This
+was re-confirmed, not re-assumed, before looking further.
+
+**Investigated whether the offset change happens but isn't visible,
+whether iframe/session state blocks it, or whether it's simply not
+useful - by tracing the exact numbers, not guessing**:
+`tuneBySteps()`'s math divides the current frequency by a global
+`tuning_step` variable, adds/subtracts one step, and multiplies back:
+`f = (Math.floor(f / tuning_step) + steps) * tuning_step`. That
+variable starts at a hardcoded `var tuning_step_default = 1;` (1 Hz)
+in `openwebrx.js`, and is only ever overwritten by
+`tuning_step_default = config['tuning_step'];` - i.e., only if a
+`"tuning_step"` key is present in a `"config"` push at all.
+`Demodulator.prototype.set_offset_frequency()` also independently
+bounds-checks against `±bandwidth/2` (our profiles' own
+`samp_rate`/2, ~1.024 MHz) before doing anything - ruled out as the
+blocker here since 1 Hz is trivially within that range regardless.
+
+**Confirmed empirically against the real running service (not just by
+reading source) that `tuning_step` was never actually present**: a
+protocol-level client connected, requested `dspcontrol start`, and
+logged every key present in every `"config"` push received - 28 real
+keys came through (`center_freq`, `samp_rate`, `start_freq`,
+`profile_id`, `ppm`-adjacent settings, etc.), and `"tuning_step"` was
+not one of them, on the actual `general-sdr` profile as configured
+right now. Cross-checked against `etc/openwebrx/sdrs_seed.py` and the
+live `/etc/openwebrx/config_webrx.py`: neither has ever set a
+`tuning_step` key anywhere (`grep` found zero matches in either file).
+This means the frontend's own hardcoded fallback of 1 Hz was silently
+in effect the entire time: each `<`/`>` click was moving the
+demodulator's offset by exactly one Hertz - a change with no visible
+effect on any frequency readout and no audible effect on demodulated
+audio, indistinguishable from "the buttons do nothing." **Answers all
+three of the framed questions at once**: the buttons genuinely were
+changing `set_offset_frequency()` (not broken, not blocked by
+iframe/session state), the effect just wasn't visible because it was
+1/5000th the size a human could ever notice - and once fixed, they are
+a real, useful (if narrow-scope) control, not something to hide.
+
+**Fix, in `etc/openwebrx/sdrs_seed.py` (same category as the
+`magic_key`/`max_clients` fixes in §13.8 - a plain missing config
+value, not a backend redesign and not a patch to any upstream-owned
+file)**: added `"tuning_step": 5000` (5 kHz) to the `rtlsdr` device
+dict, alongside the already-present `ppm`/`rf_gain` - device-wide like
+those two, since this schema has no per-profile override for it. 5 kHz
+matches the single most common per-mode default already present in
+OpenWebRX+'s own `owrx/config/defaults.py` "modes" list, stays well
+inside even the narrowest profile here (NOAA/CB's NFM channels, whose
+usable passband is far wider than one 5 kHz step), and is large enough
+to produce a real, noticeable change in both the frequency display and
+demodulated audio - unlike the 1 Hz it silently defaulted to before.
+
+**Verified the fix mechanism directly, without touching the live
+service or needing sudo**: rather than only reasoning about it,
+imported the actual installed `owrx.property` classes
+(`/opt/openwebrx/venv`) and replicated `SdrSource.__init__`'s own
+exact layering (mutable `center_freq` layer, active-profile layer,
+device-props layer) with a `tuning_step: 5000` device property added
+the same way `ppm`/`rf_gain` already are, then ran it through the
+literal `sdr_config_keys` filter list from `owrx/connection.py`. The
+resulting filtered view correctly includes `tuning_step: 5000`,
+through the identical code path that already, correctly, delivers
+`center_freq`/`samp_rate`/`start_freq` to real clients today - proof
+against the real classes and the real filter list, not a guess that
+the same mechanism "should" extend to one more key.
+
+**Also added, in `live.php`**: a short caption above the embedded
+receiver noting that its own `<`/`>` buttons only nudge a few kHz
+within the currently shown slice and pointing back at the presets/
+frequency box above for broad moves - chosen over hiding or disabling
+the buttons since, once the `tuning_step` fix lands, they are a
+genuinely working, useful fine-tuning control; a visitor who has just
+used the broad-tuning controls above them benefits from knowing the
+two controls do different things, not from one of them being taken
+away.
+
+**Deployment status**: like §13.8's fix, this lives only in the repo
+as of this writing - applying it needs the same operator
+`sudo tools/update_openwebrx_config.sh` step (this session has no
+standing grant for it), followed by a human browser re-check that a
+`<`/`>` click now visibly moves the frequency readout by 5 kHz and
+audibly changes the demodulated signal, without disturbing the
+already-confirmed-working broad retuning above it.
+
 ---

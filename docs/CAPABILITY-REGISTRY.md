@@ -90,7 +90,7 @@ it is.**
 | Lightning detection | Optional/Field | CANDIDATE | Integrated or Companion |
 | Radiation measurement | Optional/Field | CANDIDATE | Integrated or Companion |
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
-| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` fixed in repo (missing `magic_key`) but not yet deployed/confirmed live; Malahit path untouched/experimental) | Attachable |
+| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` confirmed live; stock `<`/`>` fine-tune buttons fixed in repo (missing `tuning_step`) but not yet deployed/confirmed live; Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
 | Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | CANDIDATE | Network Companion |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
@@ -888,19 +888,48 @@ it is.**
   `max_clients` raised from 2 to 4 (unrelated to the pinning bug, but a
   real fragility: `live.php`'s design uses two concurrent connections
   by itself, leaving no headroom under the old limit). `live.php`
-  itself needed no code change. **Not yet applied to the live
-  system** - requires `sudo tools/update_openwebrx_config.sh`, a
-  password-gated command outside this session's standing sudo grants;
-  the operator needs to run it, then a genuine human browser
-  click-through against `/utility/radio/live.php` is the actual close
-  of this capability's retuning story.
-  The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI,
-  within a single profile's fixed ~2 MHz window) is **INSTALLED** for
-  the RTL-SDR path specifically - confirmed working by both
-  protocol-level tests and a real human/browser test. **Broad,
-  visitor-driven retuning across widely-separated bands is fixed in
-  the repo but not yet confirmed live** - the fix above is
-  unapplied/unverified pending the operator step. Real unknowns remain
+  itself needed no code change. **Applied by the operator and
+  re-confirmed live**: a fourth human browser test confirmed General
+  SDR wide tuning now genuinely works - entering a frequency moves the
+  receiver to the correct broad band and the visible spectrum follows
+  it, across the presets and free-form manual entry alike.
+  **Fourth human browser test found the stock `<`/`>` frequency-nudge
+  buttons still didn't visibly do anything - a separate, unrelated bug,
+  now also fixed in the repo, awaiting the same operator deploy step
+  (2026-09-05, same day, see §13.9)**: confirmed these buttons were
+  never broken and never blocked by iframe/session state - they were
+  genuinely calling `demod.set_offset_frequency()` every click, exactly
+  as designed. The real cause: OpenWebRX+'s frontend
+  (`htdocs/openwebrx.js`) only overrides its hardcoded 1 Hz tuning-step
+  fallback when a `"tuning_step"` key is present in a `"config"` push,
+  and this project's config never set one - confirmed live by logging
+  every key in a real `"config"` push (28 keys, none named
+  `tuning_step`) and by `grep`ping both the seed file and the live
+  config file (zero matches in either). Each click was moving the
+  demodulator's offset by exactly 1 Hz - correct, but far too small to
+  see or hear, indistinguishable from doing nothing. Fixed in
+  `etc/openwebrx/sdrs_seed.py`: `"tuning_step": 5000` (5 kHz, device-
+  wide like `ppm`/`rf_gain`) added to the `rtlsdr` device dict -
+  verified by importing the actual installed `owrx.property` classes
+  and replicating `SdrSource.__init__`'s own layering directly (not
+  just reasoning about it), confirming `tuning_step` surfaces through
+  the identical filter that already delivers `center_freq`/`samp_rate`
+  to real clients. Also added a short caption in `live.php` clarifying
+  these buttons only nudge a few kHz within the current slice, pointing
+  back at the presets/frequency box for broad moves - chosen over
+  hiding/disabling them since, once fixed, they are a genuinely useful
+  narrow-scope control. **Not yet applied to the live system** - same
+  `sudo tools/update_openwebrx_config.sh` step as §13.8, and a human
+  browser re-check (a `<`/`>` click should now visibly/audibly move the
+  frequency by 5 kHz) is what actually closes this out.
+  The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
+  is **INSTALLED** for the RTL-SDR path specifically - confirmed
+  working by both protocol-level tests and a real human/browser test,
+  including **broad, visitor-driven retuning across widely-separated
+  bands, now genuinely confirmed live** (not just fixed in the repo).
+  The stock `<`/`>` fine-tuning buttons are fixed in the repo but not
+  yet confirmed live - the tuning_step fix above is unapplied/
+  unverified pending the same operator step. Real unknowns remain
   (which Malahit serial port, if either, is CAT control and in what
   protocol; why the Malahit's 40kHz audio interface won't stream;
   whether any existing SDR-software Malahit support actually applies
