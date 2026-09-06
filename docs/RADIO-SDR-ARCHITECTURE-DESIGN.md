@@ -2206,7 +2206,7 @@ any code.
 
 ---
 
-## 13. OpenWebRX+ implementation — installation, csdr build incident, and a power/load finding (2026-09-05)
+## 13. OpenWebRX+ implementation — installation, two build incidents, and a power/load finding (2026-09-05)
 
 With RTL-SDR hardware/software support proven (§3a, §3b), this section
 covers moving from investigation into an actual, reproducible
@@ -2241,7 +2241,7 @@ system gating `/settings*` (`AuthorizationMixin`), separating
 administrative SDR configuration from the open visitor receiver page
 without needing an additional nginx-level auth layer.
 
-### 13.2 csdr build failure #1 — upstream `errhead()` bug (aarch64/GCC 14)
+### 13.2 csdr build failure #1 — upstream `errhead()` bug (aarch64/GCC 14) - patch since superseded, see §13.4
 
 First live install attempt stopped during csdr compilation:
 `implicit declaration of function 'errhead'`. **Root cause,
@@ -2343,5 +2343,81 @@ actually be diagnosed from logs instead of relying on terminal
 scrollback and reasoning about what's missing from disk. Worth doing
 as its own small, deliberate, operator-approved change - not bundled
 into this OpenWebRX+ work.
+
+**Also confirmed, directly relevant to whether BUILD_JOBS=2 helped**:
+the re-run at the reduced parallelism completed the entire remaining
+build (csdr through the original `owrx_connector`/`pycsdr`/`openwebrx`
+stages) with **no second reboot**. This does not prove BUILD_JOBS=2
+fixed anything, and does not prove the original reboot was power-
+related - it is one data point in a small sample, recorded honestly as
+useful-but-inconclusive evidence, not upgraded to a claimed fix.
+
+### 13.4 csdr build failure #2 (masked by #1) — wrong upstream fork entirely
+
+With the reboot mitigated, the install completed and started
+`openwebrx.service` for the first time - which crashed immediately:
+
+```
+ImportError: cannot import name 'NoiseFilter' from 'pycsdr.modules'
+```
+
+**Root cause, confirmed by inspecting the actual installed commits and
+the real upstream repositories - not assumed from the error text
+alone**: this installer had been cloning `csdr`/`pycsdr`/
+`owrx_connector` from **jketterl's original repositories**, per the
+"Manual Package installation" wiki's own literal instructions. Those
+repositories stopped receiving updates years ago -
+`jketterl/pycsdr`'s own last-ever tag is `0.18.2`, dated **October
+2023**, confirmed by listing its tags directly (nothing newer exists).
+Meanwhile `luarvique/openwebrx` (correctly used from the start) is
+under active, current development and its own `debian/control`
+declares `python3-csdr (>= 0.18.40)` as a hard dependency - a version
+that simply does not exist anywhere in jketterl's dormant pycsdr
+history.
+
+**The actual fix, confirmed rather than guessed**: `luarvique`
+maintains his **own** actively-developed forks of `csdr`, `pycsdr`,
+**and** `owrx_connector` (all three touched within days of this
+writing, per GitHub's own repository listing for that account),
+specifically so all four components stay mutually compatible - this
+is the intended upstream dependency relationship for the OpenWebRX+
+fork this project chose, not an alternate/unofficial source. Confirmed
+directly, not inferred from version numbers alone: `NoiseFilter` is
+genuinely present in `luarvique/pycsdr`'s source
+(`pycsdr/modules.pyi`), and `luarvique/pycsdr`'s `master` branch
+exactly matches its own `0.18.40` tag - precisely satisfying
+OpenWebRX+'s declared minimum. A useful side effect: `luarvique/csdr`
+has also been substantially restructured since diverging from
+jketterl's original (modern header-based C++ under `include/*.hpp`,
+no more monolithic `libcsdr.c`/`csdr.c`) - the `errhead()`/`NEON_OPTS`
+bug patched in §13.2 does not exist anywhere in this source, so that
+patch (`etc/openwebrx/patches/csdr-errhead-neon-aarch64.patch`) has
+been removed from the repo - it no longer applies to anything this
+installer touches, and jketterl's csdr is no longer cloned at all.
+
+**Fix implemented**: the installer now clones all four components
+(`openwebrx`, `pycsdr`, `csdr`, `owrx_connector`) from `luarvique`'s
+account, each **pinned to a specific tested commit** rather than
+tracked at a moving `master` - deliberately, so a future run can't
+silently drift into a similar cross-repo incompatibility again the way
+tracking `master` independently for each component already did once.
+A shared `ensure_repo_at()` helper enforces this idempotently: if a
+source directory already exists but points at the wrong remote or the
+wrong commit - exactly the state left behind by the original
+jketterl-sourced install - it is removed and re-cloned rather than
+silently left in place. This closes a real bug the diagnosis surfaced
+in the installer's own prior idempotency logic: checking only "does
+`/usr/local/lib/libcsdr.so` exist" or "is `rtl_connector` on PATH"
+would have let an already-built, wrong-source library silently pass as
+"already installed" on a naive re-run, never actually fixing anything -
+both checks are now gated on whether the source checkout itself needed
+correcting, not just on a build artifact's bare existence.
+
+**Not Python 3.13/Trixie's fault**: checked directly rather than
+assumed innocent - the actual failure was an `ImportError` for a
+symbol that never existed in the specific (stale) compiled extension
+being imported, not a Python-version compatibility error of any kind;
+the same import would have failed identically on any Python version
+against that same wrong-source pycsdr build.
 
 ---
