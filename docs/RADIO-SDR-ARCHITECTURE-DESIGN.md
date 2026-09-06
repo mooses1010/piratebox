@@ -3822,13 +3822,101 @@ real-but-less-predictable, unbounded characteristics relative to this
 project's own controls. Upstream keyboard handling itself was not
 modified.
 
-### 15.4 Bandplan human UX verification (post-deployment - live browser/journal checks only, no RF sweep)
+### 15.4 Bandplan human UX verification (completed after the §16 outage was resolved)
 
-This subsection will be completed once the operator has run `sudo
-tools/update_openwebrx_config.sh` (§15.1's stop gate) and this session
-has confirmed the ribbon live - see §15.6 for exactly what's still
-pending versus what infrastructure/reproducibility work is already
-done and merged.
+The operator's first run of `sudo tools/update_openwebrx_config.sh`
+(§15.1's stop gate) exposed the §16 outage; after that was fixed and the
+operator re-ran the identical command, `openwebrx.service` came up
+clean (confirmed: `NRestarts=0`, `ActiveState=active`, no traceback in
+`journalctl` since that start). The following was then verified against
+the **real running service**, not re-claimed from source alone, using a
+short-lived raw WebSocket client that mirrors `live.php`'s own
+`tuneTo()` sequence exactly (handshake, `selectprofile`, `setfrequency`,
+read the server's response, close) - built to answer the instruction
+not to claim from source inspection what could instead be verified
+live.
+
+**Does it appear automatically?** No manual step needed server-side -
+the ribbon's data (`"bands"` WebSocket messages) is pushed automatically
+by `owrx/connection.py`'s existing `sendBands` wiring on every
+`center_freq`/`samp_rate` change, confirmed live. (Whether it *renders*
+in a given browser still depends on that visitor's own "Show band plan
+ribbon" checkbox/`B` key, per §15.2 - that toggle is unaffected by this
+verification and remains a client-side, per-browser preference.)
+
+**Does it follow broad center-frequency retunes, and do the four
+representative bands match the vendored data exactly?** Yes, both
+confirmed directly - four fresh connections, each selecting
+`general-sdr` and retuning to one test frequency, capturing the actual
+`"bands"` message the server pushed in response:
+
+| Requested center | `center_freq` reported back | Bands in window |
+|---|---|---|
+| 27.185 MHz | 27,185,000 Hz (exact match) | `10m`, `11m CB` |
+| 100.1 MHz | 100,100,000 Hz (exact match) | `FM Broadcast` |
+| 162.475 MHz | 162,475,000 Hz (exact match) | `VHF Marine` |
+| 1090.0 MHz | 1,090,000,000 Hz (exact match) | `ADS-B` |
+
+Every result matches this section's own prior prediction (§15.1's
+vendored data), computed independently beforehand from the raw
+`bands.json` contents rather than assumed - `11m CB` (26.965-28.0 MHz)
+plus a sliver of the adjacent `10m` ham band (28.0-29.7 MHz, overlapping
+the edge of a 2.048 MHz window centered on 27.185 MHz) at the first
+point; `FM Broadcast` (87.5-108 MHz) entirely containing the second;
+`VHF Marine` (156-174 MHz) entirely containing the third (this is also
+OpenWebRX+'s own default profile's home band - the very first
+connection opened during this verification round, before any
+`selectprofile` was even sent, already showed `VHF Marine`, matching
+`noaa-weather`'s 162.475 MHz default center); and `ADS-B` (960-1215
+MHz) at the fourth, deliberately chosen as the "substantially higher
+VHF/UHF area" the investigation round asked for. **The already-working
+broad retune (§13) shows no regression** - every requested center
+frequency came back exactly as requested.
+
+**Is `tuning_step=5000` actually live?** Yes - confirmed directly in
+the connection's first full `"config"` push (`{"type": "config",
+"value": {"tuning_step": 5000, ...}}`), captured verbatim from the real
+running service. (Subsequent delta-only config pushes after each
+`setfrequency` correctly omit `tuning_step` since it didn't change -
+this project's own property-stack change-tracking behavior, already
+documented in earlier sections, not a sign the value was lost.)
+
+**Does clicking a band label do anything?** Not investigated further
+this round - `Bandplan.js`'s `draw()` renders a plain `<canvas>` ribbon
+with no click handler anywhere in the source (confirmed by the absence
+of any pointer/click event binding on `#openwebrx-bandplan-canvas` in
+`htdocs/lib/Bandplan.js` during §14's own read of that file) - the
+ribbon is a passive label, not an interactive control, consistent with
+its purpose (context for the currently-tuned area, not a navigation
+method - navigation stays with the presets/frequency box/Previous-Next
+Spectrum/range bar, and the map page's markers for anything geographic).
+
+**Does it work with General SDR?** Yes - all four checks above used the
+`general-sdr` profile explicitly (`rtlsdr|general-sdr`), the same
+profile `live.php` itself always selects.
+
+**Any noticeable Pi/browser performance issue?** None observed:
+`vcgencmd get_throttled` stayed at the same pre-existing `0x50005`
+throughout (no new throttling event), no failed systemd units, and
+`hostapd`/`dnsmasq`/`nginx` all remained active with zero restarts
+across the entire verification session. The bandplan computation itself
+is a plain in-memory list filter (`Bandplan.findBandsInRange`) against
+51 small dicts - negligible cost regardless of the RTL-SDR's own DSP
+load.
+
+**Zoom/pan interaction - the one item this round could not verify
+live.** Zoom (wheel/pinch) and pan (drag) are pure client-side canvas
+operations with no WebSocket round-trip at all (confirmed by their
+absence from every server-side message type traced in §14/§15) - there
+is no protocol-level signal this session can observe to confirm they
+render correctly, and installing a headless browser to check visually
+was not attempted (would require a package install, outside this
+round's scope without operator sign-off). This one item genuinely still
+depends on a human glance at the receiver page - not because it wasn't
+investigated, but because nothing about it is server-observable. Their
+*mechanism* (bounded to `±bandwidth/2`, redrawing the same `bandplan`
+object on every `get_visible_freq_range()` call) was already fully
+traced against source in §14.4/§15.2 and did not change this round.
 
 ### 15.5 Explicitly not touched or reopened this round
 
@@ -4038,15 +4126,28 @@ without the schema-version mismatch.
 
 ### 16.6 Status as of this writing
 
-Fixed, tested (regression suite + real-class verification + harness
-sanity-check against the reproduced failure), and merged to `main` -
-**but not yet confirmed restoring the live service**, since that
-requires the operator to run §16.5's command. §15's Tier A completion
-claim remains open until that happens and this session has confirmed,
-live: `openwebrx.service` stays active rather than crash-looping,
-`bands.json` actually loads, `tuning_step=5000` is live, the bandplan
-ribbon renders correctly at the representative test frequencies, and
-zoom/pan continue working normally. See the closeout report for exactly
-what remains pending versus what's already fixed and merged.
+**Resolved and confirmed live.** The operator ran §16.5's recovery
+command; `openwebrx.service` came up clean and stayed active
+(`NRestarts=0`, no traceback in `journalctl` since that start,
+confirmed again after the follow-up verification session below rather
+than only at the moment of restart). §15.4 records the full live
+verification performed once the service was confirmed healthy:
+`bands.json` loads and reacts correctly to retunes, `tuning_step=5000`
+is confirmed present in a real config push, and the bandplan ribbon's
+actual server-side content matched this section's own predictions
+exactly at all four representative frequencies (27.185/100.1/162.475/
+1090 MHz), with the already-working broad retune (§13) showing no
+regression (`center_freq` echoed back exactly as requested every time).
+System health remained normal throughout (no failed units, throttle
+unchanged at the same pre-existing `0x50005`, zero restarts on
+`hostapd`/`dnsmasq`/`nginx`/`openwebrx`).
+
+**The one item this round could not verify itself**: zoom/pan/pinch
+rendering correctness is a pure client-side canvas behavior with no
+server-observable signal - this remains dependent on a quick human
+glance at the receiver page, not because it was skipped, but because
+nothing about it crosses the network. Its mechanism was already fully
+traced against source (§14.4/§15.2) and is unchanged by anything in
+this section.
 
 ---

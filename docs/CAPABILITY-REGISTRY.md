@@ -90,7 +90,7 @@ it is.**
 | Lightning detection | Optional/Field | CANDIDATE | Integrated or Companion |
 | Radiation measurement | Optional/Field | CANDIDATE | Integrated or Companion |
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
-| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` confirmed live; stock `<`/`>` fine-tune buttons fixed in repo (missing `tuning_step`) but not yet deployed/confirmed live; new PirateBox-side Previous/Next Spectrum + click-to-tune range bar added to `live.php` for hardware-window navigation, distinct from OpenWebRX+'s own tuning, pending deploy; Malahit path untouched/experimental) | Attachable |
+| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` confirmed live; stock `<`/`>` fine-tune buttons' `tuning_step=5000` fix confirmed live; PirateBox-side Previous/Next Spectrum + click-to-tune range bar confirmed live for hardware-window navigation, distinct from OpenWebRX+'s own tuning; native OpenWebRX+ bandplan ribbon confirmed live and correct at four representative frequencies after a same-day deploy outage was fixed (see doc §16); Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
 | Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | CANDIDATE | Network Companion |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
@@ -1006,8 +1006,14 @@ it is.**
   (4 tests, including a real-class dynamic check) guards against a
   third recurrence. The bandplan work itself was not rolled back - the
   crash occurs before OpenWebRX+ ever reaches the bandplan-loading code.
-  Recovery is the same one command, now safe: `sudo tools/
-  update_openwebrx_config.sh`.
+  **Operator ran the recovery command; confirmed resolved live** -
+  `openwebrx.service` stable (`NRestarts=0`), and a follow-up live
+  protocol verification (§15.4) confirmed `bands.json` loads and reacts
+  correctly to retunes, `tuning_step=5000` is live, and the bandplan
+  ribbon's content matched predictions exactly at 27.185/100.1/162.475/
+  1090 MHz with no regression to the broad-retune mechanism. Zoom/pan
+  rendering itself remains the one item needing a human glance (no
+  server-observable signal for it).
   The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
   is **INSTALLED** for the RTL-SDR path specifically - confirmed
   working by both protocol-level tests and a real human/browser test,
