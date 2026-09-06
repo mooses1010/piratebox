@@ -103,6 +103,11 @@ $rangeHighMhz = 1766;
         .radio-spectrum-map-ticks { position: relative; height: 1.4em; font-size: 0.75em; margin-top: 2px; }
         .radio-spectrum-map-ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
         .radio-spectrum-map-readout { margin: 0.4rem 0 0; }
+
+        .radio-explore-help { margin: 1rem 0; padding: 0.7rem 0.9rem; border: 1px solid var(--border-color, #ccc); border-radius: 6px; background: rgba(0,0,0,0.02); }
+        .radio-explore-help p { margin: 0 0 0.4rem; }
+        .radio-explore-help ul { margin: 0 0 0.5rem; padding-left: 1.2rem; }
+        .radio-explore-help li { margin: 0.25rem 0; }
     </style>
 </head>
 
@@ -172,15 +177,26 @@ $rangeHighMhz = 1766;
                 <p class="radio-spectrum-map-readout muted" id="radio-spectrum-map-readout"></p>
             </div>
 
-            <p class="radio-live-hint muted">The receiver below also has
-                its own small <strong>&lt;</strong> / <strong>&gt;</strong>
-                buttons next to the frequency readout, plus a "Tuning step"
-                dropdown - those move the yellow <em>demodulator</em> marker
-                a small, adjustable amount within the currently shown ~2&nbsp;MHz
-                slice. They do not move the slice itself. Use the presets, the
-                frequency box, the Previous/Next Spectrum buttons, or the bar
-                above to move the receiver's sampled window to a different
-                part of the spectrum.</p>
+            <div class="radio-explore-help">
+                <p><strong>Explore the spectrum:</strong></p>
+                <ul>
+                    <li><strong>Scroll</strong> over the receiver below to fine-tune the yellow marker;
+                        hold <strong>Shift</strong> while scrolling (or <strong>pinch</strong> on a touchscreen)
+                        to zoom the waterfall in/out.</li>
+                    <li><strong>Drag</strong> to pan, and <strong>click</strong> anywhere on the waterfall
+                        to tune to that point - all within the ~2&nbsp;MHz view currently shown.</li>
+                    <li>Check <strong>"Show band plan ribbon"</strong> in the receiver's own settings
+                        (or press <strong>B</strong>) to label amateur, broadcast, and service bands as
+                        you look around.</li>
+                    <li>To jump to a <strong>different part of the spectrum</strong>: use a preset, the
+                        frequency box, <strong>Previous/Next Spectrum</strong>, or the range bar above.</li>
+                </ul>
+                <p class="muted">The receiver's own small <strong>&lt;</strong>/<strong>&gt;</strong> buttons
+                    and "Tuning step" dropdown do the same fine-tuning as scrolling - not a different
+                    control. Its <strong>Page Up</strong>/<strong>Page Down</strong> keys also jump the
+                    window itself, in smaller (~512&nbsp;kHz) steps - handy, but less predictable near the
+                    edges of this receiver's tunable range than the controls above.</p>
+            </div>
 
             <div class="radio-live-frame-wrap">
                 <iframe id="radio-live-frame" src="/radio/" title="OpenWebRX+ receiver" loading="lazy"></iframe>

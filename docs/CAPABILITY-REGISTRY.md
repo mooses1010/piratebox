@@ -966,6 +966,29 @@ it is.**
   an undocumented `PageUp`/`PageDown` keyboard shortcut that already
   performs a genuine hardware retune under this project's current
   config. Recommended next phase and full tier breakdown in §14.7.
+  **Tier A + Tier B implemented (2026-09-06, see §15)**: vendored
+  OpenWebRX+'s own upstream `bands.json` (51 amateur/broadcast/service
+  bands, AGPLv3, byte-identical to the exact pinned `OPENWEBRX_COMMIT`,
+  full provenance in `etc/openwebrx/upstream/README.md`) into the repo
+  and wired both `tools/install_openwebrx.sh` and `tools/
+  update_openwebrx_config.sh` to deploy it to `/etc/openwebrx/
+  bands.json`, so a fresh install reproduces the native band plan
+  ribbon automatically - no OpenWebRX+ source touched, fully offline at
+  runtime, no `receiver_gps`/repeater dependency. `live.php` gained a
+  single concise "Explore the spectrum" help block, wording checked
+  against actually-traced frontend behavior (notably: mouse wheel
+  defaults to fine-tuning, not zoom - Shift+scroll or pinch zooms
+  instead). `PageUp`/`PageDown` (a real 512 kHz hardware retune, ~75%
+  overlap, no bound against this hardware's practical range) is
+  mentioned as a secondary keyboard shortcut, not promoted. New
+  regression coverage in `tools/test_openwebrx_bandplan_deploy.py`
+  (8 tests) guards the vendored file's integrity/provenance, both
+  scripts' deployment, and that `receiver_gps` stays zeroed. Applying
+  `/etc/openwebrx/bands.json` live needs the operator's `sudo tools/
+  update_openwebrx_config.sh` (same established gate as §13.8/§13.9) -
+  which, as a side effect, also finally deploys §13.9's own
+  `tuning_step` fix, discovered this round to have been committed but
+  never actually applied live.
   The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
   is **INSTALLED** for the RTL-SDR path specifically - confirmed
   working by both protocol-level tests and a real human/browser test,

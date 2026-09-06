@@ -1,8 +1,9 @@
 #!/bin/bash
 #
-# Applies etc/openwebrx/sdrs_seed.py to the live OpenWebRX+ install and
-# restarts the service - for use AFTER tools/install_openwebrx.sh has
-# already run once. Run as root: sudo bash tools/update_openwebrx_config.sh
+# Applies etc/openwebrx/sdrs_seed.py AND etc/openwebrx/upstream/bands.json
+# to the live OpenWebRX+ install and restarts the service - for use AFTER
+# tools/install_openwebrx.sh has already run once. Run as root:
+# sudo bash tools/update_openwebrx_config.sh
 #
 # WHY THIS IS SAFE AND EFFECTIVE (confirmed by reading the actual
 # installed source, not assumed): OpenWebRX+'s config is a layered
@@ -45,6 +46,14 @@ fi
 
 cp "$REPO_ROOT/etc/openwebrx/sdrs_seed.py" /etc/openwebrx/config_webrx.py
 echo "Copied etc/openwebrx/sdrs_seed.py -> /etc/openwebrx/config_webrx.py"
+
+# Band plan ribbon data (2026-09-06, docs/RADIO-SDR-ARCHITECTURE-
+# DESIGN.md section 14.3/15) - vendored verbatim from OpenWebRX+ itself
+# (see etc/openwebrx/upstream/README.md for provenance/licensing), not
+# admin-UI-editable the way the SDR/profile config above is, so always
+# safe to (re-)copy here too.
+cp "$REPO_ROOT/etc/openwebrx/upstream/bands.json" /etc/openwebrx/bands.json
+echo "Copied etc/openwebrx/upstream/bands.json -> /etc/openwebrx/bands.json"
 
 systemctl restart openwebrx
 sleep 3

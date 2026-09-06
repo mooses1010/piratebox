@@ -241,6 +241,27 @@ echo "=== [7/8] configuration ==="
 mkdir -p /etc/openwebrx
 cp "$REPO_ROOT/etc/openwebrx/openwebrx.conf" /etc/openwebrx/openwebrx.conf
 
+# Band plan ribbon data (2026-09-06, docs/RADIO-SDR-ARCHITECTURE-
+# DESIGN.md section 14.3/15): OpenWebRX+'s own native "band plan"
+# feature (owrx/bands.py, htdocs/lib/Bandplan.js) draws labeled
+# amateur/broadcast/service frequency ranges on the receiver's
+# frequency scale, but ships with nowhere for its data file to live by
+# default - confirmed by reading owrx/bands.py's own _loadBands(),
+# which looks for /etc/openwebrx/bands{region}.json (region 0 -> plain
+# "bands.json") and finds nothing unless something puts one there. This
+# is NOT a per-install/admin-editable setting the way sdrs_seed.py's
+# SDR/profile config is (no /settings admin UI exists for the band data
+# itself, only for which numbered region file to use, and this project
+# leaves that at its own default of 0/none) - so, unlike the SDR config
+# below, it is always safe to copy this file on every run, including a
+# re-run against an already-configured system. The file itself is
+# vendored verbatim from the exact OpenWebRX+ commit this script pins
+# (OPENWEBRX_COMMIT above) - see etc/openwebrx/upstream/README.md for
+# full provenance/licensing. Loading it needs no network access at
+# runtime (a plain local JSON read) and does not touch receiver_gps,
+# EiBi, or repeater data at all.
+cp "$REPO_ROOT/etc/openwebrx/upstream/bands.json" /etc/openwebrx/bands.json
+
 # Seed the SDR/profile configuration exactly once - re-running this
 # script must not clobber any configuration the operator has since
 # changed via OpenWebRX+'s own /settings web UI. To apply a LATER

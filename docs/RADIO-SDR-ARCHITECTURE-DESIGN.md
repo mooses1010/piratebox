@@ -3573,3 +3573,274 @@ Spectrum, the range-bar navigator) was not touched and is not affected by
 anything in this section.
 
 ---
+
+## 15. Implementing §14's Tier A + Tier B recommendation: native bandplan ribbon + discoverable navigation help (2026-09-06)
+
+Following §14's investigation, this round implemented the two
+recommended, lowest-risk tiers: enabling OpenWebRX+'s own native
+bandplan ribbon with its bundled upstream data (Tier A), and adding
+concise, verified navigation help to `live.php` (Tier B). **Nothing from
+§13's human-validated broad-retuning UX was touched.** No RTL-SDR
+sample rate, gain, receiver profile, `magic_key`, `max_clients`, or
+`receiver_gps` value was changed. No OpenWebRX+ source/frontend file
+was modified.
+
+### 15.1 Tier A - re-verified before touching anything, then implemented as vendored upstream data
+
+Before copying anything, §14.3's claims were re-confirmed directly
+against the live system (not re-assumed from the prior round's own
+report):
+
+- **Exact source path**: `/opt/openwebrx/src/openwebrx/bands.json`, in
+  the local build checkout of `https://github.com/luarvique/
+  openwebrx.git`. Confirmed (after scoping git's dubious-ownership
+  check to just that one directory, not a global config change) that
+  this checkout's `HEAD` is **exactly** `2d60e894d0889382d2eb0574a19f
+  027f8504dcfa` - the same hash already pinned as `OPENWEBRX_COMMIT` in
+  this project's own `tools/install_openwebrx.sh`, with a clean `git
+  status` on `bands.json` itself (no local modification) - so the file
+  copied is genuinely what this exact pinned install would rebuild
+  from, not an assumption.
+- **Expected installed/config path**: confirmed by reading `owrx/
+  bands.py`'s `Bandplan.__init__`/`_loadBands()` directly -
+  `self.fileList = ["/etc/openwebrx/bands{0}.json", "bands{0}.json"]`,
+  tried in that order, with `{0}` replaced by `""` when
+  `bandplan_region <= 0`. Target path: **`/etc/openwebrx/bands.json`**.
+- **Matches `bandplan_region=0`**: confirmed - `bandplan_region` is
+  absent from the live `/etc/openwebrx/config_webrx.py` (grep, zero
+  matches) so OpenWebRX+'s own default of `0` (`owrx/config/
+  defaults.py:445`) applies, which is exactly the region-file suffix
+  that resolves to plain `bands.json` (not `bands-r1/2/3.json`).
+- **Loading mechanism**: `_loadBands()` is a plain local `open()` +
+  `json.load()` - no HTTP client, no network import anywhere in
+  `owrx/bands.py`. **Confirmed fully offline at runtime.** It also
+  hot-reloads on file-modification-time change (`_refresh()`,
+  compared against `self.file_modified` on every query) - a service
+  restart is not strictly required for OpenWebRX+ to notice a new/
+  changed `bands.json`, though this round's deployment restarts the
+  service anyway as part of the existing, already-established
+  `update_openwebrx_config.sh` flow.
+- **No OpenWebRX+ source modification required**: confirmed - this is
+  a pure data-file placement into a path the installed code already,
+  unconditionally checks; zero lines of `owrx/`/`htdocs/` code were
+  touched.
+- **End-to-end reactivity, traced beyond §14.3's own claim**: `owrx/
+  connection.py`'s `sendBands()` is wired via `stack.filter("center_
+  freq", "samp_rate").wire(sendBands)` - i.e. it fires and pushes a
+  fresh `{"type": "bands", "value": [...]}` WebSocket message to every
+  connected client **automatically, whenever `center_freq` changes for
+  any reason** - a `live.php` preset, the manual frequency box,
+  Previous/Next Spectrum, the range bar, or even native `PageUp`/
+  `PageDown` (§15.3). The frontend's own message handler (`case
+  "bands": bandplan.update(json['value']);`) redraws the ribbon on
+  receipt, and `Bandplan.prototype.draw()` separately redraws on every
+  waterfall zoom/pan against `get_visible_freq_range()`. **This means
+  the ribbon requires no PirateBox-side wiring at all to follow this
+  project's own broad-retuning controls - it was already designed by
+  OpenWebRX+ to react to exactly this.**
+
+**No replacement bandplan was hand-authored.** The exact file was
+copied byte-for-byte (`sha256sum` matched against the source-tree
+original both before and after copying) into this repo at
+`etc/openwebrx/upstream/bands.json`, with `etc/openwebrx/upstream/
+README.md` recording full provenance: source repo, exact commit,
+license (OpenWebRX+/`luarvique/openwebrx` is AGPLv3 - `LICENSE.txt` in
+that repository - the same license already covering the rest of this
+project's OpenWebRX+ install; vendoring one of its own data files
+raises no new licensing question beyond what already applies to
+running it), and an explicit "do not hand-edit this file" note pointing
+any future PirateBox-curated band/service annotations at a separate,
+clearly-PirateBox-authored file instead (consistent with the Universal
+-> country -> region -> local -> live content model in `docs/
+REFERENCE-CONTENT-DESIGN.md`, which this vendored file deliberately
+stays out of - it's the generic upstream default, not a PirateBox
+content tier).
+
+**Actual contents** (read directly, not assumed): 51 named bands -
+amateur radio allocations (`160m` through `3cm`), shortwave/AM/FM
+broadcast bands, and public/service allocations (`11m CB`, `PMR446`,
+`GMRS462`/`GMRS467`, `ADS-B`, `VHF Air`, `VHF Marine`, LPD433, ISM
+bands). **No country-specific channelization, no repeater data, no
+geographic dependency of any kind** - this is OpenWebRX+'s own generic,
+region-independent default, which is why region `0` (already this
+project's own default) was the correct choice to preserve, not a
+region-1/2/3 variant tied to a specific part of the world.
+
+**Reproducibility**: wired into both `tools/install_openwebrx.sh`
+(fresh installs - added right after the existing `openwebrx.conf` copy
+in the "configuration" step) and `tools/update_openwebrx_config.sh`
+(existing installs). Unlike `sdrs_seed.py`'s SDR/profile config, which
+is deliberately seeded only once (to avoid clobbering an operator's own
+`/settings` admin-UI changes), this file is copied unconditionally on
+every run of either script - confirmed safe because no admin-UI editor
+for the band *data* exists anywhere in the installed frontend (only
+`bandplan_region`, a numeric region selector, is admin-editable, and
+this project deliberately leaves it at its own default). A fresh
+install now reproduces the ribbon automatically; nobody needs to
+remember a manual copy step.
+
+**Deployment status**: writing to `/etc/openwebrx/bands.json` requires
+root, the same gate as every prior `/etc/openwebrx/` change in this
+project. `tools/update_openwebrx_config.sh` already existed for exactly
+this purpose (§13.8) and was extended, not replaced, to also deploy
+this file - **one unchanged command for the operator**: `sudo tools/
+update_openwebrx_config.sh`, run from the repo root. **Incidentally,
+re-running this script also finally applies §13.9's own `tuning_step:
+5000` fix**, discovered via a direct diff against the live config
+during this round: the live `/etc/openwebrx/config_webrx.py` is still
+at `version = 8` and is missing the entire `tuning_step` block that
+`etc/openwebrx/sdrs_seed.py` has carried since §13.9 - that fix was
+committed but, it turns out, never actually deployed (the operator's
+own subsequent confirmation that `<`/`>` worked came from manually
+changing OpenWebRX+'s in-browser "Tuning step" dropdown themselves,
+which is real and independent, per §13.10 - but a new visitor who never
+touches that dropdown is, right now, still getting the original 1 Hz
+default). This was not reopened or redesigned - the already-committed
+§13.9 fix is simply about to be deployed for the first time, as a
+side effect of the one command this round also needs.
+
+### 15.2 Tier B - navigation help, wording checked against actual traced behavior before writing anything
+
+Per instruction, exact behavior was verified in `htdocs/openwebrx.js`/
+`htdocs/lib/UI.js` before choosing wording - one assumption in the
+original request turned out to be backwards:
+
+- **Mouse wheel default is TUNE, not zoom.** Traced `canvas_mousewheel()`
+  precisely: `zoom_me = (rightMouseDown || shiftKey) ? !getWheelSwap()
+  : getWheelSwap()`, with `UI.getWheelSwap()` defaulting to `false`
+  (`UI.js:38`, unless a visitor's own browser previously changed the
+  "Hold mouse wheel down to tune" setting, stored in that browser's
+  `localStorage`). With the default `false`: plain scrolling calls
+  `tuneBySteps()` (fine-tunes the demodulator by one tuning step -
+  **not** zoom), and it's specifically **Shift+scroll, or holding the
+  wheel/right mouse button down while scrolling**, that calls
+  `zoom_step()`. `live.php`'s help text was written to match this
+  actual default, not the originally-assumed "wheel = zoom."
+- **Touch pinch-to-zoom**: confirmed wired (`process_touch()` tracks
+  two simultaneous touch points and computes a zoom ratio from the
+  distance between them) - included as stated.
+- **Drag-to-pan**: confirmed explicitly bounded in code to `±bandwidth/
+  2` around `center_freq` (`canvas_mousemove()`) - cannot show spectrum
+  outside the current window, matching the "do not imply zooming
+  exposes frequencies not currently sampled" instruction.
+- **Click-to-tune on the waterfall**: confirmed - a plain click (not a
+  drag) calls `UI.setFrequency(UI.getFrequency(get_relative_x(evt)))`,
+  the same offset-only, window-bounded mechanism as everything else in
+  the stock frontend (§14.1/§14.4). Included, since it's real and
+  already proven, not assumed.
+- **Band plan ribbon toggle**: confirmed a real, visible settings-panel
+  checkbox exists - `htdocs/index.html`'s `#openwebrx-bandplan-checkbox`,
+  labeled **"Show band plan ribbon"** in the receiver's own Display
+  settings, alongside the `B` keyboard shortcut. It defaults **off**
+  (`UI.bandplan = false`, restored from that browser's own
+  `localStorage` if previously toggled) - a new visitor needs to be
+  told about it, or the newly-populated ribbon (§15.1) would go
+  unnoticed. Both the checkbox and the `B` shortcut are mentioned.
+
+The final `live.php` block (a single bordered "Explore the spectrum"
+callout, not scattered paragraphs) reads:
+
+> **Explore the spectrum:**
+> - Scroll over the receiver below to fine-tune the yellow marker; hold
+>   Shift while scrolling (or pinch on a touchscreen) to zoom the
+>   waterfall in/out.
+> - Drag to pan, and click anywhere on the waterfall to tune to that
+>   point - all within the ~2 MHz view currently shown.
+> - Check "Show band plan ribbon" in the receiver's own settings (or
+>   press B) to label amateur, broadcast, and service bands as you look
+>   around.
+> - To jump to a different part of the spectrum: use a preset, the
+>   frequency box, Previous/Next Spectrum, or the range bar above.
+>
+> *The receiver's own small `<`/`>` buttons and "Tuning step" dropdown
+> do the same fine-tuning as scrolling - not a different control. Its
+> Page Up/Page Down keys also jump the window itself, in smaller
+> (~512 kHz) steps - handy, but less predictable near the edges of this
+> receiver's tunable range than the controls above.*
+
+This replaces the narrower `<`/`>`-only hint paragraph added in §13.9
+(that specific correction is now folded into the broader callout, not
+lost). No new JavaScript was added for this - it's static help text
+next to controls that already exist, matching the "reuse OpenWebRX+'s
+native capability, don't reinvent the frontend" instruction.
+
+### 15.3 PageUp/PageDown, inspected precisely before deciding how prominently to present it
+
+Exact mechanism (`htdocs/openwebrx.js`'s `jumpBySteps()`):
+
+```js
+function jumpBySteps(steps) {
+    var f = center_freq + steps * bandwidth / 4;
+    if (f >= 0) {
+        ws.send(JSON.stringify({"type": "setfrequency", "params": {"frequency": f, "key": key}}));
+    }
+}
+```
+
+- **Step size**: exactly `bandwidth / 4` - at this project's 2.048 Msps
+  profiles, **512 kHz per press**. This is a real, immediate hardware
+  retune (the identical `setfrequency` protocol message §13.6-§13.10's
+  own `live.php` mechanism uses), not a demodulator offset.
+- **Overlap**: 512 kHz is exactly a quarter of the 2.048 MHz sampled
+  width, leaving **75% overlap** between consecutive presses -
+  substantially more conservative/overlap-preserving than `live.php`'s
+  own Previous/Next Spectrum (1.5 MHz shift, ~27% overlap). Overlap is
+  preserved either way; PageUp/PageDown is simply finer-grained,
+  needing about 3 presses to cover the same ground as one Previous/Next
+  Spectrum click.
+- **General SDR profile fit**: sensible - `bandwidth` here is always
+  `general-sdr`'s own `samp_rate` (2.048 MHz), so the step scales
+  correctly with whatever profile is active; nothing in this mechanism
+  is General-SDR-specific or broken by our profile choice.
+- **Bounds risk, confirmed by reading the whole function**: `f >= 0` is
+  the **only** check - there is no upper bound, and critically, **no
+  check against this hardware's own practical ~24-1766 MHz range** the
+  way `live.php`'s own controls deliberately clamp (`RANGE_LOW_HZ`/
+  `RANGE_HIGH_HZ` in `live.php`'s JS). Repeated PageUp presses can walk
+  the requested center frequency past 1766 MHz (or, for PageDown, down
+  near/below 24 MHz) with no warning - the R820T tuner would simply
+  fail to produce a usable signal there (already documented, `sdrs_
+  seed.py`'s own general-sdr profile comment: "tuning outside that
+  range will not damage anything - the tuner simply fails to produce a
+  usable signal"), not a safety issue, but a worse experience than this
+  project's own bounded controls.
+- **Conflict with Previous/Next Spectrum**: none structurally - both
+  ultimately call the identical `setfrequency` mechanism against the
+  same shared receiver, so whichever fires last simply wins, the same
+  way any two of `live.php`'s own controls (or a second browser tab)
+  would already interact. The one caveat already documented in §13.10
+  applies unchanged: `live.php`'s own `currentCenterHz` JS tracker only
+  learns about a frequency change made through some *other* path (a
+  keyboard press inside the iframe, a different client) on this page's
+  own next successful tune, not immediately - not a regression
+  introduced by this round.
+
+**Decision, per instruction**: mentioned as a **secondary keyboard
+shortcut**, in the smaller italic note beneath the primary bullet list,
+not promoted to a primary navigation method - consistent with its
+real-but-less-predictable, unbounded characteristics relative to this
+project's own controls. Upstream keyboard handling itself was not
+modified.
+
+### 15.4 Bandplan human UX verification (post-deployment - live browser/journal checks only, no RF sweep)
+
+This subsection will be completed once the operator has run `sudo
+tools/update_openwebrx_config.sh` (§15.1's stop gate) and this session
+has confirmed the ribbon live - see §15.6 for exactly what's still
+pending versus what infrastructure/reproducibility work is already
+done and merged.
+
+### 15.5 Explicitly not touched or reopened this round
+
+`etc/openwebrx/sdrs_seed.py`'s `receiver_gps` (still `{"lat": 0, "lon":
+0}`), `magic_key` (still `""`), `max_clients` (still `4`), all three
+receiver profiles, RTL-SDR sample rate/gain, `live.php`'s existing
+`tuneTo()`/Previous-Next-Spectrum/range-bar mechanics, and every
+OpenWebRX+ source/frontend file. EiBi, repeater/location work, and the
+deferred scan/stitch overview were not started. A regression test
+(`tools/test_openwebrx_bandplan_deploy.py`) specifically guards
+`receiver_gps` staying zeroed as part of this change, since the
+bandplan work sits right next to that boundary in the same config file
+without needing to cross it.
+
+---
