@@ -1145,6 +1145,18 @@ commented at 20 — far too high to start with on this hardware).
 
 ## 5. Browser SDR software comparison
 
+> **2026-09-06 pointer**: this section predates OpenWebRX+'s actual
+> installation and was written through a *Malahit-hardware-support*
+> lens (the table below evaluates candidates partly on Malahit
+> compatibility, which turned out not to matter - the RTL-SDR path is
+> what's actually in production). **§17 revisits this exact question
+> from scratch**, post-installation, through an RTL-SDR + "how close
+> can we get to the Twente WebSDR UX" lens, with fresh 2026-09-06
+> research (current maintenance status, licensing, ARM/Pi evidence) and
+> a KEEP decision. Read §17 for the current answer; this section
+> remains as history of the pre-installation reasoning, not a
+> contradicting or superseding-in-place claim.
+
 **OpenWebRX+ (`luarvique/openwebrx`) remains the recommended candidate
 for the software layer, provisionally** — the only one that is
 simultaneously actively maintained, Trixie-aware, and has any Malahit-
@@ -4149,5 +4161,379 @@ glance at the receiver page, not because it was skipped, but because
 nothing about it crosses the network. Its mechanism was already fully
 traced against source (§14.4/§15.2) and is unchanged by anything in
 this section.
+
+---
+
+## 17. Architecture checkpoint: is OpenWebRX+ still the right backend, now that we know what we know? (2026-09-06, research/design only)
+
+**Trigger**: after §13-§16 closed out the broad-retuning and native-
+bandplan work, the operator asked for a deliberate pause before
+investing further effort - specifically, whether the University of
+Twente WebSDR (the UX inspiration behind §14's investigation) or any
+other actively-maintained SDR web stack would get PirateBox
+substantially closer to that experience than the current OpenWebRX+ +
+PirateBox integration already does. **Nothing was installed, removed,
+replaced, or reconfigured this round.** Live `openwebrx.service`, RF
+settings, sample rate, gain, and `receiver_gps` were not touched.
+
+**Provenance tags used in this section** (distinct from the hardware-
+specific tags in this document's own key above, since this section is
+about software/architecture, not physical unit identification):
+- **[PIRATEBOX-LIVE]** — verified directly against this project's own
+  running system or repo this session.
+- **[UPSTREAM-SOURCE]** — verified by reading an upstream project's own
+  repository/commit history/README/docs directly.
+- **[EXTERNAL-DOCUMENTED]** — a named external source (project site,
+  news coverage) states this, but wasn't independently re-derived here.
+- **[INFERENCE]** — a reasoned conclusion from the above, not itself
+  independently confirmed.
+- **[SPECULATIVE]** — a forward-looking idea, explicitly not a claim
+  about present fact.
+
+### 17.1 What Twente actually runs, and whether we can legitimately run it [EXTERNAL-DOCUMENTED]
+
+Authoritative sources: `www.websdr.org` (background/FAQ) and Pieter-
+Tjerk de Boer's (PA3FWM) own technical page at
+`www.pa3fwm.nl/projects/sdr/`; the live receiver is
+`http://websdr.ewi.utwente.nl:8901/`. First WebSDR ever, deployed
+Christmas Eve 2007 at the University of Twente's ETGD amateur radio
+club, publicly announced April 2008.
+
+**Distribution status - directly conflicting statements on the same
+site, resolved in favor of the more specific/current one**:
+`background.html` says the software "is made available to anyone
+serious about setting up a server," but `faq.html` states plainly:
+*"I have tentatively stopped distributing the software, for a number
+of reasons, one being that the latest distributable version I've made
+is rather outdated."* The last distributed version is named
+**"dist11"**; access today is granted only by emailing PA3FWM directly
+with a legitimate case for running a public, websdr.org-listed node -
+never a public download link. **Conclusion: the actual WebSDR server
+software is not publicly/freely distributable today.** A third-party
+GitHub mirror (`FarnhamSDR/websdr`) appears to exist as a copy handed
+to one vetted operator; per this round's own instruction not to
+scrape/reverse-engineer non-redistributable code, its contents were
+not examined - only its existence was noted as corroborating evidence
+that "dist11" is real.
+
+**Even setting distribution aside, running it on our hardware would be
+a downgrade, not an upgrade** - the FAQ states RTL-SDR dongles ARE a
+supported input ("though with dynamic range limitations"), and gives a
+direct ARM performance figure: **"The RPi3 handles approximately 1 MHz
+bandwidth; RPi4 manages 2 MHz."** Our current OpenWebRX+ setup already
+runs at 2.048 Msps on this exact Pi 3B+ - matching what Twente's own
+FAQ says a *Pi 4* achieves, not a Pi 3. **There is no legitimate,
+practical path to running the real Twente stack on this hardware, and
+no reason to want to even if one existed.**
+
+### 17.2 What makes Twente's huge live spectrum possible [EXTERNAL-DOCUMENTED]
+
+Custom hardware, not server software: an LTC2216 14-bit ADC clocked at
+77.76 MHz feeding a Xilinx Spartan XC3S500E FPGA, which implements
+multiple digital down-converters (DDCs - 4 initially, later 8) so
+several independent tuned sub-bands can be extracted **before** the
+data ever reaches a PC over Gigabit Ethernet (raw 77.76 Msps ADC output
+far exceeds what GigE/a PC could otherwise carry). GPU acceleration on
+the server side later widened the browser-tunable span from 9.7 MHz
+(2010) to 29.1 MHz (2012). **This is squarely Category B (§17.5) -
+hardware-limited, not a software/architecture choice** - no server
+software running on our RTL-SDR (max ~3.2 Msps, no onboard FPGA
+channelizer) can reproduce it, matching this project's own long-
+standing "don't fake simultaneous wideband" principle from §13.9/§14.
+
+**Data vs. software, kept distinct as asked**: Twente's own FAQ
+confirms its shortwave/HF station labels come from **EiBi**
+(eibispace.de, already investigated in §14.2) and longwave/mediumwave
+data is manually curated, cross-checked against `mwlist.org`. This
+confirms EiBi is a legitimate, freely-referenceable *dataset*
+independent of PA3FWM's non-distributed server - but doesn't change
+§14.2's own finding that EiBi is 99.93% below this project's
+receivable range and therefore not worth pursuing further here.
+
+### 17.3 Which parts of the Twente experience are realistically reproducible with our RTL-SDR [PIRATEBOX-LIVE + INFERENCE]
+
+Already reproduced, confirmed working on this exact system (§13-§16):
+zoom (wheel/pinch), pan (drag), click-to-tune, a labeled bandplan
+ribbon, a real hardware center-retune path (presets/manual entry/
+Previous-Next-Spectrum/log-scale navigator, plus OpenWebRX+'s own
+native `PageUp`/`PageDown`), and native bookmark/marker/map
+infrastructure (though its two richest data sources, EiBi and
+repeaters, are genuinely not useful for our range/privacy posture
+respectively - §14.2). This is essentially the full Category A list
+(§17.5) already delivered. What Twente has that we structurally cannot
+- simultaneous live coverage of widely-separated bands at once - is
+Category B, addressed only by different hardware, not by any server
+software choice (§17.2).
+
+### 17.4 Disambiguating projects named "WebSDR," and the broader alternatives survey [UPSTREAM-SOURCE + EXTERNAL-DOCUMENTED]
+
+- **`wavelet-lab/websdr`** - unrelated name collision; a WebUSB tooling
+  library for browser-SDR access, not a server/waterfall/demod
+  platform. Not comparable.
+- **`ha7ilm/openwebrx`** - the *original* OpenWebRX (2014), archived by
+  its own owner Jan 13, 2020 - the ancestor jketterl later took over.
+- **`reynico/raspberry-websdr`** - a narrow, single-station config repo
+  (RTL-SDR + GPIO-switched dual-band antenna relay), not a general-
+  purpose platform, no license found. Not a candidate.
+- **`jketterl/openwebrx` (upstream OpenWebRX)** - directly checked:
+  **last commit October 9, 2023**, last release 1.2.2. Confirmed
+  dormant for ~3 years as of this research. Secondary sources (not
+  jketterl directly) describe `luarvique/openwebrx` (OpenWebRX+, our
+  own baseline) as the de facto active successor.
+- **`luarvique/openwebrx` (OpenWebRX+, our baseline)** - AGPL-3.0,
+  confirmed actively releasing into 2026 (our own pin, v1.2.123, sits
+  on this active line). **Remains the most active project in the
+  entire OpenWebRX family by a clear margin.**
+- **ShinySDR** (`kpreid/shinysdr`) - GPL-3.0, GNU-Radio-based, has a web
+  UI. **Directly checked: last commit July 21, 2020** - over 5 years
+  stale. Its own README calls it "in development, usable but
+  incomplete." No ARM/Pi documentation. **Confirmed dead, not viable.**
+- **SDR++** (`AlexandreRouma/SDRPlusPlus`) - actively maintained, but
+  its own README confirms it is a desktop ImGui application; its
+  "server" mode is a protocol for one SDR++ desktop instance to feed
+  another, **not a browser web UI at all**. Categorically inapplicable
+  regardless of hardware.
+- **KiwiSDR** (`jks-prv/KiwiSDR`) - open-source software, but locked to
+  a specific BeagleBone+Xilinx-FPGA+14-bit-ADC board (the same
+  *category* of solution as Twente's own custom hardware) - confirmed
+  via its own README to have **no generic RTL-SDR support at all**.
+  Hardware-incompatible outright.
+- **SpyServer/WebSpy** (Airspy ecosystem) - supports RTL-SDR as a
+  streaming source, and a newer browser-based "WebSpy" frontend exists
+  (demonstrated with a networked Pi 5), but **no primary-source
+  confirmation of an open, self-hostable license was found** - flagged
+  as an unresolved unknown, not recommended either way without further
+  licensing research (which would itself need to happen before any
+  hardware prototype, since an unclear/proprietary license would rule
+  it out regardless of technical fit).
+- **PhantomSDR-Plus** (`sv1btl/PhantomSDR-Plus`) - GPL-3.0, genuinely
+  active (v3.9.0), C++ backend/Svelte frontend, real RTL-SDR support
+  (documented at 2.048 Msps in its own example config) alongside
+  wideband hardware (RX-888, Airspy HF+, SDRplay RSP1A, HackRF). Its
+  whole value proposition is wideband simultaneous spectrum, which
+  needs RX-888-class hardware we don't have; its own documented CPU
+  benchmarks are all desktop-class (a Ryzen 5 2600 and an Intel
+  i5-6500T), with no ARM/Pi build instructions anywhere in its
+  INSTALL.md (Ubuntu/Debian/Fedora/Arch/openSUSE only) and only an
+  unofficial forum mention of "Raspberry Pi 5" (a much more powerful
+  board than our Pi 3B+, and not a documented/supported configuration
+  either way).
+- **No-SDR** (`gbozo/no-sdr`) - the most relevant new find. MIT
+  licensed, Go + Node.js, WebSocket transport, custom ~10:1 lossless
+  FFT compression + Opus audio, supports WFM/NFM/AM/AM-stereo(exp.)/
+  USB/LSB/CW/raw-IQ, multiple simultaneous RTL-SDR dongles (local or
+  via `rtl_tcp`), no runtime cloud dependency except an *optional*
+  song-ID API key. README explicitly states **"runs on ARM64, tested
+  on Pi 4/5"** - **Pi 3B+ is not mentioned as tested anywhere.**
+  Announced via rtl-sdr.com **May 28, 2026** - about three months old
+  as of this research; 219 commits, 72 stars, 4 open issues, one named
+  solo maintainer, its own TODO.md flags a pending "3.0.0" and marks
+  several features experimental. **Its TODO.md contains no mention of
+  band-plan annotation or bookmark features at all** - on the exact
+  axis this whole investigation is about, it currently has *less* than
+  what our OpenWebRX+ setup already has working today.
+- **`9A4AM/openwebrx`** - checked directly and found to be 2 commits and
+  a single uploaded zip file, not a genuine fork despite surfacing in
+  search as a claimed "active branch." Not a real candidate.
+
+### 17.5 Category split: software/UX vs. hardware-limited vs. honest approximation [INFERENCE, grounded in §17.1-§17.4]
+
+**A. Software/UX - achievable with our hardware, and already largely
+achieved** (§13-§16): annotations/labels (native bandplan ribbon),
+bookmarks (native, though our two richest possible data sources are
+each ruled out for unrelated reasons - range mismatch for EiBi,
+privacy posture for repeaters), click-to-tune, zoom, pan, hardware
+center-frequency navigation (presets, manual entry, Previous/Next
+Spectrum, log-scale range bar, native `PageUp`/`PageDown`). Nothing
+found in this round's research suggests any other project delivers
+more of this category than what we already have running.
+
+**B. Hardware-limited - genuinely not achievable with an RTL-SDR,
+regardless of software**: simultaneous live coverage of widely-
+separated bands at once. Every project capable of that (Twente's own
+hardware, KiwiSDR, PhantomSDR-Plus's real advantage) achieves it via a
+wideband ADC + FPGA/GPU channelizer - a different hardware tier, not a
+different software choice. No amount of OpenWebRX+ configuration or a
+backend switch changes this.
+
+**C. Honest approximations - explicitly NOT built this round**:
+sequential `rtl_power`-style sweep, a cached/stitched historical
+overview, clicking a cached region to retune the live receiver. §14.6
+already assessed this as technically feasible later (using
+already-installed `rtl_power`) but non-trivial to do honestly (idle-
+only device sharing, explicit non-live labeling, real dwell-time
+budgeting on a Pi 3B+) - still correctly deferred, not reopened here.
+
+### 17.6 How much of our existing SDR work is portable, audited directly against this repo [PIRATEBOX-LIVE]
+
+Read every SDR-related file in the repo to answer this precisely, not
+by estimate:
+
+**OpenWebRX+-specific** (would need rewriting against a different
+backend's own protocol/config format): `etc/openwebrx/` in its
+entirety (`sdrs_seed.py`, `openwebrx.conf`, the vendored
+`upstream/bands.json`) - OpenWebRX+'s own config file formats;
+`tools/install_openwebrx.sh`/`tools/update_openwebrx_config.sh` -
+OpenWebRX+-specific install/update logic (though the *pattern* of "one
+idempotent script, dry-run-first, restart-and-verify" is itself
+reusable, per this project's own established deploy discipline); the
+two new regression tests tied to OpenWebRX+ internals
+(`tools/test_openwebrx_bandplan_deploy.py`,
+`tools/test_openwebrx_config_version.py`); and, **within
+`var/www/html/public/utility/radio/live.php` specifically, exactly 9
+lines** (grep-counted) that speak OpenWebRX+'s own WebSocket protocol
+directly - the `SERVER DE CLIENT`/`CLIENT DE SERVER` handshake strings,
+the `selectprofile`/`setfrequency` JSON message types, and the
+`127.0.0.1:8073` port number.
+
+**PirateBox-generic, confirmed by direct grep across the entire
+`var/www/html/` tree** - OpenWebRX+ is referenced **nowhere outside
+that single file**: the `/utility/radio/` page structure and static
+Radio Reference content (`index.php`, `antenna-types.svg.php`,
+`connectors.svg.php`, `spectrum.svg.php` - zero OpenWebRX+ references,
+confirmed); the entire curated reference-data set at
+`var/www/html/data/utility/radio/*.json` (sources, signal
+identification, services, modulation, guides); the broad-navigator/
+presets/hardware-retune-button *UX concepts* in `live.php` (the
+overlap-preserving shift math, the log-scale range-bar math, the
+reachability-probe-then-graceful-degradation pattern, the help-text
+approach) - all backend-agnostic ideas that would need their
+`tuneTo()`-equivalent internals swapped for a new protocol, not a
+redesign; the nginx reverse-proxy pattern in
+`etc/nginx/openwebrx-location.conf` (loopback-bound backend + nginx as
+the only public path, with WebSocket-upgrade support and a long
+`proxy_read_timeout`) - confirmed to be a generic pattern, not an
+OpenWebRX+-specific requirement, since nothing in it depends on
+OpenWebRX+'s own behavior beyond "an HTTP+WS service on a local port";
+the `openwebrx.service` systemd unit's own *isolation pattern*
+(standalone unit, no `Requires=`/`BindsTo=` in either direction against
+core PirateBox services, matching `docs/ARCHITECTURE.md` §2's optional-
+capability rule) - reusable for literally any backend service; the
+whole "optional capability, degrade gracefully" wiring already present
+in `includes/capability_state.php`, `includes/travel_mode.php`, and
+`includes/metrics.php` - none of which mention OpenWebRX+ by name; and
+every RTL-SDR hardware-characterization finding (§3a/§3b: chip
+identification, manual-gain-vs-AGC-overload finding, validated sample
+rates, ~24-1766 MHz practical tuning range) - facts about the *dongle*,
+true regardless of which server software drives it.
+
+**Conclusion: we have not painted ourselves into an OpenWebRX+
+corner.** The overwhelming majority of the actual PirateBox-authored
+SDR work - the content, the UX concepts, the privacy/Travel-Mode
+posture, the optional-capability wiring, the hardware findings - is
+already backend-agnostic by construction, not by luck. A future backend
+change (if one were ever justified) would mean rewriting one function's
+internals in one file, replacing `etc/openwebrx/` with an equivalent
+config layer, and replacing the two install scripts - a real but
+narrowly-scoped migration, not a rebuild.
+
+### 17.7 Comparison matrix - the realistic candidates only
+
+Excluded from the table with reasons already covered above rather than
+padded in: Twente/PA3FWM (not distributable, and worse-than-current
+even hypothetically), ShinySDR (dead since 2020), SDR++ (no web UI at
+all), KiwiSDR (hardware-locked, no RTL-SDR path), `wavelet-lab/websdr`
+and `reynico/raspberry-websdr` (not general-purpose server platforms),
+SpyServer/WebSpy (licensing unresolved - would need to clear that
+before any technical comparison is even meaningful).
+
+| Criterion | **OpenWebRX+ (current)** | PhantomSDR-Plus | No-SDR |
+|---|---|---|---|
+| RTL-SDR support | Yes, native + SoapySDR, in production use here | Yes, documented at 2.048 Msps | Yes, RTL-SDR-first, multi-dongle |
+| Pi 3B+ viability | **Confirmed working, this exact board** | No ARM/Pi docs; benchmarks are desktop-CPU-class only | ARM64 "tested," but only Pi 4/5 - **not Pi 3B+** |
+| Offline/LAN suitability | Confirmed, no runtime internet dependency | No mandatory cloud found | No runtime cloud dependency (one *optional* external API key) |
+| CPU/RAM evidence | This project's own live Pi 3B+ numbers (§4) | Desktop-class only (Ryzen 5 2600, i5-6500T) - no Pi evidence | No published figures; untested at our board's performance tier |
+| Waterfall/spectrum UX | Working, native | Server-side C++ FFT, real but unevidenced on our hardware tier | Custom ~10:1 FFT compression codec, unevidenced on our hardware tier |
+| Zoom/pan | Working, native (§14.4) | Unknown/unevaluated (no Pi-tier testing found) | Unknown/unevaluated |
+| Hardware center retune | Working, both native (`PageUp`/`PageDown`) and PirateBox-built (§13) | Presumed present (standard for the genre) but unverified against our exact needs | Presumed present, unverified |
+| Annotations/bandplan | **Working now** (§15) | Not confirmed to exist as a feature | **Explicitly absent from its own TODO.md** |
+| Station/frequency databases | Native EiBi/repeater infra (present but low-value for us, §14.2) | Not found documented | Not found documented |
+| Demod modes | NFM/WFM/AM/SSB/CW/digital modes, in production use | Rich decoder set (FT8/JS8/SSTV/WSPR/NAVTEX/PSK31, etc.) - exceeds our need | WFM(+RDS)/NFM/AM/AM-stereo(exp.)/USB/LSB/CW/raw-IQ |
+| Audio | Working, ADPCM/PCM stream | Yes | Yes, Opus |
+| Mobile usability | Confirmed workable via existing `live.php` wrapper | Unevaluated | Unevaluated |
+| Multi-client | `max_clients=4`, confirmed working model (§5's own note on shared-center-frequency semantics) | Supported (genre-standard) but unevaluated here | Supported, explicitly documented as multi-user |
+| Security implications | Loopback-bound, nginx-fronted, already audited (§10) | Would need the same audit from scratch | Would need the same audit from scratch |
+| Maintenance/activity | **Most active in the entire OpenWebRX family**, our own pin actively releasing into 2026 | Actively maintained (v3.9.0) | ~3 months old, solo maintainer, pending 3.0.0, experimental flags |
+| Licensing | AGPL-3.0 (+ commercial option) | GPL-3.0 | MIT |
+| Install complexity | **Already solved, reproducible, pinned** (§13) | Unestablished on ARM/Pi - would be new groundwork | Unestablished on Pi 3B+ - would be new groundwork |
+| PirateBox integration cost | **Zero - already done** | Full re-integration (new protocol, new install scripting, new nginx behavior to verify) | Same |
+| Existing work retained | **100%** | ~§17.6's "generic" portion only (content, UX concepts, nginx pattern, hardware findings) - the OpenWebRX+-specific slice would be rebuilt | Same |
+| Actually closer to Twente? | Already delivers Category A (§17.5) in full | No - its Twente-relevant advantage needs hardware we don't have | **No - currently delivers *less* annotation/bandplan UX than we already have** |
+
+### 17.8 Fair evaluation of OpenWebRX+ against this baseline, not against a strawman
+
+Every capability our current baseline provides (stable RTL-SDR backend,
+waterfall, spectrum, audio, demodulation, zoom/pan, native bandplan,
+bookmarks/markers/map infrastructure, hardware center retuning via both
+native and PirateBox-built paths, offline operation, nginx integration,
+a reproducible pinned install, known Pi 3B+ performance, a known
+multi-client model) is either matched by nothing else surveyed, or
+matched only by projects with zero evidence of working on this exact
+hardware tier at all. Neither candidate in §17.7 demonstrates it would
+even reach parity with what's already running, let alone exceed it -
+this is not a close call decided by inertia or sunk cost; the evidence
+gap is wide and one-directional in OpenWebRX+'s favor.
+
+### 17.9 Decision: **KEEP**
+
+**OpenWebRX+ remains the best practical foundation.** No candidate
+surveyed - real WebSDR/Twente included - is a legitimate, practical,
+hardware-compatible improvement available today. This is not a "we
+already invested time, so let's not look elsewhere" conclusion (§17.6
+already shows most of that investment would survive a backend change
+regardless); it's that nothing found actually clears the bar of
+"installable today, hardware-compatible, and better than what's
+already working."
+
+**Recommended next phase** (§17.5's Category A - the only category
+left with realistic headroom): none of this is decided or scheduled by
+this research-only round, but the standing candidates, in rough order
+of cost/value, are: (1) continuing to surface already-native
+capabilities that are still under-exposed (the bandplan ribbon and its
+"Show band plan ribbon" checkbox default to off per visitor, per
+§15.2 - already addressed with help text, low further headroom here);
+(2) a PirateBox-curated, travel-safe set of VHF/UHF band/service labels
+on our own range bar (§13.10/§15's own navigator) for services the
+generic upstream `bands.json` doesn't cover well, staying within this
+project's existing Universal-tier content philosophy rather than the
+native OpenWebRX+ bandplan mechanism; (3) revisiting native bookmarks
+if a curated (not EiBi/repeater-derived) travel-safe bookmark set is
+ever wanted; (4) the already-deferred scan/stitch historical overview
+(§14.6/§17.5-C), still not recommended before (2)/(3) given its
+genuine complexity. None of these are approved for building by this
+round - this section only orders the standing backlog now that the
+backend question itself is closed.
+
+**If PhantomSDR-Plus or No-SDR mature significantly** (Pi 3B+-tier
+benchmarks appear, No-SDR ships a stable post-3.0.0 release with
+annotation/bandplan features, or PhantomSDR-Plus publishes ARM build
+instructions) **[SPECULATIVE]**, this decision is worth revisiting -
+but re-checking maintenance/hardware-fit facts periodically is cheap;
+migrating speculatively today, against projects with zero evidence at
+our board's performance tier, would not be.
+
+### 17.10 Uncertainties that would require a real prototype, not more research
+
+Honestly, none rise to that bar right now. The evidence against every
+alternative is not "unclear, needs hands-on testing" - it's
+disqualifying on its own terms (dead project, no web UI, hardware
+lock-in, no distribution, or no evidence whatsoever at our hardware
+tier). The one genuinely open technical question surfaced this round -
+SpyServer/WebSpy's actual license and self-hostability - would need
+**licensing research, not a hardware prototype**, before it could even
+join a technical comparison; it is not currently recommended to spend
+time on given everything else already ruled out ahead of it on other
+grounds. No side-by-side prototype is recommended this round.
+
+### 17.11 Stop condition honored
+
+No package installed, nothing uninstalled, no live OpenWebRX+ file or
+configuration touched, no RF/sample-rate/gain change, `receiver_gps`
+untouched, no new frontend implementation started, no scan/stitch work
+started, nftables/security posture unchanged, no visitor-facing
+internet dependency introduced, and no proprietary Twente code
+copied, scraped, or examined beyond noting the existence of a
+third-party mirror without reading its contents. This entire section
+is research and documentation only, requiring no operator/sudo action.
 
 ---

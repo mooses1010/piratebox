@@ -1019,9 +1019,29 @@ it is.**
   working by both protocol-level tests and a real human/browser test,
   including **broad, visitor-driven retuning across widely-separated
   bands, now genuinely confirmed live** (not just fixed in the repo).
-  The stock `<`/`>` fine-tuning buttons are fixed in the repo but not
-  yet confirmed live - the tuning_step fix above is unapplied/
-  unverified pending the same operator step. Real unknowns remain
+  The stock `<`/`>` fine-tuning buttons' `tuning_step=5000` fix is now
+  confirmed live (§15.4/§16 - this line was stale between the two fixes
+  and is corrected here rather than left contradicting the paragraph
+  above it). **2026-09-06 architecture checkpoint (see doc §17,
+  research-only round)**: before further OpenWebRX+ feature work, the
+  actual Twente WebSDR was investigated as a possible drop-in
+  alternative (verdict: not distributable, and even hypothetically
+  worse than our current setup on this hardware tier - Twente's own
+  FAQ states a Pi 3 tops out around 1 MHz bandwidth vs. our working
+  2.048 Msps), alongside a broad survey of other SDR web stacks
+  (ShinySDR dead since 2020, SDR++ has no web UI, KiwiSDR is hardware-
+  locked, PhantomSDR-Plus and No-SDR are real but neither has any
+  evidence of working at our Pi 3B+ tier, and No-SDR currently lacks
+  the bandplan/bookmark features we already have). **Decision: KEEP
+  OpenWebRX+** - no candidate clears the bar of "installable today,
+  hardware-compatible, and better than what's already running." A
+  direct repo audit also found our own SDR work is not painted into an
+  OpenWebRX+ corner: OpenWebRX+-specific coupling is confined to
+  `etc/openwebrx/` plus exactly 9 lines inside `live.php`'s own
+  protocol calls - everything else (reference content, UX concepts,
+  the nginx pattern, the optional-capability/Travel-Mode wiring,
+  hardware characterization findings) is backend-agnostic already.
+  Real unknowns remain
   (which Malahit serial port, if either, is CAT control and in what
   protocol; why the Malahit's 40kHz audio interface won't stream;
   whether any existing SDR-software Malahit support actually applies
