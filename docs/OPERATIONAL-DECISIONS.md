@@ -6,6 +6,46 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## DS3231 hardware RTC wired and configured (2026-09-06)
+
+**Decision date:** 2026-09-06. The operator physically wired a DS3231
+RTC breakout (with its onboard AT24C32 EEPROM) onto the existing I2C1
+bus - the same bus the OLED already uses (multi-drop, no pin conflict,
+exactly as `docs/RTC-TIME-READINESS-DESIGN.md` §3 anticipated back when
+the DS3231 was only a planned chip). `i2cdetect -y 1` confirmed all
+three expected devices with nothing unexpected: OLED at 0x3c, the
+EEPROM at 0x57, the RTC itself at 0x68.
+
+New `tools/configure_rtc_ds3231.sh` (idempotent, root-required, tested
+- `tools/test_rtc_ds3231_config.py`) adds
+`dtoverlay=i2c-rtc,ds3231` to `/boot/firmware/config.txt` (backed up
+first), applies it live via `dtoverlay` so it can be verified in one
+run without a reboot, and confirms the resulting `/dev/rtc0`/`hwclock`/
+`timedatectl` behavior plus an explicit OLED-neighbor regression check.
+This is the standard, official Raspberry Pi OS mechanism - the overlay
+file already ships on this OS image, no package install involved. The
+running kernel is confirmed built with `CONFIG_RTC_HCTOSYS=y` (checked
+directly, not assumed), so once `/dev/rtc0` exists, the kernel itself
+sets system time from it automatically at every future boot - no
+`fake-hwclock`, no udev rule, no new service needed, and `fake-hwclock`
+remains correctly not installed (a real RTC makes it redundant, not
+complementary, now that one exists).
+
+**No coin cell is installed yet** - this board has a charging circuit
+for a rechargeable cell, and the CR2032 supplied is non-rechargeable,
+so it was correctly left out rather than risking a charging hazard. The
+RTC runs off Pi power for now; the read/write/round-trip verification
+this round performed is completely real, but true persistence across an
+actual power-off remains untested and unclaimed until a compatible
+battery is fitted - see `docs/RTC-TIME-READINESS-DESIGN.md` §6 for the
+exact boundary between what's proven and what's still open.
+
+No PirateBox application code changed - `piratebox_get_time_source_status()`
+already reads `/sys/class/rtc/` generically (`docs/FIELD-TOOLS-DESIGN.md`
+§4) and will report `rtc_detected: true` the moment the operator runs
+the one remaining `sudo` command, with zero code changes, exactly as
+designed when that field was first built ahead of the hardware.
+
 ## Captain's Log: discovered achievements now explain what they mean (2026-09-06)
 
 **Decision date:** 2026-09-06. Extends PirateBox Progression (below) -
