@@ -2652,4 +2652,110 @@ the entire retuning test was the same benign, expected
 `dvb_usb_v2: ... successfully deinitialized and disconnected` line
 seen in every previous round.
 
+### 13.7 Second human browser test found a UI/integration gap - fixed PirateBox-side (2026-09-05)
+
+**Report**: after §13.6's protocol-level retuning proof, the operator
+opened `http://piratebox/radio/` (the stock OpenWebRX+ page itself, not
+a test client) and was **still stuck inside whatever ~2 MHz window the
+active profile started at** - "General SDR (Wide Tuning)" gave no
+obvious way to move the receiver center broadly. Explicit instruction
+was not to assume the backend proof settled this: it doesn't, because
+the backend and the frontend are different things.
+
+**Investigated, not assumed**: read the actual shipped frontend
+JavaScript (`/opt/openwebrx/htdocs/*.js` and `htdocs/compiled/*.js`) -
+grepped for `allow_center_freq_changes`, `centerFreqChanges`,
+`setfrequency`, and any URL-hash/query-based frequency or profile
+scheme. **Found none.** The stock OpenWebRX+ frontend has zero widgets
+that ever send a `setfrequency` message, regardless of the
+`allow_center_freq_changes` server setting - that setting only gates
+whether the *server* honors such a message if one arrives, not whether
+the shipped UI offers a way to send one. This is a genuine gap in the
+upstream frontend, not a misconfiguration or a hidden control on this
+project's part.
+
+**Also checked and ruled out**: no URL-query/hash-based frequency or
+profile selection scheme exists in `openwebrx.js` either (only the
+already-known WebSocket-URL-construction code touches `location.*`) -
+so there was no undocumented "cleaner" entry point being missed.
+
+**Decision**: build a small PirateBox-side control rather than patch
+OpenWebRX+'s own installed files (which a future clean reinstall would
+silently discard, and which risks conflicting with upstream's own
+future frontend work). The already-validated WebSocket protocol
+(§13.5/§13.6) is stable, documented, public API surface from
+OpenWebRX+'s own perspective (the same handshake and message shapes
+its own frontend uses) - a separate client speaking that same protocol
+is not a hack, it's just another client.
+
+**Implementation**: `var/www/html/public/utility/radio/live.php`, a
+new page linked from the existing static Radio Reference page
+(`/utility/radio/`). Note `/radio/` itself is reserved end-to-end by
+the nginx reverse proxy (`location ^~ /radio/` in
+`etc/nginx/openwebrx-location.conf` forwards the entire prefix to
+OpenWebRX+ on `127.0.0.1:8073`), so the new page could not live under
+`/radio/` and was placed under the existing `/utility/radio/` path
+instead.
+
+- A server-side TCP reachability probe (`fsockopen` against
+  `127.0.0.1:8073`, 0.75s timeout) decides whether to render the live
+  tuner UI at all, or a plain "not currently available" message -
+  matching this project's existing optional-capability degrade-not-
+  disable pattern (`docs/ARCHITECTURE.md` section 2). Verified by
+  direct PHP CLI execution against the real running service: the
+  reachable branch renders correctly end-to-end.
+- Three curated presets (only the frequencies this project has
+  actually confirmed receiving: 162.475/100.1/27.185 MHz) plus a
+  manual MHz-entry form, both range-bounded 24-1766 MHz (the R820T
+  family's documented practical range, explicitly labeled as not
+  exhaustively re-verified across its whole span).
+- On tap/submit, browser JS opens its own `WebSocket` directly to
+  `/radio/ws/` (the same path OpenWebRX+'s own frontend uses) and
+  replicates the exact validated sequence: the
+  `"SERVER DE CLIENT client=... type=receiver"` handshake string, then
+  `{"type":"selectprofile","params":{"profile":"rtlsdr|general-sdr"}}`
+  (confirmed against `owrx/connection.py`'s actual
+  `profile.split("|")` handling - `rtlsdr` is the configured SDR
+  device id, `general-sdr` the profile id from
+  `etc/openwebrx/sdrs_seed.py`), then
+  `{"type":"setfrequency","params":{"frequency":<hz>}}` (confirmed
+  against the same source: gated only by `allow_center_freq_changes`
+  and `freq >= 0`, no auth check at all). Deliberately does **not**
+  send `"dspcontrol start"` - that would spin up its own per-client
+  audio/waterfall demodulation chain, which this one-shot control
+  widget has no use for; `selectprofile`+`setfrequency` alone retune
+  the shared underlying source, which every other connected client
+  (including the embedded iframe) sees.
+- After a successful retune, the page reloads the embedded `/radio/`
+  iframe (cache-busted) so its own displayed frequency/waterfall
+  catches up - an already-open OpenWebRX+ client doesn't otherwise know
+  to refresh its own display when a sibling client retunes the shared
+  source.
+- Graceful failure throughout: a 6-second overall timeout, `onerror`/
+  `onclose` handlers, and a listener for `sdr_error`/
+  `demodulator_error` server messages all produce a plain status
+  message rather than a silent hang or a broken page.
+- No admin login, no manual config editing, no new backend endpoint,
+  no arbitrary port URL - the whole path rides the same visitor-facing
+  `allow_center_freq_changes` setting and the same `/radio/ws/` nginx
+  route already in production use.
+
+**Verification performed**: `php -l` clean on both the new file and
+the edited `index.php`. The full page was rendered via direct PHP CLI
+execution against the actual, currently-running live OpenWebRX+
+service and visually confirmed correct (reachability branch, all three
+presets, manual form, status line, iframe, and the full inline script
+all present and well-formed). The embedded JavaScript's brace/paren/
+bracket balance was checked programmatically (36/36, 87/87, 1/1) and
+the whole script manually re-read end to end; no JavaScript engine
+(`node`/`nodejs`) exists on this system to run a real syntax check,
+which is recorded here rather than silently worked around. The
+`selectprofile` and `setfrequency` message shapes, and the `rtlsdr`/
+`general-sdr` id strings, were each independently cross-checked
+against the actual installed `owrx/connection.py` source and
+`etc/openwebrx/sdrs_seed.py` (not assumed from memory of §13.5/13.6).
+**Not yet done**: a genuine human click-through in a real browser -
+this is the explicit stopping gate for this round, since no tool
+available here can execute real browser JavaScript.
+
 ---

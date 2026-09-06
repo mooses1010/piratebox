@@ -90,7 +90,7 @@ it is.**
 | Lightning detection | Optional/Field | CANDIDATE | Integrated or Companion |
 | Radiation measurement | Optional/Field | CANDIDATE | Integrated or Companion |
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
-| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; Malahit path untouched/experimental) | Attachable |
+| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php`; Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
 | Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | CANDIDATE | Network Companion |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
@@ -837,6 +837,31 @@ it is.**
   already-running `rtl_connector`, not a process relaunch) and a self-
   caught test-pacing mistake corrected before being reported. Two
   simultaneous clients remain untested.
+  **UI/integration gap found and fixed (2026-09-05, same day, see
+  §13.7)**: a follow-up human browser test found that despite the
+  backend proof above, the *stock OpenWebRX+ frontend itself* has no
+  control that ever sends a `setfrequency` message - confirmed by
+  grepping every shipped `htdocs/*.js` file for
+  `allow_center_freq_changes`/`setfrequency` and finding zero
+  references. A visitor using `/radio/` directly was still stuck
+  inside whatever ~2.048 MHz window the active profile started at.
+  Fixed entirely on the PirateBox side, without touching OpenWebRX+'s
+  own installed files: a new page,
+  `var/www/html/public/utility/radio/live.php` (linked from the
+  existing Radio Reference page, `/utility/radio/`), whose browser JS
+  opens its own direct WebSocket to `/radio/ws/` and replicates the
+  already-validated handshake/`selectprofile`/`setfrequency` protocol
+  sequence against the `general-sdr` profile, then reloads the
+  embedded `/radio/` iframe so its own display catches up. Offers both
+  the same three confirmed-working presets (27.185/100.1/162.475 MHz)
+  and free-form manual MHz entry, range-bounded client- and
+  server-side to 24-1766 MHz (the R820T's documented practical range).
+  No admin login, no manual config editing, no new backend
+  endpoint - gated only by the same visitor-facing
+  `allow_center_freq_changes` setting already enabled above. Degrades
+  gracefully (a server-side TCP probe of OpenWebRX+'s loopback port
+  shows a plain "not currently available" message instead of a broken
+  page when the optional service/hardware is absent).
   The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
   is now **INSTALLED** for the RTL-SDR path specifically - confirmed
   working by both protocol-level tests and a real human/browser test,
@@ -846,10 +871,10 @@ it is.**
   SDR-software Malahit support actually applies to that hardware
   variant - the Malahit path remains untouched, deliberately kept
   separate/experimental; two-simultaneous-client validation for the
-  RTL-SDR path; no PirateBox UI/capability_state integration yet -
-  `/radio/` works but isn't yet linked from the PirateBox homepage or
-  reflected in `capability_state.php`) - see the design doc's own
-  open-questions list. Layer: Optional/Field. Classification:
+  RTL-SDR path; `live.php` is linked from the Radio Reference page,
+  not yet from the PirateBox homepage itself, and not yet reflected in
+  `capability_state.php`) - see the design doc's own open-questions
+  list. Layer: Optional/Field. Classification:
   Attachable (USB). Core dependency: No - confirmed live, not just by
   design: `pb-ap`/hostapd/dnsmasq/nginx were verified healthy
   throughout every OpenWebRX+ install/test/load/retune round.

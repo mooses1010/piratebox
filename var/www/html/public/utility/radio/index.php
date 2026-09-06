@@ -137,6 +137,8 @@ function radio_source_line(array $sources, ?string $sourceId, ?string $secondary
         <p>A fast, offline lookup for a wideband receiver (built with a Malahit DSP2-style receiver in mind). Search or filter below - everything on this page works with no Internet connection. <strong>This is receive-focused.</strong> Owning a receiver does not authorize transmitting anywhere on this page; each entry marks whether transmitting requires a license.</p>
         <p class="muted">Unfamiliar term (polarization, SWR, simplex)? See the <a href="/utility/glossary/">Glossary</a>.</p>
 
+        <p><a href="/utility/radio/live.php">&#128225; Live Receiver</a> - an actual browser-based RTL-SDR receiver, when the optional hardware/service is attached and running. This reference page works either way; the live receiver is a separate, optional capability.</p>
+
         <?= $libraryLinksHtml ?>
 
         <div class="radio-spectrum-wrap">
