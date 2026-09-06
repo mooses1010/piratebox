@@ -90,7 +90,7 @@ it is.**
 | Lightning detection | Optional/Field | CANDIDATE | Integrated or Companion |
 | Radiation measurement | Optional/Field | CANDIDATE | Integrated or Companion |
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
-| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php`; Malahit path untouched/experimental) | Attachable |
+| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` fixed in repo (missing `magic_key`) but not yet deployed/confirmed live; Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
 | Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | CANDIDATE | Network Companion |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
@@ -827,26 +827,28 @@ it is.**
   page. **Human browser test confirmed (2026-09-05)**: real waterfall/
   audio UX at `http://piratebox/radio/`, an actual FM station audible
   with working browser audio, PirateBox itself remaining usable in
-  another tab. **Broad manual retuning added and confirmed** the same
-  day - `allow_center_freq_changes` enabled (a general, visitor-facing
+  another tab. **Broad manual retuning "added and confirmed" the same
+  day - later found to be a false positive, see below.**
+  `allow_center_freq_changes` was enabled (a general, visitor-facing
   setting, no admin login needed) plus a new "General SDR (Wide
-  Tuning)" profile; verified live across three genuinely different,
-  widely-separated bands (27.185 MHz, 100.1 MHz, 162.475 MHz) via the
-  same protocol-level client, all three streaming real data - see
-  §13.6 for the retune mechanism (a live control-socket message to the
-  already-running `rtl_connector`, not a process relaunch) and a self-
-  caught test-pacing mistake corrected before being reported. Two
-  simultaneous clients remain untested.
+  Tuning)" profile added; a protocol-level test reported three
+  genuinely different, widely-separated bands (27.185/100.1/162.475
+  MHz) streaming real data. **This result did not hold up**: every
+  `setfrequency` call in that test omitted OpenWebRX+'s own required
+  `magic_key` parameter, so every retune was silently dropped
+  server-side and the receiver never left its starting frequency - see
+  the §13.8 entry below for the real root cause and a corrected
+  re-verification.
   **UI/integration gap found and fixed (2026-09-05, same day, see
   §13.7)**: a follow-up human browser test found that despite the
-  backend proof above, the *stock OpenWebRX+ frontend itself* has no
-  control that ever sends a `setfrequency` message - confirmed by
-  grepping every shipped `htdocs/*.js` file for
-  `allow_center_freq_changes`/`setfrequency` and finding zero
-  references. A visitor using `/radio/` directly was still stuck
-  inside whatever ~2.048 MHz window the active profile started at.
-  Fixed entirely on the PirateBox side, without touching OpenWebRX+'s
-  own installed files: a new page,
+  (as it turned out, unverified) backend claim above, the *stock
+  OpenWebRX+ frontend itself* has no control that ever sends a
+  `setfrequency` message at all - confirmed by grepping every shipped
+  `htdocs/*.js` file for `allow_center_freq_changes`/`setfrequency`
+  and finding zero references. A visitor using `/radio/` directly was
+  still stuck inside whatever ~2.048 MHz window the active profile
+  started at. Fixed entirely on the PirateBox side, without touching
+  OpenWebRX+'s own installed files: a new page,
   `var/www/html/public/utility/radio/live.php` (linked from the
   existing Radio Reference page, `/utility/radio/`), whose browser JS
   opens its own direct WebSocket to `/radio/ws/` and replicates the
@@ -856,25 +858,58 @@ it is.**
   the same three confirmed-working presets (27.185/100.1/162.475 MHz)
   and free-form manual MHz entry, range-bounded client- and
   server-side to 24-1766 MHz (the R820T's documented practical range).
-  No admin login, no manual config editing, no new backend
-  endpoint - gated only by the same visitor-facing
-  `allow_center_freq_changes` setting already enabled above. Degrades
-  gracefully (a server-side TCP probe of OpenWebRX+'s loopback port
-  shows a plain "not currently available" message instead of a broken
-  page when the optional service/hardware is absent).
-  The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
-  is now **INSTALLED** for the RTL-SDR path specifically - confirmed
-  working by both protocol-level tests and a real human/browser test,
-  not merely configured on paper. Real unknowns remain (which Malahit
-  serial port, if either, is CAT control and in what protocol; why the
-  Malahit's 40kHz audio interface won't stream; whether any existing
-  SDR-software Malahit support actually applies to that hardware
-  variant - the Malahit path remains untouched, deliberately kept
-  separate/experimental; two-simultaneous-client validation for the
-  RTL-SDR path; `live.php` is linked from the Radio Reference page,
-  not yet from the PirateBox homepage itself, and not yet reflected in
-  `capability_state.php`) - see the design doc's own open-questions
-  list. Layer: Optional/Field. Classification:
+  No admin login, no manual config editing, no new backend endpoint.
+  Degrades gracefully (a server-side TCP probe of OpenWebRX+'s
+  loopback port shows a plain "not currently available" message
+  instead of a broken page when the optional service/hardware is
+  absent). **This page's own UI/protocol design was correct, but
+  retuning still didn't work when tested live - see §13.8.**
+  **Third human browser test found the receiver still pinned at
+  ~100.1 MHz - real root cause identified and fixed, awaiting operator
+  deploy + re-confirmation (2026-09-05, same day, see §13.8)**: the
+  `< >` frequency-display arrows were confirmed (via
+  `htdocs/lib/UI.js`) to be demodulator-offset-within-window controls
+  only, never SDR retune controls - not the bug, but a real point of
+  visitor confusion worth naming. The actual cause: OpenWebRX+'s
+  `setfrequency` handler (`owrx/connection.py`) gates the only line
+  that calls `setCenterFreq()` on `magic == "" or key == magic`, where
+  `magic` is the configured `magic_key` - defaulting (`owrx/config/
+  defaults.py`) to `"memagic"`, never set by this project's own config
+  until now. `live.php` never sent a key (by design - no visitor
+  secret was the whole point), so every retune request was silently
+  dropped: no exception, no error, no config push. Confirmed
+  empirically, not just by reading source: the identical call with
+  `"key": "memagic"` added produced an instant, correct live update,
+  and a corrected re-run of the three-band test (with the key
+  included) produced genuine, distinct `center_freq` confirmations at
+  all three targets. Fixed in `etc/openwebrx/sdrs_seed.py`:
+  `magic_key = ""` (removes the gate entirely, so no client - `live.php`
+  or any future stock-frontend control - needs to know any secret) and
+  `max_clients` raised from 2 to 4 (unrelated to the pinning bug, but a
+  real fragility: `live.php`'s design uses two concurrent connections
+  by itself, leaving no headroom under the old limit). `live.php`
+  itself needed no code change. **Not yet applied to the live
+  system** - requires `sudo tools/update_openwebrx_config.sh`, a
+  password-gated command outside this session's standing sudo grants;
+  the operator needs to run it, then a genuine human browser
+  click-through against `/utility/radio/live.php` is the actual close
+  of this capability's retuning story.
+  The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI,
+  within a single profile's fixed ~2 MHz window) is **INSTALLED** for
+  the RTL-SDR path specifically - confirmed working by both
+  protocol-level tests and a real human/browser test. **Broad,
+  visitor-driven retuning across widely-separated bands is fixed in
+  the repo but not yet confirmed live** - the fix above is
+  unapplied/unverified pending the operator step. Real unknowns remain
+  (which Malahit serial port, if either, is CAT control and in what
+  protocol; why the Malahit's 40kHz audio interface won't stream;
+  whether any existing SDR-software Malahit support actually applies
+  to that hardware variant - the Malahit path remains untouched,
+  deliberately kept separate/experimental; two-simultaneous-client
+  validation for the RTL-SDR path; `live.php` is linked from the Radio
+  Reference page, not yet from the PirateBox homepage itself, and not
+  yet reflected in `capability_state.php`) - see the design doc's own
+  open-questions list. Layer: Optional/Field. Classification:
   Attachable (USB). Core dependency: No - confirmed live, not just by
   design: `pb-ap`/hostapd/dnsmasq/nginx were verified healthy
   throughout every OpenWebRX+ install/test/load/retune round.

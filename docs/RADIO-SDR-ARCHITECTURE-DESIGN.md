@@ -2528,6 +2528,19 @@ absence-of-complaint.
 
 ### 13.6 Human browser test, and adding broad manual retuning (2026-09-05)
 
+> **CORRECTION added 2026-09-05 (later the same day, §13.8)**: the
+> "confirmed" multi-band retuning claim in this section is a **false
+> positive**. Every `setfrequency` call in the test below omitted
+> OpenWebRX+'s own required `magic_key` parameter (default
+> `"memagic"`, never set by this project's config until §13.8) - the
+> retune commands were silently dropped server-side the entire time,
+> and the receiver never actually left its starting frequency. The
+> frame-count differences reported below reflect normal variation at
+> one unchanging frequency, not genuine reception at three different
+> bands. Left in place, uncorrected in substance, for an honest record
+> of how the mistake happened - see §13.8 for the real root cause and
+> a corrected re-verification.
+
 **Human confirmation, the gate §13.5 stopped at**: the operator opened
 `http://piratebox/radio/` in a real browser. The waterfall/audio UI
 loaded; NOAA Weather Radio and FM Broadcast both appeared as selectable
@@ -2644,6 +2657,20 @@ streamed live, real data while tuned, confirmed both by the client
 receiving it and by `owrx`'s own source code showing exactly how the
 retune command reaches the hardware-facing process.**
 
+> **This entire paragraph is the false positive corrected in §13.8.**
+> None of these `setfrequency` calls included OpenWebRX+'s required
+> `magic_key` - every one was silently dropped server-side (confirmed
+> later: no exception, no error message, no config push, by design of
+> `owrx/connection.py`'s `if magic == "" or key == magic:` gate). The
+> receiver never left its starting frequency for the whole test. Even
+> the "explanation" above (rapid retunes landing before process
+> startup) was itself a plausible-sounding but wrong theory, arrived
+> at by trusting a real-looking log/frame-count pattern without the
+> one check that would have caught it: a live "config" push actually
+> showing the new `center_freq`. §13.8 re-ran this exact test with the
+> key included and got real, distinct config pushes at all three
+> targets - see there for what actually happened.
+
 **Post-verification health, unchanged from every prior round**:
 `pb-ap`/hostapd/`openwebrx` all `NRestarts=0`/`active`/`running`,
 `throttled` still the same pre-existing `0x50005`, temperature
@@ -2757,5 +2784,159 @@ against the actual installed `owrx/connection.py` source and
 **Not yet done**: a genuine human click-through in a real browser -
 this is the explicit stopping gate for this round, since no tool
 available here can execute real browser JavaScript.
+
+### 13.8 Third human browser test: the receiver was still pinned - the real root cause was a missing `magic_key`, not the iframe reload (2026-09-05)
+
+**Report**: `live.php` looked correct and submitted without error, but
+the embedded receiver stayed pinned at ~100.1 MHz no matter what
+frequency was entered, and the `< >` arrows beside the frequency
+display didn't move it either. Explicit instruction: investigate the
+real live message sequence, don't re-prove the backend, and treat the
+iframe-reload-undoes-the-retune theory as a hypothesis to verify, not
+an assumption.
+
+**What the `< >` arrows actually do (verified via source, not
+assumed)**: `htdocs/openwebrx.js`'s `tuneBySteps()` calls
+`UI.setFrequency()` (`htdocs/lib/UI.js`), which computes
+`demod.set_offset_frequency(freq - delta - center_freq)` - purely a
+**demodulator offset within the already-tuned window**. It never sends
+a `setfrequency` protocol message. The user's own hypothesis was
+correct: these are local tuning-within-the-passband controls, not SDR
+center-retune controls, and were never going to move the display to a
+different band regardless of anything else here.
+
+**Investigating the iframe-reload hypothesis - built a direct
+diagnostic instead of re-trusting frame counts**: three raw-socket
+Python clients were used side by side against the real running
+service (not a new library, not the frontend - the same protocol
+already reverse-engineered in §13.5): a persistent "iframe-sim" client
+with `dspcontrol` started, a "control-socket-sim" client replicating
+`live.php`'s exact `selectprofile` → wait → `setfrequency` → close
+sequence, and a "fresh-reload-sim" client opened after the sequence to
+read a brand-new connection's initial config snapshot directly (a
+read of current shared state, independent of whether change-push
+notifications work at all). Full raw message logs were captured, not
+just filtered summaries.
+
+**First finding: the live-push mechanism itself works, and profile
+switching demonstrably succeeds.** The control-socket's `selectprofile`
+call produced an immediate, correct delta `"config"` push to itself
+(`{'profile_id': 'general-sdr', 'sdr_id': 'rtlsdr'}`) - proof the
+reactive `PropertyStack` → `configProps` → `sendConfig` chain
+(`owrx/connection.py`) is not broken, and proof `activateProfile()`
+genuinely ran. This directly falsified the original iframe-reload
+hypothesis as the primary cause: if profile switching visibly works
+end-to-end on a plain persistent connection with no reload involved,
+a working `setfrequency` should show the same live push. It did not -
+not once, across several minutes of a properly-paced (16 s warm-up,
+matching §13.6's own already-established pacing lesson), single-client
+test with no `max_clients` contention. A brand-new "fresh reload"
+connection's own initial config snapshot (a direct read, not a push)
+confirmed the same thing from a completely different angle:
+`center_freq` stayed `100100000` no matter how long after the
+`setfrequency` call it was read. The underlying shared property was
+never actually changing - not a notification problem, a **write**
+problem.
+
+**Root cause, found by re-reading `owrx/connection.py`'s exact
+`setfrequency` handler line by line instead of trusting the earlier
+summary of it**:
+
+```python
+elif message["type"] == "setfrequency":
+    if "params" in message and "frequency" in message["params"]:
+        params = message["params"]
+        freq   = params["frequency"]
+        if freq >= 0 and self.stack["allow_center_freq_changes"]:
+            magic = self.stack["magic_key"]
+            key   = params["key"] if "key" in params else None
+            if magic == "" or key == magic:
+                self.sdr.setCenterFreq(freq)
+```
+
+`self.sdr.setCenterFreq(freq)` - the only line that actually retunes
+anything - is gated on `magic == "" or key == magic`. OpenWebRX+'s own
+default (`owrx/config/defaults.py`) is `magic_key = "memagic"`, **not**
+an empty string, and this project's `etc/openwebrx/sdrs_seed.py` never
+set it (confirmed via `git log -p` across the whole file history: no
+commit ever mentions `magic_key`). `live.php`'s JS never sent a `"key"`
+param, by design - the entire point was a no-login, no-secret visitor
+control. Every single `setfrequency` message it ever sent was silently
+dropped: `magic ("memagic") == ""` is false, `key (None) == magic` is
+false, so the `if` body - the only place `setCenterFreq()` is called -
+never ran. No exception (there's nothing to throw), no error sent to
+the client, no config push (nothing changed to push). This is a
+**strictly stricter gate than profile selection**: `setProfile()` only
+checks the magic key when the target profile is `isLocked()` (which
+needs an explicit `key_locked: true`, default `False`, never set by
+this project) - so `selectprofile` calls succeeded unconditionally,
+which is exactly why that half of `live.php`'s sequence always looked
+fine while the other half silently did nothing.
+
+**Confirmed empirically, not just by reading source**: the identical
+`setfrequency` call, unchanged except for adding
+`"key": "memagic"` to its params, produced an *instant* live config
+push (`{'center_freq': 27185000, 'start_offset_freq': 72915000}`) on a
+connection that had been sitting at 100.1 MHz for over a minute with
+no other change. Same server, same running process, same client - the
+only variable was the key.
+
+**This also means §13.6's own "confirmed" multi-band retuning result
+was a false positive**, from this exact bug (see the correction added
+at the top of §13.6 and inline at the specific paragraph). That test's
+`setfrequency` calls also never included a key; the receiver never
+left its starting frequency; the reported 365/252/97 frame-count
+"confirmation" was normal streaming variation at one unchanging
+frequency, misread as evidence of three different ones. Re-ran that
+exact test, changed only to add `"key": "memagic"` to every
+`setfrequency` call: live `"config"` pushes now show `center_freq`
+genuinely landing on `27185000`, then `100100000`, then `162475000` in
+sequence, each arriving within 0.2 s of its retune command, with
+binary frames continuing to stream throughout (198/200/245 frames) -
+this is what the earlier round should have shown and didn't, because
+it was never actually retuning at all.
+
+**Fix, in `etc/openwebrx/sdrs_seed.py` (not a backend redesign - the
+same category of general, non-admin-gated setting as
+`allow_center_freq_changes`, sitting right next to it)**:
+`magic_key = ""`. This removes the gate entirely rather than teaching
+`live.php` to send the literal string `"memagic"` - hard-coding
+OpenWebRX+'s own stock default into visible client JS would "work" but
+is fragile in exactly the way this whole investigation was expensive:
+if a future admin ever sets a real `magic_key` (e.g. to actually
+restrict retuning on a more exposed deployment), `live.php` would
+silently break again with this identical symptom and no error,
+because the failure mode is silence by design. An empty `magic_key`
+server-side is the only way to make "no visitor secret" a property of
+the *configuration* rather than a hostage to a client-side literal.
+`live.php` itself needed **no code change** - it was already correct;
+the missing piece was entirely a config value, not app logic. Also
+raised `max_clients` from 2 to 4 in the same file: `live.php`'s design
+inherently uses two concurrent connections (the embedded iframe plus
+its own short control socket), which left zero headroom against the
+previous limit - not the cause of the pinned-frequency bug (the
+diagnostic tests above stayed at or under 2 clients throughout and
+still failed identically), but a real, separate fragility worth
+closing in the same pass.
+
+**Deployment status**: this fix lives only in the repo as of this
+writing. Applying it to the live system needs
+`tools/update_openwebrx_config.sh` run with `sudo` - a password-gated
+command this session has no standing grant for (only
+`piratebox_deploy.sh` and `set_piratebox_mode.sh` are `NOPASSWD`, per
+`sudo -l`). The operator needs to run it, then a real human
+browser click-through against `/utility/radio/live.php` is the actual
+close of this task - the two explicit stopping conditions from this
+round's own instructions (sudo action, human browser confirmation)
+both apply here at once.
+
+**Post-verification health**: `hostapd`/`openwebrx`/`dnsmasq`/`nginx`
+all `NRestarts=0`/`active`/`running`, `throttled` unchanged at
+`0x50005`, zero failed units, throughout every diagnostic client
+connect/disconnect cycle in this section (including one incidental,
+harmless `TooManyClientsException` hit during an early, messier
+multi-client diagnostic draft that used more than the then-configured
+`max_clients=2` slots at once - itself part of what motivated raising
+that limit above).
 
 ---

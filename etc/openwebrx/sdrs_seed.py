@@ -60,12 +60,43 @@
 # on the current tuned frequency at a time, not the whole RF spectrum
 # simultaneously - retuning moves that slice, it doesn't widen it.
 #
+# magic_key = "" (2026-09-05, second human browser test round): without
+# this, allow_center_freq_changes above is NOT actually sufficient for a
+# no-login visitor to retune - confirmed the hard way. OpenWebRX+'s own
+# connection.py gates the "setfrequency" message on
+# "magic == '' or key == magic" where magic = the configured magic_key,
+# UNCONDITIONALLY (unlike profile selection, which only checks this when
+# a profile is explicitly marked key_locked). OpenWebRX+'s own default
+# (owrx/config/defaults.py) is magic_key="memagic", NOT an empty string -
+# this seed file never set it, so every setfrequency request sent by
+# var/www/html/public/utility/radio/live.php (which never included any
+# "key" param, matching this project's own "no visitor secret" goal) was
+# being silently dropped server-side: no exception, no error message, no
+# config push - the shared receiver's center_freq simply never changed.
+# Confirmed empirically (not just by reading source): the exact same
+# setfrequency call that silently no-opped without a key produced an
+# instant, correct config push (and a genuinely retuned, streaming
+# receiver, re-verified across 27.185/100.1/162.475 MHz) the moment
+# "key": "memagic" was added to it. Setting magic_key to an empty string
+# here removes this gate entirely, matching allow_center_freq_changes'
+# own intent (no admin login, no shared secret, for ordinary visitor
+# retuning) - once applied, live.php needs no key at all, and neither
+# would any future retune control OpenWebRX+'s own frontend might add.
+# IMPORTANT CORRECTION to this document's own history: the "confirmed"
+# multi-band retuning claim in docs/RADIO-SDR-ARCHITECTURE-DESIGN.md
+# section 13.6 was itself a false positive caused by this exact bug -
+# every setfrequency call in that test also omitted the key, so the
+# receiver never actually left its starting frequency; the frame-count
+# differences reported there reflect normal variation at one unchanging
+# frequency, not genuine reception at three different bands. Section
+# 13.8 documents the corrected re-verification.
+#
 # No receiver_gps is set: this project does not publish the operator's
 # precise physical location to visitors or the wider internet, matching
 # its existing no-PII-exposure posture elsewhere (e.g. visitor MAC
 # addresses are never persisted - docs/DEVICE-MEMORY-DESIGN.md).
 
-version = 7
+version = 8
 
 receiver_name = "PirateBox Radio"
 receiver_location = "PirateBox"
@@ -74,8 +105,18 @@ receiver_gps = {"lat": 0, "lon": 0}
 photo_title = ""
 photo_desc = ""
 
-max_clients = 2
+# 4, not the previous 2 (2026-09-05): live.php's control-socket design
+# needs two concurrent connections by itself (the embedded iframe's own
+# session plus its own short-lived control socket) - a max_clients of 2
+# left no headroom at all for a second visitor, or even a single
+# visitor's browser holding a brief extra connection during a page
+# reload. Kept modest, not unlimited - this Pi's own measured DSP/CPU
+# load (docs/RADIO-SDR-ARCHITECTURE-DESIGN.md section 13.5) was for a
+# single real demodulating client; this project has not measured cost
+# under several concurrent ones.
+max_clients = 4
 allow_center_freq_changes = True
+magic_key = ""
 
 sdrs = {
     "rtlsdr": {
