@@ -95,8 +95,34 @@
 # precise physical location to visitors or the wider internet, matching
 # its existing no-PII-exposure posture elsewhere (e.g. visitor MAC
 # addresses are never persisted - docs/DEVICE-MEMORY-DESIGN.md).
-
-version = 9
+#
+# version = 8 (2026-09-06, fixing a live outage - see docs/RADIO-SDR-
+# ARCHITECTURE-DESIGN.md section 16): this is NOT a "bump it whenever
+# this file's content changes" counter, and must never be treated as
+# one again - two earlier rounds did exactly that (7->8, then 8->9)
+# while adding unrelated settings (max_clients/magic_key, then
+# tuning_step), and the second bump broke the live service outright.
+# `version` here is OpenWebRX+'s own CONFIG SCHEMA MIGRATION marker -
+# owrx/config/classic.py's ClassicConfig loads this file, then calls
+# Migrator.migrate(pm) (owrx/config/migration.py), which reads this
+# exact field and raises "Configuration version is too high" the
+# moment it exceeds Migrator.currentVersion - a constant HARD-CODED IN
+# THE INSTALLED PACKAGE ITSELF (confirmed by reading
+# /opt/openwebrx/venv/lib/python3.13/site-packages/owrx/config/
+# migration.py directly: `currentVersion = 8` for this project's exact
+# pinned OpenWebRX+ v1.2.123 / commit 2d60e894..., the same commit
+# OPENWEBRX_COMMIT in tools/install_openwebrx.sh pins). Every one of
+# this file's own plain settings (ppm, rf_gain, tuning_step, magic_key,
+# max_clients, the three profiles, receiver_gps) is already valid at
+# schema version 8 with no migration step needed - none of those
+# additions ever justified touching this number. Only a future
+# deliberate OpenWebRX+ upgrade that itself raises
+# Migrator.currentVersion (re-check the newly-installed migration.py
+# directly, don't guess) would ever justify changing this value again,
+# and even then it must be set to match that new ceiling exactly, never
+# incremented past it. tools/test_openwebrx_config_version.py enforces
+# this never regresses silently again.
+version = 8
 
 receiver_name = "PirateBox Radio"
 receiver_location = "PirateBox"

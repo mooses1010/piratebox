@@ -989,6 +989,25 @@ it is.**
   which, as a side effect, also finally deploys §13.9's own
   `tuning_step` fix, discovered this round to have been committed but
   never actually applied live.
+  **Live outage from that exact deploy, fixed same-day (see §16)**:
+  running the command above crash-looped `openwebrx.service`
+  (`ValueError: Configuration version is too high (current: 8, found:
+  9)`). Root cause: `sdrs_seed.py`'s `version` field is OpenWebRX+'s own
+  schema-migration marker (hard-coded ceiling `Migrator.currentVersion
+  = 8` for this project's pinned install), not a content-revision
+  counter - two earlier, already-merged commits (§13.8, then §13.9) had
+  each bumped it while adding unrelated settings, the first landing
+  harmlessly on 8 by coincidence, the second exceeding it. Latent since
+  §13.9, exposed (not caused) by this round finally deploying that
+  commit. Fixed by freezing `version = 8` with an explanatory comment;
+  verified against the real installed `Migrator` class (both that the
+  fix loads cleanly and that the pre-fix file reproduces the identical
+  crash); new regression test `tools/test_openwebrx_config_version.py`
+  (4 tests, including a real-class dynamic check) guards against a
+  third recurrence. The bandplan work itself was not rolled back - the
+  crash occurs before OpenWebRX+ ever reaches the bandplan-loading code.
+  Recovery is the same one command, now safe: `sudo tools/
+  update_openwebrx_config.sh`.
   The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
   is **INSTALLED** for the RTL-SDR path specifically - confirmed
   working by both protocol-level tests and a real human/browser test,

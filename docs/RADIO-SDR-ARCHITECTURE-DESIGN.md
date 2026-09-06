@@ -3844,3 +3844,209 @@ bandplan work sits right next to that boundary in the same config file
 without needing to cross it.
 
 ---
+
+## 16. Live outage caused by the §15 deploy: a latent `version` field bug from an earlier round, exposed (not introduced) by finally deploying `tuning_step` (2026-09-06)
+
+**Incident**: the operator ran `sudo tools/update_openwebrx_config.sh`
+per §15's stop gate. The deploy itself completed ("Copied etc/openwebrx/
+sdrs_seed.py -> /etc/openwebrx/config_webrx.py", "Copied etc/openwebrx/
+upstream/bands.json -> /etc/openwebrx/bands.json") but `openwebrx.service`
+then crash-looped on every subsequent start with:
+
+```
+ValueError: Configuration version is too high (current: 8, found: 9)
+```
+
+confirmed via `journalctl -u openwebrx` showing the exact traceback
+through `owrx.__main__.start_receiver` -> `Config.validateConfig()` ->
+`ClassicConfig.__init__` -> `Migrator.migrate(pm)` ->
+`owrx/config/migration.py:145`'s `raise ValueError(...)`.
+
+### 16.1 Root cause, traced to the exact line and the exact commit
+
+Read `owrx/config/classic.py` and `owrx/config/migration.py` directly
+(not assumed): `ClassicConfig.__init__` loads `/etc/openwebrx/
+config_webrx.py` as a plain Python module (`_loadPythonFile` -
+`importlib.util.spec_from_file_location` + `exec_module`, collecting
+every top-level name), then immediately calls `Migrator.migrate(pm)`.
+That function reads the config's own `version` field and:
+
+```python
+class Migrator(object):
+    currentVersion = 8
+    ...
+    @staticmethod
+    def migrate(config):
+        version = config["version"] if "version" in config else 1
+        if version == Migrator.currentVersion:
+            return
+        elif version > Migrator.currentVersion:
+            raise ValueError(
+                "Configuration version is too high (current: {}, found: {})".format(...)
+            )
+        ...
+```
+
+**`Migrator.currentVersion = 8` is hard-coded in the installed package**
+(`/opt/openwebrx/venv/lib/python3.13/site-packages/owrx/config/
+migration.py:128`) for this project's exact pinned OpenWebRX+ v1.2.123
+/ commit `2d60e894d0889382d2eb0574a19f027f8504dcfa` (the same hash
+`OPENWEBRX_COMMIT` in `tools/install_openwebrx.sh` already pins). This
+field is **not** a "how many times has this file's content changed"
+counter - it is OpenWebRX+'s own config-schema migration marker,
+meaningful only insofar as it matches or falls below whatever schema
+version the currently-installed code actually understands.
+
+`git log -p -- etc/openwebrx/sdrs_seed.py` shows exactly how this went
+wrong, across two separate rounds, both **already merged before this
+session's Tier A/Tier B work began**:
+
+- Commit `209a82d` (§13.8, the `magic_key` fix) bumped `version` from
+  `7` to `8` while adding `magic_key`/`max_clients` - neither of which
+  needed any schema migration. This bump was **harmless purely by
+  coincidence**: `8` happens to equal `Migrator.currentVersion`, so
+  `migrate()`'s `version == currentVersion` branch returned immediately
+  with no error, and this was never caught because that specific config
+  was applied and worked live.
+- Commit `e499b44` (§13.9, the `tuning_step` fix) then bumped `version`
+  from `8` to `9`, following the same (wrong) mental model. This
+  **did** exceed the ceiling - but §13.9 itself documented that this
+  fix was "not yet applied to the live system," and it genuinely never
+  was, until this round's `update_openwebrx_config.sh` run finally
+  applied it (see §15.1's own "incidental finding" about the live
+  config still being at `version=8` prior to this deploy). **This bug
+  has existed in the repo since `e499b44`, latent and undeployed, for
+  the entire duration of §13.10, §14, and the start of §15** - it was
+  exposed by this round's deploy, not introduced by it. Tier A/Tier B's
+  own changes (the vendored `bands.json`, the installer script edits,
+  the `live.php` help text) played no part in causing this - confirmed
+  by the traceback itself, which fails inside `Config.validateConfig()`
+  before OpenWebRX+ ever reaches the bandplan-loading code path at all.
+
+**Verified the exact ceiling directly against the pinned source**, not
+inferred: `Migrator.currentVersion = 8` was read straight out of the
+installed `owrx/config/migration.py` on this Pi, for the exact
+`OPENWEBRX_COMMIT` this project pins - not a generic assumption about
+"OpenWebRX" versioning.
+
+### 16.2 Fix: freeze `version` at the correct ceiling, document why, guard against recurrence
+
+`etc/openwebrx/sdrs_seed.py`: `version = 9` -> `version = 8`, with a
+long explanatory comment directly above it (added specifically so a
+future round adding an unrelated setting doesn't repeat this exact
+mistake a third time) spelling out that this field is tied to the
+installed package's `Migrator.currentVersion`, not to this file's own
+edit history, and that it must only ever change alongside a verified
+`OPENWEBRX_COMMIT` upgrade whose own `migration.py` raises the ceiling
+- never as a side effect of adding a plain setting.
+
+**All intended settings preserved, verified, not just assumed**:
+`magic_key=""`, `max_clients=4`, `receiver_gps={"lat": 0, "lon": 0}`,
+`tuning_step=5000`, and all three RTL-SDR profiles are unchanged in the
+corrected file - confirmed both by `diff` against the pre-incident
+commit (only the `version` line and its new comment differ) and by the
+real-class verification in §16.3 asserting each of these survives the
+actual `ClassicConfig`/`Migrator` load path intact.
+
+**The bandplan work (§15) was not rolled back.** `etc/openwebrx/
+upstream/bands.json` and both installer scripts are unchanged by this
+fix - the deploy log the operator pasted shows `bands.json` was already
+copied successfully before the crash (the crash happens during
+`Config.validateConfig()`, which runs before OpenWebRX+ ever reaches
+`owrx/bands.py`'s loading code), so once the service starts at all, the
+band data is already correctly in place from the same deploy that
+caused the outage.
+
+### 16.3 Verified the fix against the real installed code before asking for a redeploy - not just re-reading the diff
+
+Per instruction, this was tested against the actual load path, not
+assumed correct from the comment fix alone. Replicated
+`ClassicConfig.__init__`'s exact sequence
+(`ClassicConfig._loadPythonFile()` then `Migrator.migrate(pm)`) using
+the real installed classes, imported directly from `/opt/openwebrx/
+venv/lib/python3.13/site-packages` (the same "unit-level verification"
+technique first used in §13.8), against the **corrected** file:
+
+```
+Migrator.currentVersion (installed, hard-coded) = 8
+sdrs_seed.py declares version = 8
+Migrator.migrate(pm) succeeded - no ValueError. Fix verified.
+PASS: magic_key/max_clients/receiver_gps/tuning_step all intact after migrate().
+```
+
+**Sanity-checked the harness itself against the pre-fix (broken)
+file**, to confirm it actually discriminates rather than passing
+regardless of input - re-running the identical script against the
+`version=9` commit (`e0d53a5`) reproduced the **exact same traceback**
+the live service hit:
+
+```
+sdrs_seed.py declares version = 9
+...
+ValueError: Configuration version is too high (current: 8, found: 9)
+```
+
+This confirms both that the fix is correct and that the verification
+method would have caught the original mistake had it existed before
+`e499b44` was merged.
+
+### 16.4 New regression test: this cannot silently reach a live deploy again
+
+`tools/test_openwebrx_config_version.py` (4 tests, all passing):
+
+- A **static** assertion that `sdrs_seed.py`'s declared `version`
+  equals a known-good constant (`8`, tied by comment to the exact
+  `OPENWEBRX_COMMIT` it was verified against) - runs anywhere, no
+  installed OpenWebRX+ required.
+- A check that `OPENWEBRX_COMMIT` in `tools/install_openwebrx.sh`
+  hasn't silently moved out from under that known-good constant without
+  the constant being re-verified.
+- A **dynamic** check (skipped gracefully if the real venv isn't
+  present in whatever environment runs the suite, e.g. off-Pi CI):
+  imports the actual installed `owrx.config.classic.ClassicConfig` and
+  `owrx.config.migration.Migrator` and replicates the exact real load
+  path against this repo's own `sdrs_seed.py` - the strongest possible
+  check, since it fails exactly the way the live service actually
+  failed, using the real installed code rather than an assumption about
+  what it does. On this Pi, this test suite would have failed loudly at
+  `e499b44`'s own commit time, well before any deploy - not just after
+  this round's incident.
+- A companion check that the real installed `Migrator.currentVersion`
+  itself still matches the test's own hardcoded expectation - catches
+  the reverse failure mode (an operator or future round independently
+  updating the installed OpenWebRX+ without anyone reconciling this
+  project's own config version against it).
+
+### 16.5 Recovery: one command, using the now-fixed repo source
+
+No hand-editing of `/etc/openwebrx/config_webrx.py` was needed or
+recommended - the fix lives entirely in the repo's own `etc/openwebrx/
+sdrs_seed.py`, already verified against the real installed `Migrator`
+class (§16.3). Recovery is the **identical command** already used for
+this round's own deploy, now safe because the source it copies has been
+corrected:
+
+```
+sudo tools/update_openwebrx_config.sh
+```
+
+run from the repo root. This re-copies the corrected `sdrs_seed.py`
+(now `version = 8`) to `/etc/openwebrx/config_webrx.py`, re-copies the
+(unaffected, already-correct) `bands.json`, and restarts the service -
+the same three effects as the operator's original run, this time
+without the schema-version mismatch.
+
+### 16.6 Status as of this writing
+
+Fixed, tested (regression suite + real-class verification + harness
+sanity-check against the reproduced failure), and merged to `main` -
+**but not yet confirmed restoring the live service**, since that
+requires the operator to run §16.5's command. §15's Tier A completion
+claim remains open until that happens and this session has confirmed,
+live: `openwebrx.service` stays active rather than crash-looping,
+`bands.json` actually loads, `tuning_step=5000` is live, the bandplan
+ribbon renders correctly at the representative test frequencies, and
+zoom/pan continue working normally. See the closeout report for exactly
+what remains pending versus what's already fixed and merged.
+
+---
