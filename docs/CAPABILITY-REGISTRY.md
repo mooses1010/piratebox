@@ -950,6 +950,22 @@ it is.**
   controls so a visitor can't mistake one for the other. Needs only the
   standard `sudo piratebox_deploy.sh` step (no OpenWebRX+ config
   change), not the separate `update_openwebrx_config.sh` step.
+  **Read-only investigation (2026-09-06, see §14 - no code/config
+  changed)** into whether the installed OpenWebRX+ v1.2.123 already
+  contains Twente-WebSDR-style explorable-spectrum infrastructure:
+  found a complete marker/map system (separate `/map` page only, never
+  on the waterfall itself), EiBi/repeater databases that are actually
+  populated (9,442/12,755 entries) rather than empty - repeaters show
+  0-in-range purely because `receiver_gps` is deliberately `(0,0)` for
+  privacy, and EiBi is 99.93% below this hardware's receivable range
+  regardless - and a fully-wired but currently dataless native
+  **bandplan ribbon** feature (`owrx/bands.py`) that's the closest
+  native equivalent to inline waterfall labeling and the single most
+  promising next step (upstream-authored data, just needs placing in
+  `/etc/openwebrx/`). Also found native wheel/pinch zoom, drag-pan, and
+  an undocumented `PageUp`/`PageDown` keyboard shortcut that already
+  performs a genuine hardware retune under this project's current
+  config. Recommended next phase and full tier breakdown in §14.7.
   The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
   is **INSTALLED** for the RTL-SDR path specifically - confirmed
   working by both protocol-level tests and a real human/browser test,

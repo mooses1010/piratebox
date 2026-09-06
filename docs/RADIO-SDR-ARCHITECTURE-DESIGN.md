@@ -3154,3 +3154,422 @@ control-socket path short of joining a full demodulating session
 its own audio/waterfall chain).
 
 ---
+
+## 14. Deep investigation: what our actual installed OpenWebRX+ already offers toward a Twente-WebSDR-like "explorable spectrum" experience (2026-09-06, read-only research round)
+
+**Trigger**: after §13's broad-retuning UX was human-validated and working, the
+operator asked for an investigation - explicitly research/design only, no
+code or config changes - into whether the OpenWebRX+ version we actually
+installed already contains marker/annotation/navigation infrastructure we
+are simply not populating, inspired by (not copying) the University of
+Twente WebSDR's explorable-spectrum UX. **Nothing in this section was
+implemented this round.** No files were installed, no `/etc/` file was
+touched, no service was restarted, no config value was changed. This is a
+pure source-trace, done against the real installed package (not generic
+OpenWebRX/OpenWebRX+ documentation, and not the original Twente WebSDR,
+which is a completely separate, unrelated codebase - see §14.8).
+
+**Installed identity, confirmed directly (not assumed)**: this project runs
+the **`luarvique/openwebrx` fork ("OpenWebRX+"), v1.2.123**, installed via a
+venv at `/opt/openwebrx/venv` (package at
+`.../site-packages/owrx/`, frontend at `.../site-packages/htdocs/`). Exact
+component pins are recorded in `/etc/openwebrx/INSTALLED_COMMIT`. Live data
+directory (confirmed both from the systemd unit's `WorkingDirectory` and
+from `journalctl` startup log lines) is `/var/lib/openwebrx/`.
+
+### 14.1 Markers/annotations - real, but on a separate page, never on the waterfall
+
+OpenWebRX+ has a genuinely complete marker system: `owrx/markers.py`
+orchestrates four buckets (static file-backed `markers`, `receivers.py`'s
+`rxmarkers` for other public OpenWebRX/WebSDR/KiwiSDR instances,
+`eibi.py`'s `txmarkers` for shortwave broadcast schedules, `repeaters.py`'s
+`remarkers`), plus live-decoded overlays for APRS/AIS/aircraft
+(ADSB/ACARS/HFDL/VDL2/UAT)/sondes/Meshtastic that come from decoded RF
+traffic, not a bundled file. All of it is rendered by already-shipped
+frontend code (`htdocs/lib/MapMarkers.js`, `map-leaflet.js`/`map-google.js`)
+with working popups and TTL-based aging - **no new PirateBox frontend code
+would be needed to display markers, if the backend data were populated.**
+
+**But it is real, load-bearing, and confirmed by tracing `index.html`
+directly: none of this ever appears on or around the waterfall.** It lives
+entirely on a separate full-page map (`/map`, Leaflet or Google Maps per
+config), opened only via the header toolbar's "Map" button (`target=
+"openwebrx-map"`, a **new browser tab**) or the `M` keyboard shortcut. This
+corrects an implicit assumption behind the investigation request - there is
+no native "labels around the waterfall" feature to switch on; the closest
+analog to Twente's inline annotations is the separate bandplan ribbon
+(§14.3), not the marker/map system.
+
+**Click-to-tune is real but is the same offset-only mechanism as
+everything else in the frontend, and silently fails outside the current
+window.** A marker's frequency link (`Utils.linkifyFreq()`) opens/refocuses
+the receiver tab at `/#freq=…,mod=…`. The receiver page's hash handler
+(`DemodulatorPanel.js`'s `validateHash()`) **drops the request entirely
+unless `|freq - center_freq| <= bandwidth/2`** - it never requests a center
+retune, regardless of `allow_center_freq_changes`. When the frequency is
+already in-window, it becomes a plain demodulator offset, identical to
+every mechanism traced in §13.7-§13.10. This is exactly the same pattern as
+the frequency-entry field, the waterfall click, and the bookmark bar - all
+of them are offset-only and window-bounded; **the only mechanism anywhere
+in the stock frontend that performs a genuine hardware retune is
+`jumpBySteps()` on `PageUp`/`PageDown`** (§14.4).
+
+Custom local markers ARE supported without touching upstream files - drop
+a JSON file at `/etc/openwebrx/markers.json` or any `*.json` under
+`/etc/openwebrx/markers.d/` (a dict keyed by id, same field set as the
+built-in types: `lat`/`lon` required, optional `freq`/`mode`/`comment`/
+`url`/etc.) and it's picked up on the hourly refresh cycle. This mechanism
+has **no settings-UI or admin-page support anywhere in the shipped
+frontend** - it is a config-file convention discoverable only by reading
+`owrx/markers.py` directly, confirmed by an empty result on an exhaustive
+grep of `htdocs/` and `owrx/controllers/` for any reference to it.
+
+### 14.2 EiBi and repeaters are not actually "0 items" - the databases are populated; the filters explain everything
+
+The "Loading items ... / Loaded 0 items" impression that motivated this
+investigation does not match what the live system is actually doing right
+now. Read directly:
+
+```
+eibi.json       9,442 entries  (3.06 MB)
+repeaters.json  12,755 entries (2.49 MB)
+receivers.json  1,371 entries  (505 KB)
+```
+
+and the live `journalctl -u openwebrx` startup log shows:
+
+```
+Loaded 9442 items from '/var/lib/openwebrx/eibi.json'...
+Loaded 12755 items from '/var/lib/openwebrx/repeaters.json'...
+Loaded 357 transmitters from EIBI.
+Found 0 repeaters within 200km.
+Loaded 0 repeaters.
+```
+
+**The "0" is specific to `repeaters`, and it is a hard-coded 200km
+great-circle distance filter (`owrx/web/repeaters.py`'s `MAX_DISTANCE = 200`,
+applied in `getAllInRange()`) against `receiver_gps` - which this project's
+own `etc/openwebrx/sdrs_seed.py` deliberately sets to `{"lat": 0, "lon": 0}`
+(documented there as a no-PII-exposure choice, §13's own comment block).**
+With the receiver "located" at 0°N 0°E, the nearest of 12,755 real-world
+repeaters is unsurprisingly outside any real-world range, so the filter
+returns nothing. This is a **direct, structural consequence of a privacy
+decision this project already made on purpose**, not a bug, a missing
+download, or a misconfiguration to fix. The repeater subsystem is in fact
+built entirely around a real `receiver_gps` - `owrx/web/repeaters.py` wires
+a config-change callback that **deletes the cached file outright** if the
+configured location moves more than 10km, meaning genuinely useful repeater
+markers are architecturally inseparable from publishing the operator's
+real approximate location to anyone using `/map` - directly in tension with
+this project's existing privacy posture and Travel Mode's no-local-leakage
+requirement (`docs/TRAVEL-MODE-DESIGN.md`).
+
+EiBi has no comparable distance filter - `currentTransmitters()` filters
+purely by UTC time-of-day/day-of-week against each entry's broadcast
+schedule, which is why 357 (not 9,442, and not 0) were "active" transmitters
+at the moment this investigation ran; the number legitimately varies by the
+hour. **But EiBi turns out to be nearly irrelevant to this project's actual
+hardware regardless of any filter**: measured directly from the live file,
+entries range from 16.3 kHz to 27.184 MHz, and **99.93% (9,435 of 9,442)
+sit below 24 MHz** - below this unit's own documented R820T practical
+tuning floor (`sdrs_seed.py`'s own "~24 MHz-1766 MHz" comment). Only 7
+entries in the entire database fall inside our receivable range at all.
+Enabling EiBi-derived bookmarks (`eibi_bookmarks_range`, off by default and
+not set in this project's config) would light up a feature that has
+essentially nothing to show on this specific dongle.
+
+No license or attribution string exists anywhere in the installed EiBi
+code or cached data - see §14.8 before ever considering baking a snapshot
+into this repo. Given the 0.07% overlap with our receivable range, that
+question is largely moot for this project regardless of the answer.
+
+### 14.3 The one genuinely promising native feature found: the bandplan ribbon is fully wired but has no data file installed
+
+`owrx/bands.py` (`Band`/`Bandplan` classes) is a complete, independent
+third annotation system - not markers, not bookmarks - that draws a
+**colored, labeled ribbon of named frequency ranges directly onto the
+frequency-scale canvas of the main receiver page**, confirmed to redraw on
+zoom/pan/retune (`htdocs/lib/Bandplan.js`'s `draw()` reads
+`get_visible_freq_range()` on every render) and toggled with the `B` key.
+This is the closest native equivalent to Twente's inline "what lives here"
+labeling this investigation found - and it operates purely against
+whatever frequency window happens to be visible, so it needs no geographic
+data and raises none of §14.2's `receiver_gps` privacy tension.
+
+**It currently shows nothing on this installation, and the reason is
+structural, not a bug**: `Bandplan._loadBands()` looks for
+`/etc/openwebrx/bands{region}.json`, then a `bands{region}.json` relative to
+the service's working directory (`/var/lib/openwebrx/bands.json` in
+practice) - **neither exists**. The actual data files (`bands.json` plus
+region variants `bands-r1.json`/`bands-r2.json`/`bands-r3.json`) exist only
+in the separate source-build checkout at `/opt/openwebrx/src/openwebrx/`
+used to build the installed wheel, and were **never copied** into either
+the installed package or the runtime config/data directories during this
+project's own install process. `bandplan_region` also isn't set in the live
+config, so it defaults to `0` - which happens to map to the plain,
+non-region-specific `bands.json` (not a region-1/2/3 variant), i.e. the
+**most travel-generic option already lines up with this project's own
+default**, no config change needed to get a sensible starting point.
+
+Because this data file already ships as part of the OpenWebRX+ project's
+own source tree (present on this exact Pi, just not installed into the
+config path), populating it is a **file-placement action using upstream's
+own bundled data**, not a new third-party database this project would need
+to source, license, or maintain independently - a materially cleaner
+licensing/provenance story than EiBi or RepeaterBook (§14.8). No code
+changes anywhere are implied; the feature is already fully built and
+wired up on both the Python and JS sides.
+
+### 14.4 Frontend navigation already includes most of what Twente-style "explorability" needs - all client-side, all hardware-independent
+
+Traced directly in `htdocs/openwebrx.js` and `htdocs/lib/Shortcuts.js`,
+confirmed against the actual installed frontend rather than assumed from
+older OpenWebRX documentation:
+
+- **Mouse-wheel zoom** and **two-finger pinch zoom** - both already
+  implemented, both a pure client-side rescale of the already-captured
+  waterfall bitmap (no new samples, no additional CPU/DSP load).
+- **Click-and-drag panning** - already implemented, and explicitly
+  bounded in code to `±bandwidth/2` around `center_freq`; it is
+  structurally impossible for it to show spectrum that wasn't actually
+  captured.
+- **A full keyboard shortcut set** (arrows to tune/zoom, `Ctrl+arrows` to
+  change tuning step, `[`/`]` for squelch-based tuning, `B` for bandplan,
+  `M` for map, `T` for frequency entry, `Y` for bookmark search) - all
+  already shipped, none of it currently surfaced to a PirateBox visitor
+  anywhere in `live.php` or the Radio Reference page.
+- **A genuine hardware-retune shortcut already exists and would already
+  work on this exact install right now**: `PageUp`/`PageDown` call
+  `jumpBySteps()`, which sends the identical `setfrequency` protocol
+  message this project's own `live.php` uses (§13.6-§13.10), gated the
+  same way (`allow_center_freq_changes` + `magic_key`, both already set
+  permissively by this project). The shift amount is `bandwidth/4` (512
+  kHz at our 2.048 Msps profiles) per press - smaller than `live.php`'s
+  own chosen 1.5 MHz Previous/Next Spectrum step, and reachable only by
+  keyboard with no on-screen button or visible affordance at all. This
+  was not previously documented in this project and is worth surfacing
+  to visitors as a "did you know" rather than reimplementing - it is
+  free, already-working functionality.
+- **Frequency bookmarks bar** - three source layers merge onto one visual
+  bar that repositions with zoom/pan: (1) visitor-added bookmarks stored
+  in that browser's own `localStorage` (works today, zero server
+  dependency, fully private per-visitor); (2) server bookmarks from
+  `/etc/openwebrx/bookmarks.d/*.json` (not present on this install); (3)
+  auto-generated bookmarks from EiBi/repeaters (off by default, and per
+  §14.2 not very useful here even if turned on). Clicking any bookmark is
+  the same offset-only, window-bounded mechanism as everything else.
+
+### 14.5 What's fundamentally impossible with a single RTL-SDR, regardless of frontend work
+
+Every navigation feature in §14.4 - zoom, pan, click-to-tune, the bandplan
+ribbon - operates entirely within whatever ~2.048 MHz window is currently
+being sampled. None of it can make two widely-separated frequencies (say,
+an EiBi shortwave marker at 9.4 MHz and the FM broadcast band at 100 MHz)
+simultaneously live and clickable - only one `center_freq` is ever actually
+being captured at a time, by definition of instantaneous bandwidth. The map
+page can display markers across the whole world at once because it isn't
+tied to the waterfall at all, but clicking one only succeeds if that
+frequency already happens to be inside the currently-tuned window;
+otherwise the click is a silent no-op (§14.1). `jumpBySteps`/`setfrequency`
+is the only mechanism that actually moves the receiver, and it does so
+sequentially, one retune at a time - a hardware truth no amount of frontend
+polish changes, matching this project's own already-established "don't
+misrepresent a stitched/scanned overview as simultaneous live bandwidth"
+principle from §13.9's design brief.
+
+### 14.6 Scan/stitch broad-spectrum overview: feasibility only, not built
+
+`rtl_power` is already installed on this Pi (part of the standard
+`rtl-sdr` Debian package, alongside `rtl_sdr`/`rtl_fm`/`rtl_tcp` etc. -
+already present, nothing to newly install). OpenWebRX+ itself has no
+built-in periodic band-scanner (confirmed by an exhaustive grep for
+"sweep"/"scan"/"rtl_power" across the whole installed package - the only
+hits are the unrelated squelch-based in-window signal scanner).
+
+**Device sharing is possible but exclusive, and time-boxed by usage, not
+continuous**: traced through `owrx/source/__init__.py` - OpenWebRX+ only
+acquires the RTL-SDR (spawns the `rtl_connector` subprocess that opens the
+USB device) once at least one client (viewer or background task) is
+connected, and releases it (`stop()`, sending `SIGTERM`) once the last
+client disconnects, unless a device is explicitly marked `always-on` (not
+the case in this project's config). **A separate scan tool could therefore
+only acquire the device while nobody is actively viewing the live
+receiver** - RTL-SDR/USB hardware doesn't support two processes holding it
+open at once, so a scan attempted while a visitor is tuned in would simply
+fail to open the device, not run in parallel.
+
+**Rough cost, arithmetic only, nothing run**: sweeping the full 24-1766
+MHz practical range in ~2.048 MHz steps is roughly (1766-24)/2.048 ≈ 851
+retune steps; each needs real USB settle time plus `rtl_power`'s own
+per-bin dwell/integration time before advancing, making a full sweep a
+multi-minute (realistically much longer, depending on chosen dwell/
+resolution settings) operation - not something that can run continuously
+alongside a live, single-device receiver, and not something to attempt on
+a Pi 3B+ without a deliberate idle-only scheduling design. **Verdict:
+technically feasible later, using tooling already present on the system,
+but genuinely non-trivial to do honestly (idle-only scheduling, explicit
+"scanned N minutes/hours ago, not live" labeling, meaningful dwell-time
+choice) - correctly out of scope for this round and not urgent given how
+much of the desired "explorability" (§14.3, §14.4) is available without it.**
+
+### 14.7 Implementation tiers for a future round (design only - none of this is built)
+
+**Tier A - adopt native OpenWebRX+ capability with a config-layer-only
+addition, no upstream code touched:**
+Copy the OpenWebRX+ project's own bundled `bands.json` (§14.3) - already
+present in the local source-build tree, matching `bandplan_region`'s
+existing default of `0` - into `/etc/openwebrx/`. This lights up the
+already-fully-implemented labeled bandplan ribbon with zero new frontend
+code, zero new backend code, and upstream-authored data (cleanest
+provenance of any option investigated - see §14.8). Complexity: minimal
+(a file copy plus, if the shipped default file turns out to need review
+for accuracy/appropriateness before use, some editorial curation). Pi 3B+
+cost: negligible (a one-time parse at startup, no ongoing CPU). Offline:
+fully - static local file, no network involved ever. Travel Mode: no
+GPS/location dependency at all, unlike repeaters. Upstream-upgrade safety:
+high (a config file OpenWebRX+ itself already reads by design, not a
+patched source file). This is the single most promising concrete next
+step this investigation found.
+
+**Tier B - PirateBox-authored additions, entirely in our own repo, leaving
+OpenWebRX+ untouched:**
+(1) Add a short, visible hint in `live.php` (or the Radio Reference page)
+documenting the already-existing, currently-invisible native controls -
+scroll-wheel zoom, drag-to-pan, and specifically the `PageUp`/`PageDown`
+hardware-retune shortcut - since all of it already works today and costs
+nothing to surface. (2) Optionally extend `live.php`'s own range-bar
+(§13.10) with hand-curated, travel-safe textual band labels (NOAA, FM
+broadcast, aviation, marine, amateur allocations) sourced the same way
+this project already curates its Universal-tier reference content
+(`docs/REFERENCE-CONTENT-DESIGN.md`), avoiding any per-country repeater/
+EiBi data entirely. Complexity: low, same risk profile as §13.10's own
+range bar. Fully within this repo/deploy path, no operator `/etc/`
+step needed.
+
+**Tier C - deferred, later-round scan/stitch overview (§14.6):**
+Not recommended for the near term. If pursued later: idle-only scheduling
+(only sweep when `checkStatus()`-equivalent shows no connected clients),
+explicit "scanned, not live" labeling matching this project's own honesty
+principle from §13.9, and a realistic dwell-time/resolution budget for a
+Pi 3B+. Revisit only after Tier A/B are in place and only if there's
+still an appetite for it.
+
+**Explicitly not recommended, based on this investigation**: enabling
+repeater markers/bookmarks by setting a real `receiver_gps` (defeats this
+project's own deliberate no-PII posture and Travel Mode's no-local-leakage
+requirement - §14.2); baking a static EiBi snapshot into the repo for
+offline use (99.93% of it is outside this hardware's receivable range, and
+its licensing/redistribution terms were not found anywhere in the
+installed code - §14.2, §14.8); enabling `eibi_bookmarks_range` (same
+irrelevance).
+
+### 14.8 Source/licensing discipline
+
+**The original University of Twente WebSDR (PA3FWM's project) is a
+completely separate, unrelated codebase from OpenWebRX/OpenWebRX+.** This
+investigation used Twente only as UX inspiration (as instructed) and did
+not read, copy, scrape, or transplant any of its frontend code - every
+finding above traces the **already-installed, already-approved-as-a-
+dependency OpenWebRX+ package** this project has run since §13, not
+Twente's software.
+
+**OpenWebRX+ itself** (the `luarvique` fork) is an existing, already-
+installed dependency of this project (§13.1-13.4's own install history) -
+using its own native, already-shipped features (markers, bandplan,
+bookmarks) raises no new licensing question beyond what installing it
+already implied.
+
+**EiBi data** (`eibispace.de`): no license or attribution string exists
+anywhere in the installed `owrx/web/eibi.py` code or the cached
+`eibi.json` data itself - the only provenance trace is the hardcoded
+download URL. If this project ever wanted to bake a static EiBi snapshot
+into the repo for guaranteed offline use, `eibispace.de`'s own site terms
+would need to be checked directly first - not inferred from the installed
+code, which makes no claim either way. Given §14.2's 0.07% overlap with
+this hardware's receivable range, that research is not judged worthwhile
+pursuing.
+
+**Repeater data** (RepeaterBook.com / ARD): same absence of any bundled
+license/attribution in the installed code. Not recommended regardless,
+per §14.2's `receiver_gps`/privacy conflict - the licensing question is
+moot if the feature itself shouldn't be enabled.
+
+**Bandplan data** (`bands.json` etc.): part of the OpenWebRX+ project's
+own source distribution, already present on this Pi as a build artifact
+of installing OpenWebRX+ itself - using it is using upstream's own bundled
+data under whatever license already covers the rest of the installed
+package, not a new third-party redistribution question. This is the
+cleanest option of the three by a clear margin.
+
+### 14.9 Answers to the round's specific questions
+
+- **What Twente-like functionality does our installed OpenWebRX+ already
+  have?** Wheel/pinch zoom, click-drag pan (both window-bounded), a
+  geographic marker/map system (separate page, not on the waterfall), a
+  bandplan-ribbon feature (fully wired, currently dataless), a multi-source
+  bookmark bar, and one genuine keyboard-only hardware-retune shortcut
+  (`PageUp`/`PageDown`) already compatible with this project's current
+  config.
+- **Why are our EiBi/repeater databases currently empty?** They are not
+  empty at the file level (9,442 / 12,755 entries, actively refreshed).
+  Repeaters show 0-in-range purely because `receiver_gps` is deliberately
+  `(0,0)` for privacy; EiBi's "357 active" count is normal time-of-day
+  filtering, and the full database is 99.93% below this hardware's
+  receivable range regardless.
+- **Can native markers appear on the waterfall and tune the receiver?**
+  No to the first half - markers only ever appear on the separate `/map`
+  page. Clicking one (or a bookmark, or a typed frequency) only ever sets
+  a demodulator offset, and only if the target frequency is already inside
+  the currently-sampled window; otherwise it silently does nothing. It
+  never triggers a real center retune.
+- **Can we get useful offline band/station/service annotations without
+  reinventing the frontend?** Yes, for the bandplan ribbon specifically -
+  upstream's own bundled data, already-shipped frontend rendering, just
+  needs the data file placed in `/etc/openwebrx/` (Tier A). Not for
+  EiBi/repeaters, for the reasons above.
+- **What zoom/pan/navigation capabilities already exist?** Wheel zoom,
+  pinch zoom, drag pan (all window-bounded, all client-side/free), a full
+  keyboard shortcut set, and the `PageUp`/`PageDown` real hardware-retune
+  shortcut.
+- **What small missing UX pieces would actually be worth building
+  ourselves?** Surfacing the already-working zoom/pan/`PageUp`/`PageDown`
+  controls to visitors (currently invisible/undiscoverable - free, no
+  code risk); populating the native bandplan ribbon (Tier A); optionally
+  extending `live.php`'s own range bar with curated travel-safe band
+  labels (Tier B).
+- **What is impossible because of RTL-SDR instantaneous bandwidth?** Any
+  simultaneous live view/click-tune across widely separated frequencies -
+  only one ~2.048 MHz window is ever actually sampled at a time, and every
+  native navigation feature operates only within it.
+- **Is a later scanned/stitched broad-spectrum map technically worthwhile
+  on this Pi?** Feasible later using already-installed `rtl_power`
+  (~851 steps for a full sweep), but genuinely nontrivial to do honestly
+  (idle-only scheduling since OpenWebRX+ and a sweep can't share the
+  device concurrently, explicit non-live labeling, realistic dwell-time
+  budget on a Pi 3B+). Correctly deferred; not recommended now.
+- **What exact next implementation phase is recommended?** Tier A (copy
+  OpenWebRX+'s own default `bands.json` into `/etc/openwebrx/`, no code
+  changes) alongside Tier B's `live.php`/Radio-Reference hint about the
+  already-working native zoom/pan/`PageUp`/`PageDown` controls.
+- **Does that next phase require sudo/operator action, or can this
+  session own it end-to-end?** Tier A's file placement is under
+  `/etc/openwebrx/` - the same operator-gated path as every prior
+  `sdrs_seed.py` deployment in §13 (`sudo tools/update_openwebrx_config.sh`
+  or equivalent); this session has no standing grant for it. Tier B is
+  entirely inside `var/www/html/`/`docs/`, deployable via the existing
+  `sudo piratebox_deploy.sh` grant this session already has - ownable
+  end-to-end without operator involvement.
+
+### 14.10 Stop condition honored
+
+This round made **no changes** to `/etc/`, no service restarts, no config
+edits, no package installs, no changes to `live.php`'s working controls,
+and no RF/sample-rate/gain changes. Everything above is documentation of
+findings from read-only inspection (`cat`/`find`/`grep`/`journalctl`/
+`dpkg -l`/`which`/read-only JSON parsing) against the real installed
+system, plus a design-only recommendation for the next round. §13's
+human-validated broad-retuning UX (presets, manual entry, Previous/Next
+Spectrum, the range-bar navigator) was not touched and is not affected by
+anything in this section.
+
+---
