@@ -81,6 +81,23 @@ BUILD_DIR="/opt/openwebrx/src"
 VENV_DIR="/opt/openwebrx/venv"
 DATA_DIR="/var/lib/openwebrx"
 
+# 2026-09-05 incident: a first install attempt (full `-j$(nproc)` = 4
+# concurrent GCC/G++ processes) progressed cleanly to ~90% of csdr's own
+# build, then the Pi rebooted with no persistent journal surviving to
+# explain why - undervoltage was logged early in the next boot (as it
+# is on every boot of this chronically marginal-power Pi - not, by
+# itself, proof of causation), but no prior stress in this whole
+# investigation (RTL-SDR captures, USB operations) involved *sustained*
+# full-core load for minutes at a time the way a parallel C++ build
+# does. Capping build parallelism is a direct, reasoned mitigation for
+# that newly-observed load profile, not a general slowdown for its own
+# sake - see docs/RADIO-SDR-ARCHITECTURE-DESIGN.md's OpenWebRX+ section
+# for the full incident writeup. This project's sudoers config resets
+# the environment on every sudo invocation, so an inline
+# `BUILD_JOBS=N sudo ...` override would be silently ignored - edit the
+# default below directly if a different value is ever wanted.
+BUILD_JOBS=2
+
 echo "=== [1/8] apt dependencies ==="
 apt-get update
 apt-get install -y --no-install-recommends \
@@ -123,7 +140,9 @@ if [ ! -f /usr/local/lib/libcsdr.so ] && [ ! -f /usr/local/lib/libcsdr.so.1 ]; t
 
     mkdir -p build && cd build
     cmake ..
-    make -j"$(nproc)"
+    echo "csdr: starting make -j$BUILD_JOBS at $(date '+%H:%M:%S') - this is the long step; if this terminal ever goes silent for several minutes with no further output, that's a real interruption to investigate, not normal behavior"
+    make -j"$BUILD_JOBS"
+    echo "csdr: make finished at $(date '+%H:%M:%S'), running make install"
     make install
     ldconfig
 else
@@ -137,7 +156,9 @@ if ! command -v rtl_connector >/dev/null 2>&1; then
     cd owrx_connector
     mkdir -p build && cd build
     cmake ..
-    make -j"$(nproc)"
+    echo "owrx_connector: starting make -j$BUILD_JOBS at $(date '+%H:%M:%S')"
+    make -j"$BUILD_JOBS"
+    echo "owrx_connector: make finished at $(date '+%H:%M:%S'), running make install"
     make install
     ldconfig
 else

@@ -2203,3 +2203,145 @@ capture) and §11c (on-screen observation + known-frequency retest):**
 
 None of these block writing this document; all of them block writing
 any code.
+
+---
+
+## 13. OpenWebRX+ implementation — installation, csdr build incident, and a power/load finding (2026-09-05)
+
+With RTL-SDR hardware/software support proven (§3a, §3b), this section
+covers moving from investigation into an actual, reproducible
+OpenWebRX+ install (`tools/install_openwebrx.sh` and the config/
+systemd/nginx files under `etc/`). See that script's own header
+comment for the full, current install-method rationale; this section
+records the *evidence and incidents* behind it, updated as the install
+progresses.
+
+### 13.1 Installation method chosen
+
+Upstream's own `openwebrx-plus` apt repository
+(luarvique.github.io/ppa) is **x64-only** and does not cover this
+Pi's arm64/Debian-Trixie combination - confirmed before writing any
+installer, not assumed. The installer instead follows upstream's own
+documented "Manual Package installation" method (shared by the
+original `jketterl/openwebrx` wiki and this project's chosen
+`luarvique/openwebrx` fork, both building on the same
+`csdr`/`pycsdr`/`owrx_connector` foundation), with two evidence-backed
+adaptations: a dedicated Python venv instead of a system-wide
+`setup.py install` (modern Debian's PEP 668 blocks the latter), and
+seeding the SDR/profile configuration via OpenWebRX+'s own documented
+`config migrate` command reading a classic-format file, rather than
+hand-writing the modern JSON config store OpenWebRX+ itself says
+isn't meant to be edited by hand. Confirmed via source inspection
+(not assumed): OpenWebRX+'s own frontend JS constructs every asset
+and WebSocket URL relative to `window.location.href` itself, making
+it genuinely subpath-reverse-proxy-safe - the basis for choosing
+`http://piratebox/radio/` over a separate hostname/port. Also
+confirmed: OpenWebRX+ has its own complete built-in session/login
+system gating `/settings*` (`AuthorizationMixin`), separating
+administrative SDR configuration from the open visitor receiver page
+without needing an additional nginx-level auth layer.
+
+### 13.2 csdr build failure #1 — upstream `errhead()` bug (aarch64/GCC 14)
+
+First live install attempt stopped during csdr compilation:
+`implicit declaration of function 'errhead'`. **Root cause,
+investigated from the actual failed-build source tree, not assumed**:
+csdr's `CMakeLists.txt` unconditionally enables a `NEON_OPTS` debug-
+trace code path for every aarch64 build. That path calls `errhead()`,
+which is defined *only* in the separate `csdr.c` CLI tool (a different
+translation unit, never linked into the shared library) and depends
+on that tool's own `argv_global`/`argc_global` - neither declared in
+any shared header. This affects any aarch64 build of csdr's current
+`master`, not something specific to this install: older GCC only
+warned on the implicit declaration (leaving a latent, likely-dead
+reference in the built library); GCC 14+ (Debian Trixie's default)
+promotes `-Wimplicit-function-declaration` to a hard error for C,
+turning this long-latent bug into an outright build failure.
+**Confirmed via upstream research**: already reported as
+[jketterl/csdr#13](https://github.com/jketterl/csdr/issues/13)
+("does not compile under Raspbian Trixie [FIX]"), byte-for-byte
+identical error text, but the issue is open with no merged fix and no
+comments containing a proposed patch.
+
+**Fix**: `etc/openwebrx/patches/csdr-errhead-neon-aarch64.patch` adds
+a local, `NEON_OPTS`-scoped stand-in for `errhead()` directly in
+`libcsdr.c` that preserves the intended trace-prefix behavior without
+the bogus cross-translation-unit dependency - minimal, documented in
+the patch's own header (including the upstream issue link), verified
+to apply cleanly against the actual failed-build checkout before being
+committed, and applied by the installer itself idempotently (a
+marker-string check, so a re-run doesn't try to double-apply it).
+
+### 13.3 Reboot incident during resumed csdr build — a genuine power/sustained-load finding
+
+The patched build was re-run and progressed cleanly past the
+`errhead()` failure point, reaching approximately 90% of csdr's own
+build (multiple C/C++ objects, including its optional codec modules
+like `fastddc`/`ima_adpcm`) before the operator's terminal output
+stopped advancing. After roughly 15 minutes of no further output, the
+operator opened a second SSH session and found: no `make`/`gcc`/`g++`/
+`cc1`/`ld` processes running at all, an uptime of only ~19 minutes
+(far shorter than the build's own elapsed time), and a fresh
+`hwmon hwmon1: Undervoltage detected!` line early in the current
+boot's `dmesg`.
+
+**CONFIRMED, via `journalctl --list-boots`**: the Pi genuinely
+rebooted (exactly one boot record, started well after the build had
+begun) - this was a real reboot, not a stale/dead SSH session
+illusion.
+
+**NOT independently provable**: that undervoltage specifically caused
+this reboot. This system has no persistent journald storage (`/etc/
+systemd/journald.conf` has no `Storage=` override, defaulting to
+`auto`, and no `/var/log/journal` exists) - the crashed boot's own
+journal is genuinely unrecoverable, and `Undervoltage detected!` is
+the same routine message this chronically undervolted Pi (§ POWER-
+INTEGRITY-DIAGNOSIS.md, `throttled` a standing `0x50005`) logs early
+in *every* boot, not a signal unique to this one. Per the operator's
+own explicit instruction, this is recorded as a **strong candidate,
+not a proven root cause**.
+
+**What is a genuine, evidence-backed new data point**: no prior stress
+anywhere in this entire investigation - RTL-SDR raw captures (§3b.4,
+up to 3.2 Msps for 10 seconds), USB enumeration/hotplug events,
+serial/audio characterization - involved *sustained* full-core CPU
+load for minutes at a time the way a 4-way-parallel (`make -j4`, this
+Pi 3B+'s `nproc`) C/C++ compilation does. That this specific, novel
+load profile is the first thing in the whole investigation to
+coincide with a full reboot (rather than the previously-seen pattern
+of USB blips/re-enumerations) is a reasonable, evidence-consistent
+basis for a direct mitigation, without needing to claim certainty
+about the exact mechanism.
+
+**Mitigation applied**: `tools/install_openwebrx.sh` now caps build
+parallelism at `BUILD_JOBS=2` (half this Pi's 4 cores) for both the
+csdr and `owrx_connector` builds, with the reasoning recorded directly
+in the script, plus timestamped progress echoes around both `make`
+invocations so a future interruption is easier to diagnose from
+terminal scrollback alone (the only surviving record, given no
+persistent journal).
+
+**What survived the interruption, confirmed live rather than
+assumed**: the [1/8] apt-dependency and [2/8] system-user steps had
+already completed and remained correctly in place after the reboot;
+the csdr source checkout and applied patch both survived on disk;
+`/usr/local/lib/libcsdr.so` did **not** exist (the build/install never
+completed); `owrx_connector` had not yet been cloned at all (the
+crash happened within csdr's own extended multi-target build, not a
+later stage as its build's file names might otherwise suggest -
+`fastddc`/`ima_adpcm`/etc. are csdr's own optional codec modules, not
+`owrx_connector`'s). No damaged or inconsistent state was found -
+`pb-ap`/hostapd/dnsmasq/nginx were all healthy on the fresh boot
+(normal systemd bring-up, unrelated to any installer or recovery
+action), and the RTL-SDR re-enumerated normally.
+
+**Recommendation, not acted on this round** (per instruction not to
+make unrelated system changes merely because they'd be useful):
+enabling persistent journald storage (`Storage=persistent` +
+`mkdir -p /var/log/journal`) would let a future crash like this one
+actually be diagnosed from logs instead of relying on terminal
+scrollback and reasoning about what's missing from disk. Worth doing
+as its own small, deliberate, operator-approved change - not bundled
+into this OpenWebRX+ work.
+
+---
