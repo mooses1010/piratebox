@@ -824,23 +824,35 @@ it is.**
   disruption. OpenWebRX+ itself binds to `127.0.0.1:8073` only, never
   directly reachable from `pb-ap` clients; its own built-in login
   system gates `/settings*` separately from the open visitor receiver
-  page. Two simultaneous clients and real browser/audio UX remain
-  untested (§13.5).
+  page. **Human browser test confirmed (2026-09-05)**: real waterfall/
+  audio UX at `http://piratebox/radio/`, an actual FM station audible
+  with working browser audio, PirateBox itself remaining usable in
+  another tab. **Broad manual retuning added and confirmed** the same
+  day - `allow_center_freq_changes` enabled (a general, visitor-facing
+  setting, no admin login needed) plus a new "General SDR (Wide
+  Tuning)" profile; verified live across three genuinely different,
+  widely-separated bands (27.185 MHz, 100.1 MHz, 162.475 MHz) via the
+  same protocol-level client, all three streaming real data - see
+  §13.6 for the retune mechanism (a live control-socket message to the
+  already-running `rtl_connector`, not a process relaunch) and a self-
+  caught test-pacing mistake corrected before being reported. Two
+  simultaneous clients remain untested.
   The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
   is now **INSTALLED** for the RTL-SDR path specifically - confirmed
-  working, not merely configured on paper. Real unknowns remain (which
-  Malahit serial port, if either, is CAT control and in what protocol;
-  why the Malahit's 40kHz audio interface won't stream; whether any
-  existing SDR-software Malahit support actually applies to that
-  hardware variant - the Malahit path remains untouched, deliberately
-  kept separate/experimental; two-simultaneous-client and real browser
-  UX validation for the RTL-SDR path; no PirateBox UI/capability_state
-  integration yet - `/radio/` works but isn't yet linked from the
-  PirateBox homepage or reflected in `capability_state.php`) - see the
-  design doc's own open-questions list. Layer: Optional/Field.
-  Classification: Attachable (USB). Core dependency: No - confirmed
-  live, not just by design: `pb-ap`/hostapd/dnsmasq/nginx were verified
-  healthy throughout every OpenWebRX+ install/test/load round.
+  working by both protocol-level tests and a real human/browser test,
+  not merely configured on paper. Real unknowns remain (which Malahit
+  serial port, if either, is CAT control and in what protocol; why the
+  Malahit's 40kHz audio interface won't stream; whether any existing
+  SDR-software Malahit support actually applies to that hardware
+  variant - the Malahit path remains untouched, deliberately kept
+  separate/experimental; two-simultaneous-client validation for the
+  RTL-SDR path; no PirateBox UI/capability_state integration yet -
+  `/radio/` works but isn't yet linked from the PirateBox homepage or
+  reflected in `capability_state.php`) - see the design doc's own
+  open-questions list. Layer: Optional/Field. Classification:
+  Attachable (USB). Core dependency: No - confirmed live, not just by
+  design: `pb-ap`/hostapd/dnsmasq/nginx were verified healthy
+  throughout every OpenWebRX+ install/test/load/retune round.
 
 ### Ham-radio interface
 

@@ -2613,17 +2613,43 @@ long as no admin account/`/settings` edit exists to start masking it.
   for as long as no admin account/`/settings` edit exists to complicate
   the picture (see that script's own header for the exact caveat).
 
-**Not yet applied to the live system as of this commit**: this fix
-requires root (editing `/etc/openwebrx/config_webrx.py` and restarting
-the service) - `tools/update_openwebrx_config.sh` is written and
-tested for syntax/logic but has not yet been run by the operator. The
-live instance still has the pre-fix configuration (fixed NOAA/FM
-windows only, no General SDR profile, `allow_center_freq_changes`
-still `False`) until that happens. Retuning verification (confirming
-the backend genuinely follows arbitrary center-frequency changes
-across multiple very different bands, not just serving the profile's
-own fixed starting point) is planned immediately after, using the
-same protocol-level test method as §13.5 - see the operator gate this
-round stops at.
+**Applied and verified (2026-09-05)**: the operator ran
+`tools/update_openwebrx_config.sh`; `status.json` confirmed all three
+profiles live with the corrected FM frequency
+(`center_freq: 100100000`), and a protocol-level test (the same
+stdlib WebSocket client as §13.5, through the `/radio/` proxy)
+confirmed `"allow_center_freq_changes": true` in the server's own
+config push.
+
+**Retuning across genuinely different bands - confirmed, with one
+real timing lesson learned along the way**: a first attempt sent
+`setfrequency` commands every ~7 seconds starting almost immediately
+after connecting, and the CB/11m target (27.185 MHz) showed **zero**
+binary frames - investigated rather than written off as a retuning
+failure. The journal showed only one `rtl_connector` launch for the
+whole test, at 162.475 MHz - the *last* frequency requested, not the
+first. Reading `owrx/source/connector.py`'s `onPropertyChange()`
+explained why: a center-frequency change is sent as a **live control-
+socket message to the already-running `rtl_connector` process**
+(`"center_freq:<value>\n"`), never a process relaunch - and this
+particular source has enough startup latency that all three rapid
+requests landed on the property before the process had even started,
+so it launched already reflecting the final accumulated value. Not a
+functional bug - a test-pacing artifact, confirmed by re-running with
+each retune spaced 10+ seconds apart and an initial 16-second warm-up:
+**CB/11m (27.185 MHz): 365 binary frames, FM Broadcast (100.1 MHz):
+252 frames, NOAA Weather (162.475 MHz): 97 frames - all three
+genuinely different, widely-separated bands (27 MHz apart to 162 MHz)
+streamed live, real data while tuned, confirmed both by the client
+receiving it and by `owrx`'s own source code showing exactly how the
+retune command reaches the hardware-facing process.**
+
+**Post-verification health, unchanged from every prior round**:
+`pb-ap`/hostapd/`openwebrx` all `NRestarts=0`/`active`/`running`,
+`throttled` still the same pre-existing `0x50005`, temperature
+unchanged, zero failed units, and the only kernel-level message during
+the entire retuning test was the same benign, expected
+`dvb_usb_v2: ... successfully deinitialized and disconnected` line
+seen in every previous round.
 
 ---
