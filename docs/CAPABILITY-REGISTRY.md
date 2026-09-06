@@ -90,7 +90,7 @@ it is.**
 | Lightning detection | Optional/Field | CANDIDATE | Integrated or Companion |
 | Radiation measurement | Optional/Field | CANDIDATE | Integrated or Companion |
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
-| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | OWNED (both devices tested; `rtl-sdr`/`librtlsdr0` installed) | Attachable |
+| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
 | Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | CANDIDATE | Network Companion |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
@@ -803,29 +803,44 @@ it is.**
   51.7% of samples clipped at automatic gain, 0% at a manually-set
   8.70dB), and stable USB streaming at 3.2 Msps with no dropped
   samples. This is real tool-level evidence the standard OpenWebRX+
-  software path works end-to-end on this exact unit and this exact
-  Pi. Neither device is wired into any PirateBox service; OpenWebRX+
-  itself has not been installed.
+  software path works end-to-end on this exact unit and this exact Pi.
+  **OpenWebRX+ (`luarvique/openwebrx`, pinned commit `2d60e894`) has
+  since been installed and verified working end-to-end (2026-09-05,
+  docs/RADIO-SDR-ARCHITECTURE-DESIGN.md section 13)**: a real simulated
+  client (a minimal stdlib WebSocket client, matching the exact
+  installed protocol source, not guessed) triggered `openwebrx.service`
+  to launch `rtl_connector` with the configured gain/frequency/sample
+  rate, open this exact RTL-SDR, detach the kernel driver, and stream
+  219 binary FFT/waterfall/audio frames (216,910 bytes) plus live
+  S-meter/temperature/CPU-usage telemetry back over the WebSocket -
+  both directly against the backend and through the production
+  `http://piratebox/radio/` nginx reverse proxy, with an identical
+  result (213 frames, 211,290 bytes). One real config bug was found
+  and fixed in the process (`fm-broadcast` profile's `start_freq` was
+  out of range for its `center_freq` - both now agree on 100.1 MHz).
+  Measured under one active client: `openwebrx` ~10-14% CPU,
+  `rtl_connector` ~11-27% CPU (settling to ~12-13%), `throttled`
+  unchanged at every sample, zero USB/kernel errors, zero ALFA/hostapd
+  disruption. OpenWebRX+ itself binds to `127.0.0.1:8073` only, never
+  directly reachable from `pb-ap` clients; its own built-in login
+  system gates `/settings*` separately from the open visitor receiver
+  page. Two simultaneous clients and real browser/audio UX remain
+  untested (§13.5).
   The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
-  remains **CANDIDATE** - no SDR web-server software stack installed,
-  and real unknowns remain (which Malahit serial port, if either, is CAT
-  control and in what protocol; why the Malahit's 40kHz audio
-  interface won't stream; whether any existing SDR-software Malahit
-  support actually applies to this hardware variant; real Pi 3B+
-  CPU/RAM performance under an actual OpenWebRX+ demodulation + web-
-  client workload, now the only remaining open question for the
-  RTL-SDR path specifically) - see the design doc's own open-questions
-  list. Layer: Optional/Field. Classification: Attachable (USB). Core
-  dependency: No.
-- **Candidate software backend:** OpenWebRX+ (`luarvique/openwebrx`)
-  is the current leading candidate for the software layer - actively
-  maintained, Debian Trixie-aware, self-hosted with no CDN dependency,
-  and the only researched option with any documented support for the
-  broader Malahit-branded ecosystem (via a third-party `SoapyMalahitRR`
-  plugin). Whether that plugin - named for a "Malahit-R1" product -
-  actually applies to this owned handheld "V3" unit is unresolved and,
-  per the design doc's own analysis, more likely NOT to apply than
-  originally estimated. Nothing has been installed.
+  is now **INSTALLED** for the RTL-SDR path specifically - confirmed
+  working, not merely configured on paper. Real unknowns remain (which
+  Malahit serial port, if either, is CAT control and in what protocol;
+  why the Malahit's 40kHz audio interface won't stream; whether any
+  existing SDR-software Malahit support actually applies to that
+  hardware variant - the Malahit path remains untouched, deliberately
+  kept separate/experimental; two-simultaneous-client and real browser
+  UX validation for the RTL-SDR path; no PirateBox UI/capability_state
+  integration yet - `/radio/` works but isn't yet linked from the
+  PirateBox homepage or reflected in `capability_state.php`) - see the
+  design doc's own open-questions list. Layer: Optional/Field.
+  Classification: Attachable (USB). Core dependency: No - confirmed
+  live, not just by design: `pb-ap`/hostapd/dnsmasq/nginx were verified
+  healthy throughout every OpenWebRX+ install/test/load round.
 
 ### Ham-radio interface
 

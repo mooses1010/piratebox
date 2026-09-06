@@ -72,7 +72,7 @@ the user's existing SDR setup, not yet connected to the Pi.
 
 ---
 
-## 1. Executive summary (revised 2026-09-05, six times - see §2b for the physical enumeration update, §11b for the CDC-ACM listen test + audio characterization, §11c for the known-frequency retest, §3a for RTL-SDR identification + receive test, §3b for the librtlsdr wideband tuner characterization)
+## 1. Executive summary (revised 2026-09-05, seven times - see §2b for the physical enumeration update, §11b for the CDC-ACM listen test + audio characterization, §11c for the known-frequency retest, §3a for RTL-SDR identification + receive test, §3b for the librtlsdr wideband tuner characterization, §13 for the full OpenWebRX+ installation/verification - **real reception through OpenWebRX+ is now confirmed working, browser-accessible at `/radio/`**)
 
 - **2026-09-05, physical enumeration complete (§2b)**: the V3 unit was
   connected to the Pi and passively characterized. Two genuinely
@@ -2174,9 +2174,15 @@ capture) and §11c (on-screen observation + known-frequency retest):**
    clean kernel-driver detach/reattach, working gain control (fixed a
    real automatic-gain overload), and stable 3.2 Msps USB streaming -
    real tool-level evidence, not just descriptor-level plausibility.
-7. Real OpenWebRX+ CPU/RAM/client-count behavior on this actual Pi
-   3B+/Trixie — no published benchmark exists for any Malahit variant
-   or RTL-SDR on this OS/hardware combination (§4, §5).
+7. ~~Real OpenWebRX+ CPU/RAM behavior on this actual Pi 3B+/Trixie,
+   for the RTL-SDR path~~ — **CONFIRMED for one client** (§13.5):
+   `openwebrx` ~10-14% CPU, `rtl_connector` ~11-27% CPU (settling
+   ~12-13%), ~6.5-7% RAM, `throttled` unchanged. **Still open**: 2
+   simultaneous clients (the configured `max_clients`), a real
+   browser's own JS/rendering overhead, and sustained multi-minute
+   operation - all untested. No published benchmark exists for the
+   Malahit path on this hardware either way (§4, §5), and the Malahit
+   path remains untouched/experimental per instruction.
 8. Actual USB charging current draw — the "Self Powered" descriptor
    bit (§2b) is a favorable but not dispositive sign; no direct
    current measurement has been taken.
@@ -2206,7 +2212,7 @@ any code.
 
 ---
 
-## 13. OpenWebRX+ implementation — installation, two build incidents, and a power/load finding (2026-09-05)
+## 13. OpenWebRX+ implementation — installation, two build incidents, and verified real reception (2026-09-05)
 
 With RTL-SDR hardware/software support proven (§3a, §3b), this section
 covers moving from investigation into an actual, reproducible
@@ -2419,5 +2425,105 @@ symbol that never existed in the specific (stale) compiled extension
 being imported, not a Python-version compatibility error of any kind;
 the same import would have failed identically on any Python version
 against that same wrong-source pycsdr build.
+
+### 13.5 Verification — real reception, `/radio/` proxy, and Pi 3B+ performance under actual load (2026-09-05)
+
+With the corrected fork/pinning fix installed, `openwebrx.service`
+started cleanly (`NRestarts=0`, "Ready to serve requests." in the
+journal, listening on `127.0.0.1:8073` only - confirmed via `ss`, not
+exposed on any other interface).
+
+**One real, minor config bug found and fixed**: startup logged
+`WARNING - start_freq for profile "fm-broadcast" is out of range` -
+the seed's `fm-broadcast` profile set `center_freq` to 98 MHz but
+`start_freq` to 100.1 MHz, 2.1 MHz away - outside the ~1.024 MHz half-
+width a 2.048 Msps profile actually covers. Fixed in
+`etc/openwebrx/sdrs_seed.py` by centering the profile on 100.1 MHz
+(the same frequency already validated as a real, working receive
+point in §3b.3) rather than picking an arbitrary new center - both
+fields now agree. The `noaa-weather` profile was correctly configured
+from the start (75 kHz offset, well within range) and never warned.
+
+**Real reception test through OpenWebRX+ itself - not merely
+`rtl_test`/`rtl_sdr`**: no ready-made WebSocket client library exists
+anywhere on this system (checked directly: neither system Python nor
+the OpenWebRX+ venv has `websockets`/`aiohttp` installed - OpenWebRX+
+implements its own raw protocol). A minimal stdlib-only (`socket`,
+`base64`, `struct`) WebSocket client was written against the actual
+installed protocol handler source
+(`owrx/connection.py`'s `HandshakeMessageHandler`/
+`OpenWebRxReceiverClient`, not guessed from the frontend JS alone),
+simulating exactly what a real browser tab does: WebSocket handshake,
+`SERVER DE CLIENT client=... type=receiver`, then a `dspcontrol start`
+message. **CONFIRMED, both directly (client-side) and independently
+via the server's own journal (not just inferred from one side)**:
+
+- The server automatically selected the configured RTL-SDR source and
+  its first profile (`sdr_id: rtlsdr`, `profile_id: noaa-weather`) -
+  confirming the seeded configuration is genuinely recognized, not
+  just present in a file.
+- The journal showed OpenWebRX+ launch
+  `rtl_connector -g 8.7 -P 0 -s 2048000 -f 162475000 -p ... -c ...` -
+  the exact configured gain, sample rate, and frequency from the
+  seeded profile, not defaults.
+- `rtl_connector`'s own output showed it finding and opening this
+  exact unit (`Realtek, RTL2838UHIDIR, SN: 00000001`), detaching the
+  kernel driver, and identifying the Rafael Micro R820T tuner - a
+  third independent confirmation of the tuner identity (kernel probe
+  in §3a, `rtl_test`/`rtl_sdr` in §3b, now the full OpenWebRX+
+  integration stack), followed by "Allocating 2 zero-copy buffers" -
+  real USB IQ streaming beginning.
+- On a longer (20-second) connection, the client received **219
+  binary WebSocket frames totaling 216,910 bytes** (FFT/waterfall/
+  audio data), plus a continuous stream of live `smeter` readings
+  (small, roughly-consistent fractional values, consistent with a
+  quiet/no-strong-signal noise floor at this untuned frequency, not a
+  stuck/fake value), a live `temperature` reading (43°C, closely
+  matching a direct `vcgencmd measure_temp` check taken around the
+  same time), and a live `cpuusage` self-report from OpenWebRX+ itself.
+- On disconnect, the journal showed a clean teardown:
+  `received signal: 15` then `Reattached kernel driver` - the same
+  graceful detach/reattach cycle already confirmed reliable in §3b,
+  now happening automatically through the full application stack with
+  no operator action.
+
+**`/radio/` nginx reverse proxy - CONFIRMED working end-to-end**: the
+identical test, repeated through `http://piratebox/radio/ws/` (port
+80, `Host: piratebox`) instead of directly against `127.0.0.1:8073`,
+produced the same result - 213 binary frames, 211,290 bytes, full
+protocol handshake, real hardware activation. WebSocket upgrade
+headers, path stripping (`proxy_pass`'s trailing slash), and the long
+proxy timeouts are all confirmed correct in the actual deployed
+config, not just reasoned about from source (§13.1).
+
+**Pi 3B+ performance under one real, actively-streaming client**
+(sampled every 2 seconds throughout a 20-second connection):
+
+| | Idle (pre-test) | Under one active client |
+|---|---|---|
+| `openwebrx` process CPU | - | ~10-14% (one core) |
+| `rtl_connector` process CPU | not running | ~11-27% (briefly 27% at stream startup, settling to ~12-13%) |
+| 1-minute load average | 0.99 | rose to ~1.63-1.68 |
+| `openwebrx` RSS | - | ~6.5-7% of this Pi's 905MB (roughly 60-65MB) |
+| `throttled` | `0x50005` | **unchanged at every single sample** |
+| Temperature | 42.9°C | 42.9-43°C (unchanged) |
+
+Combined CPU for one client is roughly a quarter of one core on this
+4-core Pi 3B+ - real, measured headroom remains for the configured
+`max_clients: 2` and for the rest of PirateBox's own normal load, but
+this is one client with plain NFM/analog demodulation and no digital-
+voice decoding - not yet stress-tested at 2 simultaneous clients or
+with a real browser's own JS/rendering overhead added on top (that
+overhead lives client-side, not on the Pi, but a genuine end-to-end
+UX judgment still needs an actual browser - see the closeout).
+
+**Zero USB/kernel errors, zero ALFA disconnects, zero re-enumerations,
+`pb-ap`/hostapd/dnsmasq/nginx all confirmed healthy before, during, and
+after every test in this section** - the only kernel-level message
+logged during the entire verification round was the expected, benign
+`dvb_usb_v2: ... successfully deinitialized and disconnected` line
+that accompanies every clean kernel-driver detach (§3b.1), confirmed
+via a full `journalctl -k` sweep of the test window, not merely
+absence-of-complaint.
 
 ---

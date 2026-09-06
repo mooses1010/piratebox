@@ -65,8 +65,18 @@ sdrs = {
                 "start_mod": "nfm",
             },
             "fm-broadcast": {
+                # 2026-09-05, first live install: center_freq 98000000 with
+                # start_freq 100100000 logged "start_freq for profile
+                # 'fm-broadcast' is out of range" at startup - 100.1MHz sits
+                # 2.1MHz from a 98MHz center, outside the ~1.024MHz half-
+                # width a 2.048 Msps profile actually covers. Fixed by
+                # centering on the same 100.1MHz already validated as a
+                # real, working receive frequency in the RTL-SDR
+                # characterization round (docs/RADIO-SDR-ARCHITECTURE-
+                # DESIGN.md section 3b.3) rather than picking an arbitrary
+                # new center - both fields now agree.
                 "name": "FM Broadcast",
-                "center_freq": 98000000,
+                "center_freq": 100100000,
                 "samp_rate": 2048000,
                 "start_freq": 100100000,
                 "start_mod": "wfm",
