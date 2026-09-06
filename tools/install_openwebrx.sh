@@ -243,7 +243,13 @@ cp "$REPO_ROOT/etc/openwebrx/openwebrx.conf" /etc/openwebrx/openwebrx.conf
 
 # Seed the SDR/profile configuration exactly once - re-running this
 # script must not clobber any configuration the operator has since
-# changed via OpenWebRX+'s own /settings web UI.
+# changed via OpenWebRX+'s own /settings web UI. To apply a LATER
+# change to etc/openwebrx/sdrs_seed.py (a new profile, a setting
+# tweak) to an already-installed system, use
+# tools/update_openwebrx_config.sh instead of re-running this whole
+# installer - see that script's own header for why it's safe and
+# effective on this system as of 2026-09-05 (no admin account/
+# settings.json exists yet to conflict with it).
 if [ ! -f "$DATA_DIR/settings.json" ] && [ ! -f "$DATA_DIR/sdrs.json" ]; then
     echo "No existing OpenWebRX+ config found - seeding from etc/openwebrx/sdrs_seed.py"
     cp "$REPO_ROOT/etc/openwebrx/sdrs_seed.py" /etc/openwebrx/config_webrx.py

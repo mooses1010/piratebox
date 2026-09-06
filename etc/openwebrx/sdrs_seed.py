@@ -1,21 +1,31 @@
-# PirateBox: one-time OpenWebRX+ SDR/profile seed file.
+# PirateBox: OpenWebRX+ SDR/profile/general-settings seed file.
 #
-# This is a "classic" config_webrx.py-format file (the format OpenWebRX+
-# itself still documents and supports migrating from - see that file's
-# own DEPRECATION notice: "the new configuration storage is not intended
-# to be edited manually" past the initial migration). It exists purely
-# so tools/install_openwebrx.sh can produce a working, reproducible,
-# non-interactive baseline via the project's own documented
-# `openwebrx config migrate` command, rather than hand-writing the
-# internal JSON store OpenWebRX+ explicitly warns against editing by
-# hand. After migration, ongoing changes belong in OpenWebRX+'s own
-# /settings web UI, not this file - it is not re-read after the first
-# migration.
+# This is a "classic" config_webrx.py-format file. tools/install_openwebrx.sh
+# copies it to /etc/openwebrx/config_webrx.py, which OpenWebRX+ actually
+# reads directly (via owrx/config/classic.py's ClassicConfig, which
+# executes the file fresh on every service start - confirmed live,
+# 2026-09-05: this exact Pi's /var/lib/openwebrx/settings.json, the
+# higher-priority "dynamic" layer that OpenWebRX+'s own /settings web UI
+# writes to, does not exist at all, meaning nothing is masking this
+# classic file - it is the actual live source of truth for every
+# setting below, not a one-time seed that stops mattering after a
+# "config migrate" run. (OpenWebRX+'s own documentation still says the
+# dynamic JSON store "is not intended to be edited manually" once an
+# admin starts using /settings - if that ever happens on this Pi, the
+# dynamic layer's own keys will start taking priority over this file's
+# matching keys, and this comment's "actual live source of truth" claim
+# will need revisiting for whichever keys the admin has touched.)
+# Consequence for maintenance: updating a value in this file and
+# re-copying it to /etc/openwebrx/config_webrx.py (then restarting the
+# service) is a valid, safe way to change live configuration for as
+# long as no admin account/settings-UI edits exist yet on this install -
+# see tools/install_openwebrx.sh's separate "apply config update"
+# guidance for exactly this.
 #
 # Deliberately minimal, matching the "establish a clean basic receiver
 # first" instruction: one device (the confirmed RTL2832U+R820T dongle,
-# docs/RADIO-SDR-ARCHITECTURE-DESIGN.md section 3a/3b), two profiles,
-# both plain analog demodulation (NFM/WFM) - no digital-voice decoders,
+# docs/RADIO-SDR-ARCHITECTURE-DESIGN.md section 3a/3b), three profiles,
+# all plain analog demodulation (NFM/WFM) - no digital-voice decoders,
 # no APRS, no ADS-B, nothing from OpenWebRX+'s own "Recommends:" pile.
 #
 # Gain: 8.7 dB, not "auto" - the RTL-SDR/librtlsdr characterization
@@ -24,15 +34,31 @@
 # active loop antenna (51.7% of samples clipped at the rails at FM
 # broadcast); manual 8.70 dB eliminated it completely (0% clipped).
 # This is a receiver-chain/antenna-gain finding, not a defect - see
-# that section before changing this value back to "auto".
+# that section before changing this value back to "auto". Applies
+# per-device, so all three profiles below share it.
 #
-# Sample rate: 2.048 Msps, the more conservative of the two rates
-# validated stable in raw-capture testing (section 3b.4) - OpenWebRX+
-# adds real DSP/FFT/waterfall/web-serving load on top of raw capture,
-# which raw rtl_sdr testing never exercised, so starting at the lower
-# validated rate (not the higher 3.2 Msps one) is the deliberately
-# conservative choice per instruction. Increase only with fresh
-# measurements to justify it.
+# Sample rate: 2.048 Msps for every profile, the more conservative of
+# the two rates validated stable in raw-capture testing (section
+# 3b.4) - OpenWebRX+ adds real DSP/FFT/waterfall/web-serving load on
+# top of raw capture, which raw rtl_sdr testing never exercised, so
+# starting at the lower validated rate (not the higher 3.2 Msps one)
+# is the deliberately conservative choice per instruction. Increase
+# only with fresh measurements to justify it.
+#
+# allow_center_freq_changes: True - without this (OpenWebRX+'s own
+# default is False), a connected client can only tune within whichever
+# profile's own fixed ~2.048 MHz window is currently selected, with no
+# way to move the window itself - confirmed live by a human browser
+# test (2026-09-05): NOAA Weather Radio only showed ~161.5-163.5 MHz,
+# FM Broadcast only ~97-99 MHz, with no way to reach any other part of
+# the RTL2832U+R820T's actual tunable range. Enabling this lets any
+# connected client (no admin login required - this is a general,
+# visitor-facing setting, not gated behind OpenWebRX+'s own /settings
+# admin auth) drag/retune the center frequency freely within whatever
+# the R820T tuner itself will actually lock onto. Each profile/session
+# still only ever shows ONE ~2.048 MHz-wide slice of spectrum centered
+# on the current tuned frequency at a time, not the whole RF spectrum
+# simultaneously - retuning moves that slice, it doesn't widen it.
 #
 # No receiver_gps is set: this project does not publish the operator's
 # precise physical location to visitors or the wider internet, matching
@@ -49,6 +75,7 @@ photo_title = ""
 photo_desc = ""
 
 max_clients = 2
+allow_center_freq_changes = True
 
 sdrs = {
     "rtlsdr": {
@@ -76,6 +103,41 @@ sdrs = {
                 # DESIGN.md section 3b.3) rather than picking an arbitrary
                 # new center - both fields now agree.
                 "name": "FM Broadcast",
+                "center_freq": 100100000,
+                "samp_rate": 2048000,
+                "start_freq": 100100000,
+                "start_mod": "wfm",
+            },
+            "general-sdr": {
+                # 2026-09-05: added per explicit operator request after the
+                # human browser test confirmed real reception, but found
+                # NOAA/FM's fixed ~2 MHz windows too restrictive. This
+                # profile's own starting point is the same validated
+                # 100.1 MHz FM signal (a known-good, already-confirmed-
+                # audible starting point rather than an untested
+                # frequency) - with allow_center_freq_changes (above)
+                # enabled, a visitor can retune anywhere from here.
+                #
+                # No hard min/max tuning limit is enforced by OpenWebRX+
+                # itself for a plain rtl_sdr connector device (confirmed
+                # by reading the actual installed owrx/source/rtl_sdr.py -
+                # it declares a valid *sample rate* range, 250 kHz-3.2
+                # Msps, matching librtlsdr's own real limits, but no
+                # frequency-range field at all) - a client can request
+                # any numeric center frequency, forwarded directly to
+                # rtl_connector/the R820T tuner. Real-world usable range
+                # is therefore set by the tuner's own actual PLL lock
+                # range, not by OpenWebRX+ or this config: roughly
+                # 24 MHz-1766 MHz for the R820T/R820T2 family (community-
+                # documented, not re-measured across that whole span in
+                # this project's own testing - this unit has been
+                # directly confirmed working at 27.185 MHz, 100.1 MHz,
+                # and 162.475 MHz specifically, per docs/RADIO-SDR-
+                # ARCHITECTURE-DESIGN.md sections 3b.3 and 13.5). Tuning
+                # outside that range will not damage anything - the
+                # tuner simply fails to produce a usable signal - but it
+                # is not a supported/verified part of this unit's range.
+                "name": "General SDR (Wide Tuning)",
                 "center_freq": 100100000,
                 "samp_rate": 2048000,
                 "start_freq": 100100000,

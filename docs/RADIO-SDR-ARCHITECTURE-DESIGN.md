@@ -2526,4 +2526,104 @@ that accompanies every clean kernel-driver detach (§3b.1), confirmed
 via a full `journalctl -k` sweep of the test window, not merely
 absence-of-complaint.
 
+### 13.6 Human browser test, and adding broad manual retuning (2026-09-05)
+
+**Human confirmation, the gate §13.5 stopped at**: the operator opened
+`http://piratebox/radio/` in a real browser. The waterfall/audio UI
+loaded; NOAA Weather Radio and FM Broadcast both appeared as selectable
+profiles; a real FM station was audible in the FM Broadcast window with
+working browser audio; PirateBox itself remained usable in another tab
+while the receiver was open. **Real, human-confirmed, end-to-end
+reception through OpenWebRX+ and the `/radio/` proxy - not just
+protocol-level evidence.**
+
+**UX gap found**: each profile only let the operator tune within its
+own fixed ~2 MHz window (NOAA ~161.5-163.5 MHz, FM ~97-99 MHz), with no
+way to move that window - confirmed not to be an OpenWebRX+ limitation
+but a config default (`allow_center_freq_changes` defaults to `False`
+in `owrx/config/defaults.py`, confirmed by reading the actual installed
+source) that this project's own seed file had never set.
+
+**A real discovery that changed how this gets fixed**: `settings.json`
+(`/var/lib/openwebrx/`'s "dynamic" config layer, written by OpenWebRX+'s
+own `/settings` admin web UI, which takes priority over the classic
+`config_webrx.py` file per `owrx/config/__init__.py`'s own
+`PropertyStack` layer ordering) **does not exist on this system at
+all** - confirmed by direct inspection, not assumed. This means the
+classic `/etc/openwebrx/config_webrx.py` file is not a one-time seed
+that stops mattering after `config migrate` runs, as this document
+previously assumed (matching OpenWebRX+'s own "not intended to be
+edited manually past migration" framing) - `owrx/config/classic.py`
+actually **executes that file fresh on every service start**, and
+since nothing is masking it, it is the *actual live source of truth*
+for every setting in it, right now. (`config migrate`'s own
+`store()` call, confirmed by reading `owrx/config/commands.py`, did
+not end up producing a `settings.json` on this install for reasons not
+further investigated - not essential to this fix, and not needed for
+it to work correctly.) This matters because it changes the *correct*
+way to apply an ongoing config change: not by re-running `config
+migrate` a second time (which the `PropertyStack` layering would make
+a silent no-op for any key the - nonexistent - dynamic layer already
+had), but by editing the classic file directly and restarting the
+service - genuinely effective on this system, not a workaround, for as
+long as no admin account/`/settings` edit exists to start masking it.
+
+**Fix implemented**:
+
+- `allow_center_freq_changes = True` added to
+  `etc/openwebrx/sdrs_seed.py` - a general, visitor-facing setting
+  (confirmed via source: it sits alongside `allow_audio_recording`/
+  `allow_chat`, not gated behind OpenWebRX+'s own admin `/settings`
+  auth) that lets any connected client drag/retune the center
+  frequency, no login required - matching the instruction not to
+  require admin interaction for ordinary visitor tuning.
+- A third profile, **"General SDR (Wide Tuning)"**, added to the same
+  `rtlsdr` device - starting at the same already-validated 100.1 MHz
+  FM signal (a known-good starting point, not an untested frequency),
+  same conservative 2.048 Msps sample rate and 8.7 dB manual gain as
+  the other two profiles. With `allow_center_freq_changes` enabled,
+  a visitor can retune from this (or any) profile's starting point to
+  anywhere the R820T tuner will actually lock onto.
+- **No hard frequency min/max is enforced by OpenWebRX+ itself**,
+  confirmed by reading the actual installed `owrx/source/rtl_sdr.py`:
+  it declares a valid *sample-rate* range (`Range(250000, 3200000)`,
+  matching librtlsdr's own real limits) but no frequency-range field
+  at all for a plain connector-type device - a client can request any
+  numeric center frequency, forwarded directly to `rtl_connector`/the
+  tuner. The real, practical ceiling is the R820T/R820T2 family's own
+  PLL lock range - community-documented as roughly 24 MHz-1766 MHz,
+  **not re-measured across that whole span by this project** (this
+  unit has been directly confirmed working at exactly three points:
+  27.185 MHz, 100.1 MHz, and 162.475 MHz - §3b.3, §13.5). Tuning
+  outside the real range doesn't damage anything - the tuner simply
+  fails to produce a usable signal - documented honestly as an
+  unenforced, community-sourced practical boundary, not a verified or
+  OpenWebRX+-enforced hard limit.
+- **Each profile/session still only ever shows one ~2.048 MHz-wide
+  slice of spectrum at a time, centered on the current tuned
+  frequency - retuning moves that slice, it does not widen it or show
+  multiple bands simultaneously.** Recorded explicitly per instruction,
+  so this is never misrepresented as full-spectrum simultaneous
+  coverage.
+- `tools/update_openwebrx_config.sh` added: a small, dedicated,
+  reusable script for applying a changed `sdrs_seed.py` to an
+  already-installed system (copy + restart) - distinct from
+  `tools/install_openwebrx.sh`'s own first-time-only seeding guard, and
+  the correct tool for this and any future config-file-driven change
+  for as long as no admin account/`/settings` edit exists to complicate
+  the picture (see that script's own header for the exact caveat).
+
+**Not yet applied to the live system as of this commit**: this fix
+requires root (editing `/etc/openwebrx/config_webrx.py` and restarting
+the service) - `tools/update_openwebrx_config.sh` is written and
+tested for syntax/logic but has not yet been run by the operator. The
+live instance still has the pre-fix configuration (fixed NOAA/FM
+windows only, no General SDR profile, `allow_center_freq_changes`
+still `False`) until that happens. Retuning verification (confirming
+the backend genuinely follows arbitrary center-frequency changes
+across multiple very different bands, not just serving the profile's
+own fixed starting point) is planned immediately after, using the
+same protocol-level test method as §13.5 - see the operator gate this
+round stops at.
+
 ---
