@@ -344,3 +344,90 @@ already predicted: `piratebox_get_time_source_status()`
 will report `rtc_detected: true` the instant `/dev/rtc0`/`/sys/class/
 rtc/rtc0` exists, with zero code changes - this round only had to make
 that device actually exist.
+
+## 7. First real run: missing `hwclock` + a clock-clobber hazard found and fixed (2026-09-06, same day)
+
+**What happened:** the operator ran §6's script. The overlay bound
+correctly (`rtc-ds1307 1-0068: registered as rtc0`, `/dev/rtc0`
+present, the unset RTC read back ~2000-01-01 as expected for a never-
+set, battery-less chip), but Steps 4/5 failed with `hwclock: command
+not found`.
+
+**Root cause, confirmed live, not guessed:** this Pi runs Debian 13
+("trixie"). `dpkg -S hwclock` shows only doc/systemd-unit/bash-
+completion references - no binary - and `dpkg -l util-linux` confirms
+`util-linux` (2.41.5) is installed without it. `apt-cache show
+util-linux-extra` confirms that package exists, is available from
+`trixie-security`, and (per `apt-get install --dry-run
+util-linux-extra`) installs as exactly one clean new package with zero
+removals and zero other upgrades. This is a real, current Debian
+packaging split (`hwclock` moved out of the base `util-linux` package
+into `util-linux-extra`), not a broken install or a PirateBox mistake -
+a minimal Raspberry Pi OS image simply doesn't carry the "extra"
+package by default.
+
+**Fix:** `tools/configure_rtc_ds3231.sh` gained a Step 0 -
+`command -v hwclock`, and only if that fails, `apt-get update && apt-get
+install -y util-linux-extra`, then a hard verification that `hwclock`
+now resolves before continuing. Idempotent: a system that already has
+it (this Pi, after the fix is applied once) never triggers the network
+apt operation again on a re-run.
+
+**A second, more important finding while fixing this: the live-apply
+step can silently clobber a known-good NTP-synchronized system
+clock.** `CONFIG_RTC_HCTOSYS` (confirmed `=y` in §6) does not wait for
+a reboot to act - the kernel's hctosys mechanism fires the instant the
+named RTC class device (`rtc0`) is registered, which is exactly what
+the live `dtoverlay` apply in Step 2 does. The operator's own captured
+output (`rtc-ds1307 1-0068`'s ~2000-01-01 read, right at bind time) is
+consistent with this having already happened: the moment the overlay
+bound, the kernel almost certainly stepped the system clock from
+NTP-correct back to the RTC's unset ~2000-01-01 default, *before* the
+script ever reached the commands meant to fix that. Left unguarded,
+this is worse than having no RTC at all - the previous no-RTC fallback
+paths (NTP unavailable, or a kernel/filesystem-mtime default) rarely
+land 26 years off; an unset DS3231 reliably does.
+
+**Hardening added:** a new `resync_and_verify_ntp_time()` helper -
+always force-restarts `systemd-timesyncd` and polls `timedatectl show
+-p NTPSynchronized --value` until it reports `yes` (aborting after 15s
+if it never does, rather than trusting an unverified clock). It
+deliberately never trusts a *cached* "already synchronized" flag,
+since that flag only reflects timesyncd's own last poll and has no way
+to know the kernel silently stepped the clock afterward. Called twice,
+bracketing the live-apply: once immediately before (recovers from
+exactly the scenario the operator hit - a previous run that got far
+enough to trigger the clobber and then failed on the missing binary),
+and once immediately after (undoes the clobber this run's own
+live-apply may have just caused), before anything reads system time as
+ground truth or writes it into the RTC in Step 5.
+
+**Known, accepted limitation - not solved by this fix, and not in
+scope to solve this round:** without a battery, the exact same
+clobber-then-recover sequence will repeat at **every future boot**,
+not just during this commissioning session - `CONFIG_RTC_HCTOSYS` is
+unconditional and fires on every boot once the overlay is persisted in
+`config.txt`, and the battery-less DS3231 will keep reporting a
+stale/reset value after every real power-off. In practice this Pi's
+`eth0` NTP path (confirmed reliable earlier this document) should
+correct it within moments of `systemd-timesyncd` starting, the same
+way it always has - but the transient wrongness during that window is
+now a large, specific jump (~2000-01-01) rather than the milder
+defaults the no-RTC fallback path used to produce. This is a real
+trade-off of commissioning the RTC ahead of its battery, honestly
+recorded rather than glossed over; it closes on its own the moment a
+battery is fitted (the RTC will then hold real time across a boot, and
+`hctosys` will seed the system clock with something correct instead of
+a reset default). No new boot-time watchdog/service was added to paper
+over this window this round - out of scope for a commissioning-time
+script fix, and not requested.
+
+**Validation performed:** static tests only in this environment (no
+live `/boot/firmware/config.txt`, network, or root access here) -
+`tools/test_rtc_ds3231_config.py` grew from 12 to 17 assertions,
+covering the gated/idempotent package install, the update-before-install
+ordering, the post-install verification, and that
+`resync_and_verify_ntp_time` is both defined and called at least twice
+around the live-apply, with its own failure path refusing to proceed
+rather than trusting an unverified clock. Full existing test suite
+re-run and confirmed unaffected.

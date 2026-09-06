@@ -6,6 +6,48 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## DS3231 RTC follow-up: missing `hwclock` dependency + NTP-clobber hardening (2026-09-06, same day)
+
+**Decision date:** 2026-09-06. Follow-up to the entry directly below.
+The operator's first real run of `tools/configure_rtc_ds3231.sh` bound
+the RTC driver correctly but failed at Steps 4/5 with `hwclock: command
+not found`. Root cause, confirmed live: this Pi runs Debian 13
+("trixie"), which moved `hwclock` out of the base `util-linux` package
+into a separate `util-linux-extra` package - not installed on a
+minimal Raspberry Pi OS image. Fixed by adding a gated Step 0
+(`command -v hwclock`, and only if missing, `apt-get update && apt-get
+install -y util-linux-extra`, then verified) - idempotent, no-op on a
+system that already has it.
+
+**A more important finding surfaced while fixing this:** the live
+`dtoverlay` apply can silently clobber a known-good NTP-synchronized
+system clock. `CONFIG_RTC_HCTOSYS` fires the instant the RTC device
+registers, not just at boot - so applying the overlay live steps the
+system clock to the unset, battery-less DS3231's ~2000-01-01 default
+immediately, before any command meant to fix that runs. The operator's
+own captured output (the RTC reading ~2000-01-01 right at bind time) is
+consistent with this having already happened on their box. Hardened
+with a new `resync_and_verify_ntp_time()` helper that always
+force-restarts `systemd-timesyncd` and waits for `timedatectl` to
+confirm synchronization (never trusts a cached flag, which can't know
+the kernel stepped the clock afterward), called both immediately before
+and immediately after the live-apply - and aborts rather than proceeds
+if a fresh sync can't be confirmed within 15s.
+
+**Known, accepted limitation, not solved this round:** without a
+battery, this same clobber-then-recover sequence recurs at every future
+boot (not just during commissioning), since `CONFIG_RTC_HCTOSYS` is
+unconditional once the overlay is in `config.txt`. This Pi's working
+`eth0` NTP path should correct it within moments each time, same as
+before, but the transient wrongness is now a bigger jump than the old
+no-RTC fallback ever produced. Closes on its own once a battery is
+fitted. See `docs/RTC-TIME-READINESS-DESIGN.md` §7 for the full record
+- no new boot-time service was added to paper over this, out of scope
+for a commissioning-time script fix.
+
+Tests: `tools/test_rtc_ds3231_config.py` grew 12 → 17 assertions. Full
+existing suite re-run and confirmed unaffected.
+
 ## DS3231 hardware RTC wired and configured (2026-09-06)
 
 **Decision date:** 2026-09-06. The operator physically wired a DS3231

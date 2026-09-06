@@ -28,15 +28,30 @@ against a real Pi without any install-time error:
   - it must not touch any other PirateBox service (hostapd, dnsmasq,
     nginx, php-fpm, the OLED daemon) - this is a narrow, single-purpose
     hardware config change, not a broad change;
-  - it must not install any package - the overlay file and i2c-tools
-    both already ship on this OS image, confirmed live before this
-    script was written;
+  - it must not install any package OTHER than the one confirmed-
+    missing `hwclock` dependency (Debian 13/trixie split `hwclock` out
+    of the base `util-linux` package into `util-linux-extra` - found
+    live when this script's first real run failed with `hwclock:
+    command not found`) - the overlay file and i2c-tools both already
+    ship on this OS image and need no install;
+  - that one install must be gated behind an actual `command -v
+    hwclock` check, never unconditional - a system that already has it
+    must never re-trigger a network apt operation on every run;
   - it must never claim or assume a battery is installed, and must not
     instruct the operator to insert one - this board's coin cell is
     deliberately not fitted yet (see the script's own header);
   - it must write time to the RTC in UTC explicitly (`--utc`), matching
     this Pi's existing `RTC in local TZ: no` convention rather than
-    leaving hwclock to guess.
+    leaving hwclock to guess;
+  - it must force and verify a fresh NTP resync both before and after
+    the live overlay apply - found live during this round's first real
+    run: `CONFIG_RTC_HCTOSYS` fires the instant `/dev/rtc0` registers,
+    not just at boot, so an unguarded live-apply silently steps a
+    known-good NTP-synchronized system clock back to the unset RTC's
+    ~2000-01-01 default. The check must force a fresh resync
+    (`systemctl restart systemd-timesyncd`) rather than trust a cached
+    "already synchronized" flag, since that flag can't know the kernel
+    stepped the clock afterward.
 """
 import re
 import stat
@@ -89,14 +104,88 @@ class TestScriptShapeAndSafety(unittest.TestCase):
     def test_hwclock_writes_in_utc(self):
         self.assertIn('--systohc --utc', self.text)
 
-    def test_no_package_install(self):
-        for forbidden in ("apt-get install", "apt install", "pip install"):
-            self.assertNotIn(
-                forbidden,
-                self.text,
-                f"script must not install packages ({forbidden!r} found) - "
-                "the overlay file and i2c-tools already ship on this OS image",
-            )
+    def test_installs_exactly_the_confirmed_missing_hwclock_package(self):
+        self.assertIn(
+            'apt-get install -y util-linux-extra',
+            self.code_only,
+            "script must install util-linux-extra - Debian 13/trixie's "
+            "actual home for hwclock, confirmed live via apt-cache/dpkg "
+            "before this fix, not guessed",
+        )
+        # No OTHER package install anywhere - this fix is scoped to the
+        # one confirmed-missing dependency, not a general apt-get spree.
+        install_lines = [
+            line for line in self.code_only.splitlines()
+            if re.search(r'\b(apt-get install|apt install|pip install)\b', line)
+        ]
+        self.assertEqual(
+            len(install_lines), 1,
+            f"expected exactly one package-install line, found {install_lines!r}",
+        )
+
+    def test_hwclock_install_is_gated_not_unconditional(self):
+        # Must only install when hwclock is actually missing - a system
+        # that already has it must never trigger a network apt
+        # operation on every run.
+        match = re.search(
+            r'if command -v hwclock.*?\n(.*?)\nfi',
+            self.code_only,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(
+            match, "hwclock presence check (`command -v hwclock`) not found"
+        )
+        self.assertIn('apt-get install -y util-linux-extra', match.group(0))
+
+    def test_hwclock_install_updates_package_lists_first(self):
+        # A genuinely fresh OS image may have empty/stale apt lists -
+        # `apt-get update` must run before the install, not be assumed
+        # already done, for this to be reproducible on a fresh install.
+        update_idx = self.code_only.find('apt-get update')
+        install_idx = self.code_only.find('apt-get install -y util-linux-extra')
+        self.assertNotEqual(update_idx, -1, "script never runs apt-get update")
+        self.assertLess(
+            update_idx, install_idx,
+            "apt-get update must run before installing util-linux-extra",
+        )
+
+    def test_verifies_hwclock_present_after_attempting_install(self):
+        # Must not blindly assume the install worked - confirm the
+        # command actually exists afterward and abort loudly if not.
+        self.assertIn('command -v hwclock', self.code_only)
+        self.assertIn('exit 1', self.code_only)
+
+    def test_forces_and_verifies_fresh_ntp_resync_around_live_apply(self):
+        # The core clock-safety fix: CONFIG_RTC_HCTOSYS fires the
+        # instant /dev/rtc0 registers (not just at boot), so the live
+        # overlay apply must be bracketed by a forced, VERIFIED resync -
+        # never a cached "already synchronized" flag, since that flag
+        # can't know the kernel stepped the clock out from under it.
+        self.assertIn('systemctl restart systemd-timesyncd', self.code_only)
+        self.assertIn('NTPSynchronized', self.code_only)
+        # Called at least twice: once to recover from any clobber left
+        # by a previous run, once more right after this run's own
+        # live-apply, before anything trusts or writes system time.
+        call_count = self.code_only.count('resync_and_verify_ntp_time')
+        # Defined once, called at least twice - 3+ total occurrences.
+        self.assertGreaterEqual(
+            call_count, 3,
+            "resync_and_verify_ntp_time must be defined once and called "
+            "at least twice (before and after the live overlay apply)",
+        )
+
+    def test_ntp_resync_aborts_rather_than_trusts_an_unverified_clock(self):
+        # If a fresh resync can't be confirmed, the script must refuse
+        # to proceed rather than write a possibly-wrong time into the
+        # RTC or otherwise trust the clock.
+        match = re.search(
+            r'resync_and_verify_ntp_time\(\)\s*\{(.*?)\n\}',
+            self.code_only,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match, "resync_and_verify_ntp_time function not found")
+        body = match.group(1)
+        self.assertIn('exit 1', body)
 
     def test_does_not_touch_unrelated_services(self):
         for forbidden in ("hostapd", "dnsmasq", "nginx", "php-fpm", "piratebox-gpio"):
