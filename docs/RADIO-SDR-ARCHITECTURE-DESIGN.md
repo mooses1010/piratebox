@@ -3038,4 +3038,119 @@ standing grant for it), followed by a human browser re-check that a
 audibly changes the demodulated signal, without disturbing the
 already-confirmed-working broad retuning above it.
 
+### 13.10 Fifth human browser test independently confirmed §13.9's diagnosis, then reframed the actual ask: PirateBox-side "Move Spectrum" controls, distinct from OpenWebRX+'s own tuning (2026-09-06)
+
+**Report**: before the `tuning_step` fix from §13.9 was even deployed
+live, the operator found OpenWebRX+'s own **"Tuning step" dropdown** in
+the receiver UI - still showing its default 1 Hz - and manually
+changed it to 50 kHz. The `<`/`>` buttons immediately started visibly
+moving the small yellow tuned-frequency/demodulator marker. This is
+independent, in-browser confirmation of §13.9's root-cause diagnosis
+(the buttons were never broken or blocked - they were just configured
+with an imperceptible step size) via a path this project's own fix
+hadn't even reached the live system through yet.
+
+That resolved the original `<`/`>` question entirely, but surfaced the
+real gap it had been standing in for: those buttons - and the
+"Tuning step" dropdown - only ever move the demodulator **within** the
+current ~2.048 MHz sampled window (§13.7/§13.9's own finding). What was
+actually wanted is a convenient way to move the window **itself** -
+the RTL-SDR's actual hardware center frequency - across its full
+tunable range, while still being honest that only one ~2 MHz slice is
+ever live at a time.
+
+**Design chosen - "Move Spectrum" controls, kept separate from
+OpenWebRX+'s own tuning controls, not merged with them**: added to
+`live.php` (no upstream OpenWebRX+ file touched, no `/etc/openwebrx/`
+config change needed - this is 100% the same PirateBox-side control-
+socket mechanism as the existing presets/manual-entry box from
+§13.6/§13.7, reusing its `tuneTo()` function unchanged):
+
+- **"« Previous Spectrum" / "Next Spectrum »" buttons.** Each computes
+  `currentCenterHz ± SPECTRUM_SHIFT_HZ` (client-side JS tracks the last
+  frequency this page itself tuned to, updated on every successful
+  `tuneTo()` - presets, manual entry, these buttons, and the range bar
+  below all feed the same tracker), clamps it to the receiver's
+  24-1766 MHz practical range, and calls the exact same `tuneTo()` used
+  by the presets/manual box - a real `setfrequency` protocol message,
+  not a demodulator offset. `SPECTRUM_SHIFT_HZ = 1,500,000` (1.5 MHz),
+  deliberately smaller than the full `SPECTRUM_SAMP_RATE_HZ = 2,048,000`
+  (2.048 MHz, matching `general-sdr`'s own `samp_rate`) - a full-width
+  jump could place a signal sitting at one edge of the old window
+  exactly at the far edge of the new one, an easy way to skip past it
+  entirely. 1.5 MHz leaves ~548 kHz (~27%) of overlap between
+  consecutive windows instead.
+- **A clickable broad-range navigator (implemented this round, not
+  deferred - judged straightforward and low-risk: pure client-side
+  math and CSS, no new protocol messages, reuses `tuneTo()` again).** A
+  horizontal bar spanning the full 24-1766 MHz range on a **logarithmic**
+  scale (a linear scale would squeeze the low end - where two of the
+  three curated presets live - into an unreadable sliver next to the
+  1+ GHz high end), with round-number tick labels (30/50/100/200/500/
+  1000/1700 MHz), a highlighted band showing the current ~2 MHz sampled
+  window's actual position and width at that point on the log scale,
+  and a text readout of its approximate edges. Clicking anywhere on the
+  bar tunes there. The highlighted band is deliberately drawn as a thin
+  sliver of the whole bar (confirmed via the same log-scale math: e.g.
+  ~0.5% of the bar's width at FM broadcast, ~0.03% near the top of the
+  range before a minimum-width floor keeps it visibly clickable/visible)
+  - the design brief's own instruction not to misrepresent a live
+  wideband view is satisfied by the visualization itself, not just by
+  copy: the bar makes plain that the sampled window is a tiny fraction
+  of the whole range, never implying the whole bar is live at once.
+- **A future scan/stitch mode (sequential-chunk capture to build a
+  non-live wideband activity overview) was left as a documented future
+  enhancement, not built this round**, per the instruction to keep
+  scope to what's straightforward/robust for now. It would need genuine
+  design work this round didn't do: how long each chunk should dwell,
+  how to represent "sampled 6 hours ago" vs. "live" without misleading
+  a visitor, and whether OpenWebRX+'s existing waterfall/FFT pipeline
+  can be driven headlessly for this or whether it needs a separate
+  capture path entirely.
+
+**Made the distinction between the two kinds of control obvious to a
+normal visitor, not just documented in code comments**: the new
+Previous/Next Spectrum buttons sit inside their own bordered, accent-
+colored block, visually distinct from the plain "Tune" button above
+them and from OpenWebRX+'s own on-screen controls below. The hint
+paragraph under the range bar was rewritten to name both controls
+explicitly: OpenWebRX+'s own `<`/`>` buttons and "Tuning step" dropdown
+move "the yellow *demodulator* marker... within the currently shown
+~2 MHz slice"; the presets, frequency box, Previous/Next Spectrum
+buttons, and range bar "move the receiver's sampled window to a
+different part of the spectrum."
+
+**No regression to the now-working broad retuning**: the existing
+presets/manual-entry `tuneTo()` function itself was not modified except
+to also update the new `currentCenterHz` tracker on success (needed so
+the new controls know where to shift from/where the range-bar's window
+indicator currently sits) - the WebSocket handshake/`selectprofile`/
+`setfrequency` sequence, timing, and error handling are unchanged.
+`tools/test_hostapd_recovery_config.py` (13/13) and
+`tools/test_silly_mode.py` (103/103) still pass, both unaffected by a
+`var/www/html/` frontend change.
+
+**Deployment status**: unlike §13.8/§13.9, this round's change is
+entirely inside `var/www/html/` (`live.php`'s HTML/CSS/JS only) - no
+`/etc/openwebrx/` config file involved, so it needs only the normal
+`sudo piratebox_deploy.sh` step this session already has a standing
+grant for, not the operator's separate `update_openwebrx_config.sh`
+step. See the deploy log for whether that was actually run this round.
+
+**Limitations discovered, not previously documented**: (1) this page
+has no way to read OpenWebRX+'s own currently-active center frequency
+back out of the shared receiver - `currentCenterHz` is a client-side
+guess seeded from this project's own "known good" anchor frequency
+(100.1 MHz) and only becomes accurate once this page itself performs
+the first tune; if a different client (e.g. someone using `/radio/`
+directly) has since moved the shared receiver elsewhere, the
+Previous/Next buttons' *first* click on this page will shift from the
+stale guess, not the receiver's true current position, self-correcting
+from the second click onward. (2) OpenWebRX+ exposes no live query for
+"what's the receiver's frequency right now" over this lightweight
+control-socket path short of joining a full demodulating session
+(`dspcontrol start`), which this page deliberately avoids per
+§13.6/§13.7's own reasoning (a one-shot control widget has no use for
+its own audio/waterfall chain).
+
 ---

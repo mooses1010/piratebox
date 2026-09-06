@@ -90,7 +90,7 @@ it is.**
 | Lightning detection | Optional/Field | CANDIDATE | Integrated or Companion |
 | Radiation measurement | Optional/Field | CANDIDATE | Integrated or Companion |
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
-| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` confirmed live; stock `<`/`>` fine-tune buttons fixed in repo (missing `tuning_step`) but not yet deployed/confirmed live; Malahit path untouched/experimental) | Attachable |
+| SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` confirmed live; stock `<`/`>` fine-tune buttons fixed in repo (missing `tuning_step`) but not yet deployed/confirmed live; new PirateBox-side Previous/Next Spectrum + click-to-tune range bar added to `live.php` for hardware-window navigation, distinct from OpenWebRX+'s own tuning, pending deploy; Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
 | Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | CANDIDATE | Network Companion |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
@@ -922,6 +922,34 @@ it is.**
   `sudo tools/update_openwebrx_config.sh` step as §13.8, and a human
   browser re-check (a `<`/`>` click should now visibly/audibly move the
   frequency by 5 kHz) is what actually closes this out.
+  **Fifth human browser test independently confirmed the `<`/`>`
+  diagnosis, then asked for a different, PirateBox-side control
+  entirely (2026-09-06, see §13.10)**: before the `tuning_step` fix
+  above was even deployed, the operator found OpenWebRX+'s own
+  in-browser "Tuning step" dropdown and set it to 50 kHz directly -
+  confirming §13.9's root cause via an independent path (still 1 Hz by
+  default, changing it made `<`/`>` visibly work). That closed the
+  original question, but surfaced the real ask: a way to move the
+  RTL-SDR's actual hardware center frequency/sampled window across its
+  full range, distinct from OpenWebRX+'s own within-window demodulator
+  tuning. Added to `live.php` (client-side only, reuses the existing
+  `tuneTo()` control-socket mechanism unchanged - no `/etc/openwebrx/`
+  config touched): **"« Previous Spectrum" / "Next Spectrum »"**
+  buttons that shift the real center frequency by 1.5 MHz (~27%
+  overlap against the 2.048 MHz sampled width, chosen so a signal near
+  one window's edge isn't skipped when moving to the next), clamped to
+  the 24-1766 MHz practical range; and a **clickable broad-range
+  navigator** - a logarithmic-scale bar across the full range with tick
+  labels, a highlighted band showing the current ~2 MHz window's actual
+  (tiny) position/width, and click-to-tune - implemented this round
+  rather than deferred, judged low-risk since it is pure client-side
+  math/CSS reusing the same protocol call. A future scan/stitch mode
+  (sequential-chunk capture for a non-live wideband overview) was left
+  as a documented future enhancement, not built. Both new controls are
+  visually and textually distinguished from OpenWebRX+'s own tuning
+  controls so a visitor can't mistake one for the other. Needs only the
+  standard `sudo piratebox_deploy.sh` step (no OpenWebRX+ config
+  change), not the separate `update_openwebrx_config.sh` step.
   The RECEIVE CAPABILITY ITSELF (a browser-accessible SDR backend/UI)
   is **INSTALLED** for the RTL-SDR path specifically - confirmed
   working by both protocol-level tests and a real human/browser test,

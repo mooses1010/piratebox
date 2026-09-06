@@ -88,6 +88,21 @@ $rangeHighMhz = 1766;
         .radio-live-frame-wrap { border: 1px solid var(--border-color, #ccc); border-radius: 6px; overflow: hidden; margin-top: 1rem; }
         .radio-live-frame-wrap iframe { display: block; width: 100%; height: 70vh; border: 0; }
         .radio-live-unavailable { padding: 1.5rem; border: 1px dashed var(--border-color, #ccc); border-radius: 6px; }
+
+        /* "Move Spectrum" controls (hardware center retune) are deliberately
+           styled distinctly from the plain "Tune" button above and from
+           OpenWebRX+'s own on-screen demodulator controls, so a visitor
+           doesn't conflate the two - see the hint paragraph below. */
+        .radio-spectrum-shift { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin: 1rem 0; padding: 0.6rem 0.8rem; border: 1px solid var(--accent-color, #2a5db0); border-radius: 6px; }
+        .radio-spectrum-shift button { padding: 0.5rem 0.9rem; border: 1px solid var(--accent-color, #2a5db0); background: transparent; font-weight: 600; }
+        .radio-spectrum-shift-label { font-size: 0.9em; }
+
+        .radio-spectrum-map-wrap { margin: 1rem 0; }
+        .radio-spectrum-map { position: relative; height: 34px; border: 1px solid var(--border-color, #ccc); border-radius: 4px; background: linear-gradient(to right, rgba(42,93,176,0.08), rgba(42,93,176,0.18)); cursor: crosshair; }
+        .radio-spectrum-map-window { position: absolute; top: 0; bottom: 0; min-width: 3px; background: rgba(42,93,176,0.55); border-left: 1px solid #2a5db0; border-right: 1px solid #2a5db0; pointer-events: none; }
+        .radio-spectrum-map-ticks { position: relative; height: 1.4em; font-size: 0.75em; margin-top: 2px; }
+        .radio-spectrum-map-ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+        .radio-spectrum-map-readout { margin: 0.4rem 0 0; }
     </style>
 </head>
 
@@ -137,12 +152,35 @@ $rangeHighMhz = 1766;
 
             <p class="radio-live-status" id="radio-live-status" role="status" aria-live="polite"></p>
 
+            <div class="radio-spectrum-shift" id="radio-spectrum-shift">
+                <button type="button" id="radio-spectrum-prev">&laquo; Previous Spectrum</button>
+                <span class="radio-spectrum-shift-label">Moves the receiver's own ~2&nbsp;MHz sampled window
+                    (a real hardware retune, like the presets/frequency box above) - different from the
+                    small tuning controls built into the receiver below.</span>
+                <button type="button" id="radio-spectrum-next">Next Spectrum &raquo;</button>
+            </div>
+
+            <div class="radio-spectrum-map-wrap">
+                <p class="muted">Or click anywhere on this bar to jump the ~2&nbsp;MHz window near that
+                    part of the spectrum. The scale is <em>logarithmic</em> (not linear) so both ends of
+                    this receiver's wide practical range stay usable - the highlighted band shows
+                    approximately what's currently sampled, not a claim that the whole bar is live at once.</p>
+                <div class="radio-spectrum-map" id="radio-spectrum-map" title="Click to move the receiver's sampled window here">
+                    <div class="radio-spectrum-map-window" id="radio-spectrum-map-window"></div>
+                </div>
+                <div class="radio-spectrum-map-ticks" id="radio-spectrum-map-ticks"></div>
+                <p class="radio-spectrum-map-readout muted" id="radio-spectrum-map-readout"></p>
+            </div>
+
             <p class="radio-live-hint muted">The receiver below also has
                 its own small <strong>&lt;</strong> / <strong>&gt;</strong>
-                buttons next to the frequency readout - those only nudge
-                within the currently shown slice (a few kHz at a time),
-                they do not move to a different band. Use the presets or
-                the frequency box above to jump broadly.</p>
+                buttons next to the frequency readout, plus a "Tuning step"
+                dropdown - those move the yellow <em>demodulator</em> marker
+                a small, adjustable amount within the currently shown ~2&nbsp;MHz
+                slice. They do not move the slice itself. Use the presets, the
+                frequency box, the Previous/Next Spectrum buttons, or the bar
+                above to move the receiver's sampled window to a different
+                part of the spectrum.</p>
 
             <div class="radio-live-frame-wrap">
                 <iframe id="radio-live-frame" src="/radio/" title="OpenWebRX+ receiver" loading="lazy"></iframe>
@@ -164,13 +202,91 @@ $rangeHighMhz = 1766;
         var RANGE_HIGH_HZ = <?= (int) ($rangeHighMhz * 1000000) ?>;
         var PROFILE = 'rtlsdr|general-sdr';
 
+        // Matches general-sdr's samp_rate in etc/openwebrx/sdrs_seed.py -
+        // the actual width of the one slice of spectrum the RTL-SDR
+        // samples live at a time. Used only to size the Previous/Next
+        // Spectrum shift and the range-bar's window indicator; it is not
+        // sent to the receiver (the profile itself already fixes the real
+        // sample rate server-side).
+        var SPECTRUM_SAMP_RATE_HZ = 2048000;
+
+        // Deliberately smaller than the full sampled width above, not
+        // equal to it: a full-width jump would place a signal that was
+        // sitting right at one edge of the old window exactly at the
+        // opposite edge of the new one - easy to skip over entirely,
+        // especially for anything not centered. Shifting by 1.5 MHz
+        // instead leaves about 548 kHz (~27%) of overlap between
+        // consecutive windows, so nothing near an edge disappears between
+        // one click and the next.
+        var SPECTRUM_SHIFT_HZ = 1500000;
+
+        // Best-effort starting guess only, for sizing the first
+        // Previous/Next/map-click shift before any tune has happened on
+        // this page load - not a claim about which profile OpenWebRX+
+        // itself actually loaded by default. It matches this project's
+        // existing "known good" anchor frequency (the FM Broadcast preset/
+        // general-sdr's own default center_freq) used elsewhere on this
+        // page already. Every tuneTo() call below sends an explicit,
+        // absolute setfrequency regardless of this guess, and updates it
+        // to the real value immediately on success - so any mismatch here
+        // self-corrects on the very first click.
+        var currentCenterHz = 100100000;
+
         var statusEl = document.getElementById('radio-live-status');
         var frameEl = document.getElementById('radio-live-frame');
+        var mapEl = document.getElementById('radio-spectrum-map');
+        var mapWindowEl = document.getElementById('radio-spectrum-map-window');
+        var mapTicksEl = document.getElementById('radio-spectrum-map-ticks');
+        var mapReadoutEl = document.getElementById('radio-spectrum-map-readout');
 
         function setStatus(text, cls) {
             statusEl.textContent = text;
             statusEl.className = 'radio-live-status' + (cls ? ' ' + cls : '');
         }
+
+        function clampToRange(hz) {
+            return Math.min(Math.max(hz, RANGE_LOW_HZ), RANGE_HIGH_HZ);
+        }
+
+        // Log scale, not linear: this receiver's practical range (24-1766
+        // MHz) is dominated by its top end on a linear scale, which would
+        // squeeze the low end (where two of the three curated presets
+        // live) into an unusably thin sliver. A log scale keeps every
+        // decade of the range comparably readable/clickable.
+        var MAP_LOG_LOW = Math.log(RANGE_LOW_HZ);
+        var MAP_LOG_HIGH = Math.log(RANGE_HIGH_HZ);
+
+        function freqToFraction(hz) {
+            var clamped = clampToRange(hz);
+            return (Math.log(clamped) - MAP_LOG_LOW) / (MAP_LOG_HIGH - MAP_LOG_LOW);
+        }
+
+        function fractionToFreq(frac) {
+            var clamped = Math.min(Math.max(frac, 0), 1);
+            return Math.exp(MAP_LOG_LOW + clamped * (MAP_LOG_HIGH - MAP_LOG_LOW));
+        }
+
+        function updateSpectrumMap() {
+            var leftFrac = freqToFraction(currentCenterHz - SPECTRUM_SAMP_RATE_HZ / 2);
+            var rightFrac = freqToFraction(currentCenterHz + SPECTRUM_SAMP_RATE_HZ / 2);
+            mapWindowEl.style.left = (leftFrac * 100) + '%';
+            mapWindowEl.style.width = (Math.max(rightFrac - leftFrac, 0.004) * 100) + '%';
+            mapReadoutEl.textContent = 'Current window: approximately ' +
+                ((currentCenterHz - SPECTRUM_SAMP_RATE_HZ / 2) / 1e6).toFixed(3) + '-' +
+                ((currentCenterHz + SPECTRUM_SAMP_RATE_HZ / 2) / 1e6).toFixed(3) + ' MHz.';
+        }
+
+        (function buildSpectrumMapTicks() {
+            var tickMhz = [30, 50, 100, 200, 500, 1000, 1700].filter(function (mhz) {
+                return mhz * 1e6 >= RANGE_LOW_HZ && mhz * 1e6 <= RANGE_HIGH_HZ;
+            });
+            tickMhz.forEach(function (mhz) {
+                var span = document.createElement('span');
+                span.textContent = mhz + ' MHz';
+                span.style.left = (freqToFraction(mhz * 1e6) * 100) + '%';
+                mapTicksEl.appendChild(span);
+            });
+        })();
 
         // Replicates the exact protocol this project already validated
         // server-side with a standalone Python client (docs/RADIO-SDR-
@@ -217,6 +333,8 @@ $rangeHighMhz = 1766;
                 try { ws.close(); } catch (e) { /* ignore */ }
                 setStatus(message, ok ? 'is-ok' : 'is-error');
                 if (ok) {
+                    currentCenterHz = freqHz;
+                    updateSpectrumMap();
                     // Reload the embedded receiver so its own displayed
                     // frequency/profile catches up with the change - the
                     // underlying shared source retunes immediately, but
@@ -284,6 +402,30 @@ $rangeHighMhz = 1766;
             }
             tuneTo(Math.round(mhz * 1000000));
         });
+
+        function shiftSpectrum(deltaHz) {
+            var target = clampToRange(currentCenterHz + deltaHz);
+            if (target === currentCenterHz) {
+                setStatus('Already at the ' + (deltaHz < 0 ? 'low' : 'high') + ' end of this receiver\'s tunable range.', '');
+                return;
+            }
+            tuneTo(target);
+        }
+
+        document.getElementById('radio-spectrum-prev').addEventListener('click', function () {
+            shiftSpectrum(-SPECTRUM_SHIFT_HZ);
+        });
+        document.getElementById('radio-spectrum-next').addEventListener('click', function () {
+            shiftSpectrum(SPECTRUM_SHIFT_HZ);
+        });
+
+        mapEl.addEventListener('click', function (evt) {
+            var rect = mapEl.getBoundingClientRect();
+            var frac = (evt.clientX - rect.left) / rect.width;
+            tuneTo(Math.round(fractionToFreq(frac) / 1000) * 1000);
+        });
+
+        updateSpectrumMap();
     })();
     </script>
     <?php endif; ?>
