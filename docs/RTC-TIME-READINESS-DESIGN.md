@@ -796,3 +796,62 @@ advancing and the Pi boots with plausible correct time from the RTC
 alone, before NTP is available. This section documents the procedure
 only - no power-off was performed or requested as part of this round's
 work; that stays a genuine, separate operator action.
+
+## 11. Recommissioning run, a real ioctl gap, and an unresolved timing puzzle (2026-09-07, later still)
+
+**The operator ran `sudo tools/configure_rtc_ds3231.sh`** after the
+polarity fix. Results, taken at face value first:
+
+- Step 6 wrote the current time and read it back correctly
+  (`2026-09-06 18:44:23...`, matching NTP). `timedatectl` confirmed a
+  synchronized system clock. Step 9's regression check confirmed the
+  OLED (`0x3c`) and the bus generally are unaffected, with the RTC now
+  showing `UU` (kernel-driver-bound) at `0x68`.
+
+**Real finding: `--vl-read`/`--vl-clear` are not supported by this
+driver/chip combination on this kernel.** Both failed with
+`ioctl(4, RTC_VL_READ/RTC_VL_CLEAR) on /dev/rtc0 failed: Inappropriate
+ioctl for device`. This is exactly the non-fatal case hwclock's own man
+page warns about ("not all RTC devices have this monitoring
+capability") - the script correctly continued past it (`|| true`) - but
+it means **this project currently has no working software path to
+directly read or clear the DS3231's oscillator-stop flag.** Recorded
+here plainly rather than left to look like a mysterious error in a
+future transcript. A future, more invasive option (not pursued this
+round, no i2c writes are being proposed) would be reading the chip's
+status register (0x0F) directly with `i2cget` to inspect the OSF bit
+(bit 7) independent of the kernel driver's ioctl support - purely a
+possible future read-only diagnostic enhancement, not needed to reach
+this round's actual goal.
+
+**Unresolved puzzle, flagged rather than glossed over:** Step 3's
+`dmesg` output from that same run - from the CURRENT boot (relative
+timestamps `[19.9]`-`[20.5]`, i.e. ~20 seconds after boot) - still
+showed the exact `SET TIME!` / `2000-01-01T00:00:26 UTC` clobber
+signature, the same one seen before the polarity fix. Yet Step 4's raw
+`hwclock -f /dev/rtc0 -r`, run moments later in the same script
+invocation with nothing having written to the RTC in between, already
+read back a plausible, correct 2026 date. Both cannot straightforwardly
+be true of the same chip state at two points a few seconds apart with
+no write between them - this needs to be resolved with real evidence,
+not guessed at. **Fixed as part of this same round, motivated
+specifically by this puzzle:** `tools/configure_rtc_ds3231.sh`'s Step 3
+now uses `dmesg -T` (wall-clock timestamps) and prints `uptime -s`
+immediately after, so a future run's own output is self-contained
+evidence of whether a boot-time RTC event happened on the current boot
+or is being misread/misattributed - no separate command needed to
+cross-check. The leading candidate explanation, not yet confirmed: this
+`dmesg` invocation actually reflects an **earlier** boot's still-
+resident kernel ring-buffer content rather than the boot the script was
+run under, which relative timestamps alone couldn't distinguish from a
+fresh clobber; wall-clock timestamps plus `uptime -s` resolves this
+directly. **Do not treat the recommissioning above as fully explained
+until this is resolved** - it does not roll back Step 6's write (a
+correct time is still sitting in the chip either way, per Step 4's own
+readback), but the *history* of what actually happened at each recent
+boot remains genuinely unclear pending one more read-only check.
+
+**Not done this round:** no second power-loss test performed or
+requested - resolving this timing puzzle first, with a cheap read-only
+check, is more useful than spending another off-cycle while it's
+unclear which past boot the earlier evidence actually belongs to.

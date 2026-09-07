@@ -303,6 +303,35 @@ class TestScriptShapeAndSafety(unittest.TestCase):
         self.assertIn("i2cdetect -y 1", self.text)
         self.assertIn("piratebox-oled.service", self.text)
 
+    def test_dmesg_uses_wall_clock_timestamps_with_uptime_for_cross_check(self):
+        # Found live (2026-09-07, docs/RTC-TIME-READINESS-DESIGN.md §11):
+        # a plain `dmesg` (relative-seconds-since-boot) made it
+        # impossible to tell, from the script's own output alone,
+        # whether a boot-time RTC event belonged to the CURRENT boot or
+        # was stale ring-buffer content from an earlier one. `-T` gives
+        # wall-clock timestamps, and printing `uptime -s` right after
+        # lets a reader cross-check the two without a second command.
+        self.assertIn("dmesg -T", self.code_only)
+        self.assertNotIn(
+            "dmesg |", self.code_only,
+            "dmesg must use -T (wall-clock) - a plain relative-seconds "
+            "dmesg can't be cross-checked against uptime -s",
+        )
+        # Find the actual `uptime -s` command invocation (a line
+        # consisting of just that call), not the phrase mentioned
+        # inside an earlier explanatory `echo` string.
+        dmesg_idx = self.code_only.find("dmesg -T")
+        uptime_lines = [
+            i for i, line in enumerate(self.code_only.splitlines())
+            if line.strip() == "uptime -s"
+        ]
+        self.assertTrue(uptime_lines, "no standalone `uptime -s` command invocation found")
+        dmesg_line = self.code_only[:dmesg_idx].count("\n")
+        self.assertLess(
+            dmesg_line, uptime_lines[0],
+            "uptime -s must appear after the dmesg check, for cross-referencing",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

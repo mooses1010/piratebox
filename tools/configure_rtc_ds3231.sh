@@ -184,8 +184,14 @@ echo
 echo "=== Step 3: confirm the device node and kernel binding ==="
 ls -la /dev/rtc* 2>&1
 echo
-echo "Relevant dmesg lines:"
-dmesg | grep -iE 'rtc|ds3231|ds1307' | tail -20
+echo "Relevant dmesg lines (wall-clock timestamps, for cross-checking"
+echo "against 'uptime -s' - see docs/RTC-TIME-READINESS-DESIGN.md §11):"
+dmesg -T | grep -iE 'rtc|ds3231|ds1307' | tail -20
+echo
+echo "Boot time (compare against the dmesg timestamps above - a boot-time"
+echo "RTC event only means something about THIS commissioning run if it"
+echo "happened on or after this boot):"
+uptime -s
 
 if [ ! -e /dev/rtc0 ]; then
     echo

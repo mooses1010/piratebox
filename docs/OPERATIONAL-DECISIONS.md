@@ -6,6 +6,39 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## DS3231 RTC: VL-ioctl unsupported + dmesg timestamp fix (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. The operator ran the recommissioning
+script after the polarity fix (see entry below). Two real findings:
+
+1. `hwclock --vl-read`/`--vl-clear` both failed with `Inappropriate
+   ioctl for device` - this driver/kernel/chip combination does not
+   support the oscillator-stop/voltage-low ioctls at all. Non-fatal
+   (the script already tolerates this per hwclock's own documented
+   caveat), but it means there is currently no working software path
+   to directly read or clear the DS3231's OSF flag - recorded honestly
+   rather than silently accepted.
+2. The run's `dmesg` output (relative timestamps) showed the same
+   `SET TIME!`/2000-01-01 clobber signature from the *current* boot,
+   while a raw `hwclock -r` moments later (same run, nothing written
+   in between) already read a correct time - two facts that can't both
+   be true of the same chip state without an explanation. Rather than
+   guess, `tools/configure_rtc_ds3231.sh` now uses `dmesg -T`
+   (wall-clock) and prints `uptime -s` right after, so this ambiguity
+   can be resolved directly from the script's own output without a
+   separate command. Full analysis and the leading hypothesis (stale
+   ring-buffer content from an earlier boot, not a fresh clobber) in
+   `docs/RTC-TIME-READINESS-DESIGN.md` §11.
+
+**Not yet resolved, and no second power-loss test performed or
+requested** until it is - the point of finding this now is to avoid
+spending another power-off cycle while it's unclear which boot the
+earlier evidence actually belongs to.
+
+Tests: `tools/test_rtc_ds3231_config.py` grew 21 → 22 assertions (the
+new one guards the `dmesg -T` + `uptime -s` ordering specifically).
+Full suite re-run and confirmed unaffected.
+
 ## DS3231 RTC: root cause of failed test found - CR2032 was reversed (2026-09-07, later still)
 
 **Decision date:** 2026-09-07. Follow-up to the entry directly below,
