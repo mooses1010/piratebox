@@ -71,7 +71,7 @@ it is.**
 | OLED (SSD1306 0.96" 128x64) | Operational | **INSTALLED, CURRENT SCOPE** (2026-09-03) | Integrated |
 | Undervoltage / power-quality monitoring (software, `vcgencmd`) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | UPS/battery hardware | Operational | CANDIDATE (requirements only) | Integrated (if adopted) |
-| RTC (DS3231) | Operational | **BATTERY BACKUP UNCONFIRMED - FAILED FIRST POWER-LOSS TEST (2026-09-07)** - production module has R4 removed + CR2032 fitted, works correctly while Pi-powered, but did not retain time through a genuine total power loss; root-cause diagnosis + physical measurement in progress, see `docs/RTC-TIME-READINESS-DESIGN.md` §9 | Integrated (pending) |
+| RTC (DS3231) | Operational | **ROOT CAUSE OF FAILED FIRST TEST FIXED - RECOMMISSIONING + SECOND VALIDATION TEST PENDING (2026-09-07)** - CR2032 was installed upside down (confirmed by measurement: ~3.0V at the holder with Pi fully off once correctly oriented); R4's removal ruled out as a cause. `sudo tools/configure_rtc_ds3231.sh` is the one remaining software step, then a second genuine power-loss test with Ethernet disconnected is the remaining proof, see `docs/RTC-TIME-READINESS-DESIGN.md` §10 | Integrated (pending) |
 | Self-awareness / capability-state model (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | About This PirateBox page (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | Reference Pack model (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
@@ -519,22 +519,27 @@ it is.**
   gets there first: NTP, unavailable by design here; `fake-hwclock`,
   not installed; or an uncontrolled kernel/filesystem default).
 - **Layer:** Operational.
-- **State:** **WIRED, CONFIGURED, BATTERY BACKUP UNCONFIRMED - FAILED
-  FIRST POWER-LOSS TEST, 2026-09-07** (see `docs/RTC-TIME-READINESS-
-  DESIGN.md` §§6-9 for the full record). The production module (R4
-  removed to disable its charging path, real CR2032 installed -
-  measured ~3.14-3.18V→~0.22V across the battery holder confirming the
-  charging path is broken) is physically on the I2C1 bus and confirmed
-  live via `i2cdetect` at 0x68/0x57 alongside the existing OLED at
-  0x3c. `tools/configure_rtc_ds3231.sh` correctly writes/reads a real
-  time while the Pi is powered. **A genuine total-power-loss test with
-  Ethernet disconnected FAILED**: the chip came back reporting its
-  factory power-on default (~2000-01-01) instead of advancing time
-  from the CR2032 - confirmed via direct `dmesg`/`hwclock` evidence,
-  not assumed. Root-cause diagnosis in progress (`tools/
+- **State:** **WIRED, CONFIGURED, ROOT CAUSE OF FAILED FIRST TEST
+  FIXED - SECOND VALIDATION TEST PENDING, 2026-09-07** (see
+  `docs/RTC-TIME-READINESS-DESIGN.md` §§6-10 for the full record). The
+  production module (R4 removed to disable its charging path, real
+  CR2032 installed) is physically on the I2C1 bus and confirmed live
+  via `i2cdetect` at 0x68/0x57 alongside the existing OLED at 0x3c.
+  `tools/configure_rtc_ds3231.sh` correctly writes/reads a real time
+  while the Pi is powered. **A genuine total-power-loss test with
+  Ethernet disconnected FAILED** (chip came back at its factory
+  power-on default, ~2000-01-01 - confirmed via direct `dmesg`/
+  `hwclock` evidence, not assumed) - root-cause diagnosis (`tools/
   diagnose_rtc_ds3231.sh`, read-only) plus a physical multimeter
-  measurement plan - §9. **Do not claim battery backup works until a
-  real power-loss test passes.**
+  measurement plan (§9) found the actual cause: **the CR2032 had been
+  installed upside down**, confirmed fixed by measurement (~3.0V at
+  the holder terminals with Pi power fully off, matching Pi-on) -
+  this also rules out R4's removal as a contributing cause, since the
+  battery→VBAT path is confirmed intact once correctly oriented (§10).
+  **Do not claim battery backup works until a second real power-loss
+  test passes** - the first failure was real and the fix, while
+  well-evidenced, has not yet been proven by the actual test it needs
+  to pass.
 - **Interface:** I2C1, same bus as the OLED (multi-drop, no pin
   conflict; confirmed live, OLED unaffected by the RTC's presence on
   the bus).

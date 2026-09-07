@@ -564,6 +564,16 @@ that stays a genuine, separate operator action.
 
 ## 9. First power-loss test FAILED - root-cause diagnosis (2026-09-07, same day)
 
+**Root cause confirmed in §10 below: the CR2032 had been installed
+upside down.** The evidence and hypotheses in this section are kept
+exactly as recorded at the time - this is real failed-test history,
+not something to erase - but hypothesis 3 (R4's removal severing the
+only path to VBAT on this board's layout) was specifically **ruled
+out** by the follow-up measurement: with the battery correctly
+oriented, the holder terminals read ~3.0V with Pi power fully off,
+proving R4's removal did not disconnect VBAT after all. Read §10 first
+if you're orienting on current state.
+
 **The operator performed §8's exact procedure.** Ethernet disconnected
 first, a genuine full power-off (not just a reboot), a real off period,
 then powered back on with Ethernet still disconnected. Result: **the
@@ -711,3 +721,78 @@ since nothing gathered so far points to a software cause to fix -
 good time before the test; the test's whole point was checking whether
 that time survived a real power-off, which it did not). No second
 power-loss test was performed or requested.
+
+## 10. Root cause confirmed: reversed CR2032 polarity - recommissioning + second validation test (2026-09-07, later same day)
+
+**Physical cause found and fixed by the operator, using §9's own
+measurement plan.** The CR2032 had been installed upside down in the
+holder - hypothesis 2 from §9's ranked list, not hypothesis 3. Direct
+measurements, with the battery now correctly oriented:
+
+| Measurement | Reading |
+|---|---|
+| CR2032 cell itself (open-circuit) | 3.25V |
+| Holder terminals, Pi powered OFF | ~3.0V |
+| Holder terminals, Pi powered ON | ~3.0V |
+
+**This is exactly the "healthy, properly-connected cell" signature
+§9's Measurement A described** - the holder delivers real battery
+voltage regardless of Pi power state. It also directly falsifies §9's
+hypothesis 3 (that removing R4 severed the *only* path from the
+holder to VBAT on this board's specific layout): if that were true, a
+correctly-oriented battery would *still* show ~0V at the holder with
+Pi power off, since the fault would be in the board's own trace, not
+the cell's orientation. It doesn't - so R4's removal is confirmed to
+do exactly and only what §6/§8 always intended (disable charging),
+with the battery→VBAT path itself intact and working. **§9's evidence
+and hypothesis list stand as accurate historical record of a real
+failed test and the reasoning at the time - only the specific
+conclusion (which hypothesis was correct) is updated here, not the
+history itself**, per instruction.
+
+**Recommissioning:** same command as every prior round, unchanged -
+`tools/configure_rtc_ds3231.sh` already does exactly what's needed
+(force/verify a fresh NTP resync, read the RTC's current raw baseline,
+read the oscillator-stop/voltage-low flag, write the NTP-verified
+time, clear the flag, re-read to confirm, then re-check `timedatectl`
+and the OLED/I2C bus) - no script changes were needed for this step,
+since nothing about the fix was a software problem:
+
+```
+sudo tools/configure_rtc_ds3231.sh
+```
+
+### The second power-loss validation test
+
+Identical procedure to §8, run again now that the physical fault is
+fixed - repeated here in full so it doesn't require flipping back:
+
+1. Before powering off: `date -u`, note the exact UTC time.
+2. **Disconnect the `eth0` cable first** - this Pi's only real NTP
+   path. Otherwise NTP can silently correct an RTC failure at boot
+   before you're able to see it.
+3. Genuine full power-off: `sudo poweroff` (or the physical
+   hold-shutdown button) - wait for full halt, **then physically
+   unplug the power supply**. A halted-but-plugged-in Pi doesn't prove
+   anything.
+4. Leave it fully unpowered **at least 10-15 minutes** (longer is a
+   stronger proof - this is the real test the first attempt failed, so
+   don't shortcut the duration).
+5. Reconnect power, but **leave `eth0` unplugged**, and let it boot.
+6. **Immediately, in this order, before touching the network:**
+   - `dmesg -T | grep -iE 'rtc|ds3231|ds1307'` - expect a plausible
+     time close to what you'd predict from your Step 1 timestamp plus
+     the elapsed off-time, and **no** `SET TIME!` warning this time.
+   - `timedatectl status` - expect `System clock synchronized: no`
+     (proves NTP had no path) and a plausible `Universal time`.
+   - `sudo hwclock -f /dev/rtc0 -r` - the direct ground-truth chip
+     read, same command this project always trusts over any cached/
+     derived time field.
+7. Only after recording all three, reconnect `eth0`.
+
+**Acceptance criterion, unchanged:** after a genuine total Pi power
+loss with Ethernet disconnected, the battery-backed DS3231 continues
+advancing and the Pi boots with plausible correct time from the RTC
+alone, before NTP is available. This section documents the procedure
+only - no power-off was performed or requested as part of this round's
+work; that stays a genuine, separate operator action.
