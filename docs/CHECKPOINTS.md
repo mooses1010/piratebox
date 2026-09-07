@@ -1298,3 +1298,59 @@ pre-existing `0x50005`; all other Core services, `systemctl --failed`,
 unaffected. Silly Mode left **ON**, Progression now live and
 accumulating, at the operator's own choice.
 
+## ESP32-S3 hardware/sensor supervisor + BH1750 migration, deployed and live-verified (2026-09-07)
+
+**`86f256a`** - the durable known-good recovery point for the full
+ESP32-S3 supervisor subsystem. Full design in `docs/ESP32-SUPERVISOR-
+DESIGN.md`; full build/validation/incident record in
+`docs/OPERATIONAL-DECISIONS.md` (several entries, same day).
+
+Commissioned an ESP32-S3-N16R8 dev board as a dedicated low-level
+hardware/sensor supervisor (PlatformIO/Arduino firmware, NDJSON
+protocol over its "COM" port, task-watchdog-protected loop), a Pi-side
+daemon (`piratebox_esp32_supervisor.py`, stable `/dev/serial/by-id/`
+discovery, reconnect/staleness/reboot handling, its own cached
+export), and a capability-driven registry (`temp_internal` from day
+one, `bh1750` once physically migrated). Then physically migrated the
+BH1750 ambient light sensor from the Pi's own I2C bus to the ESP32's
+(GPIO8/9), switching `HARDWARE_SIGNALS`' `ambient_lux` over via a
+drop-in replacement module (`piratebox_esp32_bh1750.py`) - the Pi's
+original `piratebox_bh1750.py` is unchanged and kept for rollback
+reference, but nothing imports it anymore.
+
+Two real faults were found, diagnosed from evidence, and fixed during
+this work (not glossed over - see `docs/OPERATIONAL-DECISIONS.md` for
+the full account of each): (1) an electrical wiring fault during the
+physical BH1750 move left the ESP32 completely unresponsive even at
+the ROM bootloader level - diagnosed by ruling out USB/Pi-power causes
+via direct evidence, fixed by the operator correcting the physical
+wiring, board confirmed undamaged; (2) a missing `open_basedir` PHP-FPM
+entry silently hid the new Environment UI section with no error -
+found by comparing CLI vs. real-request rendering, fixed in the
+tracked `php.ini` and guarded with a new regression test so a future
+new export can't repeat it unnoticed.
+
+**Tested:** `tools/test_esp32_supervisor_protocol.py` (29),
+`tools/test_esp32_bh1750_migration.py` (7), `tools/test_esp32_
+supervisor_web.php` (28), `tools/test_deploy_environment_sensors.py`
+(13, one new assertion added) - all passing, plus a full project-wide
+regression pass (400 Python + 418 PHP tests) with zero regressions
+anywhere else in the suite.
+
+**Deployed and live-verified**, independently confirmed by both the
+operator and this session after each step: `piratebox-esp32-
+supervisor.service` and the redeployed `piratebox-oled.service` both
+`active (running)`; live export shows `connected: true`, `stale:
+false`, `capabilities: ["temp_internal", "bh1750"]`, real fluctuating
+sensor readings (not static/fake values), `malformed_lines: 0`; the
+Pi's own I2C bus (`i2cdetect -y 1`) correctly shows no device at
+`0x23` (migration complete on the Pi side) while OLED (`0x3c`), EEPROM
+(`0x57`), and RTC (`0x68`, `UU`) remain healthy and unaffected; the
+`/utility/environment/` page renders both the Ambient Light and
+Hardware Supervisor sections with real live data. Zero new USB/kernel
+errors across the entire round; `vcgencmd get_throttled` unchanged at
+the pre-existing `0x50005` throughout - this subsystem does not touch,
+and did not affect, the Pi's own separately-tracked power condition.
+Requires the externally-powered USB hub in the current prototype
+topology (`docs/ESP32-SUPERVISOR-DESIGN.md` §13).
+
