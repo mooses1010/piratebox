@@ -6,6 +6,88 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## ESP32-S3 USB commissioning COMPLETE: full read-only identification via the "COM" port (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. Final gate of the ESP32-S3 hardware
+commissioning saga (see the two entries below for the full A/B/C hub
+power investigation and the failed native-"USB"-port esptool attempt).
+The operator moved the same cable from the board's "USB" port to its
+"COM" port, with the externally-powered VIA Labs hub, Pi, and every
+other PirateBox component otherwise completely unchanged.
+
+**COM port enumeration:** `1a86:55d3` (QinHeng Electronics, "USB
+Single Serial" - a WCH CH9102-family USB-UART bridge), driver
+`cdc_acm`, node `/dev/ttyACM0`, serial `5CBB028993` (a real per-chip
+bridge serial - unlike the generic "123456" the app firmware reports
+over the native "USB" port). This is the expected hardware UART bridge
+with a real DTR/RTS-to-EN/GPIO0 reset path, and it worked exactly as
+expected.
+
+**esptool v4.7.0 identification (`--no-stub`, all read-only):**
+
+- **Chip:** ESP32-S3 (QFN56), **silicon revision v0.2**
+- **Features (efuse-reported):** WiFi, BLE, **Embedded PSRAM 8MB
+  (AP_3v3)** - read from the chip's own factory-programmed
+  configuration, the same read-only source ESP-IDF itself uses to
+  size PSRAM at boot. This is not a functional memory test (which
+  would require running code), but it is authoritative silicon-level
+  evidence, not a guess from the module's printed marking.
+  **R8/8MB PSRAM: CONFIRMED to this standard.**
+- **Crystal:** 40MHz
+- **MAC:** `7c:4f:ad:b6:2f:94` - matches the MAC-derived serial number
+  independently observed days earlier on the ROM's own USB-JTAG
+  interface (`303a:1001`) during the original unstable-connection
+  investigation, cross-validating both readings.
+- **Flash:** manufacturer `0x68` (GigaDevice), device `0x4018`
+  (GD25Q128-class, quad SPI per eFuse), **detected size 16MB**.
+  **N16/16MB flash: CONFIRMED.**
+- **Security state (all factory-default, nothing modified or
+  inspected destructively):** Secure Boot disabled, Flash Encryption
+  disabled, `SPI_BOOT_CRYPT_CNT` = 0x0, security flags `0x00000000`,
+  chip ID 9, API version 0.
+
+**A real, local tooling issue, disclosed for the record:** the first
+`chip_id` attempt (default settings) crashed after successfully
+printing chip/feature/crystal/MAC info, with
+`FileNotFoundError: .../stub_flasher/stub_flasher_32s3.json` - this
+installed `esptool` package is missing its ESP32-S3 stub-flasher data
+file. Not a hardware or connection problem. Worked around entirely by
+adding `--no-stub` to every subsequent command, which talks directly
+to the ROM bootloader and needs no such file - every reading above
+came from `--no-stub` invocations.
+
+**Non-destructive automatic reset used exactly as authorized:** each
+`--no-stub` command using `--after no_reset` left the chip in the ROM
+bootloader between reads (to avoid repeated resets while gathering
+multiple pieces of information); the final call used
+`--after hard_reset` to release it back to normal boot via the bridge
+chip's RTS pin - the same non-invasive reset mechanism a normal
+power-cycle or the Arduino/PlatformIO upload tooling would use. No
+flash was erased or written, no partition table or bootloader was
+touched, and no efuses were read/written/burned beyond the chip's own
+factory-programmed values that `chip_id`/`flash_id`/
+`get_security_info` read non-destructively by design.
+
+**Post-identification verification, immediately after the hard
+reset:** UART bridge (`1a86:55d3`) still present, `/dev/ttyACM0`
+unchanged, zero new kernel USB/error events, `vcgencmd get_throttled`
+still `0x50005` (unchanged), zero failed systemd units, `pb-ap`
+broadcasting SSID PirateBox on channel 6, `hostapd`/`dnsmasq`/`nginx`/
+`php8.4-fpm`/`piratebox-oled` all active, Ethernet (`eth0`) up with its
+existing DHCP lease, I2C bus intact (BH1750 `0x23`, OLED `0x3c`,
+EEPROM `0x57`, RTC `0x68`).
+
+**Commissioning verdict:** the ESP32-S3-N16R8's core identity is now
+fully, read-only proven: genuine ESP32-S3 QFN56 silicon rev v0.2, 16MB
+GigaDevice quad-SPI flash (N16 confirmed), 8MB embedded PSRAM
+(R8 confirmed via efuse config), factory-default security state
+(Secure Boot and Flash Encryption both disabled - unlocked for
+development), real MAC `7c:4f:ad:b6:2f:94`. Stable connectivity is
+proven via the externally-powered hub + "COM" port combination. This
+closes the hardware-identification/commissioning gate. Firmware
+development, sensor migration, and application-protocol design are
+explicitly out of scope for this entry and were not started.
+
 ## ESP32-S3 USB commissioning: externally-powered hub restored stability, read-only esptool identification performed (2026-09-07, later still)
 
 **Decision date:** 2026-09-07. Continuation of the same-day commissioning
