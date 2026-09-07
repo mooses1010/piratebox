@@ -263,6 +263,85 @@ anything to the device. Installing `esptool`/entering the ROM loader
 is a new, separate step requiring explicit approval before proceeding,
 per instruction.
 
+## hostapd recovered; a loose Ethernet connector found (separate incident); ESP32 now cycling unstably (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. Three separate, unrelated findings from
+one verification pass - kept clearly distinct, per instruction, rather
+than conflated into one story.
+
+**1. hostapd recovery confirmed live.** The operator ran `sudo
+systemctl restart hostapd` after SSH returned. Confirmed independently
+this session: `pb-ap` shows `type AP`, `ssid PirateBox`, channel 6,
+`hostapd.service` active: the visitor AP is genuinely broadcasting
+again, not just reported fixed. `dnsmasq` active; `eth0` up with a real
+DHCP lease (`192.168.1.187/24`); zero failed systemd units;
+OLED/RTC/BH1750/EEPROM all present on the I2C bus.
+
+**2. A separate physical incident: the Pi-end Ethernet connector had
+partially worked loose during the USB rearrangement**, causing a
+temporary SSH/network interruption distinct from the hostapd/ALFA
+hot-unplug event above - two different physical causes producing two
+different symptoms at roughly the same time, not one problem. The
+operator reseated it and deliberately reversed the cable's orientation
+(the end with the intact locking clip now at the Pi, the end with the
+missing clip now at the router) specifically to reduce the chance of a
+repeat accidental disconnect during future hardware work on this same
+Pi. Recorded here as a durable physical-setup note, not a software
+change - nothing on the PirateBox side needed any adjustment for this;
+`eth0`'s own healthy state after the reseat is the only confirmation
+needed.
+
+**3. New, unprompted ESP32 instability found while re-checking USB
+state - not yet understood, reported honestly rather than guessed at.**
+Before any `esptool` interaction was attempted, re-running the same
+read-only USB checks found the board had already cycled through
+several disconnect/reconnect events on its own since the previous
+round's successful enumeration:
+
+```
+11:04:23  idVendor=303a idProduct=4001 "Espressif Device" (app firmware's own USB stack)
+11:13:42  disconnect, then idVendor=303a idProduct=1001 "USB JTAG/serial debug unit" (the ROM's own interface - a real reset happened)
+11:23:18  disconnect
+11:23:21  usb 1-1.1-port2: connect-debounce failed
+11:23:34-37  three "Cannot enable. Maybe the USB cable is bad?" + one "device not accepting address ... error -32" + "unable to enumerate USB device"
+11:25:13  enumerates again (1001, same real serial 7C:4F:AD:B6:2F:94), disconnects one line later
+11:26:49  enumerates again (1001, same serial), disconnects one line later
+```
+
+At time of writing, the board is not currently present on the bus at
+all. Two things worth noting precisely: the `connect-debounce failed`
+signature that was previously specific to port 3 has now also appeared
+on **port 2** (`1-1.1-port2`) - the same port that had earlier
+enumerated cleanly multiple times - which weakens (does not disprove)
+the earlier "port 3 specifically is the bad one" inference; and every
+successful enumeration since 11:13:42 has shown the ROM's own
+`303a:1001` "USB JTAG/serial debug unit" with a real, MAC-derived
+serial number (`7C:4F:AD:B6:2F:94`), never the app firmware's
+`303a:4001`/generic-serial descriptor again - consistent with the chip
+having reset and stayed in (or kept re-entering) the ROM bootloader
+rather than the RGB demo firmware resuming, though this has not been
+independently confirmed by looking at the board itself (e.g. whether
+the RGB LED is still visibly cycling right now).
+
+**Correlated, not attributed:** `vcgencmd get_throttled` still reads
+`0x50005` (`undervoltage_now: true`, live) throughout this entire
+window, unchanged from every prior check this whole investigation.
+Per instruction, this is recorded as the current live evidence, not
+asserted as the proven cause of the reset-cycling above - a marginal
+cable/connector or firmware-driven self-reset are equally plausible
+explanations not yet ruled out, and nothing about this instability has
+been linked to the Ethernet incident above, which had a distinct,
+already-identified physical cause.
+
+**Not yet attempted: `esptool`-based identification.** `esptool`
+(4.7.0+dfsg-0.1) is available as an official Debian package, not yet
+installed - genuinely blocked on the operator's own package-install
+gate (no existing NOPASSWD grant covers `apt install`), independent of
+the instability finding above. Even once installed, a stable
+connection window will be needed for the actual read-only queries to
+succeed - the current cycling pattern may or may not resolve on its
+own by then.
+
 **Nothing else on this Pi was touched or affected** - confirmed live,
 not assumed: zero Core service depends on this board's presence (per
 `docs/ARCHITECTURE.md` §3's own Network Companion contract, already
