@@ -938,7 +938,7 @@ def format_duration(seconds: float) -> str:
     return f"{minutes}m"
 
 
-def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently_changed: bool):
+def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently_changed: bool, bh1750_module=None):
     """Assembles the one-shot `metrics` dict piratebox_glance.py's
     scheduler/renderers consume (see that module's own documented
     contract) - the ONE place in this daemon where raw reads (several
@@ -954,7 +954,23 @@ def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently
     silly_hold_render/silly_last_clients/etc. `clients_recently_
     changed` is passed in rather than computed here because main()
     already has it for free (the existing client-count "pulse" used by
-    render_status()'s own inverted-box cue) - reused, not duplicated."""
+    render_status()'s own inverted-box cue) - reused, not duplicated.
+
+    `bh1750_module` (2026-09-07, ambient light glance page): the SAME
+    already-imported `piratebox_bh1750` module reference main() already
+    keeps for the HARDWARE_SIGNALS registration - passed in, never
+    imported again here. Deliberately calls ONLY get_diagnostics()
+    (a read of that module's own already-cached state), never
+    read_ambient_lux() directly - this must never be a second, parallel
+    trigger of a real I2C transaction alongside the one
+    HARDWARE_SIGNALS's own registered reader already causes; the 15s
+    internal rate limit lives entirely inside piratebox_bh1750.py and
+    is completely unaffected by how many times get_diagnostics() itself
+    is called. Defaults to None (matching every existing caller in
+    tools/test_silly_mode.py, which predates this parameter) so this
+    stays fully backward compatible - omitting it simply means
+    ambient_lux is always None, the same honest "not available" value
+    a Pi with no BH1750 wired would produce anyway."""
     curr_cpu_jiffies = read_cpu_jiffies()
     cpu_percent = compute_cpu_percent(prev_cpu_jiffies, curr_cpu_jiffies)
 
@@ -982,6 +998,20 @@ def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently
         # shows a large clock it can't vouch for.
         time_confident = bool(ts.get("ntp_synchronized")) or bool(ts.get("rtc_detected"))
 
+    # Same "None means don't claim it" discipline as time_confident
+    # above: only a genuinely current reading (actually detected, not
+    # gone stale, a real number) becomes a value here - a never-wired
+    # sensor, a temporarily unresponsive one, or a stale last-known
+    # value all honestly degrade to None, never a fabricated 0.
+    ambient_lux = None
+    if bh1750_module is not None:
+        try:
+            diag = bh1750_module.get_diagnostics()
+            if diag.get("detected") and not diag.get("stale") and isinstance(diag.get("lux"), (int, float)):
+                ambient_lux = float(diag["lux"])
+        except Exception:  # noqa: BLE001 - a broken diagnostics call must
+            ambient_lux = None  # never break this glance-phase-entry
+
     metrics = {
         "cpu_percent": cpu_percent,
         "cpu_temp_c": read_cpu_temp_c(),
@@ -992,6 +1022,7 @@ def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently
         "uptime_str": format_duration(read_uptime_seconds()),
         "time_str": time.strftime("%H:%M") if time_confident else None,
         "undervoltage_now": undervoltage_now,
+        "ambient_lux": ambient_lux,
     }
     return metrics, curr_cpu_jiffies
 
@@ -1975,7 +2006,7 @@ def main() -> int:
             if glance_preview_index != glance_preview_last_index or glance_metrics is None:
                 glance_preview_last_index = glance_preview_index
                 glance_page_id = GLANCE_PREVIEW_ORDER[glance_preview_index]
-                glance_metrics, prev_cpu_jiffies = build_glance_metrics(status, stale, prev_cpu_jiffies, pulse_now)
+                glance_metrics, prev_cpu_jiffies = build_glance_metrics(status, stale, prev_cpu_jiffies, pulse_now, bh1750_module)
             page, extra = "glance", {
                 "page_id": glance_page_id, "metrics": glance_metrics,
                 "label_fonts": glance_label_fonts, "font_cpu_label": font_glance_cpu_label,
@@ -2004,7 +2035,7 @@ def main() -> int:
                     # slot (exactly like every other held render in this
                     # daemon), not re-picked/re-read every tick.
                     glance_metrics, prev_cpu_jiffies = build_glance_metrics(
-                        status, stale, prev_cpu_jiffies, pulse_now,
+                        status, stale, prev_cpu_jiffies, pulse_now, bh1750_module,
                     )
                     glance_page_id = select_glance_page(
                         glance_metrics, glance_rng, glance_page_id, glance_cooldowns, now,
@@ -2147,7 +2178,7 @@ def main() -> int:
                 # every tick.
                 if not silly_glance_was_active:
                     glance_metrics, prev_cpu_jiffies = build_glance_metrics(
-                        status, stale, prev_cpu_jiffies, pulse_now,
+                        status, stale, prev_cpu_jiffies, pulse_now, bh1750_module,
                     )
                     glance_page_id = select_glance_page(
                         glance_metrics, glance_rng, glance_page_id, glance_cooldowns, now,

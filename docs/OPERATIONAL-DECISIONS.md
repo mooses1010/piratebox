@@ -6,6 +6,93 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Ambient light joins the OLED At-a-Glance rotation (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. Follow-up to the entry directly below
+(Environment web UI). The already-commissioned, already-web-facing
+`ambient_lux` signal now also has a native OLED page: "AMBIENT",
+alongside CPU/RAM/DISK/CLIENTS/UPTIME/TIME/POWER in `piratebox_
+glance.py`'s Distance/Glance Display - the 8th glance page.
+
+**Layout:** mirrors CPU's own two-stacked-value structure (a
+dedicated, smaller top label leaves room for two value lines below) -
+"AMBIENT" label, current lux (`7.5 LUX`, one decimal below 100 lux,
+whole numbers at or above it to keep the string short at any realistic
+reading), then a plain-language classification. No icon - every other
+glance page here is pure text at maximum legible size, and this page's
+three lines already fill the 64px canvas height; an icon would cost
+readability this page's own layout needs, not add clarity.
+
+**Data path, exactly as instructed - no second I2C poller:**
+`build_glance_metrics()` gained an optional `bh1750_module` parameter
+(defaults to `None`, so every pre-existing test/call site stays
+unchanged) and calls only that module's `get_diagnostics()` - a read
+of its own already-cached state - never `read_ambient_lux()` directly.
+The 15s internal I2C rate limit lives entirely inside `piratebox_
+bh1750.py` and is completely unaffected by how often
+`get_diagnostics()` is called; `build_glance_metrics()` itself is only
+called once per glance-phase-ENTRY (~8-10s), not per 3s tick, so even
+that call is already naturally infrequent. Confirmed live: reading the
+real BH1750 once (simulating HARDWARE_SIGNALS's own tick), then
+calling `build_glance_metrics()` and rendering the page, produced a
+correct `30.0 LUX` / `DIM` page with zero additional hardware access.
+
+**Honest degrade, matching "time"'s own established precedent:** the
+page is only eligible (`GLANCE_PAGES["ambient"]["eligible"]`) when
+`ambient_lux` is not `None` - which `build_glance_metrics()` only ever
+sets when the sensor is genuinely detected AND its reading has not
+gone stale. A never-wired sensor, a temporarily unresponsive one, and
+a stale last-known value all produce the identical, honest "don't show
+this page" outcome - never a fabricated `0 lux`. `0.0` itself (pitch
+black - a real, meaningful reading) is explicitly NOT treated as
+missing anywhere in this chain (`is not None` throughout, never a
+truthiness check) - confirmed by a dedicated regression test, the
+classic pitfall this exact pattern invites.
+
+**Classification consistency with the Environment web UI:** `_classify_
+ambient_light_label()` (new in `piratebox_glance.py`) uses the
+identical five boundaries as `includes/sensors.php`'s existing
+`piratebox_classify_ambient_light()` - kept as two independent,
+explicitly-synchronized implementations rather than one shared file
+across Python and PHP (introducing a shared data file/parser on both
+sides for five static numbers was judged more architectural complexity
+than it removes). The DISPLAY STRINGS differ deliberately for the top
+band only - "Very Bright" measured 146px wide at the OLED's own font
+size against a 128px canvas, so the OLED shows "V.BRIGHT" instead, an
+abbreviation of the same band, not a different definition. New
+`tools/test_ambient_light_consistency.py` shells out to the real PHP
+function and proves both classifiers place a representative set of
+lux values - including every exact boundary - into the same band, not
+just that each implementation's own hardcoded numbers look similar.
+
+**Cadence/priority, unchanged:** Silly Mode, Normal/Emergency
+priorities, the status-check override, and Progression's own tick are
+completely untouched - "ambient" is just one more entry in the
+existing `GLANCE_PAGES` eligibility/weighting registry, at the same
+baseline weight as "uptime" (8.0), deliberately not elevated - per
+instruction, ambient light must not dominate the rotation.
+
+**Progression secrecy:** untouched by construction - this round never
+imports or references `piratebox_progression`, `ACHIEVEMENTS`,
+`HARDWARE_SIGNALS`, or any rarity/event mechanism from
+`piratebox_glance.py`, confirmed by a dedicated structural test
+inspecting the module's own actual code (not just its output), the
+same technique already used for `includes/sensors.php`'s equivalent
+guard.
+
+Tests: `tools/test_glance.py` grew from 28 to 41 assertions (rate/
+boundary/rounding/zero-is-not-missing/eligibility/scheduler-weight/
+width-fit/progression-isolation coverage for the new page), `tools/
+test_silly_mode.py`'s `GlanceMetricsTests` grew by 7 assertions
+(normal/never-detected/stale/broken-diagnostics/zero-is-real/no-second-
+I2C-trigger coverage for `build_glance_metrics()`'s new parameter), and
+a new `tools/test_ambient_light_consistency.py` (2 assertions, one a
+harness sanity check) for the cross-language boundary contract. Full
+existing Python and PHP suites re-run and confirmed unaffected.
+`tools/update_progression.sh` extended to also deploy `piratebox_
+glance.py` (previously progression.py/oled_daemon.py/bh1750.py only),
+since this round changed it for the first time.
+
 ## Environment web UI: BH1750 reaches the Utility site, and a real progression-public.json bug found along the way (2026-09-07, later still)
 
 **Decision date:** 2026-09-07. Follow-up to the entry directly below

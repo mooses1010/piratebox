@@ -47,16 +47,28 @@
 #                          confidence doesn't currently permit showing
 #                          it (see GLANCE_PAGES["time"]["eligible"]).
 #   undervoltage_now       bool
+#   ambient_lux            float, or None - None means either the
+#                          BH1750 was never registered, has never
+#                          produced a reading, or its last reading has
+#                          gone stale (see piratebox_oled_daemon.py's
+#                          build_glance_metrics() - the same "only
+#                          claim it when it's genuinely current" rule
+#                          time_str already follows for time
+#                          confidence). The FIRST real hardware sensor
+#                          to use this exact "future hardware hook"
+#                          mechanism (2026-09-07) - see "ambient" in
+#                          GLANCE_PAGES below.
 #
 # FUTURE HARDWARE HOOKS: exactly the same pattern piratebox_
 # progression.py's HARDWARE_SIGNALS registry already established - a
 # future page (INA226 power, BME280 room climate, DS18B20 enclosure
 # temp, a real DS3231-backed time-confidence upgrade, etc.) is added
-# the same way every page below already is: a new GLANCE_PAGES entry
-# whose `eligible()` checks for a metrics-dict key that stays absent/
-# None until a future round's build_glance_metrics() actually starts
-# populating it from a real, registered sensor reader. Nothing here
-# fabricates a reading for hardware that isn't commissioned yet - see
+# the same way every page below already is (and the way "ambient"
+# itself now is): a new GLANCE_PAGES entry whose `eligible()` checks
+# for a metrics-dict key that stays absent/None until a future round's
+# build_glance_metrics() actually starts populating it from a real,
+# registered sensor reader. Nothing here fabricates a reading for
+# hardware that isn't commissioned yet - see
 # the deliberate absence of any such key in the contract above.
 #
 # SPOILER POLICY: not applicable here. Glance pages are plain utility,
@@ -107,6 +119,57 @@ def _fmt_pct(value) -> str:
 
 def _fmt_temp(value) -> str:
     return "--C" if value is None else f"{round(value)}C"
+
+
+def _fmt_lux(value) -> str:
+    """Below 100 lux, one decimal place matters for telling a genuinely
+    dark room apart from a dim one; at or above 100, a whole number
+    keeps the string short enough for the canvas at any realistic (or
+    even the BH1750's own theoretical max, ~54612) reading - see
+    tools/test_glance.py's own width-fit test for the exact numbers
+    checked."""
+    if value is None:
+        return "--"
+    if value < 100:
+        return f"{value:.1f} LUX"
+    return f"{round(value)} LUX"
+
+
+# --- Ambient light classification --------------------------------------
+# Mirrors var/www/html/includes/sensors.php's
+# piratebox_classify_ambient_light() EXACTLY - same five boundaries, in
+# the same order (Dark/Dim/Indoor/Bright/Very Bright). Kept as two
+# independent, explicitly-synchronized implementations (Python here,
+# PHP there) rather than one shared file across languages - see
+# tools/test_ambient_light_consistency.py, which shells out to the real PHP
+# function and asserts both classifiers place a set of representative
+# lux values (including every exact boundary) into the SAME band, and
+# docs/OPERATIONAL-DECISIONS.md for why sharing a single source file
+# across Python/PHP was judged more architectural complexity than it's
+# worth for five static numbers. If you change one implementation's
+# boundaries, change the other's identically, then re-run that test.
+#
+# The DISPLAY STRING below is deliberately NOT identical to the web
+# UI's own label text - "Very Bright" doesn't fit this display at any
+# legible size (measured: 146px at font_medium, canvas is 128px) - so
+# the OLED uses "V.BRIGHT", an unambiguous abbreviation of the exact
+# same band, not a different definition. See tools/test_glance.py for
+# the width-fit check on every label this returns.
+#
+# UI-ONLY presentation bands, independent of and never derived from
+# any Progression/achievement condition or threshold - same statement
+# as includes/sensors.php's own header, restated here since this is a
+# second, independent place that statement must hold.
+def _classify_ambient_light_label(lux: float) -> str:
+    if lux < 10:
+        return "DARK"
+    if lux < 50:
+        return "DIM"
+    if lux < 250:
+        return "INDOOR"
+    if lux < 1000:
+        return "BRIGHT"
+    return "V.BRIGHT"
 
 
 # --- Label sizing: "fit intelligently," not one fixed giant font -------
@@ -229,6 +292,22 @@ def _render_power_warning(draw, label_fonts, font_cpu_label, font_medium, font_b
     _draw_centered(draw, "LOW", font_big, 30)
 
 
+def _render_ambient(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics: dict) -> None:
+    # Same two-stacked-value structure as _render_cpu above (label
+    # needs the smaller dedicated font_cpu_label to leave room for two
+    # value lines) - not the single-big-value RAM/DISK/CLIENTS/TIME
+    # layout, since this page always shows both the number AND its
+    # plain-language classification, matching the task's own example
+    # layout ("AMBIENT / 7.5 lux / DARK"). No icon: every other glance
+    # page here is pure text at maximum legible size, and this page's
+    # three lines already use the full 64px height - an icon would
+    # cost pixels this page's own readability needs, not add clarity.
+    _draw_top_aligned(draw, "AMBIENT", font_cpu_label, 0)
+    lux = metrics.get("ambient_lux")
+    _draw_centered(draw, _fmt_lux(lux), font_medium, 19)
+    _draw_centered(draw, "--" if lux is None else _classify_ambient_light_label(lux), font_medium, 41)
+
+
 _RENDERERS = {
     "cpu": _render_cpu,
     "ram": _render_ram,
@@ -237,6 +316,7 @@ _RENDERERS = {
     "uptime": _render_uptime,
     "time": _render_time,
     "power_warning": _render_power_warning,
+    "ambient": _render_ambient,
 }
 
 
@@ -314,6 +394,19 @@ GLANCE_PAGES = {
         "weight": lambda m: 12.0,
         "cooldown_s": POWER_WARNING_COOLDOWN_SECONDS,
     },
+    "ambient": {
+        # Only eligible with a genuinely current reading - the same
+        # "None means don't show it, never second-guess the daemon"
+        # rule "time" already follows above. build_glance_metrics()
+        # is what decides "genuinely current" (detected AND not stale
+        # AND a real number) - this module just respects the result.
+        "eligible": lambda m: m.get("ambient_lux") is not None,
+        # Same baseline as "uptime" - a routine, always-relevant-when-
+        # available fact, not urgent enough to dominate the rotation
+        # (per instruction) the way "clients" or "power_warning" can
+        # become in their own more attention-worthy moments.
+        "weight": lambda m: 8.0,
+    },
 }
 
 
@@ -374,4 +467,9 @@ def select_glance_page(metrics: dict, rng: random.Random, last_page_id, cooldown
 # genuinely active would misrepresent real state, so it is
 # deliberately left out of this fixed list entirely; the operator
 # already sees it live, honestly, if and when it's actually eligible).
-GLANCE_PREVIEW_ORDER = ["cpu", "ram", "disk", "clients", "uptime", "time"]
+# "ambient" (2026-09-07) is included, unlike "power_warning" - it's a
+# routine capability page like cpu/ram/disk, not a fault condition;
+# on a Pi without the BH1750 wired it degrades to the same honest "--"
+# placeholder every other page already shows for temporarily-missing
+# data (see _render_ambient), never a fabricated reading.
+GLANCE_PREVIEW_ORDER = ["cpu", "ram", "disk", "clients", "uptime", "time", "ambient"]
