@@ -6,6 +6,95 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## ESP32-S3 USB commissioning: externally-powered hub restored stability, read-only esptool identification performed (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. Continuation of the same-day commissioning
+saga below. Two physical A/B/C configurations were tested in sequence,
+each initiated by the operator, each re-verified read-only before and
+after:
+
+**Configuration A (direct Pi USB → ESP32):** unstable in every prior
+test that day - repeated `connect-debounce failed`/`Cannot enable`
+errors, and once a connection was achieved, a rapid reset loop (146
+complete enumeration cycles in one 10-minute window, each surviving
+well under a second).
+
+**Configuration B (Pi USB → USB hub → ESP32, hub's own external power
+input NOT connected, bus-powered only):** the ESP32's downstream hub
+port went completely silent for the first ~7 minutes of a 5-minute-plus
+observation window - not cycling, simply never attempting enumeration
+at all. **Bus-powered hub power alone did not produce a working
+connection.**
+
+**Configuration C (same hub, external power now connected, otherwise
+unchanged):** the operator connected the hub's own power supply mid-
+observation, changing nothing else. The kernel log shows the exact
+transition: at `12:12:10.699` a first enumeration attempt failed
+(`device not accepting address 46, error -32`), and 0.9 seconds later
+a second attempt at `12:12:11.599` succeeded completely and cleanly
+(`303a:4001`, `/dev/ttyACM0` bound via `cdc_acm`). From that instant
+through the rest of the observation and every check since, the
+connection has been continuously present with **zero** further
+disconnect/reset/debounce/descriptor errors.
+
+**Conservative, proven statement (not overstating the mechanism):**
+direct Pi USB was highly unstable; the same hub bus-powered did not
+provide reliable enumeration; connecting external power to that same
+hub, with nothing else changed, was immediately (within ~1 second)
+followed by successful, stable enumeration. `vcgencmd get_throttled`
+stayed at `0x50005` (bits 0+2 live, 16+18 historical) throughout all
+three configurations - the hub did **not** resolve the Pi's own
+undervoltage condition; it appears to help the ESP32 specifically, most
+plausibly by supplying downstream current the Pi's own USB rail
+couldn't. This is a strong timestamp-level correlation, not a measured
+electrical proof - no voltage/current probe was used at the board.
+
+**Read-only `esptool` identification (config C, stable connection):**
+before touching the board, a live re-check confirmed continuous
+presence (`303a:4001`, device 047 unchanged, `/dev/ttyACM0` present,
+zero new kernel USB events since the config-C transition, ~9.5 minutes
+stable). `esptool` v4.7.0 was then run read-only (`chip_id`) against
+`/dev/ttyACM0`, first with default settings, then with
+`--before usb_reset --after hard_reset`. **Both attempts failed
+identically: "Failed to connect to Espressif device: No serial data
+received."** Neither attempt disturbed the board - `lsusb` showed the
+same device 047 continuously present throughout both attempts, zero
+new kernel disconnect/error events, and no unintended reset occurred.
+
+**Conclusion: the native "USB" port, as currently enumerated by this
+board's generic/example app firmware, does not support esptool's
+automatic reset-into-bootloader sequence** (neither the default
+DTR/RTS-based strategy nor the native-USB-specific `usb_reset`
+strategy). This is a known limitation of generic TinyUSB-style CDC-ACM
+firmware that doesn't wire its control lines to the EN/GPIO0 reset
+pins the way ESP-IDF's own USB console driver (or a real USB-UART
+bridge chip, which is what the board's separate "COM" port almost
+certainly is) does. **No chip/flash/PSRAM identification was obtained
+this round** - it requires either (a) trying the board's "COM" port
+instead, which very likely has a hardware UART bridge with working
+DTR/RTS reset wiring, or (b) the operator manually holding the BOOT
+button while esptool connects, to force download mode without relying
+on soft-reset signaling. Neither was attempted this round - per
+instruction, this round stops at identification, and switching ports
+or requesting a manual button sequence is a distinct next step for the
+operator to authorize.
+
+**Post-attempt verification:** factory app firmware resumed
+immediately and normally (both failed esptool attempts left the chip
+running, since it was never successfully reset) - `303a:4001` present
+throughout, `/dev/ttyACM0` unchanged, zero new kernel errors,
+`vcgencmd get_throttled` still `0x50005` (unchanged), zero failed
+systemd units, ALFA/`pb-ap` still broadcasting on channel 6, Ethernet
+unaffected, OLED/RTC/BH1750/core services unaffected. No flash, no
+partitions, no bootloader, no efuses, and no security configuration
+were touched at any point.
+
+**Next commissioning step:** try `esptool` against the board's "COM"
+port instead of "USB" (requires a cable move, to be done by the
+operator only if/when requested), or a manual BOOT-button-held connect
+attempt on the current "USB" port - either would be the natural next
+read-only step, not yet taken.
+
 ## ESP32-S3 USB commissioning: did not enumerate, correlated with live undervoltage (2026-09-07, later still)
 
 **Decision date:** 2026-09-07. An ESP32-S3-N16R8 dev board (16MB

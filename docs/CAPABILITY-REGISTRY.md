@@ -92,7 +92,7 @@ it is.**
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
 | SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` confirmed live; stock `<`/`>` fine-tune buttons' `tuning_step=5000` fix confirmed live; PirateBox-side Previous/Next Spectrum + click-to-tune range bar confirmed live for hardware-window navigation, distinct from OpenWebRX+'s own tuning; native OpenWebRX+ bandplan ribbon confirmed live and correct at four representative frequencies after a same-day deploy outage was fixed (see doc §16); Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
-| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | **ESP32-S3-N16R8 has enumerated successfully (`303a:4001` and the ROM's own `303a:1001`), but as of 2026-09-07 is caught in a rapid reset loop** - 146 complete, correctly-formed enumerations in one 10-minute window, each followed by disconnect under a second later. The pattern (clean, complete enumeration then immediate death, repeatedly) points more toward the chip itself resetting (leading hypothesis: brownout, correlated with the Pi's live `0x50005` undervoltage flag and the board's continuously-running RGB LED draw) than a bad cable/port. `esptool` is installed but was deliberately NOT run against this connection - a target resetting multiple times per second cannot support an identification handshake. Flash/PSRAM/ROM identity remain unverified pending a stable connection. | Network Companion (pending re-evaluation - board connects via USB, not LAN) |
+| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | **ESP32-S3-N16R8: stable connection achieved via an externally-powered USB hub (2026-09-07)**, after direct-Pi and bus-powered-hub configurations both failed. `esptool` v4.7.0 was run read-only against the native "USB" port but could not complete a chip-info handshake (`chip_id` failed with "No serial data received" under both default and `usb_reset` reset strategies) - the board's generic app firmware doesn't wire USB control lines to force a bootloader reset the way the "COM" port's likely UART bridge would. Board was left completely undisturbed (factory firmware never actually reset, resumed with zero interruption). Flash/PSRAM/ROM identity remain unverified - the "COM" port or a manual BOOT-button-held connect are the untaken next steps. | Network Companion (pending re-evaluation - board connects via USB, not LAN) |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
 
 ---
@@ -1247,6 +1247,27 @@ it is.**
   one operator command (`sudo systemctl restart hostapd`). See
   `docs/OPERATIONAL-DECISIONS.md` for the full commissioning record and
   evidence.
+- **Stability resolved via externally-powered hub, esptool attempted
+  (2026-09-07, later still):** direct-Pi connection subsequently
+  degraded into a genuine rapid reset loop (146 enumerations in 10
+  minutes); a bus-powered (not externally powered) intermediate hub
+  produced no enumeration attempts at all for ~7 minutes; connecting
+  that same hub's own power supply, with nothing else changed, was
+  followed within ~1 second by a clean, stable enumeration that has
+  held with zero errors since. `vcgencmd get_throttled` stayed
+  `0x50005` throughout all three configurations - the hub helps the
+  ESP32, not the Pi's own supply. Read-only `esptool chip_id` was then
+  run against the native "USB" port (default and `usb_reset` reset
+  strategies both tried) but could not obtain a response - the
+  generic app firmware doesn't support esptool's automatic
+  bootloader-entry signaling over this port. The board was left
+  completely undisturbed throughout (never actually reset, factory
+  firmware never interrupted). **Flash manufacturer/device ID, actual
+  flash size, PSRAM presence/size, silicon revision, and MAC remain
+  unverified** - full identification needs either the board's "COM"
+  port (likely a real UART bridge with working reset wiring) or a
+  manual BOOT-button-held connect attempt, neither yet taken. Full
+  detail and exact timestamps: `docs/OPERATIONAL-DECISIONS.md`.
 - **Layer:** Optional/Field. Classification: Network Companion (pending
   re-evaluation - see above). Core dependency: No - **must be able to
   disappear without breaking Core** (`docs/ARCHITECTURE.md` §3) -
