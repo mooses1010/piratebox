@@ -6,6 +6,47 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## DS3231 RTC: first power-loss test FAILED - battery backup unconfirmed (2026-09-07, later same day)
+
+**Decision date:** 2026-09-07. The operator performed the power-loss
+validation procedure from the entry directly below (Ethernet
+disconnected, genuine full power-off, real off period, powered back on
+with Ethernet still disconnected). **Result: failed.** The system came
+back reporting ~1999/2000, not a plausible time, and only NTP
+correction after reconnecting Ethernet fixed it.
+
+Diagnosed live (same boot as the failure, confirmed via `uptime -s`):
+`dmesg -T` showed `rtc-ds1307 1-0068: SET TIME!` /
+`setting system clock to 2000-01-01T00:00:25 UTC` - the exact clean
+factory power-on-reset signature, not corrupted data, and not a
+config/overlay/driver failure (the driver bound and read the chip
+successfully; the *value* it read was the problem). This is strong
+evidence the DS3231 itself lost time across the outage - the CR2032 is
+not (yet) actually keeping it backed - rather than a software
+init/read failure. **Explicitly not accepted as validated merely
+because the module is detected while Pi-powered**, per instruction;
+`docs/CAPABILITY-REGISTRY.md` and `docs/HARDWARE-INTEGRATION-DESIGN.md`
+have been corrected back from "battery-backed" to "battery backup
+unconfirmed - failed first test" accordingly.
+
+New read-only `tools/diagnose_rtc_ds3231.sh` captures the chip's raw
+state (`hwclock -r`, `--vl-read`), boot dmesg, and bus/OLED regression
+in one pass **without writing anything** - evidence preserved before
+any recommissioning attempt, per instruction. No recommissioning write
+was performed this round for that reason, and no script/config logic
+was changed, since nothing gathered points to a software cause.
+
+A physical multimeter measurement plan was handed to the operator
+(voltage only, across the battery holder and optionally at the
+DS3231's VBAT pin directly, both with Pi power on and fully off) to
+localize whether the fault is the cell's seating/polarity, a board
+layout issue where R4's removal severed the *only* path from the
+holder to VBAT (not just the charging path, on this specific clone
+board), or the cell itself. Recommended against another full power-
+loss test until that physical check points to and a fix is applied -
+full record and exact procedure: `docs/RTC-TIME-READINESS-DESIGN.md`
+§9.
+
 ## DS3231 RTC: battery-backed production module (R4 removed, CR2032) + OSF handling (2026-09-07)
 
 **Decision date:** 2026-09-07. The original DS3231/AT24C32 module used
