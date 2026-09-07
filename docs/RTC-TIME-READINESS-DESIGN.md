@@ -890,3 +890,70 @@ procedure, unchanged) is now the right next step.** No software
 ambiguity remains blocking it. As always, that physical test is a
 genuine, separate operator action - not performed or requested by this
 round's work.
+
+## 12. Second power-loss validation test: PASSED (2026-09-07, later still)
+
+**The operator performed §10's procedure: a genuine full power-off,
+the Pi physically unplugged, with the corrected (correctly-oriented)
+CR2032 installed in the R4-modified module.** On the subsequent boot:
+
+```
+rtc-ds1307 1-0068: registered as rtc0
+rtc-ds1307 1-0068: setting system clock to 2026-09-07T02:04:47 UTC
+```
+
+**This is the decisive evidence, and it is unambiguous.** Boot began
+~19:04:26 local time; the kernel's `CONFIG_RTC_HCTOSYS` read the RTC
+and set the system clock from it at 19:04:47 - ~21 seconds in, the same
+early-boot timing seen in every prior bring-up (§§6-11), but this time
+reporting a **real, current, plausible 2026 date read directly from
+the chip's own registers over I2C**, not the ~2000-01-01 factory
+default that every previous power-loss attempt produced. A direct
+hardware read three minutes later (`hwclock -r`, or equivalent)
+confirmed `2026-09-06 19:07:21.633231-07:00` - correctly advanced,
+matching the elapsed wall-clock time since the boot-time read almost
+exactly. `timedatectl` showed RTC time and system time agreeing.
+Regression check: OLED (`0x3c`), EEPROM (`0x57`), RTC (`0x68`, `UU`)
+all present and correct - the bus is unaffected, as in every prior
+round.
+
+**Conclusion: the DS3231 retained and advanced valid time across a
+genuine, complete loss of Pi power, and the kernel successfully
+initialized the Pi's system clock from the battery-backed RTC alone on
+the following boot.** This is the exact acceptance criterion stated in
+§8/§10, now met. Battery-backed RTC retention and boot recovery are
+**validated, not merely fixed-and-hoped**.
+
+**One honest observation, investigated but not allowed to obscure the
+above:** `timedatectl` reported `System clock synchronized: yes` /
+`NTP service: active` when the post-boot diagnostic was run, despite
+the test's intent to keep Ethernet disconnected through that check.
+This means the isolation step (§10's "leave `eth0` unplugged" before
+checking) likely did not hold all the way through to when the
+diagnostic command ran - either `eth0` was reconnected slightly early,
+or was never fully removed for the whole window. **This does not
+weaken the conclusion above**, for a specific, checkable reason: the
+decisive evidence is the kernel's *own* dmesg line, emitted by
+`CONFIG_RTC_HCTOSYS` roughly 21 seconds into boot, directly from an I2C
+register read of the RTC chip - `systemd-timesyncd` cannot possibly
+have resolved a hostname, reached a time server, and applied a
+correction inside that same 21-second window even with a network path
+available from second zero, and the specific date it reported
+(`2026-09-07T02:04:47 UTC`) is a value only the RTC chip itself could
+have supplied at that exact kernel-level moment. The later
+`timedatectl` reading of "synchronized: yes" reflects the state of the
+system *some minutes further into boot*, by which point NTP may well
+have had a path again - it is evidence about network state at that
+later moment, not about where the RTC's own boot-time value came from.
+Worth tightening procedure on a *future* validation (confirm `eth0`
+stays unplugged until every check is captured, e.g. via `ip link show
+eth0` in the diagnostic itself), but not worth re-running this specific
+test over, given the dmesg evidence is already conclusive on its own
+terms.
+
+**Status update - `docs/CAPABILITY-REGISTRY.md` and
+`docs/HARDWARE-INTEGRATION-DESIGN.md` are updated alongside this
+section to reflect VALIDATED battery-backed RTC retention.** The
+failed first test (§9) and its confirmed root cause - reversed CR2032
+polarity, not the R4 modification (§10) - remain recorded in full as
+real project history, not superseded or deleted.

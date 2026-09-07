@@ -6,6 +6,49 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## DS3231 RTC: second power-loss test PASSED - battery backup validated (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. The operator performed a genuine full
+power-off (Pi physically unplugged) with the corrected, correctly-
+oriented CR2032 installed. On the subsequent boot, the kernel's own
+log reported:
+
+```
+rtc-ds1307 1-0068: registered as rtc0
+rtc-ds1307 1-0068: setting system clock to 2026-09-07T02:04:47 UTC
+```
+
+A real, current 2026 date read directly from the RTC's own registers
+at ~21 seconds into boot - not the ~2000-01-01 factory default every
+prior power-loss attempt produced. A direct hardware read three
+minutes later confirmed correctly-advanced time, `timedatectl` showed
+RTC/system time agreeing, and the OLED/EEPROM/RTC bus regression check
+passed. **This meets the acceptance criterion stated back in §8/§10 of
+`docs/RTC-TIME-READINESS-DESIGN.md`: battery-backed RTC retention and
+boot recovery are now validated**, not merely fixed-and-hoped.
+`docs/CAPABILITY-REGISTRY.md` and `docs/HARDWARE-INTEGRATION-DESIGN.md`
+updated accordingly (§12).
+
+**One observation, investigated, not treated as undermining the
+result:** `timedatectl` showed `System clock synchronized: yes` / NTP
+active when the post-boot diagnostic ran, meaning Ethernet isolation
+likely didn't hold for the entire check window. This doesn't weaken the
+conclusion - the decisive evidence is the kernel's own dmesg line,
+emitted directly from an I2C register read ~21 seconds into boot, far
+too early for NTP to have supplied or influenced that specific value
+even with a network path from second zero. Worth tightening on a
+*future* test (confirm `eth0` state within the diagnostic itself), not
+worth re-running this one over.
+
+**The failed first test and its confirmed root cause (CR2032 installed
+upside down, not the R4 modification) remain recorded in full** in
+`docs/RTC-TIME-READINESS-DESIGN.md` §§9-10, per instruction - real
+project history, not superseded or deleted by this pass.
+
+No code/test changes this round - pure documentation update reflecting
+a real physical test result. Full test suite re-run and confirmed
+unaffected.
+
 ## DS3231 RTC: timing puzzle resolved - cleared for second power-loss test (2026-09-07, later still)
 
 **Decision date:** 2026-09-07. The entry below's timing puzzle
