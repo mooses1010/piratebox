@@ -83,7 +83,7 @@ it is.**
 | GNSS receiver | Optional/Field | CANDIDATE | Attachable or Integrated (undecided) |
 | Environmental sensing (temp/humidity beyond CPU) | Optional/Field | CANDIDATE | Integrated or Companion |
 | Air quality (CO2/particulate/VOC) | Optional/Field | CANDIDATE | Integrated or Companion |
-| Light / UV (BH1750 ambient light) | Optional/Field | **INSTALLED, COMMISSIONED, WEB UI + OLED GLANCE PAGE LIVE (2026-09-07)** - detected at 0x23, real lux readings confirmed (~7-31 lux across sessions); `/utility/environment/` + a Utility landing-page card via a dedicated `sensors-public.json` export, and a native OLED "AMBIENT" At-a-Glance page (8th glance page) reusing the exact same already-rate-limited reader in-process, no second I2C poller | Integrated (directly on Pi I2C bus; behind a future ESP32-S3 supervisor is possible/planned, not implemented) |
+| Light / UV (BH1750 ambient light) | Optional/Field | **INSTALLED, COMMISSIONED, WEB UI + OLED GLANCE PAGE LIVE, MIGRATED TO THE ESP32 SUPERVISOR (2026-09-07)** - originally commissioned directly on the Pi's I2C bus (0x23), then physically moved the same day to the ESP32-S3 supervisor's own I2C bus (GPIO8/9) once that subsystem was built and validated; real lux readings confirmed on both sides of the migration (~7-31 lux on the Pi, 11.67 lux post-migration, consistent readings in similar lighting). `HARDWARE_SIGNALS`'s `ambient_lux` now reads from the ESP32 path (`piratebox_esp32_bh1750.py`, drop-in replacement) - `/utility/environment/`, the Utility landing-page card, and the OLED "AMBIENT" glance page all needed zero changes, since they consume the signal/export, never the sensor directly | **Attachable** (behind the ESP32-S3 supervisor, itself USB/serial-attached - see that row below; no longer directly on the Pi's own I2C bus) |
 | Motion / orientation (IMU) | Optional/Field | CANDIDATE | Integrated |
 | Proximity (ToF) | Optional/Field | CANDIDATE | Integrated |
 | Sound measurement | Optional/Field | CANDIDATE | Integrated or Companion |
@@ -756,11 +756,29 @@ it is.**
   round-tripped successfully, returning a stable, plausible, non-
   garbage lux value (~9-12 lux, consistent with real ambient light at
   commissioning time) - not just an address-probe coincidence.
-- **Interface:** I2C1, same bus as the OLED and DS3231 RTC (multi-drop,
-  no pin conflict; confirmed live, both unaffected by this sensor's
-  presence). Read entirely from userspace via `smbus2` in the new
-  `piratebox_bh1750.py` - unlike the RTC, no kernel driver/overlay is
-  needed at all.
+- **Interface (original, Pi-owned):** I2C1, same bus as the OLED and
+  DS3231 RTC (multi-drop, no pin conflict; confirmed live, both
+  unaffected by this sensor's presence). Read entirely from userspace
+  via `smbus2` in `piratebox_bh1750.py` - unlike the RTC, no kernel
+  driver/overlay was needed at all.
+- **Migrated to the ESP32-S3 supervisor (2026-09-07, same day):** once
+  the supervisor's firmware/Pi-daemon/capability system were built and
+  validated (see "Remote microcontroller/sensor node" below), the
+  physical sensor was moved to the ESP32's own I2C bus (GPIO8/GPIO9),
+  same wiring convention (VCC->3.3V, GND->GND, ADDR floating).
+  `i2cdetect -y 1` on the Pi now correctly shows no device at `0x23` -
+  `piratebox_bh1750.py` is unchanged and kept for historical/rollback
+  reference, but nothing imports it anymore. `piratebox_esp32_
+  bh1750.py` is its drop-in replacement (same two-function interface,
+  same `get_diagnostics()` shape), reading the sensor's value from the
+  ESP32 supervisor's cached export instead of I2C directly. A real
+  mid-migration wiring fault (the ESP32 went completely unresponsive,
+  even at the ROM bootloader level, after the first physical
+  reconnection) was found, diagnosed from evidence, and fixed by the
+  operator correcting the physical wiring - see `docs/OPERATIONAL-
+  DECISIONS.md` and `docs/ESP32-SUPERVISOR-DESIGN.md` §16 for the full
+  record. Post-migration reading confirmed real and plausible: 11.67
+  lux.
 - **Software integration:** `piratebox_bh1750.py` owns all direct I2C
   access (bus/address/protocol/rate-limiting/staleness), exposing one
   zero-argument reader (`read_ambient_lux()`) plus a diagnostics
@@ -1318,10 +1336,22 @@ it is.**
   "Network Companion (pending re-evaluation)" to **Attachable** - see
   the design doc §1 for why (this board is USB/serial-connected, not
   independently-powered/LAN-connected, per `docs/ARCHITECTURE.md` §3's
-  own taxonomy). BH1750 remains Pi-owned - not migrated this round; the
-  design doc recommends that migration as the next physical step.
-- **Layer:** Optional/Field. Classification: Network Companion (pending
-  re-evaluation - see above). Core dependency: No - **must be able to
+  own taxonomy).
+- **BH1750 migration COMPLETE (2026-09-07, immediately after):** the
+  physical sensor was moved from the Pi's I2C1 bus to the ESP32's own
+  I2C bus (GPIO8/9), BH1750-aware firmware flashed, and a real 11.67
+  lux reading confirmed flowing through the full pipeline before
+  `HARDWARE_SIGNALS`'s `ambient_lux` was switched over
+  (`piratebox_esp32_bh1750.py`). A real electrical wiring fault
+  surfaced mid-migration (the ESP32 went silent even at the ROM
+  bootloader level after the first physical reconnection) - diagnosed
+  from evidence (USB bridge stayed healthy throughout, ruling out USB/
+  Pi-power causes), the operator corrected the physical wiring, and
+  communication was fully restored with the board confirmed
+  undamaged. See `docs/OPERATIONAL-DECISIONS.md` and `docs/ESP32-
+  SUPERVISOR-DESIGN.md` §16 for the full record.
+- **Layer:** Optional/Field. Classification: **Attachable** (corrected
+  2026-09-07 - see above). Core dependency: No - **must be able to
   disappear without breaking Core** (`docs/ARCHITECTURE.md` §3) -
   already true today: zero Core service depends on this board's
   presence, and this commissioning attempt touched no PirateBox

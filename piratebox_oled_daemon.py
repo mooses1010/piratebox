@@ -608,9 +608,10 @@ def publish_sensors_export(bh1750_module, last_publish: float, now: float) -> fl
     SENSORS_PUBLISH_INTERVAL_S. Returns the new last-publish time
     (unchanged if this call didn't write). Reads no hardware itself -
     `bh1750_module` is either None (never imported - see this file's
-    startup section) or the already-imported piratebox_bh1750 module,
+    startup section) or the already-imported module
+    (`piratebox_esp32_bh1750` as of the 2026-09-07 ESP32 migration),
     whose get_diagnostics() just returns its own already-cached state
-    (no new I2C transaction is triggered by publishing).
+    (no new I2C/serial transaction is triggered by publishing).
 
     A sensor only ever appears in the output dict if its module
     actually imported successfully - hardware that was never wired
@@ -956,16 +957,18 @@ def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently
     already has it for free (the existing client-count "pulse" used by
     render_status()'s own inverted-box cue) - reused, not duplicated.
 
-    `bh1750_module` (2026-09-07, ambient light glance page): the SAME
-    already-imported `piratebox_bh1750` module reference main() already
-    keeps for the HARDWARE_SIGNALS registration - passed in, never
-    imported again here. Deliberately calls ONLY get_diagnostics()
-    (a read of that module's own already-cached state), never
-    read_ambient_lux() directly - this must never be a second, parallel
-    trigger of a real I2C transaction alongside the one
-    HARDWARE_SIGNALS's own registered reader already causes; the 15s
-    internal rate limit lives entirely inside piratebox_bh1750.py and
-    is completely unaffected by how many times get_diagnostics() itself
+    `bh1750_module` (2026-09-07, ambient light glance page; ESP32-owned
+    since the same-day migration): the SAME already-imported module
+    reference (`piratebox_esp32_bh1750`) main() already keeps for the
+    HARDWARE_SIGNALS registration - passed in, never imported again
+    here. Deliberately calls ONLY get_diagnostics() (a read of that
+    module's own already-cached state), never read_ambient_lux()
+    directly - this must never be a second, parallel trigger of a real
+    I2C/serial transaction alongside the one HARDWARE_SIGNALS's own
+    registered reader already causes; rate limiting now lives on the
+    ESP32 firmware's own sensor-publish cadence (piratebox_esp32_
+    supervisor.py's cached export) and is completely unaffected by how
+    many times get_diagnostics() itself
     is called. Defaults to None (matching every existing caller in
     tools/test_silly_mode.py, which predates this parameter) so this
     stays fully backward compatible - omitting it simply means
@@ -1782,11 +1785,17 @@ def main() -> int:
         log.warning("Progression subsystem unavailable (%s) - Silly Mode continues without it.", exc)
         progression = None
 
-    # BH1750 ambient light sensor (commissioned 2026-09-07, shares I2C1
-    # with the OLED/RTC above) - registered as a Progression hardware
-    # signal, not read directly by this daemon, so nothing here needs
-    # to know its bus/address/protocol details (see piratebox_bh1750.py
-    # for all of that). A missing/failed sensor or module must never
+    # BH1750 ambient light sensor - MIGRATED 2026-09-07 from the Pi's
+    # own I2C1 bus to the ESP32-S3 supervisor's I2C bus (GPIO8/GPIO9) -
+    # see docs/OPERATIONAL-DECISIONS.md for the full migration record.
+    # piratebox_esp32_bh1750.py is a drop-in replacement for the
+    # retired piratebox_bh1750.py registration: same two-function
+    # interface, same get_diagnostics() shape, so nothing below this
+    # block (publish_sensors_export(), build_glance_metrics()) needed
+    # to change at all - only which module gets imported/registered
+    # here changed. piratebox_bh1750.py itself is unchanged and still
+    # in the repo for historical/rollback reference, but nothing
+    # imports it anymore. A missing/failed sensor or module must never
     # affect Progression (already independently optional above) or the
     # OLED display - this is its own separate try/except specifically
     # so a BH1750-only failure can never undo a successful Progression
@@ -1802,10 +1811,10 @@ def main() -> int:
     bh1750_module = None
     if progression is not None:
         try:
-            import piratebox_bh1750
-            progression.register_hardware_signal("ambient_lux", piratebox_bh1750.read_ambient_lux)
-            bh1750_module = piratebox_bh1750
-            log.info("BH1750 ambient light sensor signal registered.")
+            import piratebox_esp32_bh1750
+            progression.register_hardware_signal("ambient_lux", piratebox_esp32_bh1750.read_ambient_lux)
+            bh1750_module = piratebox_esp32_bh1750
+            log.info("BH1750 ambient light sensor signal registered (ESP32-owned, migrated 2026-09-07).")
         except Exception as exc:  # noqa: BLE001 - optional hardware, never fatal
             log.warning("BH1750 module unavailable (%s) - ambient_lux signal stays unregistered.", exc)
 

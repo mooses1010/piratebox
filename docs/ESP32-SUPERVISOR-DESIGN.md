@@ -1,6 +1,8 @@
 # ESP32-S3 Hardware/Sensor Supervisor — Design
 
-**Status: FIRST WORKING IMPLEMENTATION (2026-09-07).** The board was
+**Status: WORKING IMPLEMENTATION with a first real sensor migrated
+(2026-09-07).** BH1750 ambient light is now live on the ESP32's own
+I2C bus (§16) — no longer Pi-owned. The board was
 commissioned (identity fully proven read-only via `esptool`) earlier
 the same day — see `docs/OPERATIONAL-DECISIONS.md`'s two commissioning
 entries and `docs/CAPABILITY-REGISTRY.md`'s "Remote microcontroller/
@@ -259,7 +261,8 @@ GPIO table).
 | Function | Pin(s) | Status | Notes |
 |---|---|---|---|
 | Internal temperature | (none — on-die peripheral) | **WIRED, VERIFIED** | `temperatureRead()`, no external pins |
-| I2C bus (SDA/SCL) | GPIO8 / GPIO9 | **Reserved, firmware ready, not yet wired** | Standard default I2C pins for this board's PlatformIO definition; not a strapping pin. Reserved for BH1750 (§16) and any future I2C sensor (BME280, INA226) sharing the same bus |
+| I2C bus (SDA/SCL) | GPIO8 / GPIO9 | **WIRED, VERIFIED (2026-09-07)** | Standard default I2C pins for this board's PlatformIO definition; not a strapping pin. BH1750 ambient light sensor now live here (migrated from the Pi - §16); shared bus, available for future I2C sensors (BME280, INA226) with no new pins needed |
+| BH1750 (ambient light) | GPIO8 (SDA) / GPIO9 (SCL), shared bus above | **WIRED, VERIFIED, MIGRATED FROM THE PI (2026-09-07)** | Address 0x23, ADDR floating — same wiring convention as its original Pi-side commissioning. See §16 for the full migration record, including a real mid-migration wiring fault that was found and fixed |
 | Strapping pins (GPIO0, GPIO3, GPIO45, GPIO46) | — | **Reserved, deliberately unused** | Boot-mode/voltage-selection significance on this chip — avoided for any general-purpose sensor/GPIO use |
 | USB "COM" port (UART0, physical pins) | — | **WIRED, VERIFIED, IN USE** | The Pi↔ESP32 communication link itself (§4) — not available for other use |
 | Native USB "USB" port | — | Present, unused by this firmware | Native USB-CDC peripheral; this firmware never initializes it (§4) |
@@ -461,7 +464,7 @@ powered hub in the same position.
   enabling the wrong PSRAM interface mode risks a boot failure for zero
   present benefit. Revisit when a real feature (e.g. simultaneous
   BLE + WiFi + large buffers) actually needs the extra RAM.
-- **BH1750 migration**: not performed this round (§16).
+- **BH1750 migration**: COMPLETE (§16) - no longer an open item.
 - **Environment web UI / OLED glance integration**: a minimal
   `includes/esp32_supervisor.php` reader exists (mirrors
   `includes/sensors.php`'s pattern) and a `HARDWARE_SIGNALS` reader is
@@ -475,28 +478,51 @@ powered hub in the same position.
   so adding them later doesn't require protocol changes, but no code
   for them exists yet.
 
-## 16. Recommendation: BH1750 migration as the next physical step
+## 16. BH1750 migration — COMPLETE (2026-09-07)
 
-The BH1750 remains Pi-owned (I2C, `piratebox_bh1750.py`) and **was not
-electrically touched this round**, per instruction. Now that the
-supervisor firmware, Pi communication layer, capability/discovery
-system, diagnostics, and deployment path are all built and validated
-end-to-end on real hardware (§8), migrating the BH1750 to ESP32
-ownership is the logical next physical validation step.
+**Status: done, validated, and switched over.** The BH1750 was
+physically moved from the Pi's own I2C1 bus to the ESP32-S3
+supervisor's I2C bus (GPIO8/GPIO9), the BH1750-aware firmware (built
+ahead of time — see the original plan preserved below) was flashed,
+and a real, plausible reading (**11.67 lux**, `ok: true`) was confirmed
+flowing through the full pipeline: firmware → daemon → cached export.
+`HARDWARE_SIGNALS`'s `"ambient_lux"` now reads from the ESP32 path
+(`piratebox_esp32_bh1750.py`, a drop-in replacement for the retired
+`piratebox_bh1750.py` registration — see that file's own header).
 
-**The firmware side is now ready, ahead of asking for the wiring** (per
-the standing instruction not to request rewiring before the software
-side is ready for it): `esp32-firmware/include/bh1750.h` /
-`bh1750.cpp` implement the exact same protocol as `piratebox_bh1750.py`
-(same opcodes, same ~200ms timing, same raw/1.2 lux formula), wired
-into the `hello`/`sensors` messages behind a real boot-time I2C probe —
-the `bh1750` capability simply won't appear until a sensor actually
-responds, which is the correct, expected state right now (nothing is
-wired to the ESP32 yet). This has been built and compiles cleanly;
-it has **not** been flashed yet, since flashing it now would leave a
-probe permanently failing against nothing until the wiring happens —
-better to flash it in the same session as the physical move, right
-before testing.
+**A real complication during the physical move, resolved and recorded
+honestly:** immediately after the first physical reconnection, the
+ESP32 went completely silent — its USB bridge (CH9102) stayed cleanly
+enumerated throughout (ruling out a USB/hub/cable/Pi-power problem),
+but the chip itself produced zero bytes, even under `esptool`'s own
+forced-reset sequence (which talks to the ROM bootloader independent
+of any application firmware — a very reliable, well-tested path
+throughout this entire project up to that point). That combination —
+stable bridge, totally unresponsive chip, unresponsive even at the ROM
+level — is only consistent with the chip's own core losing a stable
+power/reset path, not a software or USB fault. The operator re-checked
+and corrected the physical wiring; communication was fully restored
+immediately afterward with no further action needed, confirming the
+original fault was electrical (most likely on the 3.3V/GND leads
+specifically, since those are the only new connections that gate
+whether the chip's core boots at all — SDA/SCL miswiring would not
+explain a totally silent ROM bootloader). No hardware damage resulted;
+the ESP32-S3 itself, its factory identity, and the supervisor firmware
+were all confirmed intact once wiring was corrected.
+
+**A second, separate complication**: flashing the corrected firmware
+initially failed with "Serial data stream stopped" during connection —
+not a hardware problem this time, but simple resource contention: the
+systemd `piratebox-esp32-supervisor.service` daemon was holding the
+serial port open, and `esptool` needs exclusive access for its
+handshake. Confirmed via the daemon's own logs (it correctly detected
+the interference — `malformed_lines: 6`, marked itself `stale` —
+without crashing, exactly the resilience this project was built for).
+Resolved with one operator `sudo systemctl stop
+piratebox-esp32-supervisor.service` before the successful flash.
+
+**Original plan, preserved below for historical reference** — this is
+exactly what was executed:
 
 **ESP32-S3 I2C pins chosen for this**: GPIO8 (SDA) / GPIO9 (SCL) — the
 standard default I2C pins for this board's `esp32-s3-devkitc-1`
@@ -529,19 +555,13 @@ hot-plug hygiene (avoiding a half-connected transient on the sensor's
 GND/VCC while the leads are being moved), then reconnected through the
 same externally-powered hub afterward.
 
-**What to test immediately after reconnecting**: (1) flash the
-already-built `bh1750`-aware firmware (`tools/flash_esp32_
-supervisor.sh`); (2) run the Pi daemon and confirm `hello`'s `caps`
-array now includes `"bh1750"`; (3) confirm the `sensors` message
-carries a `bh1750` reading with `"ok": true` and a plausible lux value
-matching the room's actual ambient light; (4) leave the Pi's own
-`piratebox_bh1750.py`/I2C1 wiring physically disconnected only once the
-ESP32-side reading is confirmed good — don't remove the working Pi path
-until its replacement is proven, so there's no gap with zero ambient
-light data during the transition; (5) a small follow-up software step
-(not yet done) then switches `HARDWARE_SIGNALS`'s `"ambient_lux"` to
-read from the ESP32 export instead of `piratebox_bh1750.py` directly.
-
-**This requires physical rewiring and is a genuine operator gate** —
-not performed as part of this round; see the final report for this
-round's consolidated request.
+**Test sequence actually executed, all steps passed**: (1) flashed the
+`bh1750`-aware firmware; (2) confirmed `hello`'s `caps` array included
+`"bh1750"`; (3) confirmed the `sensors` message carried a `bh1750`
+reading with `"ok": true` and a plausible lux value (11.67, consistent
+with the earlier Pi-side commissioning's ~9-12 lux range in similar
+ambient conditions); (4) `HARDWARE_SIGNALS`'s `"ambient_lux"` then
+switched to the ESP32 path only after that reading was confirmed good.
+`piratebox_bh1750.py` (the original Pi-side module) is unchanged and
+left in the repo for historical/rollback reference — nothing imports
+it anymore.
