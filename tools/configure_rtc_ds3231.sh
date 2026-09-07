@@ -6,6 +6,16 @@
 #
 #   sudo tools/configure_rtc_ds3231.sh
 #
+# PRODUCTION HARDWARE (2026-09-07): the module in service has been
+# modified for safe non-rechargeable battery use - R4 (200 ohm, marked
+# "201"), which fed the module's VCC-to-battery charging path, has been
+# removed, and a standard CR2032 is installed. Confirmed by direct
+# measurement before/after the modification: the empty battery holder
+# read ~3.14-3.18V while charging (R4 present, powered from the Pi's
+# 3.3V rail) and only ~0.22V after R4's removal - the charging path is
+# genuinely broken, so a non-rechargeable cell is safe here. See
+# docs/RTC-TIME-READINESS-DESIGN.md §8 for the full hardware record.
+#
 # Idempotent - safe to re-run. Touches exactly one file
 # (/boot/firmware/config.txt, backed up first) plus standard hwclock/
 # adjtime state and, if missing, one package; does not touch the OLED,
@@ -65,6 +75,20 @@
 # from *this* run), before anything reads system time as ground truth
 # or writes it into the RTC.
 #
+# OSCILLATOR-STOP / VOLTAGE-LOW HANDLING (added for the battery-backed
+# module): the DS3231 latches a flag (its OSF bit, surfaced generically
+# by hwclock as "voltage low") whenever it can't vouch for its own
+# stored time - which is unconditionally true the first time a chip is
+# ever powered/backed at all. hwclock(8) documents `--vl-clear` as
+# "necessary for some RTC devices after a battery replacement" - this
+# commissioning is exactly that case (first battery this chip has ever
+# had). Read before AND after the time write, purely diagnostic/
+# non-fatal either way (`|| true` - not all RTC/driver combinations
+# support it, per hwclock's own man page, and its absence must never
+# block real commissioning), then explicitly cleared once a known-good
+# NTP-verified time has actually been written - never before, since the
+# flag existing is exactly correct until that point.
+#
 # WHAT THIS DELIBERATELY DOES NOT DO:
 # - Does not touch the AT24C32 EEPROM at 0x57. It needs no kernel driver
 #   or config for the RTC to function and is out of scope for this
@@ -72,16 +96,9 @@
 # - Does not install any package beyond the one confirmed-missing
 #   `hwclock` dependency above - the overlay file and i2c-tools both
 #   already ship on this OS image.
-# - Does not assume a battery is installed. This board's coin cell is
-#   not yet fitted (charging circuit + non-rechargeable CR2032
-#   supplied, deliberately not inserted) - see the report this script's
-#   output feeds into. Everything below works from Pi power alone,
-#   which is genuinely how the RTC is being validated right now. (This
-#   also means the same ~2000-01-01 hctosys risk this script guards
-#   against during commissioning will recur at every future boot until
-#   a battery is fitted - see docs/RTC-TIME-READINESS-DESIGN.md §6/§7
-#   for that honestly-documented, accepted limitation; not solved by
-#   this script, which only runs during commissioning, not at boot.)
+# - Does not touch or rely on R4/the charging circuit itself - that is
+#   a one-time physical hardware modification already done to the
+#   module before it was wired in, not something software configures.
 
 set -euo pipefail
 
@@ -184,25 +201,37 @@ echo "=== Step 4: read the RTC BEFORE writing anything (baseline) ==="
 hwclock -f /dev/rtc0 -r || true
 
 echo
-echo "=== Step 5: write the current (NTP-correct) system time to the RTC ==="
+echo "=== Step 5: oscillator-stop / voltage-low flag, BEFORE clearing it ==="
+echo "(expected to report a stop/low condition - this chip has never had a"
+echo "trustworthy time source before now; non-fatal if unsupported)"
+hwclock -f /dev/rtc0 --vl-read || true
+
+echo
+echo "=== Step 6: write the current (NTP-correct) system time to the RTC ==="
 hwclock -f /dev/rtc0 --systohc --utc
 echo "Read back:"
 hwclock -f /dev/rtc0 -r
 
 echo
-echo "=== Step 6: confirm the OS now sees a real hardware clock ==="
+echo "=== Step 7: clear the oscillator-stop / voltage-low flag ==="
+echo "(now that a known-good time has actually been written - not before)"
+hwclock -f /dev/rtc0 --vl-clear || true
+echo "Confirming it cleared:"
+hwclock -f /dev/rtc0 --vl-read || true
+
+echo
+echo "=== Step 8: confirm the OS now sees a real hardware clock ==="
 timedatectl status
 
 echo
-echo "=== Step 7: regression check - OLED bus neighbor unaffected ==="
+echo "=== Step 9: regression check - OLED bus neighbor unaffected ==="
 i2cdetect -y 1
 systemctl is-active piratebox-oled.service 2>&1 || true
 
 echo
-echo "Done. dtoverlay=i2c-rtc,ds3231 is persisted in $CONFIG and active now."
-echo "Reminder: no coin cell is installed yet. The RTC will keep correct"
-echo "time only while the Pi stays powered - it cannot be expected to"
-echo "survive a real power-off until a battery is fitted, and the same"
-echo "unset-clock-at-bind hazard this script just guarded against will"
-echo "recur at every future boot until then (see docs/RTC-TIME-"
-echo "READINESS-DESIGN.md for the accepted limitation and why)."
+echo "Done. dtoverlay=i2c-rtc,ds3231 is persisted in $CONFIG and active now,"
+echo "with a known-good time written to the battery-backed RTC. This is"
+echo "ready for the real validation: a genuine full power-off test to"
+echo "confirm the CR2032 actually holds time with no Pi power at all -"
+echo "see docs/RTC-TIME-READINESS-DESIGN.md §8 for that procedure. This"
+echo "script does not perform or request that test itself."

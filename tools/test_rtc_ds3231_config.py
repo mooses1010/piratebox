@@ -37,9 +37,6 @@ against a real Pi without any install-time error:
   - that one install must be gated behind an actual `command -v
     hwclock` check, never unconditional - a system that already has it
     must never re-trigger a network apt operation on every run;
-  - it must never claim or assume a battery is installed, and must not
-    instruct the operator to insert one - this board's coin cell is
-    deliberately not fitted yet (see the script's own header);
   - it must write time to the RTC in UTC explicitly (`--utc`), matching
     this Pi's existing `RTC in local TZ: no` convention rather than
     leaving hwclock to guess;
@@ -52,6 +49,32 @@ against a real Pi without any install-time error:
     (`systemctl restart systemd-timesyncd`) rather than trust a cached
     "already synchronized" flag, since that flag can't know the kernel
     stepped the clock afterward.
+
+Round 3 (2026-09-07): the module in production has since been modified
+(R4 removed to disable its charging path) and fitted with a real
+CR2032 - see docs/RTC-TIME-READINESS-DESIGN.md §8. Additional coverage:
+
+  - it must document the R4/CR2032 hardware modification, not just the
+    software side - a future reader of this script alone should learn
+    why a "no battery" era ever existed and that it's now over;
+  - it must never instruct inserting a battery (there is nothing left
+    to insert - one is already fitted; stale advice here would be
+    actively wrong, not just unhelpful);
+  - it must read the oscillator-stop/voltage-low flag (`hwclock
+    --vl-read`) both BEFORE and AFTER writing a real time, and clear it
+    (`--vl-clear`) only AFTER that write - `hwclock`'s own man page
+    documents `--vl-clear` as "necessary for some RTC devices after a
+    battery replacement", which this commissioning literally is (the
+    chip's first-ever battery); clearing it before a real time exists
+    would just be lying to the chip;
+  - none of the `--vl-*` calls may abort the script if unsupported -
+    hwclock's own man page notes "not all RTC devices have this
+    monitoring capability" - this is diagnostic, not load-bearing;
+  - it must never itself invoke `reboot`/`poweroff`/`shutdown` - the
+    genuine full-power-off validation this hardware now warrants is an
+    explicit, separate operator action (see docs/RTC-TIME-READINESS-
+    DESIGN.md §8), never something this commissioning script automates
+    or triggers on its own.
 """
 import re
 import stat
@@ -196,19 +219,74 @@ class TestScriptShapeAndSafety(unittest.TestCase):
                 "change must stay narrowly scoped to the RTC",
             )
 
-    def test_never_assumes_or_instructs_battery_installation(self):
+    def test_never_instructs_inserting_a_battery(self):
+        # A battery is already fitted in production hardware now -
+        # instructing insertion would be stale, actively wrong advice.
         lowered = self.text.lower()
         for forbidden in ("insert the battery", "insert a battery", "install the battery", "install the coin cell"):
+            self.assertNotIn(forbidden, lowered)
+
+    def test_documents_r4_hardware_modification(self):
+        # The script's header is the durable record a future reader
+        # sees first - must explain the actual production hardware
+        # (R4 removed, CR2032 fitted), not just software steps.
+        self.assertIn("R4", self.text)
+        self.assertIn("CR2032", self.text)
+        self.assertIn("0.22", self.text)  # measured post-mod voltage
+
+    def test_vl_read_before_and_after_write_vl_clear_only_after(self):
+        systohc_idx = self.code_only.find("--systohc")
+        vl_clear_idx = self.code_only.find("--vl-clear")
+        vl_read_indices = [
+            m.start() for m in re.finditer(r"--vl-read", self.code_only)
+        ]
+        self.assertNotEqual(systohc_idx, -1, "no --systohc write found")
+        self.assertNotEqual(vl_clear_idx, -1, "no --vl-clear found")
+        self.assertGreaterEqual(
+            len(vl_read_indices), 2,
+            "expected at least two --vl-read calls (before and after the write)",
+        )
+        self.assertLess(
+            min(vl_read_indices), systohc_idx,
+            "must read the voltage-low flag BEFORE writing a real time",
+        )
+        self.assertGreater(
+            vl_clear_idx, systohc_idx,
+            "--vl-clear must happen AFTER a known-good time is written, never before",
+        )
+        self.assertGreater(
+            max(vl_read_indices), vl_clear_idx,
+            "must re-read the flag after clearing it, to confirm the clear worked",
+        )
+
+    def test_vl_operations_are_non_fatal(self):
+        # hwclock's own man page: "not all RTC devices have this
+        # monitoring capability" - must never abort real commissioning.
+        for line in self.code_only.splitlines():
+            if "--vl-read" in line or "--vl-clear" in line:
+                self.assertIn(
+                    "|| true", line,
+                    f"vl-read/vl-clear call must be non-fatal: {line!r}",
+                )
+
+    def test_never_triggers_the_physical_power_off_itself(self):
+        # The genuine full-power-off validation is an explicit, separate
+        # operator action (docs/RTC-TIME-READINESS-DESIGN.md §8) - this
+        # script must never automate or trigger it. Only checks lines
+        # that actually run a command (not `echo`, which mentions
+        # "sudo reboot" purely as advisory text in one failure message).
+        command_lines = [
+            line for line in self.code_only.splitlines()
+            if not line.strip().startswith("echo")
+        ]
+        command_text = "\n".join(command_lines)
+        for forbidden in ("reboot", "poweroff", "shutdown "):
             self.assertNotIn(
                 forbidden,
-                lowered,
-                "script must not instruct inserting a battery - none is "
-                "fitted yet by design (non-rechargeable CR2032, "
-                "rechargeable-only charging circuit on this board)",
+                command_text,
+                f"script must not itself invoke {forbidden!r} - the power-off "
+                "test is a manual operator action, never automated here",
             )
-        # Must actually say something explicit about the missing battery
-        # rather than staying silent about the caveat.
-        self.assertIn("no coin cell is installed", lowered)
 
     def test_eeprom_left_unconfigured(self):
         # The AT24C32 at 0x57 needs no driver/config for RTC timekeeping

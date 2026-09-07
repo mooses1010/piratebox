@@ -71,7 +71,7 @@ it is.**
 | OLED (SSD1306 0.96" 128x64) | Operational | **INSTALLED, CURRENT SCOPE** (2026-09-03) | Integrated |
 | Undervoltage / power-quality monitoring (software, `vcgencmd`) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | UPS/battery hardware | Operational | CANDIDATE (requirements only) | Integrated (if adopted) |
-| RTC (DS3231) | Operational | **WIRED, CONFIGURED (2026-09-06)** - `dtoverlay=i2c-rtc,ds3231` prepared/verified; awaits one operator `sudo` run to apply on this specific Pi; no coin cell installed yet | Integrated |
+| RTC (DS3231) | Operational | **BATTERY-BACKED (2026-09-07)** - production module has R4 removed + CR2032 fitted; `dtoverlay=i2c-rtc,ds3231` persisted; awaits one operator `sudo` run to write a verified time; physical power-loss validation still pending | Integrated |
 | Self-awareness / capability-state model (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | About This PirateBox page (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | Reference Pack model (software) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
@@ -519,16 +519,21 @@ it is.**
   gets there first: NTP, unavailable by design here; `fake-hwclock`,
   not installed; or an uncontrolled kernel/filesystem default).
 - **Layer:** Operational.
-- **State:** **WIRED AND CONFIGURED, 2026-09-06** (see
-  `docs/RTC-TIME-READINESS-DESIGN.md` §6 for the full record). The
-  DS3231 breakout (plus its onboard AT24C32 EEPROM) is physically on
-  the I2C1 bus and confirmed live via `i2cdetect` at 0x68/0x57
-  alongside the existing OLED at 0x3c. `tools/configure_rtc_ds3231.sh`
-  is prepared and tested, and is the one remaining operator `sudo` gate
-  to actually load the kernel driver and start using it as the system
-  hardware clock - see that section for exactly what it does. **No coin
-  cell is installed yet** (charging-circuit board, non-rechargeable
-  CR2032 supplied) - see §6 for what that does and doesn't block.
+- **State:** **WIRED, CONFIGURED, BATTERY-BACKED, 2026-09-07** (see
+  `docs/RTC-TIME-READINESS-DESIGN.md` §§6-8 for the full record). The
+  production module (R4 removed to disable its charging path, real
+  CR2032 installed - measured ~3.14-3.18V→~0.22V across the battery
+  holder confirming the charging path is broken) is physically on the
+  I2C1 bus and confirmed live via `i2cdetect` at 0x68/0x57 alongside
+  the existing OLED at 0x3c. `tools/configure_rtc_ds3231.sh` is
+  prepared and tested (including oscillator-stop/voltage-low flag
+  handling, appropriate for this chip's first-ever battery) and is the
+  one remaining operator `sudo` gate to load the kernel driver and
+  write a real time into the chip. **Physical power-loss validation
+  (proving the CR2032 actually holds time with the Pi fully
+  unpowered) is a separate, not-yet-performed operator test** - exact
+  procedure in §8, deliberately not automated or triggered by this
+  project's tooling.
 - **Interface:** I2C1, same bus as the OLED (multi-drop, no pin
   conflict; confirmed live, OLED unaffected by the RTC's presence on
   the bus).

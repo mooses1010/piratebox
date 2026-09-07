@@ -431,3 +431,133 @@ ordering, the post-install verification, and that
 around the live-apply, with its own failure path refusing to proceed
 rather than trusting an unverified clock. Full existing test suite
 re-run and confirmed unaffected.
+
+## 8. Battery-backed production module: R4 modification, OSF handling, and the power-loss validation test (2026-09-07)
+
+**Hardware change:** the original (unmodified) DS3231/AT24C32 module
+used for §§6-7 has been replaced with a second, identical module that
+was modified specifically for safe non-rechargeable battery use, and a
+real CR2032 is now installed:
+
+- **R4** (marked "201" = 200 ohm), which feeds the module's onboard
+  VCC-to-battery charging path, was **removed**. Most cheap DS3231
+  breakout boards include this resistor to trickle-charge a
+  rechargeable cell (LIR2032) from VCC - continuously trying to charge
+  a normal, non-rechargeable CR2032 is a real hazard (overheating,
+  venting, leakage), not a formality to skip.
+- **Measured before/after, not assumed:** with the module powered from
+  the Pi's 3.3V rail and the battery holder empty, it read a stable
+  **~3.14-3.18V** with R4 in place (the charging path actively driving
+  the holder) and only **~0.22V** after R4's removal - direct
+  confirmation the charging path is genuinely broken, not just
+  "probably fine."
+- A standard **CR2032 is now installed** in the modified holder. The
+  module is still powered from Pi 3.3V and wired identically (SCL/SDA/
+  VCC/GND, same shared I2C1 bus as the OLED) - only the RTC board
+  itself changed, nothing on the Pi side.
+
+**Live re-verification after the swap (this round), before touching
+anything:** `i2cdetect -y 1` confirmed all three expected addresses
+again - `0x3c` (OLED), `0x57` (EEPROM), `0x68` **shown as `UU`**
+(already kernel-driver-bound, not just acknowledging a raw probe - a
+stronger confirmation than §6's original scan, which happened before
+any driver existed yet). `dmesg -T` showed the boot-time bind for the
+*new* chip: `rtc-ds1307 1-0068: SET TIME!` /
+`registered as rtc0` / `setting system clock to 2000-01-01T00:00:26 UTC`
+- exactly the §7 hazard, reproduced live and unprompted: a fresh
+module, even a battery-backed one that has simply never been *set*
+yet, still reports an invalid/default time on its first-ever read, and
+`CONFIG_RTC_HCTOSYS` still clobbers the system clock with it at boot.
+`uptime -s` confirmed this was a real, recent reboot (consistent with
+needing the Pi powered off to safely handle the module swap on a
+breadboard), and `systemd-timesyncd` had already corrected the
+*system* clock in the ~12 minutes since. **Deliberately not trusted as
+proof the chip itself held correct time:** `timedatectl status`'s "RTC
+time" field is not a reliable live read for this purpose (it can
+reflect a cached offset rather than a fresh hardware query) - the only
+trustworthy read is `hwclock -r` on `/dev/rtc0` directly, which needs
+root and is exactly what `tools/configure_rtc_ds3231.sh` performs
+early (Step 4) before writing anything.
+
+**Oscillator-stop / voltage-low (OSF) handling - new this round:**
+`hwclock` (util-linux 2.41.5, already installed per §7) exposes
+`--vl-read`/`--vl-clear`. Its own man page: *"Some RTC devices are able
+to monitor the voltage of the backup battery... The `--vl-clear`
+function resets the Voltage Low information, which is necessary for
+some RTC devices after a battery replacement."* This commissioning
+**is** exactly that case - the chip's first-ever battery. The DS3231's
+OSF bit (surfaced generically by `hwclock` as "voltage low") latches
+whenever the chip can't vouch for its own stored time, which is
+unconditionally true before any real time has ever been written to it.
+`tools/configure_rtc_ds3231.sh` now: reads the flag before writing
+anything (diagnostic baseline, expected to show a stop/low condition),
+writes the NTP-verified time (unchanged Step 5/6 mechanics from §6/§7),
+then clears the flag and re-reads it to confirm - never clearing before
+a real time exists, since the flag being set is exactly correct until
+that point. All three `--vl-*` calls are non-fatal (`|| true`) per
+hwclock's own caveat that "not all RTC devices have this monitoring
+capability" - this is diagnostic value-add, never a load-bearing
+requirement for real commissioning to succeed.
+
+**The one remaining software step - same command as §6/§7, now
+carrying this round's fixes too:**
+
+```
+sudo tools/configure_rtc_ds3231.sh
+```
+
+### The power-loss validation test (operator action - not performed or requested by this round's automation)
+
+Everything above proves the chip communicates correctly and can be
+written/read while the Pi stays powered - it does **not** yet prove
+the CR2032 actually holds time through a real, total loss of Pi power.
+That is a genuine physical test, deliberately left for the operator to
+choose when to run:
+
+1. **Before powering off:** run `date -u` and write down the exact UTC
+   time. This is your ground truth to compare against after the test.
+2. **Disconnect the network path first:** unplug the `eth0` cable (this
+   Pi's only confirmed real NTP uplink - see §0). This is what makes
+   the test meaningful - if NTP can reach this Pi at boot, it will
+   silently paper over an RTC failure by re-correcting the system clock
+   within moments, and you'd never know the RTC alone had failed.
+   PirateBox's own visitor AP (`pb-ap`) does not provide this Pi with
+   any time source either way, so only `eth0` needs to be pulled.
+3. **Perform a genuine full power-off** - not just `sudo reboot`. Two
+   safe options, either is fine:
+   - `sudo poweroff` (or the existing physical hold-to-shutdown button
+     - GPIO25, `docs/HARDWARE-INTEGRATION-DESIGN.md` §2) and wait for
+     it to fully halt, **then physically disconnect the power supply**
+     (unplug at the wall or the Pi's power input) - this is the step
+     that actually removes power from the 3.3V rail the RTC module
+     shares; a halted-but-still-plugged-in Pi may not be a clean test.
+4. **Leave it fully unpowered for a meaningful duration** - at least
+   10-15 minutes, longer (an hour+) is a stronger proof. A few seconds
+   only shows "didn't instantly reset," not genuine timekeeping.
+5. **Reconnect power, but leave `eth0` unplugged**, and let the Pi boot
+   normally.
+6. **Immediately after boot - before plugging `eth0` back in - check,
+   in this order** (so NTP cannot hide an RTC failure by correcting
+   things before you look):
+   - `dmesg -T | grep -iE 'rtc|ds3231|ds1307'` - look for the bind
+     line's reported time. **Success looks like a plausible time close
+     to what you'd expect given how long the Pi was off** (your Step 1
+     timestamp plus the elapsed off-time). **Failure looks like
+     `SET TIME!` and a ~2000-01-01 reported time again** - the exact
+     signature from §7/this section's own live re-verification, this
+     time with no NTP available to quietly fix it.
+   - `timedatectl status` - with `eth0` still unplugged, expect
+     `System clock synchronized: no` (confirms NTP genuinely had no
+     path, so whatever time is showing came from the RTC, not the
+     network) and a `Universal time` consistent with the RTC having
+     kept ticking through the outage.
+   - `sudo hwclock -f /dev/rtc0 -r` - the direct, ground-truth read of
+     the chip itself, same command the commissioning script itself
+     trusts as ground truth.
+7. **Only after recording all three of the above**, reconnect `eth0`
+   and let NTP resync normally (harmless at this point - the evidence
+   is already captured).
+
+**This section documents the procedure only.** No power-off was
+performed or requested as part of this round's work - per instruction,
+that stays a genuine, separate operator action.

@@ -6,6 +6,40 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## DS3231 RTC: battery-backed production module (R4 removed, CR2032) + OSF handling (2026-09-07)
+
+**Decision date:** 2026-09-07. The original DS3231/AT24C32 module used
+for the two entries directly below has been replaced with a second,
+identical module modified for safe use with a normal non-rechargeable
+CR2032: **R4** (200 ohm), which fed the board's VCC-to-battery charging
+path, was removed, since continuously trickle-charging a
+non-rechargeable cell is a real hazard, not a formality. Measured, not
+assumed: the empty battery holder read ~3.14-3.18V with R4 in place
+and only ~0.22V after its removal, confirming the charging path is
+genuinely broken. A CR2032 is now installed; wiring is otherwise
+unchanged (same I2C1 bus/pins as the OLED).
+
+`tools/configure_rtc_ds3231.sh` gained oscillator-stop/voltage-low (OSF)
+handling: `hwclock --vl-read`/`--vl-clear` (util-linux 2.41.5, already
+installed) - read before writing a real time (diagnostic baseline),
+write the NTP-verified time (unchanged mechanics), then clear the flag
+and re-read to confirm. hwclock's own man page documents `--vl-clear`
+as "necessary for some RTC devices after a battery replacement" - this
+commissioning is exactly that case (the chip's first-ever battery).
+Non-fatal (`|| true`) throughout, per the same man page's note that not
+all RTC/driver combinations expose this.
+
+Live-reverified before any change: `i2cdetect -y 1` showed all three
+expected devices, with `0x68` now `UU` (kernel-driver-bound). `dmesg`
+confirmed the same clobber hazard the entry below's hardening exists
+for still reproduces on this fresh module (`SET TIME!`, system clock
+stepped to ~2000-01-01 at boot) - already handled by the existing
+`resync_and_verify_ntp_time()` guard, unchanged this round.
+
+**Full record, including the exact power-loss validation test
+procedure (a genuine physical operator action, not performed or
+requested by this round):** `docs/RTC-TIME-READINESS-DESIGN.md` §8.
+
 ## DS3231 RTC follow-up: missing `hwclock` dependency + NTP-clobber hardening (2026-09-06, same day)
 
 **Decision date:** 2026-09-06. Follow-up to the entry directly below.
