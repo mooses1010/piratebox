@@ -92,7 +92,7 @@ it is.**
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
 | SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` confirmed live; stock `<`/`>` fine-tune buttons' `tuning_step=5000` fix confirmed live; PirateBox-side Previous/Next Spectrum + click-to-tune range bar confirmed live for hardware-window navigation, distinct from OpenWebRX+'s own tuning; native OpenWebRX+ bandplan ribbon confirmed live and correct at four representative frequencies after a same-day deploy outage was fixed (see doc §16); Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
-| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | **ESP32-S3-N16R8: hardware commissioning COMPLETE (2026-09-07).** Stable connection via an externally-powered USB hub + the board's "COM" port (WCH `1a86:55d3` UART bridge, `/dev/ttyACM0`). Read-only `esptool` identification confirmed: genuine ESP32-S3 (QFN56) silicon rev v0.2, 40MHz crystal, MAC `7c:4f:ad:b6:2f:94`, **16MB GigaDevice quad-SPI flash (N16 confirmed)**, **8MB embedded PSRAM per efuse config (R8 confirmed)**, Secure Boot and Flash Encryption both disabled (factory-default, unlocked for dev). Board released back to factory firmware via a normal hard reset; PirateBox/ALFA/core services verified healthy afterward. Ready for supervisor firmware development next. | Network Companion (pending re-evaluation - board connects via USB, not LAN) |
+| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | **ESP32-S3-N16R8: hardware/sensor supervisor BUILT AND WORKING (2026-09-07).** Hardware commissioning complete (genuine ESP32-S3 QFN56 rev v0.2, 16MB flash/8MB PSRAM confirmed, MAC `7c:4f:ad:b6:2f:94`), then a full supervisor stack built the same day: PlatformIO/Arduino firmware (NDJSON protocol, task-watchdog-protected main loop, on-die temp sensor as the first capability), a Pi-side daemon (`piratebox_esp32_supervisor.py`, stable `/dev/serial/by-id/` discovery, reconnect/staleness handling, its own cached export), a `HARDWARE_SIGNALS` registration (`esp32_temp_internal`), and an Environment web UI section - see `docs/ESP32-SUPERVISOR-DESIGN.md` for the full architecture and `docs/OPERATIONAL-DECISIONS.md` for the build/validation record. Requires the externally-powered USB hub in the current prototype topology (§13 of that design doc). | Attachable (corrected 2026-09-07 - USB/serial equipment per `docs/ARCHITECTURE.md` §3's own taxonomy, not Network Companion, which means independently-powered/LAN-connected) |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
 
 ---
@@ -1294,6 +1294,32 @@ it is.**
   the hardware-identification/commissioning gate** - the board is
   ready for supervisor firmware development. Full detail:
   `docs/OPERATIONAL-DECISIONS.md`.
+- **Full supervisor stack built and validated on real hardware
+  (2026-09-07, same day, final round):** given broad engineering
+  ownership of the ESP32 side of the project, built and validated
+  end-to-end: PlatformIO/Arduino firmware (NDJSON protocol over the
+  COM port, task-watchdog-protected loop, the on-die temperature
+  sensor as the first real capability), a Pi-side daemon
+  (`piratebox_esp32_supervisor.py`) with stable `/dev/serial/by-id/`
+  discovery (no hardcoded `/dev/ttyACM0`), reconnect/staleness
+  handling, and its own cached export; a thin reader module
+  (`piratebox_esp32_client.py`) registered into `HARDWARE_SIGNALS` as
+  `esp32_temp_internal`; an Environment web UI "Hardware Supervisor"
+  section (`includes/esp32_supervisor.php`). 29 Python + 28 PHP unit
+  tests, all passing. A factory-firmware backup was taken, independently
+  verified (exact size, SHA-256, live read-back cross-check), and
+  preserved before the first custom flash - then the custom supervisor
+  firmware was flashed (every chunk hash-verified) and confirmed
+  actually running live: real `hello`/heartbeat/sensor traffic received
+  by the Pi daemon, correct MAC/board identity, a live `temp_internal`
+  reading. Full architecture: `docs/ESP32-SUPERVISOR-
+  DESIGN.md`. Build/flash/validation record and exact readings:
+  `docs/OPERATIONAL-DECISIONS.md`. **Classification corrected** from
+  "Network Companion (pending re-evaluation)" to **Attachable** - see
+  the design doc §1 for why (this board is USB/serial-connected, not
+  independently-powered/LAN-connected, per `docs/ARCHITECTURE.md` §3's
+  own taxonomy). BH1750 remains Pi-owned - not migrated this round; the
+  design doc recommends that migration as the next physical step.
 - **Layer:** Optional/Field. Classification: Network Companion (pending
   re-evaluation - see above). Core dependency: No - **must be able to
   disappear without breaking Core** (`docs/ARCHITECTURE.md` §3) -

@@ -783,3 +783,23 @@ transition, and `personality_allowed()` against this Pi's actual live
 `status.json`. Not yet installed on the running Pi - requires the
 operator's usual `sudo install` + `systemctl restart` step, same as
 every prior OLED daemon update.
+
+## 15. ESP32-S3 hardware/sensor supervisor (2026-09-07)
+
+A second computer, deliberately scoped as a low-level supervisor, not
+a second general-purpose machine - see **`docs/ESP32-SUPERVISOR-
+DESIGN.md`** for the full architecture, protocol, device-discovery,
+failure-handling, and deployment design; this section is a pointer,
+not a duplicate. Summary: commissioned via USB/serial (identity fully
+proven read-only via `esptool` - see `docs/OPERATIONAL-DECISIONS.md`),
+then a full firmware + Pi-daemon stack built the same day, connected
+over its "COM" port (a WCH CH9102 UART bridge) through an externally
+powered USB hub (required for a stable connection in the current
+prototype topology - direct Pi USB power alone was unreliable; see
+`docs/POWER-INTEGRITY-DIAGNOSIS.md` for the Pi's separately-tracked,
+still-unresolved undervoltage condition this is correlated with, not
+proven caused by). No GPIO pins in the table above are affected by this
+subsystem - the ESP32-S3's own GPIO/pin usage is tracked separately in
+`docs/ESP32-SUPERVISOR-DESIGN.md` §7 as sensors are actually wired to
+it, starting from zero today (only its own on-die temperature sensor is
+used so far, which needs no external pins at all).

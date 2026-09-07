@@ -2,6 +2,7 @@
 declare(strict_types=1);
 session_start();
 require_once __DIR__ . '/../../../includes/sensors.php';
+require_once __DIR__ . '/../../../includes/esp32_supervisor.php';
 
 // Environment - live readings from PirateBox's onboard sensors
 // (2026-09-07). First real sensor: BH1750 ambient light. Designed to
@@ -31,6 +32,7 @@ require_once __DIR__ . '/../../../includes/sensors.php';
 // ~20s publish interval regardless of visitor count.
 
 $ambientLight = piratebox_get_ambient_light_reading();
+$esp32 = piratebox_get_esp32_supervisor_status();
 
 if (($_GET['fetch'] ?? '') === '1') {
     header('Content-Type: application/json');
@@ -60,6 +62,20 @@ function piratebox_env_ago_text(?float $seconds): string
     }
     return round($seconds / 3600, 1) . ' hours ago';
 }
+
+function piratebox_env_duration_text(?float $seconds): string
+{
+    if ($seconds === null) {
+        return 'unknown';
+    }
+    if ($seconds < 90) {
+        return round($seconds) . ' seconds';
+    }
+    if ($seconds < 3600) {
+        return round($seconds / 60) . ' minutes';
+    }
+    return round($seconds / 3600, 1) . ' hours';
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -81,11 +97,12 @@ function piratebox_env_ago_text(?float $seconds): string
 
         <p>Live readings from this PirateBox's own onboard environmental sensors - not from the Internet, and not stored anywhere: each reading shown here reflects the sensor right now, not a history.</p>
 
-        <?php if (!$ambientLight['installed']): ?>
+        <?php if (!$ambientLight['installed'] && !$esp32['installed']): ?>
             <div class="help-note">
                 <p><strong>No environmental sensors are currently installed on this PirateBox.</strong> This page will show real readings automatically once one is wired and commissioned - nothing is fabricated in the meantime.</p>
             </div>
         <?php else: ?>
+            <?php if ($ambientLight['installed']): ?>
 
             <h2>Ambient Light</h2>
             <?php if (!$ambientLight['available']): ?>
@@ -129,6 +146,47 @@ function piratebox_env_ago_text(?float $seconds): string
             <p class="muted">Sensor: BH1750 ambient light sensor, wired directly to this PirateBox's own I2C bus. "Lux" is a standard unit of how much visible light is actually falling on a surface - roughly 0.1-1 lux under full moonlight, 50-150 lux in a typically-lit room, and well over 10,000 lux in direct sunlight. It measures light level only, not color, heat, or UV.</p>
 
             <p class="muted">This reading updates automatically about every 30 seconds while this page is open (no action needed) - it never queries the sensor directly; it only reflects PirateBox's own periodically-refreshed snapshot, so having this page open in several browser tabs or devices at once never polls the hardware any more often.</p>
+
+            <?php endif; // $ambientLight['installed'] ?>
+
+            <?php if ($esp32['installed']): ?>
+
+            <h2>Hardware Supervisor</h2>
+            <?php if (!$esp32['available']): ?>
+                <div class="help-note" id="env-esp32-unavailable">
+                    <?php if (!$esp32['connected']): ?>
+                        <p><strong>Status: <span class="status-bad">not connected</span>.</strong> The onboard ESP32-S3 hardware/sensor supervisor is not currently reachable over its serial link.</p>
+                    <?php else: ?>
+                        <p><strong>Status: <span class="status-bad">stale</span>.</strong> The supervisor connected recently but hasn't reported in - its data is too old to show as current.</p>
+                    <?php endif; ?>
+                </div>
+            <?php else: ?>
+                <div class="stat-grid" id="env-esp32-grid">
+                    <div class="stat-card">
+                        <span class="stat-label">Status</span>
+                        <span class="stat-value status-ok" id="env-esp32-status">Connected</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Firmware</span>
+                        <span class="stat-value" id="env-esp32-fw"><?= htmlspecialchars($esp32['fw_version'] ?? 'unknown') ?></span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Uptime</span>
+                        <span class="stat-value" id="env-esp32-uptime"><?= htmlspecialchars(piratebox_env_duration_text($esp32['uptime_seconds'])) ?></span>
+                    </div>
+                    <?php if ($esp32['temp_internal_c'] !== null): ?>
+                    <div class="stat-card">
+                        <span class="stat-label">Chip temperature</span>
+                        <span class="stat-value" id="env-esp32-temp"><?= htmlspecialchars(number_format($esp32['temp_internal_c'], 1)) ?> &deg;C</span>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <p class="muted">"Chip temperature" is the ESP32-S3's own on-die sensor - a rough indicator of the board itself, not a calibrated room/ambient reading (that's what Ambient Light, above, is for).</p>
+            <?php endif; ?>
+
+            <p class="muted">Hardware Supervisor: an ESP32-S3 microcontroller, connected to this PirateBox over a local serial link, dedicated to real-time sensor/hardware duties. It has no network or cloud access of any kind.</p>
+
+            <?php endif; // $esp32['installed'] ?>
 
         <?php endif; ?>
 

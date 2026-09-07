@@ -1809,6 +1809,23 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001 - optional hardware, never fatal
             log.warning("BH1750 module unavailable (%s) - ambient_lux signal stays unregistered.", exc)
 
+        # ESP32-S3 hardware/sensor supervisor (commissioned 2026-09-07,
+        # firmware+daemon built the same day - see docs/ESP32-SUPERVISOR-
+        # DESIGN.md). piratebox_esp32_client.py ONLY reads the separate
+        # piratebox_esp32_supervisor.py daemon's own cached export - it
+        # never opens the serial port itself, so importing it into THIS
+        # process is safe (no port contention with that daemon, which
+        # remains the sole owner of the actual hardware link - see its
+        # own header for why). A missing/failed import must never affect
+        # Progression, BH1750, or the OLED display - its own separate
+        # try/except, same pattern as the BH1750 block just above.
+        try:
+            import piratebox_esp32_client
+            progression.register_hardware_signal("esp32_temp_internal", piratebox_esp32_client.read_temp_internal)
+            log.info("ESP32 supervisor temp_internal signal registered.")
+        except Exception as exc:  # noqa: BLE001 - optional hardware, never fatal
+            log.warning("ESP32 client module unavailable (%s) - esp32_temp_internal signal stays unregistered.", exc)
+
     sensors_last_publish = 0.0
 
     while not stop:

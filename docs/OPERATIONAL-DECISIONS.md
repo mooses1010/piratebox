@@ -6,6 +6,123 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## ESP32-S3 hardware/sensor supervisor: full stack built, flashed, and validated on real hardware (2026-09-07, final round)
+
+**Decision date:** 2026-09-07. Given broad engineering ownership of the
+ESP32 side of the project (commissioning complete - see the two entries
+below), designed and implemented the full supervisor stack end to end:
+firmware, Pi-side daemon, protocol, tests, deployment tooling, and
+documentation. Full architecture: **`docs/ESP32-SUPERVISOR-DESIGN.md`**
+(new). This entry is the evidence/build record; that doc is the stable
+reference.
+
+**What was built:**
+- `esp32-firmware/` — a PlatformIO/Arduino-framework project (pinned
+  `espressif32 @ 6.9.0`, `ArduinoJson @ 7.2.0`) implementing a
+  newline-delimited-JSON protocol over the board's "COM" port, a
+  task-watchdog-protected main loop (`esp_task_wdt`, 8s timeout,
+  panic-on-trip), boot/reset-reason reporting (`esp_reset_reason()`),
+  efuse-read MAC (no WiFi/BT radio ever started), and one real
+  capability (`temp_internal`, the chip's own on-die temperature
+  sensor - no wiring required).
+- `piratebox_esp32_supervisor.py` — the Pi-side daemon, sole owner of
+  the serial link. Discovers the board via the already-existing stable
+  `/dev/serial/by-id/usb-1a86_USB_Single_Serial_5CBB028993-if00` symlink
+  (no custom udev rule needed - confirmed already present, standard
+  udev behavior for a USB-CDC device with a real serial number) with a
+  documented, tested fallback/ambiguity-refusal path. Handles
+  reconnect (device disappearing/reappearing), staleness (heartbeat
+  timeout), and reboot detection (uptime rollback) - all covered by
+  unit tests. Publishes its own cached export
+  (`/run/piratebox-esp32/esp32-public.json`), mirroring the
+  `sensors-public.json` precedent exactly and for the same reason.
+- `piratebox_esp32_client.py` — a thin, serial-free reader of that
+  export, registered into `piratebox_progression.py`'s
+  `HARDWARE_SIGNALS` as `esp32_temp_internal` from
+  `piratebox_oled_daemon.py`'s startup section (same try/except-
+  isolated pattern as the existing BH1750 registration).
+- `includes/esp32_supervisor.php` + a new "Hardware Supervisor" section
+  in `/utility/environment/` - same fetch/interpret split and
+  degrade-to-unavailable discipline as `includes/sensors.php`.
+- `tools/test_esp32_supervisor_protocol.py` (29 tests) and
+  `tools/test_esp32_supervisor_web.php` (28 tests) - all passing, no
+  regressions in the existing `test_sensors_export.py` (7) or
+  `test_sensors_web.php` (45).
+- `tools/backup_esp32_factory_firmware.sh`, `tools/flash_esp32_
+  supervisor.sh`, `tools/diagnose_esp32_supervisor.py`,
+  `setup_piratebox_esp32_supervisor.sh` (mirrors `setup_piratebox_
+  button.sh`'s exact install pattern - reuses the existing
+  `piratebox-gpio` account, `SupplementaryGroups=dialout` granted only
+  to this one new unit, no new sudoers grant of any kind).
+
+**Toolchain, installed without a separate ask**: no ESP32 build
+toolchain existed on this Pi. Installed PlatformIO into an isolated
+venv (`~/.venvs/esp32-toolchain`, via already-installed `python3-venv` -
+no system `pip`/`apt` package touched) - judged to fall within the
+operator's own explicit "build firmware" authorization for this round
+specifically, since building firmware is impossible without a
+toolchain. Fully reversible (delete the one directory). See design doc
+§2 for the full toolchain-choice rationale.
+
+**Factory firmware backup - taken, and a real self-caught mistake
+along the way:** before ever overwriting the factory image, a full
+16MB backup was taken via PlatformIO's bundled `esptool` (its
+stub-flasher files are complete; the Debian-packaged `esptool` used
+throughout commissioning is missing them for S3 - already known, see
+the identification round below). **First attempt was misdiagnosed as
+hung** at ~19 minutes (no output file yet on disk) and killed - re-
+reading its actual captured console output afterward showed it had
+reached 72% with continuous real progress the whole time; this
+particular esptool build only writes the destination file in one shot
+at 100% in stub mode, so "no file yet" was never a valid hang signal.
+Disclosed to the operator immediately, who approved a retry. **Retry
+(460800 baud, monitored via actual console output this time) completed
+cleanly**: `Read 16777216 bytes ... in 542.6 seconds`. Validated
+independently, not just trusted: exact expected size, SHA-256
+recorded, first bytes confirmed as a genuine ESP image header (`e9 03
+02 40...`), and a fresh independent live re-read of both the first and
+last 64KB matched the saved file byte-for-byte. Stored outside git at
+`~/piratebox-esp32-firmware-backups/esp32s3-n16r8-factory-
+20260907T200420Z.bin` (+ `.sha256`). **Restore procedure**: `~/.venvs/
+esp32-toolchain/bin/python3 ~/.platformio/packages/tool-esptoolpy/
+esptool.py -p /dev/serial/by-id/usb-1a86_USB_Single_Serial_
+5CBB028993-if00 write_flash 0 <that file>`.
+
+**Firmware flashed and validated live**: `tools/flash_esp32_
+supervisor.sh` (device-identity-checked, wraps `pio run -t upload`) -
+every write chunk hash-verified by esptool, device re-enumerated within
+1 second. Running the Pi daemon manually against the new firmware
+(export redirected to a writable path for this pre-systemd-install
+check) produced a real `hello` (`fw_version: "0.1.0"`, `board:
+"esp32s3-n16r8"`, `mac: 7c:4f:ad:b6:2f:94` - exactly matching the MAC
+independently read during commissioning below, `reset_reason:
+"poweron"`, `capabilities: ["temp_internal"]`) and a live sensor
+reading (`temp_internal` = 41.5°C, `ok: true`), with zero malformed
+lines.
+
+**Verified unaffected throughout, both after the backup and after the
+flash**: zero failed systemd units, `hostapd`/`dnsmasq`/`nginx`/
+`php8.4-fpm`/`piratebox-oled` all active, `pb-ap` broadcasting SSID
+PirateBox on channel 6, Ethernet up with its existing lease, I2C bus
+intact (BH1750 `0x23`, OLED `0x3c`, EEPROM `0x57`, RTC `0x68`),
+`vcgencmd get_throttled` unchanged at `0x50005` throughout (this
+subsystem does not touch, and did not affect, the Pi's own separately-
+tracked power condition). No flash erase/write beyond this firmware's
+own intended image, no partition/bootloader change, no efuse burn,
+Secure Boot and Flash Encryption both still disabled.
+
+**Not done this round, by design**: the systemd service was NOT
+installed as a live, boot-persistent unit - that requires `sudo` (no
+existing NOPASSWD grant covers installing a new service), so it's
+consolidated into one operator command rather than performed
+autonomously. BH1750 was NOT migrated from the Pi to the ESP32 - it
+remains fully Pi-owned and untouched; migrating it is the recommended
+next physical step (design doc §16), and doing so requires operator
+rewiring - a genuine physical gate, not something to perform or request
+mid-round. No DS18B20/BME280/INA226 work, no power-supervision
+implementation (architecture-only, design doc §9), no PSRAM enablement
+(deliberately deferred, design doc §15).
+
 ## ESP32-S3 USB commissioning COMPLETE: full read-only identification via the "COM" port (2026-09-07, later still)
 
 **Decision date:** 2026-09-07. Final gate of the ESP32-S3 hardware

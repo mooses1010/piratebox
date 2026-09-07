@@ -135,6 +135,7 @@ error by itself, just a prompt to do the same file-level check.
 | Unattended-operation memory/history model (retention classes, "since last review," Field Sessions) | `docs/DEVICE-MEMORY-DESIGN.md` |
 | Reference content organization (Universal/National/Regional/Local/Live), Reference Packs | `docs/REFERENCE-CONTENT-DESIGN.md` |
 | GPIO/hardware wiring, current pin status | `docs/HARDWARE-INTEGRATION-DESIGN.md` §2 (the one live wiring map) |
+| ESP32-S3 hardware/sensor supervisor (firmware, Pi<->ESP32 protocol, device discovery, failure behavior, deployment) | **`docs/ESP32-SUPERVISOR-DESIGN.md`** - start here before touching `esp32-firmware/`, `piratebox_esp32_supervisor.py`, or `piratebox_esp32_client.py`. Commissioning history/evidence: `docs/OPERATIONAL-DECISIONS.md`. |
 | Physical buttons / toggle / OLED UX design | `docs/PHYSICAL-CONTROL-UX-DESIGN.md` |
 | Power / UPS / undervoltage design | **`docs/POWER-INTEGRITY-DIAGNOSIS.md`** - root-cause diagnosis of the current chronic `0x50005` condition (start here for "why is it undervolting"). `docs/POWER-UPS-DESIGN.md` - future UPS/battery requirements only, not diagnosis. Live reading: `/run/piratebox/status.json`, `vcgencmd get_throttled`. |
 | RTC / time readiness | `docs/RTC-TIME-READINESS-DESIGN.md` |
