@@ -1,6 +1,27 @@
 <?php
 declare(strict_types=1);
 session_start();
+// i18n.php is normally pulled in by includes/navbar.php further down -
+// required explicitly here too (require_once, so no double-load) since
+// piratebox_t() is now needed for the environment card BEFORE navbar
+// renders, not just after it like every other card on this page.
+require_once __DIR__ . '/../../includes/i18n.php';
+require_once __DIR__ . '/../../includes/sensors.php';
+
+// Environment card (2026-09-07): a live one-line snippet when a
+// current reading is actually available, falling back to the same
+// plain static description every other card uses otherwise - the
+// landing page must stay lightweight and never show a stale/bogus
+// number (see includes/sensors.php's own honest-degrade discipline).
+$ambientLight = piratebox_get_ambient_light_reading();
+$environmentCardDesc = piratebox_t('utility.card.environment.desc');
+if ($ambientLight['available'] && $ambientLight['classification'] !== null) {
+    $environmentCardDesc = sprintf(
+        'Ambient light: %.1f lux (%s)',
+        $ambientLight['lux'],
+        $ambientLight['classification']['label']
+    );
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -88,6 +109,11 @@ session_start();
             <span class="utility-card-icon" aria-hidden="true">📜</span>
             <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.captainslog.title')) ?></span>
             <span class="utility-card-desc"><?= htmlspecialchars(piratebox_t('utility.card.captainslog.desc')) ?></span>
+        </a>
+        <a class="utility-card" href="/utility/environment/">
+            <span class="utility-card-icon" aria-hidden="true">🌤️</span>
+            <span class="utility-card-title"><?= htmlspecialchars(piratebox_t('utility.card.environment.title')) ?></span>
+            <span class="utility-card-desc"><?= htmlspecialchars($environmentCardDesc) ?></span>
         </a>
         <a class="utility-card" href="/utility/about/">
             <span class="utility-card-icon" aria-hidden="true">ℹ️</span>

@@ -103,5 +103,7 @@
   "search.utility_library_link": "Utility Library",
   "search.take_with_you_link": "Take This With You",
   "utility.card.captainslog.title": "Captain's Log",
-  "utility.card.captainslog.desc": "This PirateBox's own identity, level, and history"
+  "utility.card.captainslog.desc": "This PirateBox's own identity, level, and history",
+  "utility.card.environment.title": "Environment",
+  "utility.card.environment.desc": "Live readings from onboard environmental sensors"
 }
