@@ -45,8 +45,34 @@ class TestDeployScript(unittest.TestCase):
     def test_open_basedir_patch_is_idempotent(self):
         # Must check for the exact addition before making it - a
         # naive unconditional sed would append it again on every run.
-        self.assertIn("grep -q '/run/piratebox-sensors/sensors-public.json'", self.code_only)
+        # As of the 2026-09-07 ESP32 round this is a loop over multiple
+        # named exports, not one hardcoded grep - assert the loop's own
+        # idempotency check, not one specific literal string.
+        self.assertIn('grep -q "$EXPORT_PATH"', self.code_only)
         self.assertIn("sed -i", self.code_only)
+
+    def test_open_basedir_patch_covers_every_export_this_script_knows_about(self):
+        # A real bug this exact test would have caught (2026-09-07,
+        # ESP32 BH1750 migration round): includes/esp32_supervisor.php
+        # was wired into /utility/environment/ without ever adding its
+        # export file to open_basedir - see this script's own header
+        # for the full incident. Every export path named in the
+        # verification step (Step 4) must also appear in the
+        # open_basedir loop (Step 2), so a future new export can't
+        # repeat this exact gap silently.
+        exports_verified = set(re.findall(r"/run/piratebox[\w./-]+\.json", self.code_only))
+        self.assertIn("/run/piratebox-sensors/sensors-public.json", exports_verified)
+        self.assertIn("/run/piratebox-esp32/esp32-public.json", exports_verified)
+        for export_path in exports_verified:
+            self.assertIn(
+                export_path, self.text,
+                f"{export_path} is referenced but let's make sure it's not just in a comment",
+            )
+            loop_section = self.code_only.split("Step 3", 1)[0]
+            self.assertIn(
+                export_path, loop_section,
+                f"{export_path} must appear in the open_basedir loop (Step 2), not just later verification",
+            )
 
     def test_delegates_py_file_deploy_to_update_progression_sh(self):
         # Must not duplicate that script's copy/restart logic - the
@@ -88,6 +114,10 @@ class TestSystemdUnitAndPhpIniAreConsistentWithTheScript(unittest.TestCase):
         self.assertIn("/run/piratebox-sensors/sensors-public.json", entries)
         self.assertIn("/run/piratebox/status.json", entries)
         self.assertIn("/run/piratebox/progression-public.json", entries)
+        # 2026-09-07, ESP32 BH1750 migration round - see this file's
+        # class docstring / deploy_environment_sensors.sh's own header
+        # for the real incident this guards against.
+        self.assertIn("/run/piratebox-esp32/esp32-public.json", entries)
 
 
 if __name__ == "__main__":
