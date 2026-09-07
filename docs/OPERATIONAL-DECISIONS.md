@@ -342,6 +342,77 @@ connection window will be needed for the actual read-only queries to
 succeed - the current cycling pattern may or may not resolve on its
 own by then.
 
+## ESP32 instability escalated sharply - a real reset loop, esptool deliberately not attempted (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. `esptool` was installed
+(`sudo apt install esptool`, binary at `/usr/bin/esptool`, not
+`esptool.py`). Per instruction, USB state was re-checked before any
+identification attempt - and the previous round's occasional cycling
+had escalated into a continuous, rapid loop:
+
+- **146 complete "New USB device found" enumeration events in a single
+  10-minute window** - roughly one every 4 seconds on average, with
+  bursts showing 3 full enumerate-then-disconnect cycles inside 20
+  seconds (device numbers climbing from the 60s to past 100 within
+  minutes).
+- Each cycle is a genuinely **complete, correct** enumeration -
+  alternating between the ROM's `303a:1001` "USB JTAG/serial debug
+  unit" and the app firmware's `303a:4001` "Espressif Device," both
+  with entirely correct, well-formed descriptors and strings - followed
+  by disconnect roughly 0.5-1s later. Occasional `device descriptor
+  read ... error -32` or `Cannot enable. Maybe the USB cable is bad?`
+  lines appear interspersed, but are the exception, not the rule -
+  most cycles complete cleanly before dying.
+- At the moment of checking, the board was absent from the bus
+  (consistent with being caught mid-cycle, not a permanent dropout).
+
+**Per instruction, `esptool` was NOT run against this connection - not
+even once.** A target resetting multiple times per second cannot
+support the handshake a chip-identification query needs, and repeated
+attempts against it would produce nothing but noise while risking being
+mistaken for something this session did to cause further instability.
+
+**Re-reading the evidence changes the leading hypothesis.** Every
+previous round's cycling was intermittent enough to look like a
+connection/enable problem (a `connect-debounce failed` here, a `Cannot
+enable` there, minutes apart). This round's pattern is different in
+kind: the chip is completing FULL, CORRECT USB enumeration on nearly
+every cycle - not failing to enumerate, not corrupting descriptors -
+and then disconnecting again well under a second later. A flaky cable/
+connector typically fails TO enumerate or drops mid-transfer; reaching
+a clean, complete, correctly-stringed enumeration and then dying
+almost immediately, over and over, accelerating over roughly 10
+minutes, is a better match for the chip itself resetting shortly after
+each boot (most plausibly a brownout) than for a bad physical
+connection. This is an inference from behavior, not a direct voltage
+measurement at the board - recorded as the current leading hypothesis,
+not a proven cause.
+
+**Correlated, still not attributed:** `vcgencmd get_throttled`
+continues to read `0x50005` (live) throughout. The board's RGB LED has
+been running continuously since its app firmware first started (per
+the operator's own earlier observation) - a real, continuous current
+draw layered on top of an already-confirmed-live undervoltage
+condition is a plausible contributing factor to a reset loop, but has
+not been measured directly (no voltage was probed at the board itself
+this round).
+
+**Two candidate next checks handed to the operator, not performed
+here:** (1) a zero-cost, immediate visual check - is the RGB LED still
+cycling normally, or stuttering/restarting in step with the USB
+cycling above (would help distinguish "the whole chip is resetting"
+from "only the USB stack is unstable while the chip stays up"); (2) if
+a powered USB hub is available, inserting it between the board and the
+Pi so the board's VBUS comes from the hub's own power adapter instead
+of the Pi's own rail - a direct test of the brownout hypothesis,
+decoupled from the Pi's own condition. Neither has been attempted or
+requested as an action - both are offered as options for the operator
+to choose between.
+
+No flashing, erasing, resetting-with-intent, or configuration of the
+ESP32 was performed. No change was made to the Raspberry Pi, its
+services, or its configuration as part of this specific check.
+
 **Nothing else on this Pi was touched or affected** - confirmed live,
 not assumed: zero Core service depends on this board's presence (per
 `docs/ARCHITECTURE.md` §3's own Network Companion contract, already
