@@ -797,7 +797,13 @@ alone, before NTP is available. This section documents the procedure
 only - no power-off was performed or requested as part of this round's
 work; that stays a genuine, separate operator action.
 
-## 11. Recommissioning run, a real ioctl gap, and an unresolved timing puzzle (2026-09-07, later still)
+## 11. Recommissioning run, a real ioctl gap, and a timing puzzle (resolved) (2026-09-07, later still)
+
+**The timing puzzle below is resolved - see the end of this section.**
+It was not a contradiction, just two pieces of evidence from different
+moments that weren't yet lined up against a clock. The VL-ioctl finding
+stands as a real, permanent limitation of this hardware/driver
+combination.
 
 **The operator ran `sudo tools/configure_rtc_ds3231.sh`** after the
 polarity fix. Results, taken at face value first:
@@ -851,7 +857,36 @@ correct time is still sitting in the chip either way, per Step 4's own
 readback), but the *history* of what actually happened at each recent
 boot remains genuinely unclear pending one more read-only check.
 
-**Not done this round:** no second power-loss test performed or
-requested - resolving this timing puzzle first, with a cheap read-only
-check, is more useful than spending another off-cycle while it's
-unclear which past boot the earlier evidence actually belongs to.
+### Resolved: `sudo tools/diagnose_rtc_ds3231.sh` re-run, same boot
+
+`uptime -s` on that run: **`2026-09-06 18:25:25`** - this boot's actual
+start. The dmesg clobber's own wall-clock timestamp (now visible thanks
+to this round's `-T` fix): **`Sun Sep 6 18:25:45 2026`** - exactly ~20
+seconds after boot start. Both are genuinely from *this* boot; there
+was no stale ring-buffer content. The lined-up timeline:
+
+| Time | Event |
+|---|---|
+| 18:25:25 | Boot start (`uptime -s`) |
+| 18:25:45 | Kernel's `CONFIG_RTC_HCTOSYS` reads the RTC (still holding whatever it had before this boot - unset since the polarity fix, nothing had written a real time to it yet this boot) → `SET TIME!` / 2000-01-01, clobbers system clock |
+| 18:44:21-23 | Operator runs `sudo tools/configure_rtc_ds3231.sh` (§11 above) - NTP-resyncs the system clock, then Step 6 writes the correct time into the RTC for the first time since the polarity fix |
+| 18:52:36 | This diagnose run: direct `hwclock -r` reads **`2026-09-06 18:52:36.45`** - matching real wall-clock to the second, ~8 minutes after the write and continuously Pi-powered the whole time |
+
+**There was never a contradiction** - the two facts that seemed to
+clash (boot-time clobber vs. a correct later read) simply came from
+before and after the recommissioning write, ~19 minutes apart in the
+same boot, not from the same instant. This is exactly the expected
+sequence: fixing the battery's polarity restores backup power *going
+forward*, it does not retroactively repair whatever the chip's
+registers already held; a write was always still required after the
+physical fix, and §11's earlier recommissioning run provided it. The
+8-minute run since that write, holding a correct, accurately-advancing
+time while continuously powered, is a clean, healthy result -
+confirming the chip and driver work correctly, though not yet the
+actual battery-retention question (which requires real power removal).
+
+**Cleared to proceed: the second power-loss validation test (§10's
+procedure, unchanged) is now the right next step.** No software
+ambiguity remains blocking it. As always, that physical test is a
+genuine, separate operator action - not performed or requested by this
+round's work.

@@ -6,6 +6,28 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## DS3231 RTC: timing puzzle resolved - cleared for second power-loss test (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. The entry below's timing puzzle
+(boot-time RTC clobber vs. a correct raw read moments "later" in the
+same script transcript) is resolved by re-running the new read-only
+`tools/diagnose_rtc_ds3231.sh` and lining its `uptime -s` up against
+the wall-clock `dmesg -T` timestamp: both are genuinely from the
+current boot (18:25:25 boot start, clobber at 18:25:45 - ~20s in), and
+the "later" correct read came from a *separate* script invocation
+(`tools/configure_rtc_ds3231.sh`, ~19 minutes after boot) that wrote a
+real time to the chip for the first time since the polarity fix. Never
+a contradiction - fixing the battery's polarity restores backup power
+going forward, it does not retroactively repair what the chip's
+registers already held; a write was always still needed after the
+physical fix, and it happened. 8 minutes of continuous, correctly-
+advancing time since that write is a clean, healthy result.
+
+**This clears the last blocker on the second power-loss validation
+test** - full procedure unchanged, `docs/RTC-TIME-READINESS-DESIGN.md`
+§10. No power-off performed or requested by this round's work; that
+remains the operator's own action.
+
 ## DS3231 RTC: VL-ioctl unsupported + dmesg timestamp fix (2026-09-07, later still)
 
 **Decision date:** 2026-09-07. The operator ran the recommissioning
