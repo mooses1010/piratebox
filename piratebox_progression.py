@@ -25,11 +25,19 @@
 #     (sociability/vigilance/resilience) - NOT machine learning, just a
 #     clamped exponential moving average nudged by real history, used
 #     only to gently bias which alternate a family roll favors.
-#   - Clean extension points for hardware that is purchased/planned but
-#     NOT YET commissioned (DS3231 RTC, INA226, BME280, DS18B20, BH1750,
-#     future RGB, future GPS/travel) - a signal registry a future round
-#     can register real readers into, without this file ever fabricating
-#     a reading for hardware that isn't there. See "HARDWARE SIGNAL
+#   - Clean extension points for hardware that is purchased/planned -
+#     a signal registry a commissioning round registers a real reader
+#     into (piratebox_bh1750.py's ambient_lux is the first: registered
+#     by piratebox_oled_daemon.py at startup, 2026-09-07 - this file
+#     itself still never imports or knows about the sensor directly),
+#     without this file ever fabricating a reading for hardware that
+#     isn't there or hasn't been. INA226, BME280, DS18B20, a future RGB
+#     status light, and a future GPS/travel capability remain NOT YET
+#     commissioned - no reader exists for any of them yet. (The DS3231
+#     RTC is also fully commissioned, but integrates at the OS/kernel
+#     level - system clock, not this registry - so it has no entry
+#     here at all; see docs/RTC-TIME-READINESS-DESIGN.md.) See
+#     "HARDWARE SIGNAL
 #     EXTENSION POINTS" below.
 #
 # PRIVACY / ANTI-FARMING, BY CONSTRUCTION:
@@ -692,23 +700,34 @@ def _record_variant_choice(state: dict, variant: dict, now: float) -> None:
 
 
 # --- Hardware signal extension points --------------------------------------
-# Purchased/planned hardware NOT YET commissioned (DS3231 RTC, INA226
-# power telemetry, BME280 environmental, DS18B20 temperature probes,
-# BH1750 ambient light, a future addressable-RGB status light, a future
-# GPS/travel capability) has NO reader implemented here, per instruction
-# - this file never fabricates a reading for hardware that isn't there.
+# Purchased/planned hardware still NOT YET commissioned (INA226 power
+# telemetry, BME280 environmental, DS18B20 temperature probes, a future
+# addressable-RGB status light, a future GPS/travel capability) has NO
+# reader implemented here, per instruction - this file never fabricates
+# a reading for hardware that isn't there.
 #
-# What exists instead: a place for a future commissioning round to
-# register one, without touching the engine above at all. A signal is a
-# zero-argument callable returning a small JSON-safe value (or raising/
-# returning None if the hardware isn't currently reachable - the same
-# "honest missing value, never fabricated" discipline this whole file
-# already follows elsewhere). Once registered, a future event/
-# achievement condition can read it from `ctx["hardware"]` (populated by
-# read_hardware_signals() below, called once per tick alongside every
-# other read) - no change needed to roll_event()/check_achievements()
-# themselves. Starts empty and MUST stay empty until real hardware is
-# actually wired and confirmed - never populate this speculatively.
+# BH1750 ambient light (commissioned 2026-09-07) is the first real
+# signal this registry has ever carried: piratebox_bh1750.py owns all
+# direct I2C access to it, and piratebox_oled_daemon.py registers
+# `register_hardware_signal("ambient_lux", piratebox_bh1750.
+# read_ambient_lux)` once at its own startup - this file (the engine)
+# never imports piratebox_bh1750 or knows anything about I2C/lux/
+# addresses itself, exactly as designed below.
+#
+# The general mechanism, for whatever gets commissioned next: a place
+# for a commissioning round to register a reader, without touching the
+# engine above at all. A signal is a zero-argument callable returning a
+# small JSON-safe value (or raising/returning None if the hardware
+# isn't currently reachable - the same "honest missing value, never
+# fabricated" discipline this whole file already follows elsewhere).
+# Once registered, an event/achievement condition can read it from
+# `ctx["hardware"]` (populated by read_hardware_signals() below, called
+# once per tick alongside every other read) - no change needed to
+# roll_event()/check_achievements() themselves. Starts empty at import
+# time and MUST stay empty here (in this file) until a commissioning
+# round registers a real reader from outside it - never populate this
+# speculatively, and never register a reader for hardware that hasn't
+# actually been wired and confirmed.
 HARDWARE_SIGNALS = {}
 
 
@@ -1069,7 +1088,10 @@ def build_public_summary(state: dict, now: float = None) -> dict:
         "achievements": achievements,
         "history": history,
         "traits": personality_traits(state.get("weights", {})),
-        "hardware": read_hardware_signals(),  # empty today - see HARDWARE_SIGNALS
+        "hardware": read_hardware_signals(),  # {} in this file alone (nothing
+        # registered at import time by design) - a running daemon that has
+        # registered a reader (ambient_lux, since 2026-09-07) sees it here too;
+        # see HARDWARE_SIGNALS
     }
 
 

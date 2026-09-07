@@ -83,7 +83,7 @@ it is.**
 | GNSS receiver | Optional/Field | CANDIDATE | Attachable or Integrated (undecided) |
 | Environmental sensing (temp/humidity beyond CPU) | Optional/Field | CANDIDATE | Integrated or Companion |
 | Air quality (CO2/particulate/VOC) | Optional/Field | CANDIDATE | Integrated or Companion |
-| Light / UV | Optional/Field | CANDIDATE | Integrated or Companion |
+| Light / UV (BH1750 ambient light) | Optional/Field | **INSTALLED, COMMISSIONED (2026-09-07)** - detected at 0x23, real lux readings confirmed (~9-12 lux at commissioning), registered as Progression's `ambient_lux` signal | Integrated (directly on Pi I2C bus; behind a future ESP32-S3 supervisor is possible/planned, not implemented) |
 | Motion / orientation (IMU) | Optional/Field | CANDIDATE | Integrated |
 | Proximity (ToF) | Optional/Field | CANDIDATE | Integrated |
 | Sound measurement | Optional/Field | CANDIDATE | Integrated or Companion |
@@ -741,10 +741,61 @@ it is.**
 - **State:** CANDIDATE. No product chosen. Layer: Optional/Field. Core
   dependency: No.
 
-### Light / UV
+### Light / UV (BH1750 ambient light)
 
-- **State:** CANDIDATE. No product chosen. Layer: Optional/Field. Core
-  dependency: No.
+- **Purpose:** ambient light level as a machine-readable signal for
+  future components (e.g. intelligent OLED/status-light behavior,
+  event/achievement conditions already anticipated in `piratebox_
+  progression.py`'s `HARDWARE_SIGNALS` registry) - no UV sensing (this
+  part only measures visible ambient light).
+- **State:** **INSTALLED, COMMISSIONED (2026-09-07).** A BH1750FVI
+  breakout wired onto the existing I2C1 bus (VCC->3.3V, GND->GND, ADDR
+  unconnected). Positively detected, not assumed: `i2cdetect` showed a
+  new address (`0x23`) alongside the OLED/RTC, and the actual BH1750
+  protocol (power-on + one-time high-resolution measurement) was
+  round-tripped successfully, returning a stable, plausible, non-
+  garbage lux value (~9-12 lux, consistent with real ambient light at
+  commissioning time) - not just an address-probe coincidence.
+- **Interface:** I2C1, same bus as the OLED and DS3231 RTC (multi-drop,
+  no pin conflict; confirmed live, both unaffected by this sensor's
+  presence). Read entirely from userspace via `smbus2` in the new
+  `piratebox_bh1750.py` - unlike the RTC, no kernel driver/overlay is
+  needed at all.
+- **Software integration:** `piratebox_bh1750.py` owns all direct I2C
+  access (bus/address/protocol/rate-limiting/staleness), exposing one
+  zero-argument reader (`read_ambient_lux()`) plus a diagnostics
+  function. `piratebox_oled_daemon.py` registers that reader into
+  `piratebox_progression.py`'s existing `HARDWARE_SIGNALS` registry at
+  startup - the exact extension point that registry was built for,
+  populated for the first time by this commissioning. The signal flows
+  through automatically to `progression-public.json`'s `hardware` key
+  (Captain's Log's public export) with no achievement/trigger/threshold
+  information riding along, and to the pre-existing `ambient.
+  secret_night_watch` event condition, which was permanently
+  ineligible until this exact registration.
+- **Rate-limited by design:** a real I2C transaction happens at most
+  every 15s (internal to `piratebox_bh1750.py`), not on every ~3s OLED
+  tick - the sensor changes slowly in practice and the I2C bus is
+  shared with the OLED/RTC.
+- **Failure behavior:** any I2C failure (unplugged, bus error, smbus2
+  missing) degrades to `None`, never fabricated, never fatal - cannot
+  affect the OLED, RTC, or any core PirateBox service. See `tools/
+  diagnose_bh1750.py` for a standalone, no-sudo-needed diagnostic
+  (detected/responding, current lux, staleness, last error).
+- **UI:** no OLED/web UI change this round, deliberately - the signal
+  is exposed cleanly via the registry/public export; a glance-page or
+  brightness-aware display is left for a future round per instruction
+  (avoiding a noisy reading driving frequent redraws or any automatic
+  dimming behavior before that's actually designed).
+- **Future migration path (not implemented, not started):** this
+  sensor is wired directly to the Pi's I2C bus today. `docs/CAPABILITY-
+  REGISTRY.md`'s own "Remote microcontroller/sensor node (e.g. ESP32)"
+  entry (below) already lists a possible future hardware supervisor as
+  a CANDIDATE concept - if that is ever built, only `piratebox_
+  bh1750.py`'s internals would need to change (e.g. read a value over
+  serial instead of I2C); the registered signal name and every
+  consumer of it stay identical, by design.
+- **Layer:** Optional/Field. Core dependency: No.
 
 ### Motion / orientation (IMU)
 

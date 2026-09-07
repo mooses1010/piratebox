@@ -1,34 +1,43 @@
 #!/bin/bash
 #
-# Applies piratebox_progression.py to the live OLED daemon install and
-# restarts piratebox-oled.service. Run as root:
+# Applies the OLED daemon and its imported modules (piratebox_
+# progression.py, piratebox_oled_daemon.py, piratebox_bh1750.py) to the
+# live install and restarts piratebox-oled.service. Run as root:
 #   sudo bash tools/update_progression.sh
 #
 # WHY THIS IS NEEDED (2026-09-06, Captain's Log achievement-description
-# round): piratebox_progression.py is imported in-process, once, at
-# piratebox-oled.service startup (piratebox_oled_daemon.py's own
-# `import piratebox_progression`) - there is no hot-reload path, so a
+# round): these files are imported/run in-process, once, at
+# piratebox-oled.service startup - there is no hot-reload path, so a
 # source change only takes effect after the file is replaced on disk
-# AND the service is restarted. The live copy lives at
-# /usr/local/bin/piratebox_progression.py, root-owned
-# (-rwxr-xr-x root:root) - this repo's own copy changes nothing live
-# until this script (or the equivalent manual steps) runs, exactly the
-# same "repo vs. deployed" split this project's other optional
-# capabilities (OpenWebRX+, etc.) already have their own update
-# scripts for. This is the first such script for the OLED/Progression
-# subsystem - previous rounds deployed it fully by hand (see
-# docs/OPERATIONAL-DECISIONS.md's "PirateBox Progression" entry,
-# 2026-09-04) - written now because this round needs a second real
-# deploy of the same file and a repeatable, narrowly-scoped script beats
-# asking the operator to re-derive the same two commands from memory.
+# AND the service is restarted. The live copies are root-owned
+# (-rwxr-xr-x root:root) under /usr/local/bin/ - this repo's own copies
+# change nothing live until this script (or the equivalent manual
+# steps) runs, exactly the same "repo vs. deployed" split this
+# project's other optional capabilities (OpenWebRX+, etc.) already have
+# their own update scripts for. Kept under its original name (this was
+# the first such script for the OLED subsystem) even though its scope
+# has grown alongside the subsystem it deploys - a repeatable, narrowly-
+# scoped script beats asking the operator to re-derive several copy
+# commands from memory each round.
 #
-# SAFE BY CONSTRUCTION: this script touches exactly one file
-# (piratebox_progression.py) and restarts exactly one already-optional,
-# already-isolated service (piratebox-oled.service has no Requires=/
-# BindsTo= on any core PirateBox service in either direction - see that
-# unit file's own header). A bad copy or a restart failure here cannot
-# affect hostapd/dnsmasq/nginx/php-fpm or any core PirateBox function -
-# worst case, Silly Mode/the OLED face stops updating until fixed.
+# 2026-09-07 (BH1750 ambient light sensor commissioning): extended to
+# also deploy piratebox_oled_daemon.py (gained a startup-time
+# registration of the new sensor into Progression's HARDWARE_SIGNALS
+# registry - see that file's own comment right after Progression loads)
+# and the new piratebox_bh1750.py module itself (all direct I2C access
+# to the sensor - see its own header). Both copies are skipped
+# harmlessly if the sensor is never wired on a given install -
+# piratebox_oled_daemon.py's registration is already wrapped in its own
+# try/except, degrading to "signal stays unregistered" exactly like a
+# missing Progression subsystem already does.
+#
+# SAFE BY CONSTRUCTION: this script touches only these files and
+# restarts exactly one already-optional, already-isolated service
+# (piratebox-oled.service has no Requires=/BindsTo= on any core
+# PirateBox service in either direction - see that unit file's own
+# header). A bad copy or a restart failure here cannot affect
+# hostapd/dnsmasq/nginx/php-fpm or any core PirateBox function - worst
+# case, Silly Mode/the OLED face stops updating until fixed.
 #
 # Durable state is untouched by this script: /var/lib/piratebox-oled/
 # progression.json (XP, levels, achievements already unlocked, history)
@@ -46,10 +55,12 @@ fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-cp "$REPO_ROOT/piratebox_progression.py" /usr/local/bin/piratebox_progression.py
-chown root:root /usr/local/bin/piratebox_progression.py
-chmod 755 /usr/local/bin/piratebox_progression.py
-echo "Copied piratebox_progression.py -> /usr/local/bin/piratebox_progression.py"
+for f in piratebox_progression.py piratebox_oled_daemon.py piratebox_bh1750.py; do
+    cp "$REPO_ROOT/$f" "/usr/local/bin/$f"
+    chown root:root "/usr/local/bin/$f"
+    chmod 755 "/usr/local/bin/$f"
+    echo "Copied $f -> /usr/local/bin/$f"
+done
 
 systemctl restart piratebox-oled
 sleep 3

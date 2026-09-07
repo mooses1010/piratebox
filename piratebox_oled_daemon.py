@@ -1687,6 +1687,23 @@ def main() -> int:
         log.warning("Progression subsystem unavailable (%s) - Silly Mode continues without it.", exc)
         progression = None
 
+    # BH1750 ambient light sensor (commissioned 2026-09-07, shares I2C1
+    # with the OLED/RTC above) - registered as a Progression hardware
+    # signal, not read directly by this daemon, so nothing here needs
+    # to know its bus/address/protocol details (see piratebox_bh1750.py
+    # for all of that). A missing/failed sensor or module must never
+    # affect Progression (already independently optional above) or the
+    # OLED display - this is its own separate try/except specifically
+    # so a BH1750-only failure can never undo a successful Progression
+    # load, and vice versa.
+    if progression is not None:
+        try:
+            import piratebox_bh1750
+            progression.register_hardware_signal("ambient_lux", piratebox_bh1750.read_ambient_lux)
+            log.info("BH1750 ambient light sensor signal registered.")
+        except Exception as exc:  # noqa: BLE001 - optional hardware, never fatal
+            log.warning("BH1750 module unavailable (%s) - ambient_lux signal stays unregistered.", exc)
+
     while not stop:
         if device is None:
             device = init_device()

@@ -6,6 +6,74 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## BH1750 ambient light sensor: commissioned and integrated (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. A BH1750FVI ambient light sensor was
+wired onto the existing I2C1 bus (VCC->3.3V, GND->GND, ADDR
+unconnected) - the same bus the OLED and DS3231 RTC already share,
+multi-drop, no pin conflict. Positively detected before any code was
+written, per instruction ("do not assume it is present"): `i2cdetect`
+showed a new address (`0x23`) alongside the OLED (`0x3c`) and RTC
+(`0x68`, `UU`), both confirmed still healthy; the actual BH1750
+protocol (power-on + one-time high-resolution measurement) was then
+round-tripped directly via `smbus2`, returning a stable, plausible,
+non-garbage lux value (~9-12 lux, matching real ambient light at
+commissioning time) - proof the address match was a real sensor, not
+a coincidence.
+
+**Integration, following the existing architecture rather than a
+one-off script:** new `piratebox_bh1750.py` owns all direct I2C access
+(bus/address/protocol) behind one zero-argument reader function
+(`read_ambient_lux()`) plus a diagnostics function - rate-limited
+internally to one real I2C transaction per 15s (not every ~3s OLED
+tick, since ambient light changes slowly and the bus is shared), and
+degrading to `None` on any failure, never fabricating a value or
+crashing. `piratebox_oled_daemon.py` registers this reader into
+`piratebox_progression.py`'s pre-existing `HARDWARE_SIGNALS` registry
+at startup - the exact extension point that registry was built for
+(see that file's own "Hardware signal extension points" section,
+written well before this sensor existed) - with its own independent
+try/except so a BH1750-only failure can never affect Progression, Silly
+Mode, the OLED, or any core service, and vice versa.
+
+**This is the first real signal that registry has ever carried.** It
+flows through automatically to `progression-public.json`'s `hardware`
+key (Captain's Log's public export) - confirmed by a new test
+(`test_a_registered_hardware_signal_reaches_the_public_export_and_nothing_else`)
+that the value reaches the export and nothing achievement-related
+rides along with it - and to the pre-existing `ambient.
+secret_night_watch` event condition, which was permanently ineligible
+until exactly this registration (already covered by a pre-existing
+test from the Expression Engine v2 round, which now goes live rather
+than staying purely hypothetical).
+
+**No UI change this round, deliberately** - per instruction, a noisy
+lux reading must not drive frequent OLED redraws, and no automatic
+brightness/dimming behavior was added. The signal is exposed cleanly
+through the registry/public export; a glance page or brightness-aware
+display is left for a future, separate round.
+
+**Future ESP32-S3 migration - recorded as still just a possibility,
+not started:** `docs/CAPABILITY-REGISTRY.md`'s "Remote microcontroller/
+sensor node (e.g. ESP32)" entry already lists a future hardware
+supervisor as a CANDIDATE concept. This sensor is wired directly to the
+Pi's I2C bus today, and `piratebox_bh1750.py` is deliberately the only
+file that knows that - if that migration is ever built, only this
+file's internals would need to change; the registered signal name and
+every consumer of it stay identical.
+
+Tests: new `tools/test_bh1750.py` (9 assertions - rate limiting,
+degrade-not-crash including smbus2 itself being absent, staleness,
+diagnostics shape, the exact address/lux formula) and one new assertion
+in `tools/test_progression.py` (81 total, up from 80) for the public-
+export boundary. `tools/diagnose_bh1750.py` (new, no sudo needed - the
+`i2c` group already covers `/dev/i2c-1`) gives a standalone real-
+hardware check. `tools/update_progression.sh` extended to also deploy
+`piratebox_oled_daemon.py` and `piratebox_bh1750.py` (previously only
+`piratebox_progression.py`), since this round changed the daemon's own
+startup code too. Full existing suite re-run and confirmed unaffected;
+OLED and RTC confirmed healthy throughout, live, on real hardware.
+
 ## DS3231 RTC: second power-loss test PASSED - battery backup validated (2026-09-07, later still)
 
 **Decision date:** 2026-09-07. The operator performed a genuine full

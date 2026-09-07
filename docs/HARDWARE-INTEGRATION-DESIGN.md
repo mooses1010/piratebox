@@ -69,6 +69,7 @@ avoiding everything in the "never use" list above.
 | OLED SDA | GPIO2 | 3 | **WIRED, VERIFIED** | Fixed I2C1 function, not reassignable. OLED VCC on pin 1 (3.3V), GND on pin 14 - responds at address 0x3C, confirmed via `i2cdetect` and a real test frame written and visually confirmed 2026-09-03. |
 | OLED SCL | GPIO3 | 5 | **WIRED, VERIFIED** | Fixed I2C1 function, not reassignable. See OLED SDA row - same bring-up. |
 | DS3231 RTC + AT24C32 EEPROM | GPIO2/GPIO3 (shared) | 3/5 (shared) | **WIRED, VERIFIED, BATTERY-BACKED - VALIDATED (2026-09-07)** | Same I2C1 bus/pins as the OLED above - multi-drop, no pin conflict, exactly as anticipated when this row was first written. Confirmed via `i2cdetect`: RTC at 0x68 (`UU`, driver-bound), its onboard EEPROM at 0x57 (not the same as, and no conflict with, the separate HAT-ID EEPROM bus on GPIO0/1). OLED (0x3c) confirmed unaffected throughout, including across the power-loss test itself. **Production module has R4 (200 ohm charging resistor) removed and a CR2032 installed.** History, preserved in full: the first genuine total-power-loss test failed (chip came back at its factory default) - root cause found and fixed, the CR2032 had been installed upside down (R4's removal was ruled out as a cause by direct measurement). **A second genuine power-loss test then PASSED**: on the following boot, the kernel's own log reported a real, current 2026 date read directly from the RTC's registers (not a default), confirmed by a direct hardware read minutes later showing correctly-advanced time. See `docs/RTC-TIME-READINESS-DESIGN.md` §§6-12 for the full record, including the failed first attempt and its cause. |
+| BH1750 ambient light | GPIO2/GPIO3 (shared) | 3/5 (shared) | **WIRED, VERIFIED, COMMISSIONED (2026-09-07)** | Same I2C1 bus/pins as the OLED/RTC above - a third device on the same multi-drop bus, no pin conflict. VCC->3.3V, GND->GND, ADDR left unconnected. Confirmed via `i2cdetect` at 0x68 (`UU`, RTC), 0x57 (EEPROM), and a NEW address 0x23 - not assumed from the datasheet default, proven by round-tripping the actual BH1750 protocol (power-on + one-time high-res measurement) and getting a stable, plausible, non-garbage lux value (~9-12 lux, consistent with the room's actual dim ambient light at commissioning time). OLED and RTC both confirmed unaffected. Unlike the RTC, this sensor needs no kernel driver/overlay at all - read entirely from userspace via `smbus2` in `piratebox_bh1750.py`; `i2cdetect` never shows it as `UU`. See `docs/CAPABILITY-REGISTRY.md`'s "Light / UV" entry and `docs/OPERATIONAL-DECISIONS.md` for the full commissioning record. |
 | Momentary button 1 | GPIO22 | 15 | Not wired | Cycle page (Stage 29 §2) |
 | Momentary button 2 | GPIO23 | 16 | Not wired | Wake display (Stage 29 §2) |
 | Momentary button 3 | GPIO24 | 18 | Not wired | Reserved, unassigned (Stage 29 §2) |
@@ -279,26 +280,34 @@ otherwise-read-only daemon has), surviving reboot and Silly Mode being
 off. Full design: `docs/OPERATIONAL-DECISIONS.md` → "PirateBox
 Progression". **Relevant to this file specifically:** Progression
 defines a `HARDWARE_SIGNALS` registry (`register_hardware_signal()` /
-`read_hardware_signals()`) as the intended future integration point for
-this section's own not-yet-commissioned hardware - the DS3231 RTC
-(§ RTC-TIME-READINESS-DESIGN.md), INA226 power telemetry, BME280
-environmental sensor, DS18B20 temperature probes, BH1750 ambient
-light, a future addressable-RGB status light, and a future GPS/travel
-capability. **Nothing in that registry is populated yet** - per
-instruction, no reading is fabricated for hardware that isn't wired and
-confirmed. When any of the above is actually commissioned, registering
-its reader there (and, if wanted, a few new achievements/events keyed
-off it) is the intended extension path - no change needed to
-Progression's own engine.
+`read_hardware_signals()`) as the integration point for hardware that
+reports through it. **BH1750 ambient light is the first real signal
+registered here (2026-09-07, `ambient_lux`)** - see this file's own
+`piratebox_bh1750.py` row above and `docs/CAPABILITY-REGISTRY.md`'s
+"Light / UV" entry for the full commissioning record; the reader lives
+entirely in `piratebox_bh1750.py`, registered by `piratebox_oled_
+daemon.py` at startup, with zero changes needed to Progression's own
+engine. INA226 power telemetry, BME280 environmental sensor, DS18B20
+temperature probes, a future addressable-RGB status light, and a
+future GPS/travel capability remain **not yet commissioned** - nothing
+is fabricated for any of them; when one is actually wired and
+confirmed, registering its reader here is the same intended extension
+path. (The DS3231 RTC is also fully commissioned, but integrates at
+the OS/kernel level - system clock, not this registry - see
+`docs/RTC-TIME-READINESS-DESIGN.md`.)
 
 **Captain's Log web profile (added 2026-09-04):** a read-only site page
 (`/utility/captains-log/`) presenting Progression's data to visitors -
 see `docs/OPERATIONAL-DECISIONS.md` → "Captain's Log web profile" for
 the full design, including the `open_basedir` boundary it added (one
 new named file, not a directory widening) to let PHP read Progression's
-already-curated public export. The same empty `HARDWARE_SIGNALS`
-registry flows through to this page automatically - no template change
-needed once real hardware is commissioned and registered.
+already-curated public export. The same `HARDWARE_SIGNALS` registry
+flows through to this page automatically, no template change needed -
+confirmed live for the first time by BH1750's `ambient_lux` (2026-09-07),
+which now reaches `progression-public.json`'s `hardware` key exactly as
+this design anticipated, with zero achievement/trigger/threshold
+information riding along (see `tools/test_progression.py`'s
+`test_a_registered_hardware_signal_reaches_the_public_export_and_nothing_else`).
 
 ---
 

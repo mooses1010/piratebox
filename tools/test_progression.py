@@ -793,6 +793,31 @@ class PublicSummaryTests(unittest.TestCase):
         parsed = json.loads(out.stdout)
         self.assertIn("available", parsed)
 
+    def test_a_registered_hardware_signal_reaches_the_public_export_and_nothing_else(self):
+        """BH1750 commissioning (2026-09-07): the first real
+        HARDWARE_SIGNALS entry this project has ever registered. Proves
+        the existing export boundary already handles a real signal
+        correctly with zero new code: the value flows through under
+        "hardware", and nothing achievement-related (names, hidden
+        flags, triggers, thresholds) is newly reachable because of it -
+        the exact regression this class exists to catch for every
+        future signal too, not just this one."""
+        prog.register_hardware_signal("ambient_lux", lambda: 42.5)
+        try:
+            s = prog._default_state()
+            summary = prog.build_public_summary(s, now=1000.0)
+            # The signal reaches the export, under exactly this key,
+            # with exactly this value - nothing added, nothing dropped.
+            self.assertEqual(summary["hardware"], {"ambient_lux": 42.5})
+            # And the "hardware" sub-object itself carries only the
+            # signal(s) actually registered - no achievement catalog
+            # entry could possibly ride along inside it.
+            hardware_dumped = json.dumps(summary["hardware"])
+            for aid in prog.ACHIEVEMENTS:
+                self.assertNotIn(aid, hardware_dumped)
+        finally:
+            prog.HARDWARE_SIGNALS.clear()
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
