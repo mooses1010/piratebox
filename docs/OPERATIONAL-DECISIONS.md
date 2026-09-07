@@ -6,6 +6,45 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## DS3231 RTC: root cause of failed test found - CR2032 was reversed (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. Follow-up to the entry directly below,
+using its own measurement plan. The operator found and fixed the
+actual physical cause of the failed power-loss test: **the CR2032 had
+been installed upside down.** With it correctly oriented: the cell
+itself measures 3.25V open-circuit, and the holder terminals read
+~3.0V with the Pi both fully powered off and powered on - exactly the
+"healthy, properly-connected battery" signature the previous entry's
+measurement plan was designed to detect.
+
+This also **rules out** that entry's hypothesis 3 (that removing R4
+had severed the only path from the holder to VBAT on this board's
+layout) - if that were the real fault, a correctly-oriented battery
+would still read ~0V at the holder with Pi power off, and it doesn't.
+R4's removal is confirmed to do exactly and only what was always
+intended (disable charging for a non-rechargeable cell), with no side
+effect on the actual battery-backup path.
+
+**§9's evidence and hypothesis list in `docs/RTC-TIME-READINESS-
+DESIGN.md` are kept as accurate historical record of a real failed
+test, per instruction - not erased.** §10 there records this
+confirmed cause and the correction, and gives the full second-test
+procedure (identical to the first, run again now that the physical
+fault is fixed).
+
+Recommissioning needed no script changes - `tools/
+configure_rtc_ds3231.sh` already does everything required (NTP-safe
+time write, oscillator-stop/voltage-low flag clear, OLED/bus
+regression check); this was purely a physical fix followed by
+re-running existing, already-correct tooling.
+
+**Status: not yet fully validated.** The fix is well-evidenced but the
+actual acceptance criterion - surviving a genuine power-loss test with
+Ethernet disconnected - has not yet been re-attempted. Both
+`docs/CAPABILITY-REGISTRY.md` and `docs/HARDWARE-INTEGRATION-DESIGN.md`
+reflect "root cause fixed, second test pending," not "confirmed
+working."
+
 ## DS3231 RTC: first power-loss test FAILED - battery backup unconfirmed (2026-09-07, later same day)
 
 **Decision date:** 2026-09-07. The operator performed the power-loss
