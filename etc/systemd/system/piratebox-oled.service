@@ -71,5 +71,21 @@ BindReadOnlyPaths=/tmp/piratebox:/tmp/piratebox
 # above about every other data source being read-only.
 ReadWritePaths=/var/lib/piratebox-oled
 
+# Added 2026-09-07 (Environment web UI round): a small public export of
+# current sensor readings (piratebox_oled_daemon.py's own
+# publish_sensors_export(), see that function's header) for the new
+# /utility/environment/ page to read - a DIFFERENT concern from
+# Progression's own durable state above, so it gets its own directory
+# rather than reusing /var/lib/piratebox-oled or being folded into
+# progression-public.json. RuntimeDirectory=, not a ReadWritePaths line
+# + a manual etc/tmpfiles.d rule: systemd creates /run/piratebox-sensors
+# fresh on every start of THIS service (owned by this same User=/Group=,
+# mode 0755 so "other" - www-data - can traverse into it and read the
+# 0644 file this daemon writes inside), removes it on stop, and this
+# alone already grants write access to that one path under
+# ProtectSystem=strict - no separate ReadWritePaths= entry needed.
+RuntimeDirectory=piratebox-sensors
+RuntimeDirectoryMode=0755
+
 [Install]
 WantedBy=multi-user.target

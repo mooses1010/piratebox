@@ -83,7 +83,7 @@ it is.**
 | GNSS receiver | Optional/Field | CANDIDATE | Attachable or Integrated (undecided) |
 | Environmental sensing (temp/humidity beyond CPU) | Optional/Field | CANDIDATE | Integrated or Companion |
 | Air quality (CO2/particulate/VOC) | Optional/Field | CANDIDATE | Integrated or Companion |
-| Light / UV (BH1750 ambient light) | Optional/Field | **INSTALLED, COMMISSIONED (2026-09-07)** - detected at 0x23, real lux readings confirmed (~9-12 lux at commissioning), registered as Progression's `ambient_lux` signal | Integrated (directly on Pi I2C bus; behind a future ESP32-S3 supervisor is possible/planned, not implemented) |
+| Light / UV (BH1750 ambient light) | Optional/Field | **INSTALLED, COMMISSIONED, WEB UI LIVE (2026-09-07)** - detected at 0x23, real lux readings confirmed (~9-12 lux); `/utility/environment/` + a Utility landing-page card, via a dedicated `sensors-public.json` export (not progression-public.json - see below) | Integrated (directly on Pi I2C bus; behind a future ESP32-S3 supervisor is possible/planned, not implemented) |
 | Motion / orientation (IMU) | Optional/Field | CANDIDATE | Integrated |
 | Proximity (ToF) | Optional/Field | CANDIDATE | Integrated |
 | Sound measurement | Optional/Field | CANDIDATE | Integrated or Companion |
@@ -767,26 +767,52 @@ it is.**
   function. `piratebox_oled_daemon.py` registers that reader into
   `piratebox_progression.py`'s existing `HARDWARE_SIGNALS` registry at
   startup - the exact extension point that registry was built for,
-  populated for the first time by this commissioning. The signal flows
-  through automatically to `progression-public.json`'s `hardware` key
-  (Captain's Log's public export) with no achievement/trigger/threshold
-  information riding along, and to the pre-existing `ambient.
-  secret_night_watch` event condition, which was permanently
-  ineligible until this exact registration.
-- **Rate-limited by design:** a real I2C transaction happens at most
-  every 15s (internal to `piratebox_bh1750.py`), not on every ~3s OLED
-  tick - the sensor changes slowly in practice and the I2C bus is
-  shared with the OLED/RTC.
+  populated for the first time by this commissioning - and to the
+  pre-existing `ambient.secret_night_watch` event condition, which was
+  permanently ineligible until this exact registration.
+  **Correction (2026-09-07, Environment web UI round):** this section
+  previously claimed the signal "flows through automatically to
+  `progression-public.json`'s `hardware` key." That was wrong in
+  practice - confirmed live, that key is permanently `{}` in
+  production, because `piratebox_status_helper.sh` generates that file
+  by invoking `piratebox_progression.py` as a brand-new, separate CLI
+  process every 30s, whose `HARDWARE_SIGNALS` registry is always empty
+  (registration only ever happens inside the long-running OLED
+  daemon's own process memory). The Environment web UI round's own
+  export (below) exists specifically because of this finding - see
+  `docs/OPERATIONAL-DECISIONS.md` for the full writeup.
+- **Web UI (added 2026-09-07):** `/utility/environment/` (linked from
+  a permanent "Environment" card on the Utility landing page, which
+  also shows a live one-line summary when a current reading exists).
+  Reads a dedicated, narrowly-scoped export -
+  `/run/piratebox-sensors/sensors-public.json`, written directly by
+  `piratebox_oled_daemon.py`'s new `publish_sensors_export()` (the one
+  process that actually holds a live, rate-limited reader in memory) -
+  deliberately NOT `progression-public.json`, both because of the bug
+  above and because sensors are a different concern from Progression/
+  Captain's Log. `includes/sensors.php` is the one shared reader/
+  classifier both pages consume - see that file's own header. UI-only
+  ambient-light bands (Dark/Dim/Indoor/Bright/Very Bright) are
+  documented, ordinary lighting reference points, explicitly
+  independent of and never derived from any Progression/achievement
+  threshold.
+- **Rate-limited by design, at two independent layers:** a real I2C
+  transaction happens at most every 15s (internal to
+  `piratebox_bh1750.py`), and the public export file is (re-)written
+  at most every 20s (`piratebox_oled_daemon.py`'s
+  `SENSORS_PUBLISH_INTERVAL_S`) regardless of how many browser tabs are
+  polling it - the web UI never triggers I2C traffic itself, only
+  rereading an already-cached file, so visitor count cannot multiply
+  hardware polling.
 - **Failure behavior:** any I2C failure (unplugged, bus error, smbus2
   missing) degrades to `None`, never fabricated, never fatal - cannot
-  affect the OLED, RTC, or any core PirateBox service. See `tools/
-  diagnose_bh1750.py` for a standalone, no-sudo-needed diagnostic
-  (detected/responding, current lux, staleness, last error).
-- **UI:** no OLED/web UI change this round, deliberately - the signal
-  is exposed cleanly via the registry/public export; a glance-page or
-  brightness-aware display is left for a future round per instruction
-  (avoiding a noisy reading driving frequent redraws or any automatic
-  dimming behavior before that's actually designed).
+  affect the OLED, RTC, or any core PirateBox service. The web UI
+  itself distinguishes three honest states: sensor never detected,
+  reading gone stale (last known value still shown, clearly labeled),
+  and the export file itself gone stale (daemon not publishing) - never
+  a fabricated zero. See `tools/diagnose_bh1750.py` for a standalone,
+  no-sudo-needed diagnostic (detected/responding, current lux,
+  staleness, last error).
 - **Future migration path (not implemented, not started):** this
   sensor is wired directly to the Pi's I2C bus today. `docs/CAPABILITY-
   REGISTRY.md`'s own "Remote microcontroller/sensor node (e.g. ESP32)"

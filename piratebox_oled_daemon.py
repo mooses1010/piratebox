@@ -453,6 +453,26 @@ GLANCE_PREVIEW_REQUEST_FILE = "/tmp/piratebox/glance-preview-request"  # operato
                                        # than reusing that one's gate).
 GLANCE_PREVIEW_WINDOW_SECONDS = 45.0
 STATUS_FILE = "/run/piratebox/status.json"
+# Environment web UI round (2026-09-07): a small, narrowly-scoped
+# public export for hardware sensor readings - deliberately NOT
+# progression-public.json (that file is Progression/Captain's Log's
+# own spoiler-safe export; sensors are a different, non-secret concern
+# and get their own file rather than broadening that one). Written by
+# THIS process only, since it's the one place a registered sensor
+# reader's own internal rate-limiting/caching actually lives in memory
+# - see publish_sensors_export() below for why that matters. The
+# directory is created fresh on every start by systemd itself
+# (piratebox-oled.service's own `RuntimeDirectory=piratebox-sensors`),
+# owned by this daemon's account, mode 0755 (world-traversable, same
+# pattern as /run/piratebox itself) so PHP (www-data) can read the
+# 0644 file this daemon writes inside, via its open_basedir allowlist -
+# no manual mkdir, no etc/tmpfiles.d rule needed for this one.
+SENSORS_PUBLIC_DIR = "/run/piratebox-sensors"
+SENSORS_PUBLIC_FILE = SENSORS_PUBLIC_DIR + "/sensors-public.json"
+SENSORS_PUBLISH_INTERVAL_S = 20.0  # independent of any single sensor's
+                                     # own internal read rate-limit -
+                                     # this just serializes whatever the
+                                     # currently-cached reading is
 TRANSITIONS_LOG = "/var/www/html/data/mode-transitions.log"
 HOSTAPD_CONF = "/etc/hostapd/hostapd.conf"
 FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
@@ -580,6 +600,50 @@ def read_status_json():
         return status, age > STALE_AFTER_SECONDS
     except (OSError, ValueError):
         return None, True
+
+
+def publish_sensors_export(bh1750_module, last_publish: float, now: float) -> float:
+    """Coalesced write (same pattern as piratebox_progression.py's own
+    maybe_save_and_report()): writes at most once every
+    SENSORS_PUBLISH_INTERVAL_S. Returns the new last-publish time
+    (unchanged if this call didn't write). Reads no hardware itself -
+    `bh1750_module` is either None (never imported - see this file's
+    startup section) or the already-imported piratebox_bh1750 module,
+    whose get_diagnostics() just returns its own already-cached state
+    (no new I2C transaction is triggered by publishing).
+
+    A sensor only ever appears in the output dict if its module
+    actually imported successfully - hardware that was never wired
+    must never show up as a permanent "unavailable" entry (see this
+    project's own "do not show fake/permanent-empty cards" rule for
+    the web UI this feeds)."""
+    if now - last_publish < SENSORS_PUBLISH_INTERVAL_S:
+        return last_publish
+
+    sensors = {}
+    if bh1750_module is not None:
+        try:
+            diag = bh1750_module.get_diagnostics()
+            sensors["ambient_light"] = {
+                "detected": bool(diag.get("detected")),
+                "lux": diag.get("lux"),
+                "stale": bool(diag.get("stale")),
+                "last_success_seconds_ago": diag.get("last_success_seconds_ago"),
+            }
+        except Exception:  # noqa: BLE001 - a broken diagnostics call must
+            pass            # never stop publishing (or crash the daemon)
+
+    try:
+        os.makedirs(SENSORS_PUBLIC_DIR, exist_ok=True)
+        tmp_path = f"{SENSORS_PUBLIC_FILE}.tmp.{os.getpid()}"
+        with open(tmp_path, "w") as f:
+            json.dump({"generated_at": int(now), "sensors": sensors}, f)
+        os.chmod(tmp_path, 0o644)
+        os.replace(tmp_path, SENSORS_PUBLIC_FILE)
+    except OSError:
+        pass  # optional export - never worth crashing the daemon over
+
+    return now
 
 
 def read_emergency_runtime_seconds() -> float:
@@ -1696,13 +1760,25 @@ def main() -> int:
     # OLED display - this is its own separate try/except specifically
     # so a BH1750-only failure can never undo a successful Progression
     # load, and vice versa.
+    #
+    # bh1750_module is kept (not just the bare reader function) so the
+    # sensors-public.json export below (2026-09-07, Environment web UI
+    # round) can call its get_diagnostics() too - stays None, and the
+    # export below simply omits "ambient_light" entirely, if this
+    # import ever fails; a module that was never wired/imported must
+    # never appear in the public export at all (never a permanent
+    # "unavailable" placeholder for hardware that isn't there).
+    bh1750_module = None
     if progression is not None:
         try:
             import piratebox_bh1750
             progression.register_hardware_signal("ambient_lux", piratebox_bh1750.read_ambient_lux)
+            bh1750_module = piratebox_bh1750
             log.info("BH1750 ambient light sensor signal registered.")
         except Exception as exc:  # noqa: BLE001 - optional hardware, never fatal
             log.warning("BH1750 module unavailable (%s) - ambient_lux signal stays unregistered.", exc)
+
+    sensors_last_publish = 0.0
 
     while not stop:
         if device is None:
@@ -1833,6 +1909,16 @@ def main() -> int:
                     progression_dirty = False
             except Exception as exc:  # noqa: BLE001 - Progression must never break the display
                 log.warning("Progression tick failed (%s) - continuing without it this tick.", exc)
+
+        # Environment web UI round (2026-09-07): independent of whether
+        # Progression's own tick above succeeded this cycle - a broken
+        # Progression tick must not also stop sensor readings from
+        # reaching the public export, and vice versa. Cheap: the
+        # function's own throttle makes this a no-op most ticks.
+        try:
+            sensors_last_publish = publish_sensors_export(bh1750_module, sensors_last_publish, now)
+        except Exception as exc:  # noqa: BLE001 - optional export, never fatal
+            log.warning("Sensor export publish failed (%s) - continuing without it.", exc)
 
         if mode_transition is not None:
             # A real mode flip always wins outright - never gated,

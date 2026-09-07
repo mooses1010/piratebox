@@ -6,6 +6,113 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Environment web UI: BH1750 reaches the Utility site, and a real progression-public.json bug found along the way (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. Follow-up to the entry directly below
+(BH1750 commissioning). This round turned the `ambient_lux` hardware
+signal into a real, visitor-facing Utility feature - and, while
+auditing the existing public export before using it (per instruction),
+found a genuine production bug in the previous round's own claim.
+
+**The bug:** the previous entry stated the BH1750 signal "flows
+through automatically to `progression-public.json`'s `hardware` key."
+Checked live before building anything on top of it: that key is
+**permanently `{}`** in production. Root cause -
+`piratebox_status_helper.sh` generates `progression-public.json` by
+invoking `piratebox_progression.py` as a **brand-new, separate CLI
+process every 30s** - a fresh Python interpreter whose
+`HARDWARE_SIGNALS` registry starts empty every single time, since
+`register_hardware_signal("ambient_lux", ...)` only ever runs inside
+`piratebox_oled_daemon.py`'s own long-running process memory.
+Registering a signal in one process has no way to reach a different,
+later, independent process - an architecture-level oversight in how
+that CLI export was wired up, not a bug in the registry mechanism
+itself (`piratebox_progression.py`'s own in-process tests, which
+register a signal and read it back in the SAME process, correctly
+proved the mechanism works - they just never exercised the real
+CLI-invocation production path).
+
+**The fix, and why it's a new file rather than a fix to the old one:**
+a small, separate, narrowly-scoped export -
+`/run/piratebox-sensors/sensors-public.json` - written directly by
+`piratebox_oled_daemon.py`'s new `publish_sensors_export()`, since that
+daemon process is the only place a registered sensor reader's own
+rate-limited cache actually lives. This is also the architecturally
+cleaner home regardless of the bug: sensors are a different concern
+from Progression/Captain's Log, and broadening that export's scope
+would have blurred a boundary that didn't need blurring. Published
+at most every 20s (`SENSORS_PUBLISH_INTERVAL_S`), independent of - and
+looser than - BH1750's own 15s internal I2C rate limit; a sensor only
+ever appears in the file if its module actually registered (hardware
+never wired stays entirely absent, never a permanent "unavailable"
+placeholder).
+
+**Plumbing needed for a daemon running `ProtectSystem=strict` to write
+to `/run`:** `piratebox-oled.service` gained `RuntimeDirectory=
+piratebox-sensors` (systemd creates `/run/piratebox-sensors` fresh on
+every start, owned by the service's own `User=`/`Group=`, mode 0755) -
+the idiomatic systemd mechanism for exactly this, instead of a manual
+`etc/tmpfiles.d` rule plus a `ReadWritePaths=` entry (both work; this
+needed less plumbing and is self-cleaning). PHP-FPM's `open_basedir`
+gained one new named file - `/run/piratebox-sensors/sensors-public.json`
+- the same narrow, additive pattern already used for `status.json` and
+`progression-public.json`.
+
+**Web UI:** a permanent "Environment" card on the Utility landing page
+(live one-line lux/classification snippet when a current reading
+exists, the same static description every other card uses otherwise),
+and a dedicated `/utility/environment/` page - current lux, a plain-
+language classification (Dark/Dim/Indoor/Bright/Very Bright - see
+below), sensor status, freshness, and a short explanation of what lux
+means. `includes/sensors.php` is the one shared reader/classifier both
+pages consume - a future BME280/DS18B20/INA226/ESP32-supervisor sensor
+gets its own reading function there and its own conditionally-rendered
+section on the Environment page, following the same pattern, never
+rendered until its own signal actually exists in the export. No
+database, no history/graph (skipped deliberately - a clean live
+dashboard was judged more valuable than inventing a storage/charting
+layer this round), no heavy JS - a same-origin `?fetch=1` endpoint on
+the page itself, polled every 30s via a small inline script (the exact
+pattern `chat.php`/`messages.php`/`bulletin.php` already use), never
+touching the hardware itself and never multiplying polling per visitor
+- N tabs open still means one cached-file read each, at most every 30s.
+
+**Ambient-light classification bands (Dark <10 lux, Dim <50, Indoor
+<250, Bright <1000, Very Bright ≥1000) are UI-only presentation
+choices** - ordinary, widely-published ambient-lighting reference
+points (moonlight/twilight through direct daylight), picked and
+documented independently of, and deliberately different from, any
+Progression/achievement condition or threshold. `includes/sensors.php`
+has zero code path into `progression.php`/`progression-public.json`/
+`ACHIEVEMENTS`/`HARDWARE_SIGNALS` - confirmed by a dedicated structural
+test (`tools/test_sensors_web.php`) that inspects the file's own actual
+code lines for exactly those references, not just its output.
+
+**Not done this round, per instruction:** no DS18B20/BME280/INA226/
+ESP32 work of any kind (their absence from the export means no section
+for them renders at all - proven by test, not just by omission), no
+history/trend graph, no automatic OLED brightness/dimming behavior, no
+new achievements.
+
+Tests: new `tools/test_sensors_export.py` (7 assertions -
+`publish_sensors_export()`'s throttling, omission of never-registered
+sensors, degrade-on-broken-diagnostics, world-readability, directory
+auto-creation), `tools/test_sensors_web.php` (45 assertions - malformed-
+export parsing, the exact classification boundaries pinned, the full
+installed/detected/stale/available decision table via injected export
+data, and the structural Progression-isolation check above), and
+`tools/test_deploy_environment_sensors.py` (12 assertions - the deploy
+script's idempotency, service-restart scope, and that the systemd
+unit/php.ini end up consistent with what the script claims to do). Full
+existing Python and PHP suites re-run and confirmed unaffected.
+
+Deployment: the PHP/i18n side deploys via the existing, already-
+approved `sudo piratebox_deploy.sh` (additive-only, no new privilege
+requested). The daemon/system-level side (systemd unit, open_basedir,
+the daemon + BH1750 module themselves) is a new, narrow, idempotent
+script - `sudo tools/deploy_environment_sensors.sh` - consolidating
+every root-required step into one command, per instruction.
+
 ## BH1750 ambient light sensor: commissioned and integrated (2026-09-07, later still)
 
 **Decision date:** 2026-09-07. A BH1750FVI ambient light sensor was
