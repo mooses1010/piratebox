@@ -6,6 +6,87 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## BH1750 physical migration to the ESP32-S3 supervisor: COMPLETE, including a real fault found and fixed (2026-09-07, final round)
+
+**Decision date:** 2026-09-07. The operator physically moved the
+BH1750 ambient light sensor from the Pi's own I2C1 bus to the ESP32-S3
+supervisor's I2C bus (VCC→3.3V, GND→GND, SDA→GPIO8, SCL→GPIO9, ADDR
+floating), per the wiring plan given in `docs/ESP32-SUPERVISOR-
+DESIGN.md` §16 (preserved there for reference). This entry is the
+evidence/validation record.
+
+**Fault #1 - a genuine electrical problem, found, diagnosed, and
+fixed:** immediately after the first physical reconnection, the ESP32
+was completely silent - its CH9102 USB bridge stayed cleanly
+enumerated the entire time (zero kernel USB errors), but the chip
+itself produced zero bytes, even under `esptool --no-stub ... chip_id
+--after hard_reset` (the exact command that reliably worked throughout
+the entire commissioning saga, talking to the ROM bootloader
+independent of any application firmware). Characterized carefully
+before concluding anything: ruled out USB/hub/cable (bridge rock
+solid) and a new Pi-power event (`vcgencmd get_throttled` unchanged at
+`0x50005`). A chip that's completely unresponsive even at the ROM
+level, while its own USB bridge stays healthy, is consistent with the
+chip's own core losing a stable power/reset path - most likely the new
+3.3V/GND leads specifically, since those are the only new connections
+that gate whether the chip boots at all (a SDA/SCL fault would not
+explain total ROM-level silence). Reported precisely to the operator
+without guessing further or hammering retries. **The operator
+re-checked and corrected the physical wiring; communication was fully
+restored immediately** - `hello` received with correct MAC
+(`7c:4f:ad:b6:2f:94`), `reset_reason: "poweron"`, confirming the
+board/firmware were completely undamaged throughout.
+
+**Fault #2 - resource contention, not hardware:** the first attempt to
+flash the corrected/BH1750-aware firmware failed with "Serial data
+stream stopped" during `esptool`'s connect handshake. Diagnosed
+immediately (not blamed on the hardware): the systemd
+`piratebox-esp32-supervisor.service` daemon was holding the serial port
+open, and two processes reading the same UART stream corrupts
+`esptool`'s handshake. Confirmed via the daemon's own journal: it
+detected the interference correctly (`malformed_lines: 6`, marked
+itself `stale` at 14:58:21) without crashing - exactly the resilience
+this project was built for (`docs/ESP32-SUPERVISOR-DESIGN.md` §6). No
+data was written to flash before the failure (it aborted during the
+read-only connect phase). **Resolved with one operator command**
+(`sudo systemctl stop piratebox-esp32-supervisor.service` - the daemon
+has no NOPASSWD grant of its own, a genuine, disclosed gate).
+
+**Successful outcome, fully validated:**
+- Firmware flashed cleanly (every write chunk hash-verified, device
+  re-enumerated in 1s).
+- Live validation (Pi daemon run manually, export redirected):
+  `hello`'s `caps` now `["temp_internal", "bh1750"]`; `sensors` carried
+  `{"bh1750": {"ok": true, "value": 11.66667, "unit": "lux"}}` -
+  plausible, consistent with the original Pi-side commissioning's
+  ~9-12 lux range in similar ambient lighting.
+- `i2cdetect -y 1` on the Pi now correctly shows **no device at 0x23**
+  (migration confirmed complete on the Pi side too) - OLED (`0x3c`),
+  EEPROM (`0x57`), RTC (`0x68`, `UU`) all still healthy and unaffected.
+- **`HARDWARE_SIGNALS`'s `"ambient_lux"` switched over**: added
+  `piratebox_esp32_bh1750.py`, a drop-in replacement for the retired
+  Pi-side registration (same two-function interface, same
+  `get_diagnostics()` shape - `piratebox_oled_daemon.py`'s
+  `publish_sensors_export()` and `build_glance_metrics()` needed zero
+  changes to their own bodies, only which module gets imported at
+  startup). `piratebox_bh1750.py` itself is unchanged and left in the
+  repo for historical/rollback reference; nothing imports it anymore.
+  7 new unit tests (`tools/test_esp32_bh1750_migration.py`), all
+  passing; full regression check across every `tools/test_*.py`/
+  `tools/test_*.php` in the repo - 393 Python + 418 PHP tests, all
+  passing, zero regressions.
+- Core PirateBox services, ALFA/`pb-ap`/hostapd, Ethernet all confirmed
+  unaffected throughout both faults and the successful resolution.
+
+**Not yet done, disclosed honestly**: the updated
+`piratebox_oled_daemon.py` (carrying the `ambient_lux` migration) has
+not yet been redeployed to the live `piratebox-oled.service` - that
+needs the same `sudo cp` + `systemctl restart` pattern every previous
+OLED daemon update has needed, consolidated into this round's final
+operator report. The `piratebox-esp32-supervisor.service` also needs
+one `sudo systemctl start` to resume persistent (reboot-surviving)
+operation, since it was deliberately left stopped for the flash.
+
 ## ESP32-S3 BH1750 firmware support prepared ahead of the wiring gate (2026-09-07, immediately after)
 
 **Decision date:** 2026-09-07. Per standing instruction ("do not ask
