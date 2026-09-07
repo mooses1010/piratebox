@@ -860,6 +860,86 @@ class GlanceMetricsTests(unittest.TestCase):
         metrics, _ = oled.build_glance_metrics(None, True, None, False)
         self.assertIsInstance(metrics["uptime_str"], str)
 
+    # --- ambient_lux (2026-09-07, ambient light glance page) -----------
+    # bh1750_module defaults to None (every call above omits it) -
+    # confirms that stays fully backward compatible: ambient_lux is
+    # simply always None, the same honest "not available" value a Pi
+    # with no BH1750 wired would produce anyway.
+    def test_ambient_lux_is_none_when_no_module_given(self):
+        metrics, _ = oled.build_glance_metrics(None, True, None, False)
+        self.assertIsNone(metrics["ambient_lux"])
+
+    def test_ambient_lux_populated_from_a_genuinely_current_reading(self):
+        class FakeBH1750:
+            def get_diagnostics(self):
+                return {"detected": True, "lux": 7.5, "stale": False, "last_success_seconds_ago": 1.0}
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, FakeBH1750())
+        self.assertEqual(metrics["ambient_lux"], 7.5)
+
+    def test_ambient_lux_zero_is_not_treated_as_missing(self):
+        class FakeBH1750:
+            def get_diagnostics(self):
+                return {"detected": True, "lux": 0.0, "stale": False, "last_success_seconds_ago": 1.0}
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, FakeBH1750())
+        self.assertEqual(metrics["ambient_lux"], 0.0)
+        self.assertIsNotNone(metrics["ambient_lux"])
+
+    def test_ambient_lux_none_when_never_detected(self):
+        class FakeBH1750:
+            def get_diagnostics(self):
+                return {"detected": False, "lux": None, "stale": True, "last_success_seconds_ago": None}
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, FakeBH1750())
+        self.assertIsNone(metrics["ambient_lux"])
+
+    def test_ambient_lux_none_when_reading_has_gone_stale(self):
+        """A last-known value existing is not enough - a stale reading
+        must not be presented as current on the glance page, matching
+        includes/sensors.php's own available/stale_reading distinction
+        for the exact same underlying BH1750 diagnostics shape."""
+        class FakeBH1750:
+            def get_diagnostics(self):
+                return {"detected": True, "lux": 42.0, "stale": True, "last_success_seconds_ago": 999.0}
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, FakeBH1750())
+        self.assertIsNone(metrics["ambient_lux"])
+
+    def test_ambient_lux_none_when_diagnostics_call_itself_raises(self):
+        """A broken sensor module must never crash this glance-phase-
+        entry (or, transitively, the daemon) - degrades exactly like
+        every other optional hardware read in this project."""
+        class BrokenBH1750:
+            def get_diagnostics(self):
+                raise RuntimeError("bus error")
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, BrokenBH1750())
+        self.assertIsNone(metrics["ambient_lux"])
+
+    def test_build_glance_metrics_never_triggers_a_second_i2c_reader(self):
+        """The actual rate-limiting-preserved guarantee: this function
+        must call ONLY get_diagnostics() (a read of the BH1750 module's
+        own already-cached state) and never read_ambient_lux() directly
+        - that would be a second, parallel trigger of a real I2C
+        transaction alongside the one HARDWARE_SIGNALS's own registered
+        reader already causes, defeating piratebox_bh1750.py's whole
+        15s internal rate limit. Calling build_glance_metrics() several
+        times in a row (as main()'s own multiple call sites do across
+        different code paths) must not multiply get_diagnostics() calls
+        beyond one per build_glance_metrics() call either."""
+        calls = {"get_diagnostics": 0, "read_ambient_lux": 0}
+
+        class TrackedBH1750:
+            def get_diagnostics(self):
+                calls["get_diagnostics"] += 1
+                return {"detected": True, "lux": 10.0, "stale": False, "last_success_seconds_ago": 1.0}
+
+            def read_ambient_lux(self):
+                calls["read_ambient_lux"] += 1
+                return 10.0
+
+        tracked = TrackedBH1750()
+        for _ in range(5):
+            oled.build_glance_metrics(None, True, None, False, tracked)
+        self.assertEqual(calls["get_diagnostics"], 5, "exactly one get_diagnostics() call per build_glance_metrics() call")
+        self.assertEqual(calls["read_ambient_lux"], 0, "must never call the real-I2C-triggering reader directly")
+
 
 class GlanceDispatchTests(unittest.TestCase):
     """build_frame()'s "glance" page arm - confirms the wiring itself

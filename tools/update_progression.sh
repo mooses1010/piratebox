@@ -31,6 +31,15 @@
 # try/except, degrading to "signal stays unregistered" exactly like a
 # missing Progression subsystem already does.
 #
+# 2026-09-07, later still (ambient light At-a-Glance page): extended
+# again to also deploy piratebox_glance.py - gained a new "ambient"
+# GLANCE_PAGES entry consuming the same bh1750_module reference
+# piratebox_oled_daemon.py already keeps (no new I2C reader, no second
+# poller - see that file's own build_glance_metrics() comment). Same
+# graceful-absence behavior: on an install with no BH1750, the page is
+# simply never eligible (ambient_lux stays None), never a broken-
+# looking placeholder.
+#
 # SAFE BY CONSTRUCTION: this script touches only these files and
 # restarts exactly one already-optional, already-isolated service
 # (piratebox-oled.service has no Requires=/BindsTo= on any core
@@ -55,7 +64,7 @@ fi
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-for f in piratebox_progression.py piratebox_oled_daemon.py piratebox_bh1750.py; do
+for f in piratebox_progression.py piratebox_oled_daemon.py piratebox_bh1750.py piratebox_glance.py; do
     cp "$REPO_ROOT/$f" "/usr/local/bin/$f"
     chown root:root "/usr/local/bin/$f"
     chmod 755 "/usr/local/bin/$f"

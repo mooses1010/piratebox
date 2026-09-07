@@ -83,7 +83,7 @@ it is.**
 | GNSS receiver | Optional/Field | CANDIDATE | Attachable or Integrated (undecided) |
 | Environmental sensing (temp/humidity beyond CPU) | Optional/Field | CANDIDATE | Integrated or Companion |
 | Air quality (CO2/particulate/VOC) | Optional/Field | CANDIDATE | Integrated or Companion |
-| Light / UV (BH1750 ambient light) | Optional/Field | **INSTALLED, COMMISSIONED, WEB UI LIVE (2026-09-07)** - detected at 0x23, real lux readings confirmed (~9-12 lux); `/utility/environment/` + a Utility landing-page card, via a dedicated `sensors-public.json` export (not progression-public.json - see below) | Integrated (directly on Pi I2C bus; behind a future ESP32-S3 supervisor is possible/planned, not implemented) |
+| Light / UV (BH1750 ambient light) | Optional/Field | **INSTALLED, COMMISSIONED, WEB UI + OLED GLANCE PAGE LIVE (2026-09-07)** - detected at 0x23, real lux readings confirmed (~7-31 lux across sessions); `/utility/environment/` + a Utility landing-page card via a dedicated `sensors-public.json` export, and a native OLED "AMBIENT" At-a-Glance page (8th glance page) reusing the exact same already-rate-limited reader in-process, no second I2C poller | Integrated (directly on Pi I2C bus; behind a future ESP32-S3 supervisor is possible/planned, not implemented) |
 | Motion / orientation (IMU) | Optional/Field | CANDIDATE | Integrated |
 | Proximity (ToF) | Optional/Field | CANDIDATE | Integrated |
 | Sound measurement | Optional/Field | CANDIDATE | Integrated or Companion |
@@ -813,6 +813,32 @@ it is.**
   a fabricated zero. See `tools/diagnose_bh1750.py` for a standalone,
   no-sudo-needed diagnostic (detected/responding, current lux,
   staleness, last error).
+- **OLED At-a-Glance page (added 2026-09-07):** a native "AMBIENT"
+  page in `piratebox_glance.py`'s Distance/Glance Display - the 8th
+  glance page, alongside CPU/RAM/DISK/CLIENTS/UPTIME/TIME/POWER. Shows
+  the current lux value and a plain-language classification (same 5
+  bands as the web UI - `DARK`/`DIM`/`INDOOR`/`BRIGHT`, and `V.BRIGHT`
+  as the OLED's necessarily-abbreviated rendering of "Very Bright",
+  which measured 146px wide at the page's own font size against a
+  128px canvas). Reuses the exact same in-process `bh1750_module`
+  reference `piratebox_oled_daemon.py` already keeps for the
+  HARDWARE_SIGNALS registration - calls only its `get_diagnostics()`
+  (a read of already-cached state), never `read_ambient_lux()`
+  directly, so this adds no second I2C poller and the existing 15s
+  rate limit is completely unaffected. Only eligible with a genuinely
+  current reading (not stale, actually detected) - on a Pi without the
+  sensor, or during a transient failure, the page is simply never
+  selected, never a fabricated `0 lux`. Baseline scheduler weight
+  matches "uptime" (routine, not dominant).
+- **Classification consistency between the two UIs:** the OLED's
+  `piratebox_glance._classify_ambient_light_label()` and the web UI's
+  `includes/sensors.php` `piratebox_classify_ambient_light()` use
+  identical boundary values, kept as two independent, explicitly-
+  synchronized implementations (a shared file across Python and PHP
+  was judged more complexity than five static numbers warrant) -
+  `tools/test_ambient_light_consistency.py` shells out to the real PHP
+  function and proves both classifiers place a representative set of
+  lux values, including every exact boundary, into the same band.
 - **Future migration path (not implemented, not started):** this
   sensor is wired directly to the Pi's I2C bus today. `docs/CAPABILITY-
   REGISTRY.md`'s own "Remote microcontroller/sensor node (e.g. ESP32)"

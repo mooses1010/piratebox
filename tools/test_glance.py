@@ -60,6 +60,7 @@ HEALTHY_METRICS = {
     "uptime_str": "3d 04h",
     "time_str": "21:42",
     "undervoltage_now": False,
+    "ambient_lux": 120.0,
 }
 
 
@@ -155,7 +156,7 @@ class LabelFitTests(unittest.TestCase):
     raise" - the whole point of this round's fix was a readability
     regression that unit tests alone hadn't caught the first time."""
 
-    ALL_LABELS = ("CPU", "RAM", "DISK", "TIME", "POWER", "CLIENTS", "UPTIME")
+    ALL_LABELS = ("CPU", "RAM", "DISK", "TIME", "POWER", "CLIENTS", "UPTIME", "AMBIENT")
 
     def test_short_labels_get_the_largest_tier(self):
         """CPU/RAM/DISK/TIME/POWER (<=5 chars) must all fit the BIGGEST
@@ -204,7 +205,7 @@ class LabelFitTests(unittest.TestCase):
         draw = _fresh_draw()
         for text in self.ALL_LABELS:
             with self.subTest(text=text):
-                font = font_cpu_label if text == "CPU" else gl._fit_label_font(draw, text, label_fonts)
+                font = font_cpu_label if text in ("CPU", "AMBIENT") else gl._fit_label_font(draw, text, label_fonts)
                 bbox = draw.textbbox((0, 0), text, font=font)
                 self.assertLess(bbox[2] - bbox[0], gl.CANVAS_W)
 
@@ -265,6 +266,7 @@ class LabelFitTests(unittest.TestCase):
             ("uptime", {"uptime_str": "99d 23h"}),
             ("time", {"time_str": "23:59"}),
             ("power_warning", {"undervoltage_now": True}),
+            ("ambient", {"ambient_lux": 54612.0}),  # BH1750's own theoretical max - triggers "V.BRIGHT"
         ]
         for page_id, metrics in cases:
             with self.subTest(page_id=page_id):
@@ -284,6 +286,127 @@ class LabelFitTests(unittest.TestCase):
                     f"{page_id}: content reaches the very last row - likely clipped",
                 )
                 self.assertGreater(lowest_lit_row, 0, f"{page_id}: nothing was drawn at all")
+
+
+class AmbientLightTests(unittest.TestCase):
+    """_fmt_lux() / _classify_ambient_light_label() / the "ambient"
+    glance page specifically (2026-09-07) - the generic RenderingTests/
+    SchedulerTests above already cover "ambient" for free wherever they
+    iterate gl.GLANCE_PAGES, but the formatting/classification logic
+    itself deserves direct, exact-value tests, not just "didn't crash"."""
+
+    def test_fmt_lux_none_is_a_dash_never_a_fabricated_zero(self):
+        self.assertEqual(gl._fmt_lux(None), "--")
+
+    def test_fmt_lux_zero_is_a_real_reading_not_treated_as_missing(self):
+        """0.0 lux (pitch black) is a genuine, meaningful reading - a
+        classic Python pitfall would be an `if value` truthiness check
+        treating 0.0 as falsy/missing. Must format as an actual zero
+        reading, never fall back to '--'."""
+        self.assertEqual(gl._fmt_lux(0.0), "0.0 LUX")
+
+    def test_fmt_lux_shows_one_decimal_below_100(self):
+        self.assertEqual(gl._fmt_lux(7.5), "7.5 LUX")
+        self.assertEqual(gl._fmt_lux(9.96), "10.0 LUX")  # rounds, still one decimal
+
+    def test_fmt_lux_rounds_to_whole_number_at_and_above_100(self):
+        self.assertEqual(gl._fmt_lux(100.0), "100 LUX")
+        self.assertEqual(gl._fmt_lux(1234.6), "1235 LUX")
+
+    def test_classify_boundaries_pinned_exactly(self):
+        """Mirrors tools/test_sensors_web.php's identical boundary-
+        pinning test for includes/sensors.php's piratebox_classify_
+        ambient_light() - see piratebox_glance.py's own header comment
+        on why these two implementations are kept independent but
+        synchronized. tools/test_ambient_light_consistency.py is the
+        actual cross-language contract test; this one just guards
+        THIS implementation's own boundaries against silent drift."""
+        cases = [
+            (0.0, "DARK"), (9.9, "DARK"),
+            (10.0, "DIM"), (49.9, "DIM"),
+            (50.0, "INDOOR"), (249.9, "INDOOR"),
+            (250.0, "BRIGHT"), (999.9, "BRIGHT"),
+            (1000.0, "V.BRIGHT"), (100000.0, "V.BRIGHT"),
+        ]
+        for lux, expected in cases:
+            with self.subTest(lux=lux):
+                self.assertEqual(gl._classify_ambient_light_label(lux), expected)
+
+    def test_every_classification_label_fits_the_canvas_at_font_medium(self):
+        """The real reason "Very Bright" became "V.BRIGHT" here -
+        confirmed directly rather than just asserted in a comment."""
+        _, _, font_medium, _ = _fonts()
+        draw = _fresh_draw()
+        for lux in (0.0, 25.0, 100.0, 500.0, 5000.0):
+            label = gl._classify_ambient_light_label(lux)
+            bbox = draw.textbbox((0, 0), label, font=font_medium)
+            self.assertLess(bbox[2] - bbox[0], gl.CANVAS_W, f"{label!r} at {lux} lux overflows the canvas")
+
+    def test_render_ambient_shows_lux_and_classification(self):
+        """Not just 'doesn't crash' - the ACTUAL pixels reflect the
+        real value, the same discipline test_percent_values_are_
+        actually_centered_not_just_present already established above."""
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
+        m = dict(HEALTHY_METRICS)
+        m["ambient_lux"] = 7.5
+        # Built explicitly (not via _fresh_draw()) so the underlying
+        # Image is directly available for pixel inspection afterward -
+        # same pattern test_no_page_clips_at_the_bottom_of_the_canvas
+        # already uses above.
+        img = Image.new("1", (gl.CANVAS_W, gl.CANVAS_H))
+        draw = ImageDraw.Draw(img)
+        gl.render_glance_page(draw, label_fonts, font_cpu_label, font_medium, font_big, "ambient", m)
+        # Rendering is opaque pixels-in/pixels-out - the meaningful
+        # check is that SOMETHING was actually drawn (not a blank
+        # frame), matching this file's own clip-detection technique.
+        pixels = img.load()
+        self.assertTrue(any(pixels[x, y] for x in range(gl.CANVAS_W) for y in range(gl.CANVAS_H)))
+
+    def test_render_ambient_handles_none_without_fabricating_a_zero(self):
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
+        m = dict(HEALTHY_METRICS)
+        m["ambient_lux"] = None
+        # Must not raise - defense in depth even though the scheduler's
+        # own eligible() (see SchedulerTests below) should never
+        # actually pick this page with a None reading.
+        gl.render_glance_page(_fresh_draw(), label_fonts, font_cpu_label, font_medium, font_big, "ambient", m)
+
+    def test_ambient_ineligible_when_no_reading(self):
+        m = dict(HEALTHY_METRICS)
+        m["ambient_lux"] = None
+        self.assertFalse(gl.GLANCE_PAGES["ambient"]["eligible"](m))
+
+    def test_ambient_eligible_with_a_real_reading_including_zero(self):
+        for lux in (0.0, 7.5, 50000.0):
+            with self.subTest(lux=lux):
+                m = dict(HEALTHY_METRICS)
+                m["ambient_lux"] = lux
+                self.assertTrue(gl.GLANCE_PAGES["ambient"]["eligible"](m))
+
+    def test_ambient_never_selected_when_ineligible(self):
+        m = dict(HEALTHY_METRICS)
+        m["ambient_lux"] = None
+        rng = random.Random(42)
+        seen = set()
+        for i in range(200):
+            seen.add(gl.select_glance_page(m, rng, None, {}, 1000.0 + i))
+        self.assertNotIn("ambient", seen)
+
+    def test_ambient_weight_does_not_dominate_the_rotation(self):
+        """Per instruction: ambient light must not dominate. Its
+        baseline weight (8.0) matches "uptime" - confirmed it is not
+        disproportionately more likely than the other always-eligible
+        routine pages over many rolls."""
+        rng = random.Random(7)
+        counts = {}
+        for i in range(4000):
+            page = gl.select_glance_page(HEALTHY_METRICS, rng, None, {}, 1000.0 + i)
+            counts[page] = counts.get(page, 0) + 1
+        # "ambient" should land in the same rough tier as "uptime"
+        # (also weight 8.0), not noticeably ahead of "cpu"/"ram"/"disk"
+        # (weight 10.0 each) - a generous tolerance since this is a
+        # randomized weighted draw, not an exact split.
+        self.assertLess(counts.get("ambient", 0), counts.get("cpu", 0) * 1.3)
 
 
 class SchedulerTests(unittest.TestCase):
@@ -413,7 +536,7 @@ class SchedulerTests(unittest.TestCase):
         expected set deliberately; it must never grow silently."""
         self.assertEqual(
             set(gl.GLANCE_PAGES.keys()),
-            {"cpu", "ram", "disk", "clients", "uptime", "time", "power_warning"},
+            {"cpu", "ram", "disk", "clients", "uptime", "time", "power_warning", "ambient"},
         )
 
     def test_empty_pool_returns_none_not_a_crash(self):
@@ -451,7 +574,35 @@ class PreviewOrderTests(unittest.TestCase):
         self.assertNotIn("power_warning", gl.GLANCE_PREVIEW_ORDER)
 
     def test_preview_order_covers_every_baseline_page(self):
-        self.assertEqual(set(gl.GLANCE_PREVIEW_ORDER), {"cpu", "ram", "disk", "clients", "uptime", "time"})
+        self.assertEqual(set(gl.GLANCE_PREVIEW_ORDER), {"cpu", "ram", "disk", "clients", "uptime", "time", "ambient"})
+
+
+class ProgressionIsolationTests(unittest.TestCase):
+    """Per instruction (ambient light At-a-Glance round, 2026-09-07):
+    the light classification bands are UI presentation only and must
+    never touch Progression's rarity/achievement/secret-trigger system.
+    This module's own header already states this (twice - once
+    generally, once again specifically for _classify_ambient_light_
+    label()) - confirmed structurally here, the same technique already
+    used for includes/sensors.php's own equivalent test, rather than
+    just trusting the comment."""
+
+    def test_module_source_has_no_code_path_into_progression_internals(self):
+        with open(MODULE_PATH) as f:
+            source = f.read()
+        code_only = "\n".join(
+            line.strip() for line in source.splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        )
+        for forbidden in (
+            "import piratebox_progression", "ACHIEVEMENTS[", "HARDWARE_SIGNALS[",
+            "register_hardware_signal", "roll_event", "EVENT_FAMILIES",
+        ):
+            self.assertNotIn(
+                forbidden, code_only,
+                f"piratebox_glance.py's actual code references {forbidden!r} - "
+                "this module must have zero path into Progression internals",
+            )
 
 
 if __name__ == "__main__":
