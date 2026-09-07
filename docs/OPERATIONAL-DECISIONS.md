@@ -6,6 +6,85 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## ESP32-S3 USB commissioning: did not enumerate, correlated with live undervoltage (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. An ESP32-S3-N16R8 dev board (16MB
+flash / 8MB PSRAM per the module's own printed marking - **not
+independently verified**, see below) arrived and was connected to the
+Pi over USB only - no breadboard, no sensor wiring, no GPIO connected
+to anything. Read-only USB commissioning was performed before any
+flashing or configuration, per instruction.
+
+**Finding: the board did not enumerate.** `lsusb`/`lsusb -t` show only
+the four devices already known on this Pi (root hub, two internal
+hubs, the MT7612U Wi-Fi adapter, the LAN78xx Ethernet adapter) - no new
+VID:PID, no CDC-ACM device, no `/dev/ttyACM*`/`/dev/ttyUSB*`, nothing
+matching Espressif's own USB vendor ID (`303a`) or a common USB-UART
+bridge (CH340/CP210x/FTDI). `dmesg`/`journalctl -k` (searched across
+the entire boot, and the entire persisted journal history for this
+exact port - this specific failure has never happened before) show
+exactly one relevant line, the first and only USB event logged since
+this commissioning session began:
+
+```
+usb 1-1.1-port3: connect-debounce failed
+```
+
+This means the connection attempt failed at the electrical/debounce
+stage - before the kernel ever assigned a device address or read a
+single descriptor. **There is nothing to identify from this event**:
+no VID:PID, no manufacturer/product string, no USB speed, no evidence
+of native-USB-vs-UART-bridge - not an ambiguous identification, an
+absent one. Port `1-1.1-port3` is port 3 of the Pi's internal 3-port
+hub (`0424:2514`, confirmed via `/sys/bus/usb/devices/1-1.1/maxchild`
+= 3) - the same hub the built-in Ethernet adapter's port 1 already
+uses; whichever physical rear USB-A port the operator's USB-A-to-USB-C
+cable is plugged into maps to this port.
+
+**Correlated, not yet proven causal:** `vcgencmd get_throttled` read
+`0x50005` at the same time - `/run/piratebox/status.json`'s own
+`power` block confirms `undervoltage_now: true` (bit 0, live right
+now, not the historical/since-boot bits alone) and
+`undervoltage_since_boot: true`. Per instruction, this is NOT the same
+as blaming old/historical undervoltage baggage for an unrelated new
+problem - this is a live condition measured at the same moment as the
+connect failure, and a marginal supply struggling with one more USB
+load drawing current is a well-documented real-world cause of exactly
+this kind of debounce failure on this hardware family. It remains a
+correlation, not a proven single cause - no other explanation (cable,
+port, board fault) has been ruled out either, and none of this
+commissioning session's actions (all read-only) could have caused or
+worsened it.
+
+**What is proven vs. still only printed-on-the-board:** proven -
+nothing about this specific board yet, since it never successfully
+communicated over USB at all. Still unverified: the N16R8 flash/PSRAM
+configuration, which family variant, native-USB vs. UART-bridge
+identity of either USB-C port - all of that requires an actual
+successful enumeration (or, later, a ROM bootloader session) to
+confirm, deliberately not assumed from the module's silkscreen alone.
+
+**Next safe commissioning step (not performed this round):** a plain
+reseat of the same cable in the same port - full unplug, brief pause,
+firm replug - the least invasive possible next action, and distinct
+from testing the board's other USB-C port (which stays a separate,
+not-yet-taken step; per instruction, not requested unless the reseat
+still leaves a genuine ambiguity). No firmware flashing, no ESP-IDF/
+Arduino tooling install, and no sensor/GPIO work was performed or is
+proposed - this round was USB/board baseline only, and the baseline
+itself has not been established yet.
+
+**Nothing else on this Pi was touched or affected** - confirmed live,
+not assumed: zero Core service depends on this board's presence (per
+`docs/ARCHITECTURE.md` §3's own Network Companion contract, already
+true regardless of enumeration status), and after this commissioning
+attempt, `piratebox-oled`/`hostapd`/`dnsmasq`/`nginx`/`php8.4-fpm` all
+remained active, zero failed systemd units, and the existing I2C bus
+(OLED `0x3c`, BH1750 `0x23`, EEPROM `0x57`, RTC `0x68` `UU`) was fully
+intact. This commissioning attempt performed no writes, no config
+changes, no service restarts, and no package installs anywhere on the
+system.
+
 ## Ambient light joins the OLED At-a-Glance rotation (2026-09-07, later still)
 
 **Decision date:** 2026-09-07. Follow-up to the entry directly below

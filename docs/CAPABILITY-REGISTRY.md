@@ -92,7 +92,7 @@ it is.**
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
 | SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` confirmed live; stock `<`/`>` fine-tune buttons' `tuning_step=5000` fix confirmed live; PirateBox-side Previous/Next Spectrum + click-to-tune range bar confirmed live for hardware-window navigation, distinct from OpenWebRX+'s own tuning; native OpenWebRX+ bandplan ribbon confirmed live and correct at four representative frequencies after a same-day deploy outage was fixed (see doc §16); Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
-| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | CANDIDATE | Network Companion |
+| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | **HARDWARE PRESENT (ESP32-S3-N16R8), USB commissioning attempted 2026-09-07 - did NOT enumerate; single `connect-debounce failed` kernel event, correlated with live undervoltage (`0x50005`) at the same moment. No VID:PID/board identity captured yet.** | Network Companion (pending re-evaluation - board connects via USB, not LAN) |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
 
 ---
@@ -1184,12 +1184,49 @@ it is.**
 
 ### Remote microcontroller/sensor node (e.g. ESP32)
 
-- **Purpose:** the concrete example of a Network Companion device -
-  independently powered, communicates over the PirateBox LAN.
-- **State:** CANDIDATE - concept only, no specific project chosen.
-- **Layer:** Optional/Field. Classification: Network Companion. Core
-  dependency: No - **must be able to disappear without breaking Core**
-  (`docs/ARCHITECTURE.md` §3).
+- **Purpose:** originally the concrete example of a Network Companion
+  device - independently powered, communicates over the PirateBox LAN.
+  **Note the real hardware that arrived (below) connects over USB, not
+  the LAN this row originally envisioned** - recorded honestly rather
+  than silently reinterpreting the concept to match; whether it ends up
+  a USB-attached sensor supervisor or something reachable over the LAN
+  too is still undecided.
+- **State:** **HARDWARE PRESENT, USB COMMISSIONING ATTEMPTED - NOT YET
+  ENUMERATED (2026-09-07).** An ESP32-S3-N16R8 dev board (16MB flash /
+  8MB PSRAM printed on the module, **not yet independently verified** -
+  see below) is physically connected to the Pi via USB only, no
+  breadboard/sensor wiring. First read-only USB commissioning pass
+  found **no new device on the bus at all** - `lsusb`/`lsusb -t` show
+  only the four pre-existing devices (root hub, two internal hubs, the
+  MT7612U Wi-Fi adapter, the LAN78xx Ethernet adapter). The kernel log
+  shows exactly one relevant, first-ever event since boot:
+  `usb 1-1.1-port3: connect-debounce failed`, timestamped within
+  minutes of this commissioning session starting - the USB connection
+  attempt failed at the electrical/debounce stage, before any
+  descriptor was ever read, so **no VID:PID, manufacturer/product
+  string, USB speed, or board identity could be captured** - there is
+  nothing to identify yet, not an identification that came back
+  ambiguous.
+- **Likely contributing factor, not certain:** `vcgencmd get_throttled`
+  read `0x50005` at the same time - bit 0 (`Under-voltage detected`)
+  and bit 2 (`Currently throttled`) both **live, right now**, not just
+  the historical/since-boot bits. This is a real, current condition on
+  this Pi (see `docs/POWER-INTEGRITY-DIAGNOSIS.md`), and a marginal
+  supply struggling with one more USB load is a well-known real-world
+  cause of exactly this kind of connect-debounce failure - but this is
+  a plausible correlation from live evidence, not a proven causal link;
+  no other cause has been ruled out either.
+- **Next safe commissioning step:** a plain reseat of the same cable in
+  the same port (full unplug, brief pause, firm replug) - the least
+  invasive next action, distinct from testing the board's other
+  USB-C port, which stays a separate, not-yet-taken step. See
+  `docs/OPERATIONAL-DECISIONS.md` for the full commissioning record.
+- **Layer:** Optional/Field. Classification: Network Companion (pending
+  re-evaluation - see above). Core dependency: No - **must be able to
+  disappear without breaking Core** (`docs/ARCHITECTURE.md` §3) -
+  already true today: zero Core service depends on this board's
+  presence, and this commissioning attempt touched no PirateBox
+  service, config, or Core function whatsoever.
 
 ### Another Pi / general companion node
 
