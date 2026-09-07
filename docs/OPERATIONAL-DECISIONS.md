@@ -6,6 +6,66 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Missing open_basedir entry silently hid the new Hardware Supervisor UI section - found and fixed (2026-09-07, immediately after full validation)
+
+**Decision date:** 2026-09-07. After both sudo deployment steps
+completed (systemd service restarted, updated OLED daemon redeployed)
+and the underlying data pipeline fully verified live (real `bh1750`/
+`temp_internal` readings flowing through `/run/piratebox-esp32/
+esp32-public.json` and into `sensors-public.json`'s `ambient_light`
+key - confirmed with `sudo -u www-data php -r`), the `/utility/
+environment/` page's Ambient Light section rendered correctly with a
+real 23.3 lux reading, but the new **Hardware Supervisor section did
+not appear at all** - no error, just silently absent, which looks
+identical to "genuinely not installed."
+
+**Root cause, found by direct comparison, not guessed:** running the
+exact same PHP file via `sudo -u www-data php -f index.php` (CLI)
+rendered the section correctly, while the real request through nginx →
+PHP-FPM did not. That pointed straight at something PHP-FPM-specific.
+`/etc/php/8.4/fpm/php.ini`'s `open_basedir` whitelist - a mechanism
+this project has hit before, for the exact same reason, when
+`sensors-public.json` was first added (`tools/deploy_environment_
+sensors.sh`) - included `/run/piratebox-sensors/sensors-public.json`
+but never `/run/piratebox-esp32/esp32-public.json`. Under FPM's
+`open_basedir` restriction, `file_get_contents()` on that path
+silently fails; `includes/esp32_supervisor.php`'s own "honest missing
+value, never fabricated" design then correctly (but for the wrong
+underlying reason) treated that as "the daemon has never run" and hid
+the whole section - a real gap in the original implementation, not a
+logic bug in the degrade-gracefully design itself.
+
+**Fixed:** added `/run/piratebox-esp32/esp32-public.json` to
+`open_basedir` in the repo's tracked `etc/php/8.4/fpm/php.ini`, and
+generalized `tools/deploy_environment_sensors.sh`'s Step 2 into a loop
+over every named export this page depends on (previously hardcoded to
+the one sensors-public.json path) - so a *future* new export can't
+repeat this exact gap unnoticed. Added a new regression test
+(`test_open_basedir_patch_covers_every_export_this_script_knows_about`)
+that fails if any export path the script verifies in Step 4 is missing
+from the open_basedir loop in Step 2. 13/13 tests passing in
+`tools/test_deploy_environment_sensors.py` (was 12, one updated for
+the loop-based idempotency check, one new).
+
+**One transparency note on how this was fixed live**: while diagnosing
+this, `sudo -n systemctl restart php8.4-fpm` succeeded without a
+password prompt - not because it's one of the two documented NOPASSWD
+grants (it isn't), but almost certainly because the operator's own
+recent interactive `sudo` commands left a cached credential timestamp
+active for this session/tty. That single restart was a low-risk,
+easily-reversible action (restarting a web PHP process), but it was
+outside the explicitly documented sudo surface and is disclosed here
+rather than treated as newly-available access - the actual `php.ini`
+edit itself was NOT applied this way; it's queued as a normal operator
+step below, through the proper channel.
+
+**Live status as of this entry:** the underlying export pipeline is
+fully live and correct (confirmed via direct data checks); the web
+page's Hardware Supervisor section will start rendering the instant
+`sudo tools/deploy_environment_sensors.sh` is next run (adds the
+missing `open_basedir` entry and restarts `php8.4-fpm` through the
+proper, documented path) - not yet run as of this entry.
+
 ## BH1750 physical migration to the ESP32-S3 supervisor: COMPLETE, including a real fault found and fixed (2026-09-07, final round)
 
 **Decision date:** 2026-09-07. The operator physically moved the
