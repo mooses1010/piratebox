@@ -92,7 +92,7 @@ it is.**
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
 | SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` confirmed live; stock `<`/`>` fine-tune buttons' `tuning_step=5000` fix confirmed live; PirateBox-side Previous/Next Spectrum + click-to-tune range bar confirmed live for hardware-window navigation, distinct from OpenWebRX+'s own tuning; native OpenWebRX+ bandplan ribbon confirmed live and correct at four representative frequencies after a same-day deploy outage was fixed (see doc §16); Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
-| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | **ESP32-S3-N16R8: stable connection achieved via an externally-powered USB hub (2026-09-07)**, after direct-Pi and bus-powered-hub configurations both failed. `esptool` v4.7.0 was run read-only against the native "USB" port but could not complete a chip-info handshake (`chip_id` failed with "No serial data received" under both default and `usb_reset` reset strategies) - the board's generic app firmware doesn't wire USB control lines to force a bootloader reset the way the "COM" port's likely UART bridge would. Board was left completely undisturbed (factory firmware never actually reset, resumed with zero interruption). Flash/PSRAM/ROM identity remain unverified - the "COM" port or a manual BOOT-button-held connect are the untaken next steps. | Network Companion (pending re-evaluation - board connects via USB, not LAN) |
+| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | **ESP32-S3-N16R8: hardware commissioning COMPLETE (2026-09-07).** Stable connection via an externally-powered USB hub + the board's "COM" port (WCH `1a86:55d3` UART bridge, `/dev/ttyACM0`). Read-only `esptool` identification confirmed: genuine ESP32-S3 (QFN56) silicon rev v0.2, 40MHz crystal, MAC `7c:4f:ad:b6:2f:94`, **16MB GigaDevice quad-SPI flash (N16 confirmed)**, **8MB embedded PSRAM per efuse config (R8 confirmed)**, Secure Boot and Flash Encryption both disabled (factory-default, unlocked for dev). Board released back to factory firmware via a normal hard reset; PirateBox/ALFA/core services verified healthy afterward. Ready for supervisor firmware development next. | Network Companion (pending re-evaluation - board connects via USB, not LAN) |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
 
 ---
@@ -1191,10 +1191,10 @@ it is.**
   than silently reinterpreting the concept to match; whether it ends up
   a USB-attached sensor supervisor or something reachable over the LAN
   too is still undecided.
-- **State:** **ENUMERATES SUCCESSFULLY (2026-09-07 - see the final
-  bullet below for the resolution; the state description immediately
-  below is kept as accurate history of the original failed attempt,
-  not the current state).** An ESP32-S3-N16R8 dev board (16MB flash /
+- **State:** **HARDWARE COMMISSIONING COMPLETE (2026-09-07 - see the
+  final bullet below for the full identification result; the state
+  description immediately below is kept as accurate history of the
+  original failed attempt, not the current state).** An ESP32-S3-N16R8 dev board (16MB flash /
   8MB PSRAM printed on the module, **not yet independently verified** -
   see below) is physically connected to the Pi via USB only, no
   breadboard/sensor wiring. First read-only USB commissioning pass
@@ -1268,6 +1268,32 @@ it is.**
   port (likely a real UART bridge with working reset wiring) or a
   manual BOOT-button-held connect attempt, neither yet taken. Full
   detail and exact timestamps: `docs/OPERATIONAL-DECISIONS.md`.
+- **Commissioning complete via the "COM" port (2026-09-07, final):**
+  the operator moved the same cable to the board's "COM" port (same
+  externally-powered hub, otherwise unchanged) and it enumerated as
+  the expected UART bridge (`1a86:55d3`, WCH "USB Single Serial",
+  `/dev/ttyACM0`, real per-chip serial `5CBB028993`). Read-only
+  `esptool --no-stub` identification succeeded fully: **genuine
+  ESP32-S3 (QFN56), silicon revision v0.2**, features WiFi/BLE/
+  **Embedded PSRAM 8MB (efuse-confirmed - R8 CONFIRMED)**, 40MHz
+  crystal, **MAC `7c:4f:ad:b6:2f:94`** (matching the MAC-derived ROM
+  USB-JTAG serial seen days earlier - cross-validated), flash
+  manufacturer `0x68` (GigaDevice) device `0x4018`, **detected size
+  16MB (N16 CONFIRMED)**, quad SPI per eFuse, Secure Boot disabled,
+  Flash Encryption disabled, `SPI_BOOT_CRYPT_CNT` 0x0 (factory-default,
+  unlocked security state). One local packaging bug was hit and worked
+  around (`esptool`'s installed ESP32-S3 stub-flasher JSON file is
+  missing - not a hardware issue; every reading above came from
+  `--no-stub` invocations, which don't need that file). The chip was
+  released back to factory firmware via a normal hard reset
+  (non-destructive, as authorized); verified afterward: UART bridge
+  still present, zero new USB errors, `vcgencmd get_throttled`
+  unchanged (`0x50005`), zero failed systemd units, ALFA/`pb-ap`/
+  hostapd/dnsmasq/nginx/OLED/Ethernet/I2C all healthy. No flash write/
+  erase, no partition/bootloader change, no efuse burn. **This closes
+  the hardware-identification/commissioning gate** - the board is
+  ready for supervisor firmware development. Full detail:
+  `docs/OPERATIONAL-DECISIONS.md`.
 - **Layer:** Optional/Field. Classification: Network Companion (pending
   re-evaluation - see above). Core dependency: No - **must be able to
   disappear without breaking Core** (`docs/ARCHITECTURE.md` §3) -
