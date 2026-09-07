@@ -1,6 +1,6 @@
 #include "protocol.h"
 
-String pb_build_hello(const String &mac, const String &resetReason, unsigned long uptimeMs) {
+String pb_build_hello(const String &mac, const String &resetReason, unsigned long uptimeMs, bool bh1750Available) {
     StaticJsonDocument<PIRATEBOX_JSON_DOC_SIZE> doc;
     doc["v"] = PIRATEBOX_PROTOCOL_VERSION;
     doc["t"] = "hello";
@@ -11,10 +11,16 @@ String pb_build_hello(const String &mac, const String &resetReason, unsigned lon
     doc["uptime_ms"] = uptimeMs;
     JsonArray caps = doc.createNestedArray("caps");
     // Only capabilities actually confirmed at boot belong here - see
-    // sensors.cpp's own init. Today that's just the internal temp
-    // sensor, which every ESP32-S3 has built in (no wiring required),
-    // so it is always listed.
+    // sensors.cpp/bh1750.cpp's own init functions. temp_internal is
+    // every ESP32-S3's own on-die sensor (no wiring required), so it's
+    // always listed. bh1750 is listed only if THIS boot's real I2C
+    // probe found a sensor actually responding - see bh1750.cpp's
+    // header for why "not listed" is the correct, expected state until
+    // the operator physically wires one.
     caps.add(CAP_TEMP_INTERNAL);
+    if (bh1750Available) {
+        caps.add(CAP_BH1750);
+    }
 
     String out;
     serializeJson(doc, out);
@@ -32,7 +38,8 @@ String pb_build_heartbeat(unsigned long seq, unsigned long uptimeMs) {
     return out;
 }
 
-String pb_build_sensors(unsigned long seq, float internalTempC, bool tempOk) {
+String pb_build_sensors(unsigned long seq, float internalTempC, bool tempOk,
+                         bool bh1750Available, float bh1750Lux, bool bh1750Ok) {
     StaticJsonDocument<PIRATEBOX_JSON_DOC_SIZE> doc;
     doc["v"] = PIRATEBOX_PROTOCOL_VERSION;
     doc["t"] = "sensors";
@@ -45,6 +52,19 @@ String pb_build_sensors(unsigned long seq, float internalTempC, bool tempOk) {
         temp["unit"] = "C";
     } else {
         temp["err"] = "read_failed";
+    }
+    // Only reported at all if this boot's init found a sensor - a
+    // never-wired board must never appear to have a failing sensor,
+    // just no entry at all (mirrors CAP_BH1750's own hello behavior).
+    if (bh1750Available) {
+        JsonObject bh1750 = readings.createNestedObject(CAP_BH1750);
+        bh1750["ok"] = bh1750Ok;
+        if (bh1750Ok) {
+            bh1750["value"] = bh1750Lux;
+            bh1750["unit"] = "lux";
+        } else {
+            bh1750["err"] = "read_failed";
+        }
     }
     String out;
     serializeJson(doc, out);

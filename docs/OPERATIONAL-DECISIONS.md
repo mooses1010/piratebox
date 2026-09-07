@@ -6,6 +6,27 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## ESP32-S3 BH1750 firmware support prepared ahead of the wiring gate (2026-09-07, immediately after)
+
+**Decision date:** 2026-09-07. Per standing instruction ("do not ask
+[for] the wiring before the software side is ready for it"), added
+BH1750 support to the firmware *before* requesting the physical
+migration: `esp32-firmware/include/bh1750.h` / `bh1750.cpp` (I2C on
+GPIO8/SDA, GPIO9/SCL - this board's standard default I2C pins, not a
+strapping pin), implementing the exact same protocol as
+`piratebox_bh1750.py` (same opcodes, timing, raw-to-lux formula).
+Wired into `hello`'s `caps` and `sensors`' `readings` behind a real
+boot-time I2C probe - the `bh1750` capability correctly does not appear
+yet, since nothing is physically wired to the ESP32. Builds cleanly
+(RAM 5.8%, Flash 22.7%). **Deliberately not flashed onto the board
+yet** - flashing now would just leave a probe permanently failing
+against nothing; better to flash it in the same session as the
+physical wiring move. Pi-side daemon code needed zero changes (already
+capability-agnostic - handles any `caps`/`readings` shape generically).
+Full wiring plan (pins, electrical notes, test sequence): `docs/
+ESP32-SUPERVISOR-DESIGN.md` §16, and this round's final operator
+report.
+
 ## ESP32-S3 hardware/sensor supervisor: full stack built, flashed, and validated on real hardware (2026-09-07, final round)
 
 **Decision date:** 2026-09-07. Given broad engineering ownership of the

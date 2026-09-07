@@ -249,6 +249,24 @@ pair, their own capability id, no change needed to the protocol
 encoding itself (`protocol.cpp`'s `pb_build_sensors()` already
 iterates a `readings` object generically).
 
+## 7a. ESP32-S3 GPIO/pin resource map
+
+The running record of this board's own pin usage — grows only as
+sensors are actually wired, never pre-assigned speculatively (mirrors
+`docs/HARDWARE-INTEGRATION-DESIGN.md` §2's own discipline for the Pi's
+GPIO table).
+
+| Function | Pin(s) | Status | Notes |
+|---|---|---|---|
+| Internal temperature | (none — on-die peripheral) | **WIRED, VERIFIED** | `temperatureRead()`, no external pins |
+| I2C bus (SDA/SCL) | GPIO8 / GPIO9 | **Reserved, firmware ready, not yet wired** | Standard default I2C pins for this board's PlatformIO definition; not a strapping pin. Reserved for BH1750 (§16) and any future I2C sensor (BME280, INA226) sharing the same bus |
+| Strapping pins (GPIO0, GPIO3, GPIO45, GPIO46) | — | **Reserved, deliberately unused** | Boot-mode/voltage-selection significance on this chip — avoided for any general-purpose sensor/GPIO use |
+| USB "COM" port (UART0, physical pins) | — | **WIRED, VERIFIED, IN USE** | The Pi↔ESP32 communication link itself (§4) — not available for other use |
+| Native USB "USB" port | — | Present, unused by this firmware | Native USB-CDC peripheral; this firmware never initializes it (§4) |
+| DS18B20 (future) | not yet assigned | CANDIDATE, not wired | 1-Wire needs one GPIO + a pull-up; pin TBD when actually built |
+| INA226 (future) | not yet assigned | CANDIDATE, not wired | I2C — would share GPIO8/9 above, same bus, no new pins needed |
+| Physical buttons/RGB (future) | not yet assigned | CANDIDATE, not wired | No pins reserved speculatively |
+
 ## 8. Real-hardware validation performed this round
 
 - Firmware built via `pio run` against the pinned toolchain — compiles
@@ -460,16 +478,70 @@ powered hub in the same position.
 ## 16. Recommendation: BH1750 migration as the next physical step
 
 The BH1750 remains Pi-owned (I2C, `piratebox_bh1750.py`) and **was not
-touched this round**, per instruction. Now that the supervisor
-firmware, Pi communication layer, capability/discovery system,
-diagnostics, and deployment path are all built and validated end-to-end
-on real hardware (§8), migrating the BH1750 to ESP32 ownership is the
-logical next physical validation step — it is a sensor that already
-exists, is already well-understood (address, protocol, timing all
-already documented), and moving it exercises the exact capability-
-addition path §7/§3b were designed for, without inventing new sensor
-code to validate at the same time as new wiring.
+electrically touched this round**, per instruction. Now that the
+supervisor firmware, Pi communication layer, capability/discovery
+system, diagnostics, and deployment path are all built and validated
+end-to-end on real hardware (§8), migrating the BH1750 to ESP32
+ownership is the logical next physical validation step.
+
+**The firmware side is now ready, ahead of asking for the wiring** (per
+the standing instruction not to request rewiring before the software
+side is ready for it): `esp32-firmware/include/bh1750.h` /
+`bh1750.cpp` implement the exact same protocol as `piratebox_bh1750.py`
+(same opcodes, same ~200ms timing, same raw/1.2 lux formula), wired
+into the `hello`/`sensors` messages behind a real boot-time I2C probe —
+the `bh1750` capability simply won't appear until a sensor actually
+responds, which is the correct, expected state right now (nothing is
+wired to the ESP32 yet). This has been built and compiles cleanly;
+it has **not** been flashed yet, since flashing it now would leave a
+probe permanently failing against nothing until the wiring happens —
+better to flash it in the same session as the physical move, right
+before testing.
+
+**ESP32-S3 I2C pins chosen for this**: GPIO8 (SDA) / GPIO9 (SCL) — the
+standard default I2C pins for this board's `esp32-s3-devkitc-1`
+PlatformIO board definition, and deliberately not a strapping pin (this
+chip's strapping pins are GPIO0/3/45/46 — none touched here). See §7a
+for the running pin/resource map this project will keep as more
+sensors are added.
+
+**Wiring plan** (BH1750 → ESP32-S3):
+
+| BH1750 pin | ESP32-S3 connection |
+|---|---|
+| VCC | 3.3V |
+| GND | GND |
+| SDA | GPIO8 |
+| SCL | GPIO9 |
+| ADDR | Left floating (unconnected) — same as its current Pi wiring, giving address `0x23` |
+
+**Electrical/safety notes**: this is a low-voltage (3.3V logic, low
+current) I2C sensor — no different in risk from its current Pi wiring.
+The BH1750 module in service has its own onboard pull-up resistors (the
+same module already proven working on the Pi), so no external
+pull-ups are needed on the ESP32 side either. **Shutting down the Pi
+first is not required** for this specific move — the wiring changes are
+entirely on the BH1750/ESP32 side; nothing is added, removed, or
+touched on the Pi's own GPIO2/GPIO3 I2C bus, so the Pi can stay running
+throughout. The ESP32 itself should have its USB/power connection
+removed while moving the three data/power leads, purely as ordinary
+hot-plug hygiene (avoiding a half-connected transient on the sensor's
+GND/VCC while the leads are being moved), then reconnected through the
+same externally-powered hub afterward.
+
+**What to test immediately after reconnecting**: (1) flash the
+already-built `bh1750`-aware firmware (`tools/flash_esp32_
+supervisor.sh`); (2) run the Pi daemon and confirm `hello`'s `caps`
+array now includes `"bh1750"`; (3) confirm the `sensors` message
+carries a `bh1750` reading with `"ok": true` and a plausible lux value
+matching the room's actual ambient light; (4) leave the Pi's own
+`piratebox_bh1750.py`/I2C1 wiring physically disconnected only once the
+ESP32-side reading is confirmed good — don't remove the working Pi path
+until its replacement is proven, so there's no gap with zero ambient
+light data during the transition; (5) a small follow-up software step
+(not yet done) then switches `HARDWARE_SIGNALS`'s `"ambient_lux"` to
+read from the ESP32 export instead of `piratebox_bh1750.py` directly.
 
 **This requires physical rewiring and is a genuine operator gate** —
-not performed or requested as part of this round. See the operator
-report for the exact pin-by-pin plan.
+not performed as part of this round; see the final report for this
+round's consolidated request.
