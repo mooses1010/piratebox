@@ -129,6 +129,41 @@ sibling port on the same hub (port 1, the built-in Ethernet adapter)
 has continued working normally throughout, so the hub chip itself is
 not broadly failed - if anything is stuck, it is specific to port 3.
 
+**Follow-up, same day: independent evidence from Windows, and a direct
+(no-extension) connection to the Pi - still no enumeration.** The
+operator reports this exact ESP32-S3 board, on its exact "USB"-labeled
+port, enumerated successfully on a Windows PC: Espressif VID `303A`, a
+USB Composite Device, `COM3` for its USB Serial Device, RGB LED
+cycling - independent proof the board and that specific port function
+correctly on another host. The operator then removed the USB extension
+entirely and connected the same board's same "USB" port directly to
+the Raspberry Pi. Re-running the same read-only checks: `lsusb`/
+`lsusb -t` unchanged, and - again - **zero new kernel USB events of
+any kind**, not even a hub-level disconnect/reconnect line.
+`vcgencmd get_throttled` unchanged (`0x50005`, live).
+
+**This does NOT confirm the extension cable was the distinguishing
+variable - the opposite: removing it changed nothing.** Reported
+plainly rather than fitted to the expected story. Combined with the
+Windows result, the fault domain narrows specifically to *this
+Raspberry Pi's own USB path* for this cable/port combination - not the
+board (independently proven good on Windows), not the extension
+(removing it changed nothing), and not obviously the whole Pi USB
+subsystem either (the sibling Ethernet port on the very same hub has
+worked continuously throughout every attempt).
+
+**A real, previously-unnoticed detail found while confirming this:**
+the Pi's first-level 4-port hub (`1-1`) has two of its four ports
+completely idle - only port 1 (→ the 3-port sub-hub carrying Ethernet
+and the failing port) and port 3 (→ the Wi-Fi adapter) are in use;
+ports 2 and 4 have never been tried with anything. **Single best next
+physical test:** connect the same board/cable directly to a
+*different*, currently-unused physical USB port on the Pi (not the one
+that produced the original `connect-debounce failed`) - this isolates
+whether the fault is specific to that one Pi port/sub-hub, independent
+of the board, the cable, and the extension question already settled
+above.
+
 **Nothing else on this Pi was touched or affected** - confirmed live,
 not assumed: zero Core service depends on this board's presence (per
 `docs/ARCHITECTURE.md` §3's own Network Companion contract, already
