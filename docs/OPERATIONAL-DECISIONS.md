@@ -164,6 +164,105 @@ whether the fault is specific to that one Pi port/sub-hub, independent
 of the board, the cable, and the extension question already settled
 above.
 
+## ESP32-S3 enumerates successfully - and a real, unrelated hostapd outage found while checking (2026-09-07, later still)
+
+**Decision date:** 2026-09-07. The operator physically rearranged the
+Pi's USB connections rather than the previously-suggested single swap:
+moved the ALFA Wi-Fi adapter down one physical port (freeing the Pi's
+top-left USB-A jack) and connected the same ESP32-S3 board/cable
+directly to that freed jack. Same board, same cable, same "USB"-
+labeled ESP32 port throughout.
+
+**Result: the ESP32-S3 enumerates successfully.** Confirmed directly
+from `dmesg -T`/`journalctl -k`, not inferred:
+
+```
+usb 1-1.1.2: New USB device found, idVendor=303a, idProduct=4001, bcdDevice= 1.00
+usb 1-1.1.2: Product: Espressif Device
+usb 1-1.1.2: Manufacturer: Espressif Systems
+usb 1-1.1.2: SerialNumber: 123456
+cdc_acm 1-1.1.2:1.0: ttyACM0: USB ACM device
+```
+
+- **VID:PID:** `303a:4001` - Espressif Systems' own registered USB
+  vendor ID, exactly matching the Windows-reported `303A`.
+- **Strings:** Manufacturer "Espressif Systems", Product "Espressif
+  Device", Serial "`123456`" - generic/default-looking strings, not a
+  custom product descriptor or a real per-unit serial; noted honestly
+  rather than over-interpreted.
+- **Topology/speed:** `1-1.1.2` (port 2 of the Pi's internal 3-port
+  hub - the SAME sub-hub port 3 of which produced the original
+  `connect-debounce failed`, but a different, previously-untried port
+  on it), full-speed (12 Mbit/s) via `dwc_otg`. Full-speed-only is
+  consistent with (though not, by itself, absolute proof of) the
+  ESP32-S3's native USB peripheral, which is a full-speed-only design.
+- **Composite structure, matching the Windows result functionally:**
+  `lsusb -t` shows two interfaces, both bound to `cdc_acm` (interface 0
+  = Communications/control, interface 1 = CDC Data) - the same
+  "composite device containing a serial function" shape Windows
+  reported as "USB Composite Device" + "USB Serial Device (COM3)".
+- **Device node:** `/dev/ttyACM0`, `crw-rw---- root:dialout` - the
+  interactive operator account is already a member of `dialout`, so it
+  is openable non-destructively without root. Not opened or written to
+  this round.
+- **One benign, honestly-reported blemish:** dmesg shows `usb
+  1-1.1.2: device descriptor read/64, error -32` immediately before
+  the successful enumeration lines - a transient first-read failure
+  the kernel automatically retried and then succeeded at. Consistent
+  with a known, common ESP32-S3-native-USB timing quirk on first
+  enumeration; not indicative of an unstable connection given
+  everything after it succeeded cleanly.
+
+**What this proves vs. what remains inferred:** PROVEN - this exact
+board, this exact cable, this exact "USB" port, and *a* Pi USB port all
+work together correctly; the fault is not the board (independently
+confirmed on Windows too) and not the cable. NOT yet proven: that port
+3 of the internal 3-port hub is itself specifically defective - this
+round tested port 2 of that same hub, not a controlled retry of port 3
+alone with everything else identical, so a specific "port 3 is bad"
+conclusion remains the leading, best-supported inference, not a
+confirmed fact. Still unverified, deliberately not attempted this
+round: N16R8 flash/PSRAM configuration, ROM bootloader identification,
+which exact firmware (ROM default vs. a factory-loaded example) is
+currently producing these USB descriptors - all require the next
+round's actual interaction with the device, not this one's read-only
+checks.
+
+**A real, live, unrelated finding surfaced by checking as instructed:
+hostapd stopped.** `journalctl -u hostapd` shows a clean systemd stop
+at the exact same second (`11:04:13`) the ALFA adapter's OLD USB
+connection was removed (`usb 1-1.3: USB disconnect, device number 4`)
+- "Deactivated successfully," not a crash. The `pb-ap` interface
+correctly re-appeared under its stable name on the ALFA's new port
+(`1-1.2` - confirmed via `mt76x2u 1-1.2:1.0 pb-ap: renamed from
+wlan1`, proving the existing stable-naming design survived a physical
+port change exactly as intended), but hostapd itself did not
+automatically restart to pick it back up, and remains stopped -
+**the visitor Wi-Fi access point is currently down.** `dnsmasq`
+remains active and unaffected; `wlan0` remains idle/reserved as
+designed; OLED/RTC/BH1750/EEPROM and every other core service were
+confirmed healthy. This is a real operational incident, not a
+consequence of anything this session changed - no config, no service
+restart, and no package install was performed as part of any ESP32
+commissioning step.
+
+**Fix - one command, a standard, narrow service restart, not covered
+by an existing NOPASSWD grant so it stops for the operator:**
+
+```
+sudo systemctl restart hostapd
+```
+
+**Single best next ESP32 commissioning step (not performed - read-only
+round):** now that a stable USB path exists, the next safe step is
+identifying the ROM bootloader/chip details via `esptool.py`'s own
+read-only chip-info query (e.g. `esptool.py --port /dev/ttyACM0
+chip_id` or equivalent) - this can confirm the actual silicon
+(ESP32-S3) and, depending on ROM support, flash size, without writing
+anything to the device. Installing `esptool`/entering the ROM loader
+is a new, separate step requiring explicit approval before proceeding,
+per instruction.
+
 **Nothing else on this Pi was touched or affected** - confirmed live,
 not assumed: zero Core service depends on this board's presence (per
 `docs/ARCHITECTURE.md` §3's own Network Companion contract, already

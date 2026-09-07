@@ -92,7 +92,7 @@ it is.**
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
 | SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` confirmed live; stock `<`/`>` fine-tune buttons' `tuning_step=5000` fix confirmed live; PirateBox-side Previous/Next Spectrum + click-to-tune range bar confirmed live for hardware-window navigation, distinct from OpenWebRX+'s own tuning; native OpenWebRX+ bandplan ribbon confirmed live and correct at four representative frequencies after a same-day deploy outage was fixed (see doc §16); Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
-| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | **HARDWARE PRESENT (ESP32-S3-N16R8), USB commissioning attempted 2026-09-07 - did NOT enumerate; single `connect-debounce failed` kernel event, correlated with live undervoltage (`0x50005`) at the same moment. No VID:PID/board identity captured yet.** | Network Companion (pending re-evaluation - board connects via USB, not LAN) |
+| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | **ESP32-S3-N16R8 ENUMERATES SUCCESSFULLY over USB (2026-09-07)** - `303a:4001` Espressif Systems/Espressif Device, `/dev/ttyACM0` via `cdc_acm`, full-speed, on a different physical Pi USB port than the one that originally failed (`connect-debounce failed`, now isolated to that specific port, not the board/cable/Pi USB subsystem generally). Flash/PSRAM/ROM identity still unverified - needs a read-only `esptool` chip-info query next. | Network Companion (pending re-evaluation - board connects via USB, not LAN) |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
 
 ---
@@ -1191,8 +1191,10 @@ it is.**
   than silently reinterpreting the concept to match; whether it ends up
   a USB-attached sensor supervisor or something reachable over the LAN
   too is still undecided.
-- **State:** **HARDWARE PRESENT, USB COMMISSIONING ATTEMPTED - NOT YET
-  ENUMERATED (2026-09-07).** An ESP32-S3-N16R8 dev board (16MB flash /
+- **State:** **ENUMERATES SUCCESSFULLY (2026-09-07 - see the final
+  bullet below for the resolution; the state description immediately
+  below is kept as accurate history of the original failed attempt,
+  not the current state).** An ESP32-S3-N16R8 dev board (16MB flash /
   8MB PSRAM printed on the module, **not yet independently verified** -
   see below) is physically connected to the Pi via USB only, no
   breadboard/sensor wiring. First read-only USB commissioning pass
@@ -1223,8 +1225,28 @@ it is.**
   the Pi's own USB-A connector. **Next safe commissioning step:**
   reseat the same cable at the Raspberry Pi's own end this time -
   distinct from testing the board's other ("COM") USB-C port, which
-  stays a separate, not-yet-taken step. See
-  `docs/OPERATIONAL-DECISIONS.md` for the full commissioning record.
+  stays a separate, not-yet-taken step.
+- **Resolution (2026-09-07, later still):** the operator moved the
+  ALFA Wi-Fi adapter to a different physical Pi port and connected the
+  same ESP32/cable/"USB" port to the now-free jack. **Enumerates
+  cleanly:** `303a:4001` (Espressif Systems / "Espressif Device"),
+  `/dev/ttyACM0` via `cdc_acm` (two interfaces: Communications +
+  CDC Data - the same shape Windows independently reported as "USB
+  Composite Device" + "USB Serial Device"), full-speed. Landed on port
+  2 of the same internal 3-port hub whose port 3 produced the original
+  failure - confirming the hub chip and Pi USB subsystem are not
+  broadly at fault, and narrowing the likely fault to that one specific
+  port (port 3), not confirmed with a controlled retry of port 3 alone.
+  Board/cable/ESP32-side port are now proven good on two independent
+  hosts (Windows + this Pi). N16R8 flash/PSRAM/ROM identity still
+  unverified - needs a read-only `esptool` chip-info query next
+  (separate, not-yet-approved step). **A real, unrelated incident was
+  found while checking as instructed: hostapd cleanly stopped the
+  instant the ALFA's old USB connection dropped, and did not
+  auto-restart** - the visitor AP is down as of this writing, pending
+  one operator command (`sudo systemctl restart hostapd`). See
+  `docs/OPERATIONAL-DECISIONS.md` for the full commissioning record and
+  evidence.
 - **Layer:** Optional/Field. Classification: Network Companion (pending
   re-evaluation - see above). Core dependency: No - **must be able to
   disappear without breaking Core** (`docs/ARCHITECTURE.md` §3) -
