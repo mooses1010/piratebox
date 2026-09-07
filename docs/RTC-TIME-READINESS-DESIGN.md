@@ -561,3 +561,153 @@ choose when to run:
 **This section documents the procedure only.** No power-off was
 performed or requested as part of this round's work - per instruction,
 that stays a genuine, separate operator action.
+
+## 9. First power-loss test FAILED - root-cause diagnosis (2026-09-07, same day)
+
+**The operator performed §8's exact procedure.** Ethernet disconnected
+first, a genuine full power-off (not just a reboot), a real off period,
+then powered back on with Ethernet still disconnected. Result: **the
+system date/time came back around 1999**, and time-dependent behavior
+was wrong until Ethernet was reconnected and NTP corrected it. Per
+instruction, this is treated as evidence the battery backup is **NOT
+validated** - not papered over by NTP correcting it afterward, and not
+assumed fixed just because the module is detected while Pi-powered.
+
+**Diagnosis performed - everything gathered without root first, since
+this was still the same boot as the failed test** (`uptime -s`
+confirmed it): `dmesg -T` for this exact boot showed:
+
+```
+rtc-ds1307 1-0068: SET TIME!
+rtc-ds1307 1-0068: registered as rtc0
+rtc-ds1307 1-0068: setting system clock to 2000-01-01T00:00:25 UTC (946684825)
+```
+
+**What this rules out:** the overlay/driver/boot configuration is
+confirmed correct - `dtoverlay=i2c-rtc,ds3231` is still in
+`/boot/firmware/config.txt`, the driver bound successfully
+(`registered as rtc0`), and `CONFIG_RTC_HCTOSYS` successfully read the
+chip and set the system clock from it. This was **not** a software
+init failure, a missed overlay, or a driver problem - the kernel did
+exactly what it should with whatever the chip actually reported.
+
+**What this points to:** the value the chip reported was not corrupt
+or random - it was the *exact same clean factory power-on default*
+(`SET TIME!` + `2000-01-01T00:00:25 UTC`) seen during this same
+module's very first-ever bring-up in §8, before it had ever held a
+battery. A chip that had kept advancing time on a working CR2032 would
+report a plausible, advancing date - not reset cleanly back to zero.
+**This is strong, specific evidence that the DS3231 itself lost time
+across the power-loss test - i.e., VBAT backup was not actually
+effective during the outage - rather than a case of the RTC correctly
+retaining time but the system failing to read/apply it.**
+Corroborating detail: 2000-01-01T00:00:25 UTC converts to
+1999-12-31 ~16:00/17:00 America/Los_Angeles - an exact match to the
+operator's own "around 1999" observation, not merely a rough one.
+
+**Two more pieces of evidence still needed (root-only, not yet
+captured as of this writing) before the diagnosis is complete:** a
+direct `hwclock -f /dev/rtc0 -r` (ground truth, compared against the
+now-NTP-corrected system time) and `hwclock -f /dev/rtc0 --vl-read`
+(the chip's own oscillator-stop/voltage-low flag - if set, that is the
+chip's own internal confirmation that it detected a genuine loss of
+both power rails, independent corroboration of the dmesg evidence
+above). New **read-only** diagnostic script, deliberately incapable of
+writing to the RTC (see its own tests):
+
+```
+sudo tools/diagnose_rtc_ds3231.sh
+```
+
+This captures all of the above (system time, direct RTC read, VL flag,
+boot dmesg, config, device node, I2C bus/OLED regression, uptime) in
+one pass, without writing anything - evidence is preserved before any
+recommissioning is attempted, per instruction.
+
+### Leading hypothesis and what would confirm or rule it out
+
+Given R4's removal only touches the VCC→battery *charging* path, a
+correctly-designed board should still connect the battery holder's
+positive terminal to the DS3231's VBAT pin directly, unaffected by
+that removal. The leading hypotheses, in rough order of likelihood,
+none confirmed yet:
+
+1. **Bad contact between the CR2032 and the holder** - not fully
+   seated, dirty/oxidized contact, or a holder spring that isn't making
+   reliable contact once Pi power (and whatever slight pressure/heat
+   handling occurred during the R4 rework) is factored in.
+2. **Battery inserted with reversed polarity** - would read plausible
+   voltage with a meter across the holder in some conditions but not
+   actually deliver correct polarity to VBAT.
+3. **This specific clone board's layout routes the battery holder's
+   positive terminal only through the same node R4 was part of**,
+   rather than via a separate direct trace to VBAT - on some cheap
+   DS3231 modules the "charge path" and "battery supply path" are less
+   cleanly separated than the standard reference design assumes, and
+   removing R4 could have inadvertently opened the *only* path from
+   the holder to VBAT, not just the charging trickle. This would
+   explain every symptom observed: perfectly normal behavior whenever
+   Pi power is present (VBAT irrelevant while VCC is up), yet a clean
+   loss of time the instant VCC drops.
+4. **A weak/marginal CR2032 cell** - reads plausible open-circuit
+   voltage on a meter but can't sustain the DS3231's (very small, but
+   nonzero) current draw. Less likely to produce a *clean* factory-
+   default reset rather than a slowly-drifting/partially-wrong time,
+   but not ruled out without swapping in a cell of known-good condition.
+
+### Physical measurements requested from the operator (voltage only - no current/load/short test on the cell)
+
+A standard multimeter voltage measurement draws negligible current and
+is not the kind of battery test being avoided - only a deliberate
+load/short/current test on the cell itself is out of scope here, and
+none of the following is that.
+
+**Measurement A - across the battery holder terminals, CR2032 installed:**
+Red probe on the holder's (+) contact, black probe on the holder's (-)
+contact (or any convenient GND point) - the same two points measured
+empty in §8, now with the cell in place.
+- **With Pi powered ON:** record the reading.
+- **With Pi fully powered OFF and unplugged** (a brief power-down is
+  enough for this measurement - no extended soak needed yet): record
+  the reading. **This is the single most diagnostic number.** A
+  healthy, properly-connected CR2032 should read close to its rated
+  ~3.0V in *both* conditions, since the holder terminals are directly
+  the battery's own terminals - if this drops to near 0V specifically
+  when Pi power is removed, the battery is not the limiting factor
+  (the cell is fine) but something about how it's wired in is.
+
+**Measurement B - directly at the DS3231 IC's VBAT pin, if you're
+comfortable locating it (optional, but the most conclusive single
+check for hypothesis 3 above):** On the standard DS3231 SOIC-8
+package, pin 1 is marked with a small dot or notch on the chip body;
+counting around, **pin 3 is VBAT** and **pin 4 is GND** (adjacent to
+it). Measure VBAT (pin 3) relative to GND (pin 4, or any other GND
+point on the board):
+- **With Pi powered ON:** record the reading.
+- **With Pi fully powered OFF and unplugged:** record the reading.
+If Measurement A (holder terminals) reads good battery voltage in both
+conditions but Measurement B (the chip's actual VBAT pin) reads ~0V
+with Pi power off, that pinpoints a broken/never-connected trace
+between the holder and the chip - consistent with hypothesis 3 - as
+the exact root cause, independent of the battery or its seating.
+
+**Do not perform another full multi-hour power-loss test yet.** Take
+these measurements first (Measurement A requires only a brief,
+controlled power-down, not a soak) - re-running the full validation
+test without first understanding why it failed would very likely just
+reproduce the same failure and cost another battery-and-time cycle
+without new information. Once the measurements point to a specific
+fix (reseat/re-orient the battery, or a rework of the VBAT trace, or a
+known-good replacement cell), that physical fix should happen first,
+*then* recommissioning (`sudo tools/configure_rtc_ds3231.sh` - safe to
+re-run, already NTP-verified and idempotent) and only then a repeat of
+the full §8 power-loss test to confirm the fix actually worked.
+
+**Not done this round, deliberately:** no recommissioning write was
+performed - per instruction, evidence is preserved first. No config,
+overlay, or script logic was changed in response to this failure,
+since nothing gathered so far points to a software cause to fix -
+`tools/configure_rtc_ds3231.sh` already behaved correctly (it wrote a
+good time before the test; the test's whole point was checking whether
+that time survived a real power-off, which it did not). No second
+power-loss test was performed or requested.
