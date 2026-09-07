@@ -28,6 +28,7 @@
 
 #include "protocol.h"
 #include "sensors.h"
+#include "bh1750.h"
 
 // --- Timing ----------------------------------------------------------
 static const unsigned long HEARTBEAT_INTERVAL_MS = 2000;
@@ -43,6 +44,7 @@ static unsigned long heartbeatSeq = 0;
 static unsigned long sensorsSeq = 0;
 
 static bool tempInternalAvailable = false;
+static bool bh1750Available = false;
 
 static String inputBuffer;
 
@@ -83,7 +85,7 @@ static void sendLine(const String &line) {
 }
 
 static void sendHello() {
-    sendLine(pb_build_hello(macAddressString(), resetReasonString(), millis()));
+    sendLine(pb_build_hello(macAddressString(), resetReasonString(), millis(), bh1750Available));
 }
 
 static void handleLine(const String &line) {
@@ -139,6 +141,10 @@ void setup() {
     esp_task_wdt_add(NULL);
 
     tempInternalAvailable = pb_sensor_temp_internal_init();
+    // Real probe, not an assumption - see bh1750.cpp's header. Expected
+    // to report false until the operator physically wires one; the
+    // capability then appears on its own on the very next boot.
+    bh1750Available = pb_sensor_bh1750_init();
 
     // Announce identity immediately on boot - the Pi daemon does not
     // need to wait for the first heartbeat/sensors cycle to learn who
@@ -166,7 +172,9 @@ void loop() {
     if (now - lastSensorsAt >= SENSORS_INTERVAL_MS) {
         lastSensorsAt = now;
         float tempC = 0.0f;
-        bool ok = tempInternalAvailable && pb_sensor_temp_internal_read(tempC);
-        sendLine(pb_build_sensors(sensorsSeq++, tempC, ok));
+        bool tempOk = tempInternalAvailable && pb_sensor_temp_internal_read(tempC);
+        float lux = 0.0f;
+        bool bh1750Ok = bh1750Available && pb_sensor_bh1750_read(lux);
+        sendLine(pb_build_sensors(sensorsSeq++, tempC, tempOk, bh1750Available, lux, bh1750Ok));
     }
 }

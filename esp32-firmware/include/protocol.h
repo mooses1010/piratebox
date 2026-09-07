@@ -49,6 +49,7 @@
 // compatibility for future sensors added here without a Pi-side
 // update being required first).
 #define CAP_TEMP_INTERNAL "temp_internal"
+#define CAP_BH1750 "bh1750"
 
 // Bounds how large a single incoming line may grow before it is
 // discarded - protects a memory-constrained MCU from an unbounded
@@ -68,9 +69,14 @@
 // (main.cpp) append '\n' when writing to Serial, keeping the framing
 // decision in exactly one place.
 
-String pb_build_hello(const String &mac, const String &resetReason, unsigned long uptimeMs);
+// `bh1750Available` reflects whether THIS BOOT's init probe found a
+// real sensor responding - see bh1750.cpp's header for why this can
+// legitimately be false (not yet physically wired) and why that's
+// correct, not a fault.
+String pb_build_hello(const String &mac, const String &resetReason, unsigned long uptimeMs, bool bh1750Available);
 String pb_build_heartbeat(unsigned long seq, unsigned long uptimeMs);
-String pb_build_sensors(unsigned long seq, float internalTempC, bool tempOk);
+String pb_build_sensors(unsigned long seq, float internalTempC, bool tempOk,
+                         bool bh1750Available, float bh1750Lux, bool bh1750Ok);
 String pb_build_pong(const String &nonce);
 String pb_build_err(const String &reason);
 
