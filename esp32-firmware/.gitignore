@@ -1,0 +1,7 @@
+# PlatformIO build output and downloaded library dependencies -
+# entirely regenerable from platformio.ini (pinned versions - see
+# docs/ESP32-SUPERVISOR-DESIGN.md §2/§12) via `pio run`. Never commit
+# compiled binaries or third-party library sources here.
+.pio/
+.pioenvs/
+.piolibdeps/

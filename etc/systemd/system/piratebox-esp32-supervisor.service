@@ -1,0 +1,50 @@
+# /etc/systemd/system/piratebox-esp32-supervisor.service
+[Unit]
+Description=PirateBox ESP32-S3 hardware/sensor supervisor link (serial)
+# See piratebox_esp32_supervisor.py for exactly what this does and why.
+# Runs continuously (its own reconnect-poll loop, not a timer) so it
+# recovers on its own if the board/hub/cable is unplugged and later
+# reconnected - same "own retry loop, never crash on absence" contract
+# as piratebox-oled.service. After local-fs.target only: this daemon
+# has zero dependency on networking or on hostapd/dnsmasq/nginx/php-fpm
+# being up, and nothing in Core depends on it either (docs/ARCHITECTURE.md
+# §3's "companion devices must be able to disappear without breaking
+# Core" - the ESP32 supervisor is exactly such a device).
+After=local-fs.target
+
+[Service]
+Type=simple
+User=piratebox-gpio
+Group=gpio
+# Reuses the same dedicated, unprivileged account the OLED/button
+# daemons already run as (docs/HARDWARE-INTEGRATION-DESIGN.md §8's
+# "one dedicated account" framing) - SupplementaryGroups=dialout is the
+# one addition this service needs beyond what that account already has,
+# for the /dev/ttyACM0-style serial device node (group-owned `dialout`,
+# confirmed 2026-09-07 commissioning).
+SupplementaryGroups=dialout
+ExecStart=/usr/local/bin/piratebox_esp32_supervisor.py
+Restart=on-failure
+RestartSec=5
+
+# No sudo grant of any kind - this daemon has no privileged action to
+# escalate to. It only reads a serial port and writes its own small
+# export under RuntimeDirectory= below.
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectSystem=strict
+PrivateTmp=yes
+WorkingDirectory=/tmp
+
+# The one small public export this daemon writes - same RuntimeDirectory=
+# pattern as piratebox-oled.service's own /run/piratebox-sensors (see
+# that unit's comment for the full rationale): systemd creates
+# /run/piratebox-esp32 fresh on every start (owned by this same
+# User=/Group=, mode 0755 so www-data can traverse into it and read the
+# 0644 file this daemon writes inside), removes it on stop. No other
+# writable path is needed - this daemon holds no other durable state.
+RuntimeDirectory=piratebox-esp32
+RuntimeDirectoryMode=0755
+
+[Install]
+WantedBy=multi-user.target
