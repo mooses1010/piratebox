@@ -74,6 +74,35 @@ Arduino tooling install, and no sensor/GPIO work was performed or is
 proposed - this round was USB/board baseline only, and the baseline
 itself has not been established yet.
 
+**Follow-up, same day: cable identified as the board's own "USB"-
+labeled port (not "COM"), reseated once - still no enumeration, and
+notably zero new kernel events at all.** The operator clarified the
+cable was in the ESP32-S3's port explicitly silkscreened "USB" (not
+"COM") - on a typical ESP32-S3 dev board this is the chip's native USB
+peripheral, which (unlike a "COM" port's USB-UART bridge chip)
+requires the S3 itself to be powered, out of reset, and running actual
+USB stack code (ROM's own USB-Serial-JTAG, or app firmware) to
+enumerate at all - this is a real, relevant distinction, not yet
+provable from Linux evidence alone since nothing has enumerated from
+either port. After a full unplug/reseat of that same cable in that
+same port: `lsusb`/`lsusb -t` unchanged (still just the four known
+devices), and - more informative than a repeated failure would have
+been - `dmesg`/`journalctl -k` show **zero new kernel USB events of
+any kind** since the original `connect-debounce failed` line, not even
+a second attempt or a second failure. `vcgencmd get_throttled` still
+reads `0x50005` (`undervoltage_now: true`, live, unchanged). The most
+likely explanation: the reseat was performed at the ESP32's own USB-C
+connector, not at the Raspberry Pi's own USB-A port - if the Pi-side
+connector was never physically disturbed, the Pi's hub port would
+never see a fresh VBUS/pull-up transition to react to at all, fully
+explaining the total absence of any new kernel event. **Single best
+next physical test, per instruction:** reseat the SAME cable at the
+Raspberry Pi's own USB-A end this time (not the ESP32 end again, and
+not the board's other, "COM," USB-C port) - this guarantees the Pi's
+own port sees a genuine disconnect/reconnect and will produce new,
+interpretable evidence either way (successful enumeration, or a fresh,
+freshly-timestamped failure to compare against this one).
+
 **Nothing else on this Pi was touched or affected** - confirmed live,
 not assumed: zero Core service depends on this board's presence (per
 `docs/ARCHITECTURE.md` §3's own Network Companion contract, already

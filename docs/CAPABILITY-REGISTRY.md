@@ -1216,10 +1216,14 @@ it is.**
   cause of exactly this kind of connect-debounce failure - but this is
   a plausible correlation from live evidence, not a proven causal link;
   no other cause has been ruled out either.
-- **Next safe commissioning step:** a plain reseat of the same cable in
-  the same port (full unplug, brief pause, firm replug) - the least
-  invasive next action, distinct from testing the board's other
-  USB-C port, which stays a separate, not-yet-taken step. See
+- **Follow-up (same day):** cable confirmed in the board's "USB"
+  (native) port, not "COM" - reseated once at the ESP32 end; still no
+  enumeration, and zero new kernel USB events at all (not even a
+  repeat failure), most consistent with the reseat not having reached
+  the Pi's own USB-A connector. **Next safe commissioning step:**
+  reseat the same cable at the Raspberry Pi's own end this time -
+  distinct from testing the board's other ("COM") USB-C port, which
+  stays a separate, not-yet-taken step. See
   `docs/OPERATIONAL-DECISIONS.md` for the full commissioning record.
 - **Layer:** Optional/Field. Classification: Network Companion (pending
   re-evaluation - see above). Core dependency: No - **must be able to
