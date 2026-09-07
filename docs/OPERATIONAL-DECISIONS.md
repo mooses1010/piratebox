@@ -59,12 +59,13 @@ rather than treated as newly-available access - the actual `php.ini`
 edit itself was NOT applied this way; it's queued as a normal operator
 step below, through the proper channel.
 
-**Live status as of this entry:** the underlying export pipeline is
-fully live and correct (confirmed via direct data checks); the web
-page's Hardware Supervisor section will start rendering the instant
-`sudo tools/deploy_environment_sensors.sh` is next run (adds the
-missing `open_basedir` entry and restarts `php8.4-fpm` through the
-proper, documented path) - not yet run as of this entry.
+**Resolved, same day:** the operator ran
+`sudo tools/deploy_environment_sensors.sh`. Re-verified immediately
+after: `open_basedir` now includes the ESP32 export path, and
+`/utility/environment/`'s Hardware Supervisor section renders live
+with real data (status Connected, firmware `0.1.0`, live uptime/chip-
+temperature fields) - confirmed by both the operator and an
+independent re-check in this session.
 
 ## BH1750 physical migration to the ESP32-S3 supervisor: COMPLETE, including a real fault found and fixed (2026-09-07, final round)
 
