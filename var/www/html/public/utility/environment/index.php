@@ -143,7 +143,7 @@ function piratebox_env_duration_text(?float $seconds): string
                 <p class="muted" id="env-ambient-description"><?= htmlspecialchars($ambientLight['classification']['description']) ?></p>
             <?php endif; ?>
 
-            <p class="muted">Sensor: BH1750 ambient light sensor, wired directly to this PirateBox's own I2C bus. "Lux" is a standard unit of how much visible light is actually falling on a surface - roughly 0.1-1 lux under full moonlight, 50-150 lux in a typically-lit room, and well over 10,000 lux in direct sunlight. It measures light level only, not color, heat, or UV.</p>
+            <p class="muted">Sensor: BH1750 ambient light sensor, connected to this PirateBox's onboard hardware supervisor. "Lux" is a standard unit of how much visible light is actually falling on a surface - roughly 0.1-1 lux under full moonlight, 50-150 lux in a typically-lit room, and well over 10,000 lux in direct sunlight. It measures light level only, not color, heat, or UV.</p>
 
             <p class="muted">This reading updates automatically about every 30 seconds while this page is open (no action needed) - it never queries the sensor directly; it only reflects PirateBox's own periodically-refreshed snapshot, so having this page open in several browser tabs or devices at once never polls the hardware any more often.</p>
 
