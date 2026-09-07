@@ -103,6 +103,32 @@ own port sees a genuine disconnect/reconnect and will produce new,
 interpretable evidence either way (successful enumeration, or a fresh,
 freshly-timestamped failure to compare against this one).
 
+**Follow-up, same day: the Pi-side reseat was performed - still zero
+new kernel events, ruling out the previous hypothesis.** The operator
+unplugged the cable at the Raspberry Pi's own USB-A end specifically,
+waited ~5s, and firmly reconnected it to the same Pi port - the exact
+test recommended above. Result: `lsusb`/`lsusb -t` unchanged;
+`dmesg`/`journalctl -k` show **no new kernel USB line of any kind** -
+not even a bare hub-level disconnect/reconnect message, which a
+genuine physical unplug at the host end would normally be expected to
+produce regardless of whether a device ever enumerates. `vcgencmd
+get_throttled` unchanged (`0x50005`, live).
+
+This rules out the earlier hypothesis (that the previous reseat never
+reached the Pi's own connector) - this one demonstrably did, per the
+operator's explicit description, and still produced nothing. The more
+likely explanation now: Raspberry Pi's internal 3-port hub
+(`0424:2514` at `1-1.1`) may have latched port 3 into a disabled/fault
+state after the original `connect-debounce failed` event, and stopped
+generating connect/disconnect interrupts for that specific port until
+it is reset at the hub/kernel level (a real behavior of some embedded
+hub silicon after a debounce failure) - not yet proven, since nothing
+that would prove or disprove it (a hub-level port reset, or trying a
+different physical Pi USB port entirely) has been attempted. The
+sibling port on the same hub (port 1, the built-in Ethernet adapter)
+has continued working normally throughout, so the hub chip itself is
+not broadly failed - if anything is stuck, it is specific to port 3.
+
 **Nothing else on this Pi was touched or affected** - confirmed live,
 not assumed: zero Core service depends on this board's presence (per
 `docs/ARCHITECTURE.md` §3's own Network Companion contract, already
