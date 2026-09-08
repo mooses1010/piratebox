@@ -64,6 +64,42 @@ HEALTHY_METRICS = {
 }
 
 
+class FmtTempUnitTests(unittest.TestCase):
+    """_fmt_temp() (2026-09-08 temp-unit preference) - the OLED's own
+    C/F conversion boundary. `value` is always genuine Celsius; the
+    unit argument controls conversion + suffix, never both scaled."""
+
+    def test_defaults_to_celsius_when_no_unit_given(self):
+        self.assertEqual(gl._fmt_temp(20.0), "20C")
+
+    def test_celsius_is_a_passthrough(self):
+        self.assertEqual(gl._fmt_temp(20.0, "C"), "20C")
+
+    def test_fahrenheit_converts_before_rounding(self):
+        self.assertEqual(gl._fmt_temp(20.0, "F"), "68F")
+
+    def test_freezing_point_in_fahrenheit(self):
+        self.assertEqual(gl._fmt_temp(0.0, "F"), "32F")
+
+    def test_none_value_shows_a_unit_specific_placeholder_not_a_crash(self):
+        self.assertEqual(gl._fmt_temp(None, "C"), "--C")
+        self.assertEqual(gl._fmt_temp(None, "F"), "--F")
+
+    def test_rounds_to_a_whole_number_same_terseness_as_before(self):
+        self.assertEqual(gl._fmt_temp(20.4, "F"), "69F")  # 68.72 rounds to 69, not 68.7
+
+    def test_no_double_conversion_across_two_calls(self):
+        """Calling _fmt_temp on an already-Celsius reading twice with
+        'F' must never be mistaken for correct - documents that this
+        codebase only ever calls it once, on a fresh Celsius value."""
+        once = gl._fmt_temp(20.0, "F")
+        self.assertEqual(once, "68F")
+        # Feeding the STRING back in would be a type error, not a
+        # silent double-conversion - there is no code path that does this.
+        with self.assertRaises(TypeError):
+            gl._fmt_temp(once, "F")
+
+
 class RenderingTests(unittest.TestCase):
     """Every declared page must render without exception, including
     boundary values (0%, 100%, negative temp, 3-digit client counts)

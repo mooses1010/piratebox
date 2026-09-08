@@ -677,6 +677,47 @@ class RenderHealthHardwareWarningTests(unittest.TestCase):
         self.assertEqual(undervoltage_alone.tobytes(), both_active.tobytes())
 
 
+class RenderHealthTempUnitTests(unittest.TestCase):
+    """render_health()'s temp_unit parameter (2026-09-08 temp-unit
+    preference) - read_cpu_temp_c() always returns genuine Celsius;
+    this only controls the CPU-temperature line's conversion/suffix."""
+
+    def _render(self, temp_unit="C"):
+        from PIL import Image, ImageDraw
+        font, font_small, _ = oled.load_fonts()
+        img = Image.new("1", (128, 64))
+        draw = ImageDraw.Draw(img)
+        oled.render_health(draw, font, font_small, HEALTHY_STATUS, False, True,
+                            hardware_warning_text=None, temp_unit=temp_unit)
+        return img
+
+    def test_renders_without_exception_in_fahrenheit(self):
+        self._render("F")  # must not raise
+
+    def test_defaults_to_celsius_when_omitted(self):
+        from PIL import Image, ImageDraw
+        font, font_small, _ = oled.load_fonts()
+        img = Image.new("1", (128, 64))
+        draw = ImageDraw.Draw(img)
+        oled.render_health(draw, font, font_small, HEALTHY_STATUS, False, True)  # no temp_unit at all
+        # must not raise - documents the default parameter value itself:
+        import inspect
+        sig = inspect.signature(oled.render_health)
+        self.assertEqual(sig.parameters["temp_unit"].default, "C")
+
+    def test_celsius_and_fahrenheit_render_differently(self):
+        """A real CPU temp reading in this test environment produces a
+        visibly different rendered line in the two units - confirms
+        the parameter actually reaches the drawn frame, not just that
+        rendering doesn't crash."""
+        if oled.read_cpu_temp_c() is None:
+            self.skipTest("no real CPU temp sensor available in this environment")
+        box = (0, 36, 128, 46)  # the "CPU: ..." line's own row
+        celsius = self._render("C").crop(box)
+        fahrenheit = self._render("F").crop(box)
+        self.assertNotEqual(celsius.tobytes(), fahrenheit.tobytes())
+
+
 class SillyTogglePriorityIntegrationTests(unittest.TestCase):
     """Confirms the toggle banner sits exactly where it's supposed to in
     the priority hierarchy: below Emergency/fault, but able to show
@@ -995,6 +1036,32 @@ class AutoBrightnessTests(unittest.TestCase):
         spiked_target = oled.compute_target_contrast(50000.0)  # a hand-over-sensor-style bright flash
         after_one_tick = oled.slew_contrast(current, spiked_target)
         self.assertLessEqual(after_one_tick - current, oled.OLED_CONTRAST_MAX_STEP_PER_TICK)
+
+
+class GlanceMetricsTempUnitTests(unittest.TestCase):
+    """build_glance_metrics()'s temp_unit field (2026-09-08) - read via
+    piratebox_temp_unit.read_temp_unit(), monkeypatched here for a
+    deterministic result regardless of this environment's real
+    preference file (matches test_history_sampler.py's own style of
+    monkeypatching a module-level function for a fake diagnostics read)."""
+
+    def setUp(self):
+        import piratebox_temp_unit
+        self._orig_read = piratebox_temp_unit.read_temp_unit
+        self._temp_unit_module = piratebox_temp_unit
+
+    def tearDown(self):
+        self._temp_unit_module.read_temp_unit = self._orig_read
+
+    def test_defaults_to_celsius(self):
+        self._temp_unit_module.read_temp_unit = lambda: "C"
+        metrics, _ = oled.build_glance_metrics(None, True, None, False)
+        self.assertEqual(metrics["temp_unit"], "C")
+
+    def test_reads_fahrenheit_preference_through(self):
+        self._temp_unit_module.read_temp_unit = lambda: "F"
+        metrics, _ = oled.build_glance_metrics(None, True, None, False)
+        self.assertEqual(metrics["temp_unit"], "F")
 
 
 class GlanceMetricsTests(unittest.TestCase):

@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../includes/travel_mode.php';
 require_once __DIR__ . '/../../includes/capability_state.php';
 require_once __DIR__ . '/../../includes/device_memory.php';
 require_once __DIR__ . '/../../includes/hardware_wiring.php';
+require_once __DIR__ . '/../../includes/temp_unit.php';
 
 // PirateBox admin/status page - Phase 4.
 //
@@ -230,6 +231,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ? ['ok' => true, 'msg' => 'Travel Mode turned ' . ($enabled ? 'ON - Local Information is now hidden.' : 'OFF - Local Information is showing again.')]
                     : ['ok' => false, 'msg' => 'Failed to change Travel Mode - nothing was changed.'];
                 break;
+            case 'set_temp_unit':
+                // Purely a display preference - never touches canonical
+                // Celsius data anywhere (ESP32 export, sensor history),
+                // fully reversible, same reasoning as set_travel_mode/
+                // set_content_profile above.
+                $unit = (string) ($_POST['temp_unit'] ?? '');
+                $actionResult = piratebox_set_temp_unit($unit)
+                    ? ['ok' => true, 'msg' => 'Temperature display unit set to ' . ($unit === 'F' ? 'Fahrenheit' : 'Celsius') . '.']
+                    : ['ok' => false, 'msg' => 'Invalid unit - nothing was changed.'];
+                break;
             case 'mark_reviewed':
                 // docs/DEVICE-MEMORY-DESIGN.md §3: sets a new "since last
                 // review" boundary. Not destructive or irreversible (it
@@ -297,6 +308,7 @@ $contentProfile = piratebox_get_content_profile();
 
 // Post-Stage-32: Travel Mode current state, for the toggle UI below.
 $travelModeActive = piratebox_get_travel_mode();
+$currentTempUnit = piratebox_get_temp_unit();
 
 // Self-awareness (docs/ARCHITECTURE.md §6/§10): one shared, tested
 // capability-state model - see includes/capability_state.php's own
@@ -382,7 +394,7 @@ $connStats = piratebox_get_connection_stats();
         </div>
         <div class="stat-card">
             <span class="stat-label">CPU temp</span>
-            <span class="stat-value"><?= $cpuTempC !== null ? round($cpuTempC, 1) . '&deg;C' : 'unknown' ?></span>
+            <span class="stat-value"><?= $cpuTempC !== null ? round(piratebox_convert_temp_c($cpuTempC, $currentTempUnit), 1) . piratebox_temp_unit_symbol($currentTempUnit) : 'unknown' ?></span>
         </div>
         <div class="stat-card">
             <span class="stat-label">Wi-Fi clients</span>
@@ -616,6 +628,27 @@ $connStats = piratebox_get_connection_stats();
             <input type="hidden" name="action" value="set_travel_mode">
             <label><input type="checkbox" name="travel_mode" value="on"<?= $travelModeActive ? ' checked' : '' ?>> Travel Mode active (hide Local Information)</label>
             <button type="submit">Set Travel Mode</button>
+        </form>
+    </div>
+
+    <div class="admin-actions">
+        <h2 class="admin-section-heading">Display Preferences <span class="section-tag">device-wide</span></h2>
+        <p class="maintenance-warning">
+            Current temperature display unit: <strong><?= $currentTempUnit === 'F' ? 'Fahrenheit (&deg;F)' : 'Celsius (&deg;C)' ?></strong>.
+            Applies everywhere a temperature is shown to a visitor -
+            the Environment page's current readings and historical
+            graphs, this admin page, the public status page, and the
+            OLED display. Purely a display choice: sensor data and
+            history remain stored in Celsius regardless of this
+            setting, so switching back and forth never rewrites or
+            loses anything.
+        </p>
+        <form method="post" class="admin-action-form" style="max-width:none;">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+            <input type="hidden" name="action" value="set_temp_unit">
+            <label><input type="radio" name="temp_unit" value="C"<?= $currentTempUnit !== 'F' ? ' checked' : '' ?>> Celsius (&deg;C)</label>
+            <label><input type="radio" name="temp_unit" value="F"<?= $currentTempUnit === 'F' ? ' checked' : '' ?>> Fahrenheit (&deg;F)</label>
+            <button type="submit">Set temperature unit</button>
         </form>
     </div>
 

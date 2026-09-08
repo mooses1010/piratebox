@@ -405,6 +405,12 @@ from piratebox_glance import (
 # glance/piratebox_expressions already are.
 import piratebox_hardware_health
 
+# Temperature display-unit preference (2026-09-08) - pure,
+# dependency-free, same reason as piratebox_hardware_health above.
+# Reads /var/www/html/data/temp-unit.json, the SAME file the admin
+# page's settings form writes - see that module's own header.
+import piratebox_temp_unit
+
 I2C_PORT = 1
 I2C_ADDRESS = 0x3C
 RETRY_SECONDS = 20.0          # how long to wait between init attempts
@@ -1155,6 +1161,7 @@ def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently
         "time_str": time.strftime("%H:%M") if time_confident else None,
         "undervoltage_now": undervoltage_now,
         "ambient_lux": ambient_lux,
+        "temp_unit": piratebox_temp_unit.read_temp_unit(),
         "probe_name": probe_name,
         "probe_temp_c": probe_temp_c,
     }
@@ -1301,15 +1308,18 @@ def render_network(draw, font, font_small, status, stale: bool, alive_on: bool) 
 
 
 def render_health(draw, font, font_small, status, stale: bool, alive_on: bool,
-                   hardware_warning_text: str = None) -> None:
+                   hardware_warning_text: str = None, temp_unit: str = "C") -> None:
     header_bar(draw, "HEALTH", font_small, icon_health, alive_on)
     draw.text((0, 14), f"Uptime: {format_duration(read_uptime_seconds())}", font=font, fill="white")
     draw.text((0, 26), "Storage:", font=font, fill="white")
     free, total = read_disk_free_total()
     used_frac = 1.0 - (free / total) if total > 0 else 0.0
     draw_bar(draw, 60, 27, 66, 8, used_frac)
+    # Always genuine Celsius from read_cpu_temp_c() - converted here,
+    # at the one place this value is actually rendered, exactly once.
     temp = read_cpu_temp_c()
-    temp_str = f"{temp:.0f}C" if temp is not None else "unknown"
+    temp_display = piratebox_temp_unit.convert_c(temp, temp_unit)
+    temp_str = f"{temp_display:.0f}{temp_unit}" if temp_display is not None else "unknown"
     emergency_s = read_emergency_runtime_seconds()
     draw.text((0, 38), f"CPU: {temp_str}  Emerg: {format_duration(emergency_s)}", font=font, fill="white")
     # Warning box - conditional, one line, only when there's something
@@ -1617,6 +1627,7 @@ PAGE_ORDER = ["status", "time", "network", "health"]
 def build_frame(
     device, page: str, font, font_small, font_big, status, stale: bool, mode: str,
     alive_on: bool = True, pulse: bool = False, extra=None, hardware_warning_text: str = None,
+    temp_unit: str = "C",
 ):
     """Renders exactly one page into a standalone PIL Image (device's
     own mode/size) and returns it, WITHOUT writing it to the display.
@@ -1636,7 +1647,7 @@ def build_frame(
     elif page == "network":
         render_network(draw, font, font_small, status, stale, alive_on)
     elif page == "health":
-        render_health(draw, font, font_small, status, stale, alive_on, hardware_warning_text)
+        render_health(draw, font, font_small, status, stale, alive_on, hardware_warning_text, temp_unit)
     elif page == "silly":
         render_silly(draw, font, font_small, extra["render"], extra["tier"], alive_on)
     elif page == "level_up":
@@ -2099,6 +2110,14 @@ def main() -> int:
 
         tier = compute_display_tier(mode, status, stale, hardware_warning_text)
 
+        # Temperature display-unit preference (2026-09-08) - one cheap
+        # file read per tick, the same cost tier as read_status_json()/
+        # read_mode() just above (already every tick) - no new polling
+        # cadence introduced. Purely presentational: read_cpu_temp_c()
+        # and every other Celsius reading this daemon has stay exactly
+        # as they are; only render_health()'s own display line converts.
+        current_temp_unit = piratebox_temp_unit.read_temp_unit()
+
         # Ambient-light auto-brightness (2026-09-07) - every tick, not
         # just during the AMBIENT glance page, so brightness tracks
         # actual room light continuously. Emergency ALWAYS forces full
@@ -2546,6 +2565,7 @@ def main() -> int:
                 device, page, font, font_small, font_big, status, stale, mode,
                 alive_on=alive_on, pulse=pulse_now, extra=extra,
                 hardware_warning_text=hardware_warning_text,
+                temp_unit=current_temp_unit,
             )
             display_frame(device, new_image, old_img=last_image, transition=transition_wipe)
             last_image = new_image

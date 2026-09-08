@@ -4,6 +4,7 @@ session_start();
 require_once __DIR__ . '/../../../includes/sensors.php';
 require_once __DIR__ . '/../../../includes/esp32_supervisor.php';
 require_once __DIR__ . '/../../../includes/history.php';
+require_once __DIR__ . '/../../../includes/temp_unit.php';
 
 // Environment - live readings from PirateBox's onboard sensors
 // (2026-09-07). First real sensor: BH1750 ambient light. Designed to
@@ -36,6 +37,18 @@ $ambientLight = piratebox_get_ambient_light_reading();
 $esp32 = piratebox_get_esp32_supervisor_status();
 $ds18b20 = piratebox_get_ds18b20_probes();
 $historyCatalog = piratebox_history_catalog();
+// Temperature display-unit preference (2026-09-08) - purely a
+// presentation choice, applied here at the render boundary only; the
+// export/cache/history this page reads from stays Celsius regardless
+// (see includes/temp_unit.php's own header for the full rationale).
+$tempUnit = piratebox_get_temp_unit();
+$tempUnitSymbol = piratebox_temp_unit_symbol($tempUnit);
+// A plain Unicode form for JSON payloads - piratebox_temp_unit_symbol()
+// returns an HTML entity (&deg;...), correct when echoed directly into
+// this page's own markup but wrong inside JSON/JS, where it would show
+// up as the literal text "&deg;C" instead of being entity-decoded (JSON
+// isn't HTML - nothing decodes entities in a fetch() response).
+$tempUnitSymbolRaw = $tempUnit === 'F' ? '°F' : '°C';
 
 // Narrow, range/query-selection history endpoint (2026-09-08) - never
 // dumps the whole stored file, only the points inside the requested
@@ -55,20 +68,39 @@ if (($_GET['history'] ?? '') === '1') {
         exit;
     }
 
+    // Converts every numeric field (v, min, max) of every point in
+    // place - the ONE place history query results get converted for
+    // display, right before they leave this endpoint. The stored
+    // history file itself is never touched (piratebox_history_query()
+    // only ever reads it) - a unit switch changes what this endpoint
+    // returns on the next request, never what's on disk.
+    $convertPoints = function (array $points) use ($tempUnit): array {
+        foreach ($points as &$p) {
+            foreach (['v', 'min', 'max'] as $key) {
+                if (isset($p[$key])) {
+                    $p[$key] = piratebox_convert_temp_c((float) $p[$key], $tempUnit);
+                }
+            }
+        }
+        unset($p);
+        return $points;
+    };
+
     $series = [];
     if ($group === 'ambient_light' && $historyCatalog['ambient_light'] !== null) {
+        // Lux, not temperature - never passed through the converter above.
         $q = piratebox_history_query($historyCatalog['ambient_light']['signal_id'], $rangeSeconds);
         $series[] = ['label' => 'Ambient light', 'points' => $q['points']];
     } elseif ($group === 'esp32_temp' && $historyCatalog['esp32_temp'] !== null) {
         $q = piratebox_history_query($historyCatalog['esp32_temp']['signal_id'], $rangeSeconds);
-        $series[] = ['label' => 'ESP32 chip', 'points' => $q['points']];
+        $series[] = ['label' => 'ESP32 chip', 'points' => $convertPoints($q['points'])];
     } elseif ($group === 'probes') {
         foreach ($historyCatalog['probes'] as $probe) {
             $q = piratebox_history_query($probe['signal_id'], $rangeSeconds);
             // Never emit a series for a probe with zero points in this
             // window - an empty series is clutter, not information.
             if ($q['points'] !== []) {
-                $series[] = ['label' => $probe['label'], 'points' => $q['points']];
+                $series[] = ['label' => $probe['label'], 'points' => $convertPoints($q['points'])];
             }
         }
     } else {
@@ -77,7 +109,7 @@ if (($_GET['history'] ?? '') === '1') {
         exit;
     }
 
-    echo json_encode(['series' => $series]);
+    echo json_encode(['series' => $series, 'unit_symbol' => $tempUnitSymbolRaw]);
     exit;
 }
 
@@ -95,9 +127,18 @@ if (($_GET['fetch'] ?? '') === '1') {
         // either the operator's own name or a generic "Probe N" -
         // whichever the page rendered for this probe.
         'probes' => array_map(
-            fn($p) => ['label' => $p['label'], 'ok' => $p['ok'], 'value_c' => $p['value_c']],
+            fn($p) => [
+                'label' => $p['label'],
+                'ok' => $p['ok'],
+                // Converted at this presentation boundary only - $ds18b20
+                // itself (piratebox_get_ds18b20_probes()) still returns
+                // the raw Celsius value; nothing upstream of this line
+                // is touched by the unit preference.
+                'value' => piratebox_convert_temp_c($p['value_c'], $tempUnit),
+            ],
             $ds18b20['probes']
         ),
+        'unit_symbol' => $tempUnitSymbolRaw,
     ]);
     exit;
 }
@@ -233,7 +274,7 @@ function piratebox_env_duration_text(?float $seconds): string
                     <?php if ($esp32['temp_internal_c'] !== null): ?>
                     <div class="stat-card">
                         <span class="stat-label">Chip temperature</span>
-                        <span class="stat-value" id="env-esp32-temp"><?= htmlspecialchars(number_format($esp32['temp_internal_c'], 1)) ?> &deg;C</span>
+                        <span class="stat-value" id="env-esp32-temp"><?= htmlspecialchars(number_format(piratebox_convert_temp_c($esp32['temp_internal_c'], $tempUnit), 1)) ?> <?= $tempUnitSymbol ?></span>
                     </div>
                     <?php endif; ?>
                 </div>
@@ -250,7 +291,7 @@ function piratebox_env_duration_text(?float $seconds): string
                 <div class="stat-card" data-probe-name="<?= htmlspecialchars($probe['label']) ?>">
                     <span class="stat-label"><?= htmlspecialchars($probe['label']) ?></span>
                     <?php if ($probe['ok']): ?>
-                    <span class="stat-value probe-value"><?= htmlspecialchars(number_format($probe['value_c'], 1)) ?> &deg;C</span>
+                    <span class="stat-value probe-value"><?= htmlspecialchars(number_format(piratebox_convert_temp_c($probe['value_c'], $tempUnit), 1)) ?> <?= $tempUnitSymbol ?></span>
                     <?php else: ?>
                     <span class="stat-value probe-value status-bad">not responding</span>
                     <?php endif; ?>
@@ -287,7 +328,7 @@ function piratebox_env_duration_text(?float $seconds): string
         <?php endif; ?>
 
         <?php if ($historyCatalog['probes'] !== []): ?>
-        <div class="history-chart-panel" data-history-group="probes" data-history-unit="&deg;C">
+        <div class="history-chart-panel" data-history-group="probes" data-history-unit="<?= $tempUnitSymbol ?>">
             <h3>Temperature Probes</h3>
             <div class="history-range-buttons" role="group" aria-label="Time range"></div>
             <div class="history-chart-container"><canvas></canvas></div>
@@ -295,7 +336,7 @@ function piratebox_env_duration_text(?float $seconds): string
         <?php endif; ?>
 
         <?php if ($historyCatalog['esp32_temp'] !== null): ?>
-        <div class="history-chart-panel" data-history-group="esp32_temp" data-history-unit="&deg;C">
+        <div class="history-chart-panel" data-history-group="esp32_temp" data-history-unit="<?= $tempUnitSymbol ?>">
             <h3>ESP32 Chip Temperature</h3>
             <?php if ($historyCatalog['esp32_temp']['current_state'] !== 'AVAILABLE'): ?>
             <p class="muted status-bad">Current reading unavailable right now - showing past history only.</p>
@@ -336,11 +377,16 @@ function piratebox_env_duration_text(?float $seconds): string
                         if (descEl && data.classification) descEl.textContent = data.classification.description;
                         if (updatedEl) updatedEl.textContent = ago(data.last_success_seconds_ago);
                     } // else: leave the last good ambient-light reading visible rather than blanking it
+                    // The server has already converted `value` to the
+                    // current display unit and sends its own symbol
+                    // (° C or ° F) - this script never does C/F math of
+                    // its own, so there is exactly one place in the
+                    // whole app that conversion happens for this data.
                     (data.probes || []).forEach(function (probe) {
                         const card = document.querySelector('[data-probe-name="' + CSS.escape(probe.label) + '"] .probe-value');
                         if (!card) return; // a probe that appears later needs a full page reload, not just JS - fine
                         if (probe.ok) {
-                            card.textContent = Number(probe.value_c).toFixed(1) + ' °C';
+                            card.textContent = Number(probe.value).toFixed(1) + ' ' + (data.unit_symbol || '°C');
                             card.classList.remove('status-bad');
                         } else {
                             card.textContent = 'not responding';
