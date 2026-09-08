@@ -1,0 +1,21 @@
+[Unit]
+Description=Sample PirateBox sensor history periodically
+
+[Timer]
+# ~5 minutes: a reasonable default for slow-changing environmental/
+# hardware signals (ambient light, temperature) - 288 samples/day/
+# signal, enough resolution for real trends (day/night light cycles,
+# gradual warming, one probe diverging from the others) without
+# logging every ESP32 heartbeat or every raw sensor read. See
+# docs/ESP32-SUPERVISOR-DESIGN.md's history section for the sizing
+# math this interval was chosen against.
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=30s
+# If the Pi was off when a run was due, sample once soon after the next
+# boot rather than silently waiting up to 5 minutes - same rationale
+# piratebox-backup.timer already uses for its own longer interval.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

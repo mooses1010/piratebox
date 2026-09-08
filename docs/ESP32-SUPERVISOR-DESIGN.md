@@ -18,7 +18,11 @@ decision left to the operator. §21 (2026-09-08) is a PirateBox-wide
 integration pass: the ESP32 supervisor and its sensors are now woven
 into the admin capability table, the OLED's fault/warning tier, and
 Progression — no longer an isolated experiment bolted onto the rest of
-the product. The board was
+the product. §22 (2026-09-08) adds bounded, lightweight sensor history
+and historical graphs to the Environment page - a small embedded-
+system time-series feature (flat bounded JSON files, ~5-minute
+sampling via a new timer, no database, no new sensor polling), never a
+telemetry stack. The board was
 commissioned (identity fully proven read-only via `esptool`) earlier
 the same day — see `docs/OPERATIONAL-DECISIONS.md`'s two commissioning
 entries and `docs/CAPABILITY-REGISTRY.md`'s "Remote microcontroller/
@@ -1126,3 +1130,160 @@ directly; one export remains the single source of truth.
   capability/commissioned-set-driven — a sixth probe, a BME280, or an
   INA226 slots into the same shapes without a rewrite of any of this
   round's work.
+
+## 22. Lightweight sensor history / historical graphing (2026-09-08)
+
+**Status: IMPLEMENTED, TESTED, DEPLOYED, LIVE-VALIDATED.** After the
+hardware-awareness round made PirateBox understand "what are the
+sensors saying right now," this round answers "what have they been
+doing over time" — a small, bounded, embedded-system time-series
+feature, deliberately not Grafana/Prometheus/InfluxDB/a telemetry
+stack. Full evidence: `docs/OPERATIONAL-DECISIONS.md`'s matching entry.
+
+### 22a. Where samples come from
+
+**No new sensor polling of any kind.** `piratebox_history_sampler.py`
+(a new oneshot script, triggered every ~5 minutes by
+`piratebox-history-sample.timer`) reads only `piratebox_esp32_client.
+get_diagnostics()` — the exact same already-cached export every other
+consumer (Environment page, admin capability table, OLED daemon)
+already reads — and decides validity using the SAME shared classifiers
+from the hardware-awareness round (`piratebox_hardware_health.
+classify_simple_sensor()`/`classify_ds18b20_bus()`). Only a signal
+currently classified `AVAILABLE` is recorded; a commissioned DS18B20
+probe that's temporarily missing or `ok=false` (disconnected, CRC
+failure, the firmware's own 85°C power-on sentinel — all already
+rejected upstream by the firmware/daemon, never re-validated here) is
+simply skipped that cycle — a gap, never a fabricated or carried-
+forward value. A timer-triggered oneshot was chosen over a third
+always-running daemon (this project already has two — the ESP32
+supervisor and the OLED daemon) specifically because 5-minute-cadence
+work doesn't justify a process sitting idle between runs; it mirrors
+`piratebox-status.timer`'s own existing oneshot-via-timer shape.
+
+### 22b. Identity model
+
+Every signal is keyed by a PERMANENT, machine-stable id, never a
+cosmetic label or physical role: `"ambient_lux"`, `"esp32_temp_
+internal"`, `"ds18b20_<romhex>"` (one per DS18B20 ROM — the same
+permanent hardware identity `piratebox_ds18b20_roles.py` already
+treats as load-bearing). A rename, or a future functional role
+assignment, changes only how a signal is LABELED at query/display
+time — the stored identity, and therefore the historical stream
+itself, never forks or resets. `includes/history.php`'s `piratebox_
+history_probe_slug_map()` is the ONE bridge between a public,
+non-semantic slug (`"probe_1".."probe_N"`, from the same
+`physical_index` the live Environment page already uses) and the real
+ROM-keyed signal id — the ROM itself never reaches the browser. Adding
+a future sensor (BME280, INA226) means one new signal id in the
+sampler's own small list — zero changes to the storage/retention
+engine or the query layer.
+
+### 22c. Storage
+
+Flat JSON files (no database — this project has none by design; see
+`piratebox_ds18b20_roles.py`'s own header for the same reasoning, and
+§22g below for the sizing math that keeps this the right call), one
+file per signal, under a new `/var/lib/piratebox-history/` (systemd
+`StateDirectory=`, mode **0755** — deliberately world-readable, unlike
+the `0770` group-writable pattern `/var/lib/piratebox-esp32` uses,
+because the reader here is a different service account — PHP-FPM/
+www-data — that only ever needs READ, not a group peer needing WRITE).
+Each file holds three bounded tiers:
+
+| Tier | Resolution | Retention | ~Max points/signal |
+|---|---|---|---|
+| `raw` | ~5 min | 7 days | ~2016 |
+| `hourly` | min/avg/max/count | 90 days | ~2160 |
+| `daily` | min/avg/max/count | 1 year | ~365 |
+
+Every write is atomic (temp file + rename, the same pattern used
+throughout this project's other durable JSON files), explicit-chmod
+0644 (never relies on process umask), and happens as a side effect of
+recording a new raw sample — there is no separate compaction daemon.
+`piratebox_history.py`'s `append_raw_sample()`/`compact_hourly()`/
+`compact_daily()` are pure functions over already-loaded data,
+independently unit-tested without any file I/O.
+
+**Gaps are honest.** A period with no valid reading simply has no
+entry — never a sentinel, never an interpolated value. Compaction only
+ever summarizes hours/days that actually have raw/hourly data; an hour
+with zero samples produces no hourly entry, which is exactly what
+"there's a gap here" needs to look like. `public/assets/history-
+chart.js` breaks its drawn line whenever the gap between two
+consecutive stored points exceeds ~2.5× that series' own median sample
+spacing, so a real outage reads as a visible break, never a smoothed-
+over straight line.
+
+**Clock handling.** A wall-clock step backward (NTP correction, RTC
+glitch) or a too-soon duplicate call is never inserted — chronological
+order within one signal's file is a hard invariant the retention/query
+logic relies on (`append_raw_sample()`'s own `MIN_SAMPLE_GAP_SECONDS`
+guard, 60s, well under the 5-minute target interval). A reboot gap
+needs no special handling at all: it's simply an absence of raw
+samples for that span, which compaction correctly skips (nothing to
+summarize) and the chart correctly renders as a gap.
+
+### 22d. Query / API
+
+`includes/history.php`'s `piratebox_history_query($signalId,
+$rangeSeconds)` picks a tier via `choose_tier_for_range()` (short
+ranges get the finest tier that still covers them; long ranges get an
+already-aggregated tier, so no request ever resamples thousands of raw
+points in PHP) and returns only the points inside the requested
+window — never the whole stored file. `environment/index.php`'s
+`?history=1&group=<ambient_light|probes|esp32_temp>&range=<6h|24h|7d|
+30d>` endpoint is the one narrow entry point (mirrors the page's
+existing `?fetch=1` live-refresh pattern) — `group` is one of a small
+fixed set, never a raw signal id or ROM from the client.
+
+### 22e. Environment page UI
+
+A new "History" section, capability-driven exactly like the rest of
+the page (`piratebox_history_catalog()` — a graph group is only ever
+listed if the underlying capability currently exists; no empty/fake
+chart for hardware that doesn't exist). Three groups: Ambient Light
+(its own chart — lux and °C are different scales), Temperature Probes
+(all commissioned DS18B20 probes together, labeled "Probe N" or a real
+name — public pages never show a ROM), ESP32 Chip Temperature (its own
+chart). Each has 6h/24h/7d/30d range buttons (24h default), loads once
+per page view or range click (not on an interval — history is
+5-minute-cadence data; nothing changes often enough to justify the
+30-second "live now" ambient-light refresh's much more frequent
+cadence). A sensor currently stale/unavailable still shows its
+historical chart (real past data), with an honest separate note — the
+two kinds of availability (live vs. historical) are never conflated.
+
+**Chart rendering: hand-rolled canvas, not a vendored library.** ~150
+lines of plain JS (`public/assets/history-chart.js`) draw axes, lines
+with honest gaps, and a hover/tap tooltip — evaluated against vendoring
+a small chart library and judged unnecessary for this scope, matching
+this project's existing zero-new-dependency conventions (hand-drawn
+OLED icons, no icon fonts) and avoiding any licensing/vendoring
+overhead. Reads its palette from the page's own CSS custom properties
+(`--accent`, `--color-success`, etc.), so it matches the current theme
+automatically, dark/light/emergency variants included, with zero
+external CDN of any kind.
+
+### 22f. What was deliberately NOT built
+
+- **No general event-log system.** The 2026-09-07 deferral (§19),
+  re-evaluated again here, still holds — this phase stores time-series
+  samples, which is a different concern from a state-transition/event
+  log, and nothing here needed one.
+- **No expensive PHP-side resampling.** All aggregation (hourly/daily
+  rollups) happens once, incrementally, during the sampler's own
+  5-minute cycle — never recomputed from raw data on a page request.
+- **No unbounded retention, no per-visitor state, no external
+  analytics/CDN.** Every tier is bounded and pruned on every write.
+
+### 22g. Storage footprint (measured against the actual sensor count)
+
+7 signals today (`temp_internal`, `bh1750`, 5 commissioned DS18B20
+ROMs) × ~60 bytes/raw-entry × 2016 max raw entries ≈ **~850 KB** at
+full raw retention; hourly/daily tiers add a further few hundred KB at
+full retention. Total steady-state footprint across all three tiers,
+all seven signals: **well under 2 MB** — negligible on any SD card, and
+one write of a single small (tens-of-KB) file per signal every 5
+minutes is not meaningful SD-card wear. Adding a future sensor grows
+this linearly per signal, never restructuring what's already stored.

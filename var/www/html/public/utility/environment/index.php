@@ -3,6 +3,7 @@ declare(strict_types=1);
 session_start();
 require_once __DIR__ . '/../../../includes/sensors.php';
 require_once __DIR__ . '/../../../includes/esp32_supervisor.php';
+require_once __DIR__ . '/../../../includes/history.php';
 
 // Environment - live readings from PirateBox's onboard sensors
 // (2026-09-07). First real sensor: BH1750 ambient light. Designed to
@@ -34,6 +35,51 @@ require_once __DIR__ . '/../../../includes/esp32_supervisor.php';
 $ambientLight = piratebox_get_ambient_light_reading();
 $esp32 = piratebox_get_esp32_supervisor_status();
 $ds18b20 = piratebox_get_ds18b20_probes();
+$historyCatalog = piratebox_history_catalog();
+
+// Narrow, range/query-selection history endpoint (2026-09-08) - never
+// dumps the whole stored file, only the points inside the requested
+// window at whatever tier fits it (see piratebox_history_query()).
+// `group` is one of a small fixed set (never a raw signal id from the
+// client - see piratebox_history_probe_slug_map() for the one place a
+// ROM address ever gets involved, entirely server-side) so a request
+// can only ever ask for a chart this page would legitimately draw.
+if (($_GET['history'] ?? '') === '1') {
+    header('Content-Type: application/json');
+    $group = is_string($_GET['group'] ?? null) ? $_GET['group'] : '';
+    $rangeKey = is_string($_GET['range'] ?? null) ? $_GET['range'] : '24h';
+    $rangeSeconds = PIRATEBOX_HISTORY_RANGES[$rangeKey] ?? null;
+    if ($rangeSeconds === null) {
+        http_response_code(400);
+        echo json_encode(['error' => 'invalid range']);
+        exit;
+    }
+
+    $series = [];
+    if ($group === 'ambient_light' && $historyCatalog['ambient_light'] !== null) {
+        $q = piratebox_history_query($historyCatalog['ambient_light']['signal_id'], $rangeSeconds);
+        $series[] = ['label' => 'Ambient light', 'points' => $q['points']];
+    } elseif ($group === 'esp32_temp' && $historyCatalog['esp32_temp'] !== null) {
+        $q = piratebox_history_query($historyCatalog['esp32_temp']['signal_id'], $rangeSeconds);
+        $series[] = ['label' => 'ESP32 chip', 'points' => $q['points']];
+    } elseif ($group === 'probes') {
+        foreach ($historyCatalog['probes'] as $probe) {
+            $q = piratebox_history_query($probe['signal_id'], $rangeSeconds);
+            // Never emit a series for a probe with zero points in this
+            // window - an empty series is clutter, not information.
+            if ($q['points'] !== []) {
+                $series[] = ['label' => $probe['label'], 'points' => $q['points']];
+            }
+        }
+    } else {
+        http_response_code(400);
+        echo json_encode(['error' => 'invalid group']);
+        exit;
+    }
+
+    echo json_encode(['series' => $series]);
+    exit;
+}
 
 if (($_GET['fetch'] ?? '') === '1') {
     header('Content-Type: application/json');
@@ -225,6 +271,41 @@ function piratebox_env_duration_text(?float $seconds): string
 
         <?php endif; ?>
 
+        <?php if ($historyCatalog['ambient_light'] !== null || $historyCatalog['esp32_temp'] !== null || $historyCatalog['probes'] !== []): ?>
+        <h2>History</h2>
+        <p class="muted">How these readings have changed over time - sampled roughly every 5 minutes, never a live poll. A gap in a line means the sensor genuinely had no valid reading then, not zero.</p>
+
+        <?php if ($historyCatalog['ambient_light'] !== null): ?>
+        <div class="history-chart-panel" data-history-group="ambient_light" data-history-unit=" lux">
+            <h3>Ambient Light</h3>
+            <?php if ($historyCatalog['ambient_light']['current_state'] !== 'AVAILABLE'): ?>
+            <p class="muted status-bad">Current reading unavailable right now - showing past history only.</p>
+            <?php endif; ?>
+            <div class="history-range-buttons" role="group" aria-label="Time range"></div>
+            <div class="history-chart-container"><canvas></canvas></div>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($historyCatalog['probes'] !== []): ?>
+        <div class="history-chart-panel" data-history-group="probes" data-history-unit="&deg;C">
+            <h3>Temperature Probes</h3>
+            <div class="history-range-buttons" role="group" aria-label="Time range"></div>
+            <div class="history-chart-container"><canvas></canvas></div>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($historyCatalog['esp32_temp'] !== null): ?>
+        <div class="history-chart-panel" data-history-group="esp32_temp" data-history-unit="&deg;C">
+            <h3>ESP32 Chip Temperature</h3>
+            <?php if ($historyCatalog['esp32_temp']['current_state'] !== 'AVAILABLE'): ?>
+            <p class="muted status-bad">Current reading unavailable right now - showing past history only.</p>
+            <?php endif; ?>
+            <div class="history-range-buttons" role="group" aria-label="Time range"></div>
+            <div class="history-chart-container"><canvas></canvas></div>
+        </div>
+        <?php endif; ?>
+        <?php endif; ?>
+
         <noscript>
             <p class="help-note">JavaScript is off - the reading above is still accurate as of when this page loaded; reload the page for a fresh one.</p>
         </noscript>
@@ -271,6 +352,77 @@ function piratebox_env_duration_text(?float $seconds): string
                 }
             }
             setInterval(refresh, 30000);
+        })();
+    </script>
+    <?php endif; ?>
+
+    <?php if ($historyCatalog['ambient_light'] !== null || $historyCatalog['esp32_temp'] !== null || $historyCatalog['probes'] !== []): ?>
+    <script src="/assets/history-chart.js"></script>
+    <script>
+        (function () {
+            var RANGES = [['6h', '6h'], ['24h', '24h'], ['7d', '7d'], ['30d', '30d']];
+            var DEFAULT_RANGE = '24h';
+
+            // History is sampled roughly every 5 minutes (see
+            // piratebox-history-sample.timer) - re-fetching more often
+            // than that on a timer would just re-draw identical data.
+            // Charts load once per page view / range-button click, not
+            // on an interval - deliberately lighter than the 30s "live
+            // now" refresh above, appropriate for slow-changing history.
+            document.querySelectorAll('.history-chart-panel').forEach(function (panel) {
+                var group = panel.dataset.historyGroup;
+                var unit = panel.dataset.historyUnit || '';
+                var canvas = panel.querySelector('canvas');
+                var buttonRow = panel.querySelector('.history-range-buttons');
+                var buttons = {};
+
+                RANGES.forEach(function (pair) {
+                    var key = pair[0], label = pair[1];
+                    var btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.textContent = label;
+                    btn.addEventListener('click', function () { load(key); });
+                    buttonRow.appendChild(btn);
+                    buttons[key] = btn;
+                });
+
+                function setActive(key) {
+                    Object.keys(buttons).forEach(function (k) {
+                        buttons[k].classList.toggle('active', k === key);
+                    });
+                }
+
+                async function load(rangeKey) {
+                    setActive(rangeKey);
+                    try {
+                        var res = await fetch(
+                            '/utility/environment/?history=1&group=' + encodeURIComponent(group) +
+                            '&range=' + encodeURIComponent(rangeKey),
+                            { cache: 'no-cache' }
+                        );
+                        if (!res.ok) return;
+                        var data = await res.json();
+                        window.PirateboxHistoryChart.render(canvas, data.series || [], { unit: unit });
+                    } catch (e) {
+                        // Offline/transient fetch failure - leave whatever was last drawn.
+                    }
+                }
+
+                load(DEFAULT_RANGE);
+
+                // Canvas needs its backing size recomputed for a new
+                // container width - simplest correct way is re-running
+                // the active range's load(). Debounced so a window
+                // drag-resize doesn't fire a burst of redundant fetches.
+                var resizeTimer = null;
+                window.addEventListener('resize', function () {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(function () {
+                        var activeKey = Object.keys(buttons).find(function (k) { return buttons[k].classList.contains('active'); });
+                        if (activeKey) load(activeKey);
+                    }, 250);
+                });
+            });
         })();
     </script>
     <?php endif; ?>

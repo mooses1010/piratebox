@@ -6,6 +6,82 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Lightweight sensor history / historical graphing implemented (2026-09-08, same day)
+
+**Decision date:** 2026-09-08. Full design: `docs/ESP32-SUPERVISOR-
+DESIGN.md` §22. This entry is the implementation record; a follow-up
+entry records live deployment/verification once completed.
+
+**Why.** The hardware-awareness round (previous entry) made PirateBox
+understand its sensors' CURRENT state. This round adds the other half:
+"what have they been doing over time" - historical graphs on
+`/utility/environment/`, without becoming Grafana/Prometheus/InfluxDB
+or any kind of general telemetry stack.
+
+**Architecture, in one paragraph:** a new oneshot script
+(`piratebox_history_sampler.py`), triggered every ~5 minutes by a new
+systemd timer (`piratebox-history-sample.timer`), reads the SAME
+already-cached ESP32 export every other consumer reads and, using the
+SAME shared health classifiers from the hardware-awareness round,
+records only currently-valid readings into a new bounded, flat-JSON
+store (`/var/lib/piratebox-history/`, one file per PERMANENT signal id
+- never per cosmetic label). Three tiers per signal (raw/5min/7d,
+hourly/90d, daily/1yr), min/avg/max on the aggregated tiers, pruned on
+every write, atomic temp+rename writes. `includes/history.php` is the
+read side: a narrow `?history=1&group=...&range=...` endpoint on the
+Environment page returns only the points in the requested window at
+whatever tier fits it - never the whole file, never expensive PHP-side
+resampling. A hand-rolled ~150-line canvas chart renderer (no vendored
+library, no CDN) draws the graphs, honestly breaking the line across
+any real gap.
+
+**Explicit decisions made without asking, per instruction:**
+- **No database.** Flat JSON, matching this project's existing
+  no-database-by-design principle (`piratebox_ds18b20_roles.py`'s own
+  header makes the same call for the same reason) - the actual data
+  volume (7 signals today, well under 2 MB steady-state across all
+  three tiers) never approaches a scale where SQLite would have been
+  the simpler choice.
+- **A new timer, not a new daemon.** This project already has two
+  always-running daemons (ESP32 supervisor, OLED); a third for
+  5-minute-cadence work would be pure overhead. Mirrors `piratebox-
+  status.timer`'s existing oneshot-via-timer shape exactly.
+- **World-readable history directory (`StateDirectoryMode=0755`),
+  deliberately different from `/var/lib/piratebox-esp32`'s `0770`
+  group-writable pattern.** The DS18B20 roles directory grants a group
+  PEER (the operator's own `moose` account, via `gpio`) WRITE access
+  to drop a request file. This directory's actual need is the
+  opposite: a completely different service account (PHP-FPM/www-data)
+  only ever needs to READ - world-readable, explicit-chmod 0644 per
+  file (never relies on umask), is the simpler, correct fit, matching
+  the existing precedent of `var/www/html/data/device-history.json`
+  (root-written, PHP-read, world-readable).
+- **`open_basedir` gets the whole `/var/lib/piratebox-history`
+  directory, not per-file entries** - unlike the exact-file allowlist
+  style used elsewhere in this same php.ini line. Deliberate: this
+  directory's filename set grows unpredictably (one file per DS18B20
+  ROM, plus future sensors) and can't be enumerated in advance, the
+  same reason `/var/www/html` itself is a whole-directory entry.
+- **No auto-refresh interval for the history charts.** History is
+  5-minute-cadence data; nothing changes often enough to justify the
+  Environment page's existing 30-second "live now" ambient-light
+  refresh cadence. Charts load once per page view and on each range-
+  button click - simpler, lighter, and honest about how often the
+  underlying data actually changes.
+- **ROM redaction bridge:** `piratebox_history_probe_slug_map()` is the
+  only place a ROM address and a public slug (`"probe_1".."probe_N"`)
+  ever meet - the public history API and UI never see a ROM, matching
+  the existing Environment-page privacy discipline exactly.
+
+**Tested:** 50 new Python tests (`test_history.py`'s pure retention/
+compaction/query engine tests, `test_history_sampler.py`'s validity-
+decision tests covering stale/invalid/85°C-rejected/multi-probe/
+gap-on-missing-probe/interrupted-write-tolerance/clock-backwards/
+duplicate-timestamp cases) + 41 new PHP assertions
+(`test_history_web.php`'s catalog/slug-map/ROM-redaction/range-query/
+path-traversal-rejection tests). Full regression: 588 Python tests,
+493 PHP assertions, all green, zero regressions elsewhere.
+
 ## PirateBox-wide hardware-awareness integration, deployed and live-verified (2026-09-08)
 
 **Decision date:** 2026-09-08. Full design: `docs/ESP32-SUPERVISOR-
