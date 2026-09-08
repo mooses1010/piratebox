@@ -1404,3 +1404,43 @@ pre-existing ~0.9 GB `zram` swap remains active. Three repo-local
 against repeating the OOM on this hardware - evaluated, not blindly
 carried over; see the linked entry for the reasoning.
 
+## PirateBox-wide hardware-awareness integration, deployed and live-verified (2026-09-08)
+
+**`dfe9be76946e9da6f352880b40e5ef07201973b5`** - the durable known-good
+recovery point for the ESP32 supervisor/BH1750/DS18B20 stack no longer
+being an isolated experiment: a shared sensor-health vocabulary, real
+admin capability rows, a commissioned-identity model for DS18B20
+probes, OLED fault-tier integration, and one new Progression
+achievement. Full design: `docs/ESP32-SUPERVISOR-DESIGN.md` §21. Full
+evidence/verification record: `docs/OPERATIONAL-DECISIONS.md`'s
+matching entry.
+
+**In one line:** the admin capability table, `/utility/environment/`,
+the OLED's fault/warning tier, and Progression all now genuinely know
+about this hardware and degrade/react sensibly - without inventing any
+role-specific safety threshold, since no DS18B20 probe has a physical
+role yet.
+
+**Deployed and independently live-verified**, not just implemented:
+all 7 changed/new Python files byte-identical to `/usr/local/bin/`
+with correct ownership/permissions; both `piratebox-esp32-
+supervisor.service` and `piratebox-oled.service` restarted with clean
+journals (no exceptions) and log lines directly confirming the new
+code paths executed; a real, pre-existing, unrelated deployment gap
+(`StateDirectory=piratebox-esp32` present in source since the prior
+phase but never actually deployed to the live systemd unit) was found
+via the first live commissioning attempt failing, diagnosed, and
+fixed; all five DS18B20 probes' permanent physical identities
+(established by the prior phase's live warming-test correspondence)
+recorded durably via `tools/ds18b20_commission.py commission`; the
+admin capability classification, the Environment page (zero ROM
+leakage, confirmed by grep against the live HTML response), and the
+new Progression achievement (genuinely unlocked - `ds18b20_full_bus_
+confirmed: true` in the daemon's own durable state, achievement count
+12 -> 13 visible on the live Captain's Log page) all independently
+re-checked against the real running system. Zero regressions: I2C bus
+(OLED/EEPROM/RTC) unaffected, all four Core services active,
+`vcgencmd get_throttled` still the same pre-existing `0x50005` (not
+misrepresented as new), zero failed units throughout. 538 Python tests
+(73 new) + 452 PHP assertions (21 new), full regression clean.
+
