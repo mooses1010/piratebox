@@ -116,6 +116,12 @@ def _default_state() -> dict:
             "ssh_sessions_observed": 0,
             "silly_days_used": 0,
             "external_radio_commissioned": False,
+            "ds18b20_full_bus_confirmed": False,  # every currently-commissioned
+                                             # DS18B20 probe was healthy at the
+                                             # same moment at least once - a
+                                             # one-time latch, never re-checked
+                                             # against a hardcoded probe count
+                                             # (see observe_tick()'s own comment)
             "rare_events_witnessed": 0,    # count of rare/legendary/secret-tier
                                              # variants ever chosen by roll_event() -
                                              # an aggregate only, never which ones
@@ -435,6 +441,9 @@ ACHIEVEMENTS = {
     "external_radio": _mk("Upgraded Rigging", 80, False,
                         "Gained a proper external radio receiver of its own.",
                         lambda s, c: s["stats"]["external_radio_commissioned"]),
+    "ds18b20_full_bus": _mk("Full Sensor Muster", 90, False,
+                        "Every one of its commissioned temperature probes checked in healthy at the same moment.",
+                        lambda s, c: s["stats"]["ds18b20_full_bus_confirmed"]),
 
     # --- Meta ---
     "collector_10": _mk("Collector", 150, False,
@@ -846,6 +855,24 @@ def observe_tick(state: dict, ctx: dict) -> dict:
 
     if ctx.get("external_radio") and not state["stats"]["external_radio_commissioned"]:
         state["stats"]["external_radio_commissioned"] = True
+
+    # DS18B20 "all commissioned probes healthy at once" latch (2026-09-08,
+    # hardware-awareness phase) - deliberately compares two live signals
+    # against EACH OTHER (ok count vs. commissioned count), never a
+    # hardcoded probe count, so this stays correct whether this device
+    # ever has five probes or a different number later. hardware.get()
+    # returns None (not 0) when the supervisor link itself isn't
+    # available - `> 0` below excludes that case from ever falsely
+    # latching on a coincidental 0 == 0.
+    hw = ctx.get("hardware") or {}
+    probes_ok = hw.get("ds18b20_probes_ok")
+    probes_commissioned = hw.get("ds18b20_probes_commissioned")
+    if (
+        isinstance(probes_ok, int) and isinstance(probes_commissioned, int)
+        and probes_commissioned > 0 and probes_ok == probes_commissioned
+        and not state["stats"]["ds18b20_full_bus_confirmed"]
+    ):
+        state["stats"]["ds18b20_full_bus_confirmed"] = True
 
     new_achievements = check_achievements(state, ctx)
 

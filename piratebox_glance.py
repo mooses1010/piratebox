@@ -58,16 +58,21 @@
 #                          to use this exact "future hardware hook"
 #                          mechanism (2026-09-07) - see "ambient" in
 #                          GLANCE_PAGES below.
-#   probe_name             str (an OPERATOR-ASSIGNED name, e.g.
-#                          "Enclosure"), or None - the second real
-#                          sensor to use this hook (2026-09-07, DS18B20
-#                          phase). Only ever a NAMED, currently-ok
-#                          probe - an unwired bus, an unnamed probe, or
-#                          one currently failing to read all show as
-#                          None here, never a ROM address (engineering
+#   probe_name             str - the second real sensor to use this
+#                          hook (2026-09-07, DS18B20 phase; extended
+#                          2026-09-08 to also show COMMISSIONED probes
+#                          before they're named). Either the
+#                          OPERATOR-ASSIGNED name (e.g. "Enclosure") or,
+#                          for a probe whose physical identity is known
+#                          but not yet named, a generic "Probe N" label
+#                          using the durable physical_index established
+#                          during commissioning (never raw discovery
+#                          order, never a ROM address - engineering
 #                          detail that belongs in tools/ds18b20_
-#                          commission.py, not this display). With more
-#                          than one eligible probe, which one shows
+#                          commission.py, not this display). None for an
+#                          unwired bus, a probe never commissioned at
+#                          all, or one currently failing to read. With
+#                          more than one eligible probe, which one shows
 #                          rotates by wall-clock minute (see
 #                          build_glance_metrics()'s own comment).
 #   probe_temp_c           float, or None (paired with probe_name -

@@ -81,6 +81,51 @@ def read_temp_internal():
     return float(value) if isinstance(value, (int, float)) else None
 
 
+def _ds18b20_block():
+    """Shared by both DS18B20 HARDWARE_SIGNALS readers below - a single
+    diagnostics fetch, not two."""
+    diag = get_diagnostics()
+    if not diag["connected"] or diag["stale"]:
+        return None
+    ds18b20 = diag["sensors"].get("ds18b20")
+    return ds18b20 if isinstance(ds18b20, dict) else None
+
+
+def read_ds18b20_probes_ok():
+    """HARDWARE_SIGNALS reader - zero-argument, returns an int (count of
+    CURRENTLY-OK, COMMISSIONED probes this cycle) or None if the
+    supervisor link itself isn't available. Register with:
+    register_hardware_signal("ds18b20_probes_ok", read_ds18b20_probes_ok).
+    Paired with read_ds18b20_probes_commissioned() below - together they
+    let a consumer (e.g. piratebox_progression.py) ask "are all of them
+    healthy right now" without ever hardcoding how many probes this
+    device happens to own."""
+    ds18b20 = _ds18b20_block()
+    if ds18b20 is None:
+        return None
+    probes = ds18b20.get("probes")
+    commissioned = ds18b20.get("commissioned")
+    if not isinstance(probes, dict) or not isinstance(commissioned, dict):
+        return 0
+    return sum(
+        1 for rom in commissioned
+        if isinstance(probes.get(rom), dict) and probes[rom].get("ok")
+    )
+
+
+def read_ds18b20_probes_commissioned():
+    """HARDWARE_SIGNALS reader - zero-argument, returns an int (count of
+    ROMs this device has ever physically commissioned - see
+    piratebox_ds18b20_roles.py) or None if the supervisor link itself
+    isn't available. Register with: register_hardware_signal(
+    "ds18b20_probes_commissioned", read_ds18b20_probes_commissioned)."""
+    ds18b20 = _ds18b20_block()
+    if ds18b20 is None:
+        return None
+    commissioned = ds18b20.get("commissioned")
+    return len(commissioned) if isinstance(commissioned, dict) else 0
+
+
 if __name__ == "__main__":
     import pprint
     pprint.pprint(get_diagnostics())

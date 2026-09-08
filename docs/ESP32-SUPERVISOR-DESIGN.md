@@ -12,8 +12,13 @@ working against real hardware — all five ROMs discovered on one
 1-Wire bus, each independently reporting real, changing temperature
 data (§17f). All five have now been physically commissioned — each
 ROM matched to its physical probe by observed warming, one at a time
-(§17f) — but none are named/assigned a role yet; that's a separate
-decision left to the operator. The board was
+(§17f), and that identity now recorded durably (physical_index 1-5,
+§21) — but none are named/assigned a role yet; that's a separate
+decision left to the operator. §21 (2026-09-08) is a PirateBox-wide
+integration pass: the ESP32 supervisor and its sensors are now woven
+into the admin capability table, the OLED's fault/warning tier, and
+Progression — no longer an isolated experiment bolted onto the rest of
+the product. The board was
 commissioned (identity fully proven read-only via `esptool`) earlier
 the same day — see `docs/OPERATIONAL-DECISIONS.md`'s two commissioning
 entries and `docs/CAPABILITY-REGISTRY.md`'s "Remote microcontroller/
@@ -942,3 +947,182 @@ already shows, and never allowed to interfere with watchdog/timing/
 sensor reliability (i.e., driven from the same non-blocking tick
 pattern every other firmware feature already uses, never a blocking
 animation loop).
+
+## 21. PirateBox-wide hardware-awareness integration (2026-09-08)
+
+**Status: IMPLEMENTED, TESTED, DEPLOYED, LIVE-VALIDATED.** After
+several phases building the supervisor, BH1750, and DS18B20 pieces in
+isolation, this round asked the opposite question: does PirateBox *as
+a product* actually know it has this hardware, and use that knowledge
+appropriately across its existing surfaces? A whole-project audit (two
+parallel investigations — the PHP/web layer and the Python daemon/
+OLED/progression layer) answered "mostly no," and this section records
+what changed as a result. See `docs/OPERATIONAL-DECISIONS.md`'s
+matching entry for the full evidence/verification record and
+`docs/CAPABILITY-REGISTRY.md` for the updated capability rows.
+
+### 21a. What the audit found
+
+- **The admin capability table** (`includes/capability_state.php`,
+  the established single source of truth for "what's installed and
+  healthy") **had zero awareness of the ESP32 supervisor, BH1750, or
+  DS18B20** — its one catch-all "Optional/field capabilities" row still
+  claimed "none installed" even after BH1750/ESP32/five DS18B20 probes
+  were live.
+- **`/run/piratebox/status.json`** (the Pi-level status export every
+  other "is PirateBox healthy" surface reads) had a `hardware` block
+  containing exactly one field — whether the OLED *systemd service* was
+  active — with no concept of the ESP32 subsystem at all.
+- **No generic sensor-health vocabulary existed anywhere.** The
+  "is this reading connected/fresh" reduction was independently
+  reimplemented at least five times across Python and PHP. Meanwhile
+  `includes/capability_state.php` already had exactly the right
+  vocabulary (`NOT_INSTALLED`/`AVAILABLE`/`DEGRADED`/`UNAVAILABLE`/
+  `UNKNOWN`, with an explicit "prefer honest UNKNOWN over a fabricated
+  healthy state" philosophy) sitting unused by the hardware layer.
+- **DS18B20 naming conflated identity, name, and (future) role** into
+  one plain `name` string — no way to say "this ROM is a known,
+  permanent fixture of this device" independent of whether it has been
+  given a cosmetic name yet, and no reserved slot for a future
+  functional role.
+- **The OLED's "probe" glance page showed literally nothing** (0 named
+  probes at the time), the ambient-light/DS18B20 exports were read
+  through two separately-polled files describing overlapping hardware,
+  and a real latent bug existed in the Environment page's client-side
+  "time ago" formatter (dividing by 360 instead of 3600 — a 10x error,
+  found and fixed as part of this pass).
+- **Progression's `HARDWARE_SIGNALS` registry** had `ambient_lux` and
+  `esp32_temp_internal` wired in, but nothing for `ds18b20` at all.
+- **Captain's Log** reads a separate, pre-generated `progression-
+  public.json` export built by a *fresh CLI process* with an
+  intentionally-empty `HARDWARE_SIGNALS` dict — a hardware-driven
+  achievement only reaches Captain's Log once the long-running OLED
+  daemon (which DOES have live signals) has actually unlocked it and
+  persisted that fact; no new plumbing was needed for this to work.
+
+### 21b. The identity → name → role → policy pipeline
+
+`piratebox_ds18b20_roles.py`'s schema grew a `commissioned` (bool) +
+`commissioned_at` (timestamp) + `physical_index` (int, the operator's
+own 1..N physical-identification order from the warming-test
+commissioning session — **never** raw 1-Wire bus discovery order) per
+ROM, alongside the existing `name`. A `role` field is reserved
+(always `None` today) for a genuinely future functional classification
+("this probe monitors the battery") that role-specific safety policy
+could eventually key off — deliberately unpopulated by anything in
+this codebase, so a real role assignment later never requires another
+schema migration. `commission_batch` (a new `apply_name_request()`
+action, applied atomically — all-or-nothing) records a whole
+physically-identified set at once; `tools/ds18b20_commission.py
+commission <rom1> ... <romN>` is the CLI entry point, and `name`/
+`unname` continue to work exactly as before, now preserving a probe's
+commissioned identity when only its cosmetic name changes.
+
+This is a hardware-identity fact, not a role: a probe can be
+commissioned (a known, permanent fixture — the basis for a genuine
+"expected commissioned probe missing" health signal) for a long time
+before anyone decides what it's actually monitoring.
+
+### 21c. Shared sensor-health classification
+
+`piratebox_hardware_health.py` (Python) and new functions in
+`includes/esp32_supervisor.php` (PHP) implement the SAME five-state
+vocabulary `capability_state.php` already established, as pure,
+independently-tested classifier functions taking an already-fetched
+diagnostics dict:
+
+- `classify_esp32_supervisor(diag)` — the link itself (connected/
+  fresh → `AVAILABLE`; connected but stale heartbeat → `DEGRADED`; not
+  connected → `UNAVAILABLE`; no export ever read → `UNKNOWN`, never
+  `NOT_INSTALLED` — not enough information to claim that).
+- `classify_simple_sensor(diag, capability)` — for a flat `{ok, value,
+  unit}` sensor (`temp_internal`, `bh1750` today; any future
+  single-value ESP32 sensor fits the same shape).
+- `classify_ds18b20_bus(diag, commissioned_roms)` — the bus as a
+  whole, aware of which ROMs are commissioned: `AVAILABLE` when every
+  commissioned probe is present and ok; `DEGRADED` when one or more
+  commissioned probes are missing this cycle or reporting `ok=false`
+  (an "expected commissioned probe missing" signal, with zero
+  role-specific thresholds); `UNAVAILABLE` when the firmware's own
+  `bus_ok` regression flag fires; `NOT_INSTALLED` only when genuinely
+  nothing has ever been found or commissioned. A brand-new,
+  never-commissioned probe appearing is `AVAILABLE`, not a fault — new
+  information isn't a problem.
+
+**Deliberately not built:** any role-specific threshold ("battery too
+hot", "enclosure critical"). This module answers SENSOR HEALTH ("can I
+trust this reading") only — see its own header for why ROLE/POLICY
+HEALTH is a distinct, deferred concern until real roles exist.
+
+The Pi-side supervisor daemon (`piratebox_esp32_supervisor.py`)
+enriches its own export with a top-level `sensors.ds18b20.commissioned`
+map (`{rom: {name, physical_index}}` for every commissioned ROM,
+whether or not it's reporting this cycle) alongside the existing
+per-probe `name` — this is how PHP and the OLED daemon both learn
+"what's expected" without a second file read of the roles store
+directly; one export remains the single source of truth.
+
+### 21d. Where hardware-awareness now shows up
+
+- **Admin (`/admin/`, `capability_state.php`):** three new rows —
+  `esp32_supervisor`, `ambient_light`, `ds18b20_probes` — using the
+  classifiers above, `layer: optional`, `core_dependency: false` (an
+  ESP32/sensor problem can never make Core look dead). Each has a
+  `piratebox_diagnose_capability()` entry with a concrete suggested
+  check. The old catch-all "Optional/field capabilities" row is
+  re-scoped to exclude what these three now cover, so it stops
+  claiming "none installed" dishonestly.
+- **Environment (`/utility/environment/`):** every COMMISSIONED probe
+  is now shown, named or not — an unnamed-but-commissioned probe
+  displays as a generic, non-semantic "Probe N" (from `physical_index`,
+  never bus order, never the ROM). A never-commissioned probe stays
+  folded into an honest count, exactly as before. The JS "time ago" 10x
+  bug is fixed.
+- **OLED:** the "probe" glance page now also shows commissioned-but-
+  unnamed probes (as "Probe N") — its selection *weight* in
+  `piratebox_glance.py` is unchanged regardless of how many probes are
+  eligible, so five commissioned probes get exactly the same total
+  airtime one named probe used to; no "endless temperature slideshow."
+  A new `compute_hardware_warning_text()` slots an ESP32-link or
+  DS18B20-bus problem into the EXACT SAME "warning" tier the chronic Pi
+  undervoltage condition already uses (Optional-layer conditions never
+  outrank a Core fault or Emergency Mode) — Silly Mode's existing
+  generic badge covers it with zero new drawing code; the serious
+  Health page's own warning box shows a short message, with the
+  long-established undervoltage box keeping strict priority when both
+  conditions are active at once (only one line fits).
+- **Progression:** two new `HARDWARE_SIGNALS` — `ds18b20_probes_ok`
+  and `ds18b20_probes_commissioned` (paired counts, never a hardcoded
+  probe total) — feed one new, modest, spoiler-safe achievement
+  recognizing a genuine hardware milestone (see `piratebox_
+  progression.py`'s own "Real hardware/capability milestones" section,
+  next to the existing `external_radio` entry — content deliberately
+  not repeated here; see that file directly). The underlying stat
+  compares two live signals to each other, never against a hardcoded
+  count, so it stays correct if this device's probe count ever changes.
+- **Captain's Log:** needed no new plumbing — an unlocked hardware
+  achievement reaches it exactly the way `external_radio`'s already
+  does, since Progression's own state (not a live re-evaluation) is
+  what the public export reads.
+- **Diagnostics (`tools/diagnose_esp32_supervisor.py`):** now uses the
+  shared classifiers instead of its own ad hoc reduction, and reports
+  DS18B20 bus health with an explicit missing/failing-commissioned
+  breakdown instead of a raw, unclassified sensor dump.
+
+### 21e. What was deliberately NOT built
+
+- **No new generic event/state-transition log.** The 2026-09-07
+  decision to defer a general ESP32 black-box log (§19) was
+  re-evaluated in this context and still holds: Progression's existing
+  bounded, spoiler-safe history mechanism (`_append_history`, already
+  used for achievement unlocks) is sufficient for the one meaningful
+  milestone this phase added. A speculative telemetry database was
+  never on the table and remains unbuilt.
+- **No role-specific safety policy of any kind.** No probe has a
+  physical role; `role` stays `None` for every commissioned ROM.
+- **No hardcoded assumption of "exactly BH1750 + five DS18B20
+  forever."** Every new code path (capability rows, health
+  classifiers, OLED eligibility, Progression signals) is
+  capability/commissioned-set-driven — a sixth probe, a BME280, or an
+  INA226 slots into the same shapes without a rewrite of any of this
+  round's work.

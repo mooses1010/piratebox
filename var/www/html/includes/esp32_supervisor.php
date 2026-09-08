@@ -119,25 +119,180 @@ if (!function_exists('piratebox_get_esp32_supervisor_status')) {
     }
 }
 
+// --- Shared sensor-health classification (2026-09-08, hardware-
+// awareness phase) -------------------------------------------------
+//
+// Mirrors piratebox_hardware_health.py's Python vocabulary verbatim
+// (see that module's own header for the canonical definitions) so an
+// operator reading the admin capability table and a Python diagnostic
+// never has to learn two different words for the same idea:
+//   NOT_INSTALLED / AVAILABLE / DEGRADED / UNAVAILABLE / UNKNOWN
+// This is SENSOR HEALTH only ("can I trust this reading right now") -
+// it has no concept of physical role/policy, on purpose - see
+// piratebox_ds18b20_roles.py's header for why that distinction matters
+// and stays deferred until real roles exist.
+
+if (!function_exists('piratebox_classify_esp32_link')) {
+    /**
+     * @param array{installed: bool, connected: bool, stale: bool} $status
+     *   The shape piratebox_get_esp32_supervisor_status() already returns.
+     */
+    function piratebox_classify_esp32_link(array $status): string
+    {
+        if (!$status['installed']) {
+            // No export has ever been read successfully - not enough
+            // information to say "not installed" (an architectural
+            // fact) vs. "hasn't published yet" - honest UNKNOWN.
+            return 'UNKNOWN';
+        }
+        if ($status['connected'] && !$status['stale']) {
+            return 'AVAILABLE';
+        }
+        if ($status['connected'] && $status['stale']) {
+            return 'DEGRADED';
+        }
+        return 'UNAVAILABLE';
+    }
+}
+
+if (!function_exists('piratebox_classify_simple_sensor')) {
+    /**
+     * For a sensor whose export shape is one flat {ok, value, unit}
+     * dict directly under sensors[$capability] - covers temp_internal
+     * and bh1750 today.
+     *
+     * @param array{installed: bool, connected: bool, stale: bool} $status
+     * @param array<string, mixed> $decoded Full decoded export (for
+     *   'capabilities' and 'sensors').
+     */
+    function piratebox_classify_simple_sensor(array $status, array $decoded, string $capability): string
+    {
+        $linkState = piratebox_classify_esp32_link($status);
+        if ($linkState !== 'AVAILABLE') {
+            return $linkState;
+        }
+        $capabilities = is_array($decoded['capabilities'] ?? null) ? $decoded['capabilities'] : [];
+        if (!in_array($capability, $capabilities, true)) {
+            return 'NOT_INSTALLED';
+        }
+        $sensors = is_array($decoded['sensors'] ?? null) ? $decoded['sensors'] : [];
+        $reading = $sensors[$capability] ?? null;
+        if (!is_array($reading)) {
+            return 'UNKNOWN';
+        }
+        return ($reading['ok'] ?? false) === true ? 'AVAILABLE' : 'DEGRADED';
+    }
+}
+
+if (!function_exists('piratebox_classify_ds18b20_bus')) {
+    /**
+     * The 1-Wire bus as a whole. Reads the export's own top-level
+     * "commissioned" map (piratebox_esp32_supervisor.py's
+     * _enrich_ds18b20_with_names()) rather than the roles file
+     * directly - this file follows this project's "one process owns
+     * the hardware, everything else reads its cache" discipline, and
+     * the supervisor daemon already merges commissioning identity into
+     * its own export for exactly this reason.
+     *
+     * @param array{installed: bool, connected: bool, stale: bool} $status
+     * @param array<string, mixed> $decoded Full decoded export.
+     * @return array{state: string, bus_ok: ?bool, probes_ok: int, probes_expected: int, missing_commissioned: list<string>, failing_commissioned: list<string>}
+     */
+    function piratebox_classify_ds18b20_bus(array $status, array $decoded): array
+    {
+        $base = ['bus_ok' => null, 'probes_ok' => 0, 'probes_expected' => 0, 'missing_commissioned' => [], 'failing_commissioned' => []];
+
+        $linkState = piratebox_classify_esp32_link($status);
+        if ($linkState !== 'AVAILABLE') {
+            return ['state' => $linkState] + $base;
+        }
+
+        $capabilities = is_array($decoded['capabilities'] ?? null) ? $decoded['capabilities'] : [];
+        $sensors = is_array($decoded['sensors'] ?? null) ? $decoded['sensors'] : [];
+        $ds18b20 = is_array($sensors['ds18b20'] ?? null) ? $sensors['ds18b20'] : null;
+        $commissioned = ($ds18b20 !== null && is_array($ds18b20['commissioned'] ?? null)) ? $ds18b20['commissioned'] : [];
+        $commissionedRoms = array_keys($commissioned);
+
+        if (!in_array('ds18b20', $capabilities, true)) {
+            $state = $commissionedRoms !== [] ? 'UNAVAILABLE' : 'NOT_INSTALLED';
+            return ['state' => $state] + $base + ['probes_expected' => count($commissionedRoms)];
+        }
+        if ($ds18b20 === null) {
+            return ['state' => 'UNKNOWN'] + $base;
+        }
+
+        $busOk = $ds18b20['bus_ok'] ?? null;
+        $probes = is_array($ds18b20['probes'] ?? null) ? $ds18b20['probes'] : [];
+        $probesOk = 0;
+        foreach ($probes as $reading) {
+            if (is_array($reading) && ($reading['ok'] ?? false) === true) {
+                $probesOk++;
+            }
+        }
+        $missing = [];
+        $failing = [];
+        foreach ($commissionedRoms as $rom) {
+            if (!array_key_exists($rom, $probes)) {
+                $missing[] = $rom;
+            } elseif (!(is_array($probes[$rom]) && ($probes[$rom]['ok'] ?? false) === true)) {
+                $failing[] = $rom;
+            }
+        }
+        sort($missing);
+        sort($failing);
+        $detail = [
+            'bus_ok' => is_bool($busOk) ? $busOk : null,
+            'probes_ok' => $probesOk,
+            'probes_expected' => count($commissionedRoms),
+            'missing_commissioned' => $missing,
+            'failing_commissioned' => $failing,
+        ];
+
+        if ($busOk === false) {
+            return ['state' => 'UNAVAILABLE'] + $detail;
+        }
+        if ($missing !== [] || $failing !== []) {
+            return ['state' => 'DEGRADED'] + $detail;
+        }
+        if ($commissionedRoms === [] && $probes === []) {
+            return ['state' => 'NOT_INSTALLED'] + $detail;
+        }
+        return ['state' => 'AVAILABLE'] + $detail;
+    }
+}
+
 if (!function_exists('piratebox_get_ds18b20_probes')) {
     /**
-     * DS18B20 probes for the PUBLIC Environment page (2026-09-07) -
-     * deliberately shows only NAMED (operator-configured) probes, each
-     * as {rom, name, value_c, ok} - ROM addresses themselves are
-     * engineering detail that belongs in tools/ds18b20_commission.py,
-     * not the ordinary visitor-facing page (per instruction: "display
-     * the useful role rather than an ugly ROM ID"). `unnamed_count`
-     * lets the page mention "more probes are connected, not yet
-     * named" without ever exposing which ones.
+     * DS18B20 probes for the PUBLIC Environment page (2026-09-07,
+     * extended 2026-09-08 for the hardware-awareness phase) - ROM
+     * addresses themselves NEVER reach this function's return value or
+     * this page - engineering detail that belongs in
+     * tools/ds18b20_commission.py/admin diagnostics only.
+     *
+     * Every COMMISSIONED probe (an established, permanent physical
+     * identity - see piratebox_ds18b20_roles.py) is shown, whether or
+     * not it has been given a cosmetic name yet:
+     *   - named:  the operator's own name.
+     *   - not yet named: a stable, non-semantic "Probe N" label using
+     *     the durable physical_index from the ORIGINAL physical
+     *     identification order (warming test) - never raw discovery
+     *     order, never the ROM. `has_name` distinguishes the two so a
+     *     caller can style/caption them differently if useful.
+     * A probe that has never been commissioned at all (no physical_index,
+     * no name - e.g. a brand new probe just appeared on the bus) is
+     * NOT shown here - it's diagnostic-only information until the
+     * operator acknowledges it exists, folded into `uncommissioned_count`
+     * instead so the page can honestly say "N more probe(s) detected,
+     * not yet set up" without exposing anything about them.
      *
      * @param ?array{data: array<string, mixed>, stale: bool} $export
-     * @return array{named: list<array{rom: string, name: string, value_c: ?float, ok: bool}>, unnamed_count: int}
+     * @return array{probes: list<array{label: string, has_name: bool, value_c: ?float, ok: bool}>, uncommissioned_count: int}
      */
     function piratebox_get_ds18b20_probes(?array $export = null): array
     {
         $export = $export ?? piratebox_get_esp32_public();
         $decoded = $export['data'];
-        $empty = ['named' => [], 'unnamed_count' => 0];
+        $empty = ['probes' => [], 'uncommissioned_count' => 0];
 
         if ($decoded === [] || $export['stale']) {
             return $empty;
@@ -153,28 +308,42 @@ if (!function_exists('piratebox_get_ds18b20_probes')) {
         if ($ds18b20 === null) {
             return $empty;  // this firmware/board has never found a DS18B20 probe
         }
-        $probes = is_array($ds18b20['probes'] ?? null) ? $ds18b20['probes'] : [];
+        $readings = is_array($ds18b20['probes'] ?? null) ? $ds18b20['probes'] : [];
 
-        $named = [];
-        $unnamedCount = 0;
-        foreach ($probes as $rom => $reading) {
+        $display = [];
+        $uncommissionedCount = 0;
+        foreach ($readings as $rom => $reading) {
             if (!is_string($rom) || !is_array($reading)) {
                 continue;
             }
             $name = is_string($reading['name'] ?? null) ? trim($reading['name']) : '';
-            if ($name === '') {
-                $unnamedCount++;
-                continue;  // not yet configured - never shown to ordinary visitors
+            $physicalIndex = is_int($reading['physical_index'] ?? null) ? $reading['physical_index'] : null;
+            if ($name === '' && $physicalIndex === null) {
+                $uncommissionedCount++;
+                continue;  // never commissioned - engineering detail only, not shown to visitors
             }
+            $label = $name !== '' ? $name : "Probe {$physicalIndex}";
             $ok = ($reading['ok'] ?? false) === true;
             $value = ($ok && is_numeric($reading['value'] ?? null)) ? (float) $reading['value'] : null;
-            $named[] = ['rom' => $rom, 'name' => $name, 'value_c' => $value, 'ok' => $ok && $value !== null];
+            $display[] = [
+                'label' => $label,
+                'has_name' => $name !== '',
+                'value_c' => $value,
+                'ok' => $ok && $value !== null,
+                'sort_key' => $name !== '' ? "0:{$name}" : sprintf('1:%05d', $physicalIndex ?? 0),
+            ];
         }
-        // Deterministic display order (dict iteration order is an
-        // implementation detail of however the firmware/daemon happened
-        // to walk the bus this cycle, not something to show visitors).
-        usort($named, fn($a, $b) => strcmp($a['name'], $b['name']));
+        // Deterministic display order: named probes alphabetically
+        // first, then unnamed-but-commissioned probes by physical
+        // index - dict iteration order is an implementation detail of
+        // however the firmware/daemon happened to walk the bus this
+        // cycle, never something to show visitors.
+        usort($display, fn($a, $b) => strcmp($a['sort_key'], $b['sort_key']));
+        foreach ($display as &$item) {
+            unset($item['sort_key']);
+        }
+        unset($item);
 
-        return ['named' => $named, 'unnamed_count' => $unnamedCount];
+        return ['probes' => $display, 'uncommissioned_count' => $uncommissionedCount];
     }
 }

@@ -42,6 +42,7 @@ require_once __DIR__ . '/mode.php';
 require_once __DIR__ . '/travel_mode.php';
 require_once __DIR__ . '/device_id.php';
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/esp32_supervisor.php';
 
 if (!function_exists('piratebox_classify_service_pair')) {
     /**
@@ -414,14 +415,66 @@ if (!function_exists('piratebox_get_capability_state')) {
 
         // --- Optional / Field -------------------------------------------
 
-        // Nothing installed today - see docs/CAPABILITY-REGISTRY.md for
-        // the full candidate list. Deliberately not enumerated one by
-        // one here (that list belongs in the registry, not duplicated in
-        // code) - a single honest summary entry instead.
+        // ESP32-S3 hardware/sensor supervisor + its owned sensors
+        // (2026-09-08, hardware-awareness phase) - previously entirely
+        // absent from this table despite being the established single
+        // source of truth for "what's installed and healthy" admin-side
+        // (found during the whole-project hardware-awareness audit).
+        // Reads the exact same cached export every other consumer reads
+        // (includes/esp32_supervisor.php) - no new hardware access, no
+        // new open_basedir exposure (that file's path was already
+        // allowlisted for the Environment page).
+        $esp32Export = piratebox_get_esp32_public();
+        $esp32Status = piratebox_get_esp32_supervisor_status($esp32Export);
+        $esp32Decoded = $esp32Export['data'];
+
+        $capabilities['esp32_supervisor'] = [
+            'layer' => 'optional',
+            'core_dependency' => false,
+            'label' => 'ESP32-S3 hardware/sensor supervisor',
+            'state' => piratebox_classify_esp32_link($esp32Status),
+            'detail' => [
+                'fw_version' => $esp32Status['fw_version'],
+                'board' => $esp32Status['board'],
+                'uptime_seconds' => $esp32Status['uptime_seconds'],
+                'reboot_count' => $esp32Status['reboot_count'],
+            ],
+        ];
+
+        $capabilities['ambient_light'] = [
+            'layer' => 'optional',
+            'core_dependency' => false,
+            'label' => 'Ambient light sensor (BH1750)',
+            'state' => piratebox_classify_simple_sensor($esp32Status, $esp32Decoded, 'bh1750'),
+            'detail' => ['owner' => 'esp32_supervisor', 'see_also' => '/utility/environment/'],
+        ];
+
+        $ds18b20Bus = piratebox_classify_ds18b20_bus($esp32Status, $esp32Decoded);
+        $capabilities['ds18b20_probes'] = [
+            'layer' => 'optional',
+            'core_dependency' => false,
+            'label' => 'DS18B20 temperature probes (1-Wire)',
+            'state' => $ds18b20Bus['state'],
+            'detail' => [
+                'bus_ok' => $ds18b20Bus['bus_ok'],
+                'probes_ok' => $ds18b20Bus['probes_ok'],
+                'probes_commissioned' => $ds18b20Bus['probes_expected'],
+                'missing' => $ds18b20Bus['missing_commissioned'] !== [] ? count($ds18b20Bus['missing_commissioned']) : null,
+                'failing' => $ds18b20Bus['failing_commissioned'] !== [] ? count($ds18b20Bus['failing_commissioned']) : null,
+            ],
+        ];
+
+        // Everything else in docs/CAPABILITY-REGISTRY.md's Optional/
+        // Field list remains genuinely not installed - BME280, INA226,
+        // GNSS, SDR-as-companion, additional DS18B20 placement, etc.
+        // Deliberately not enumerated one by one here (that list
+        // belongs in the registry, not duplicated in code) - a single
+        // honest summary entry instead, now correctly scoped to exclude
+        // what the three rows above already cover.
         $capabilities['optional_field_capabilities'] = [
             'layer' => 'optional',
             'core_dependency' => false,
-            'label' => 'Optional/field capabilities (GNSS, environmental, SDR, companions, ...)',
+            'label' => 'Other optional/field capabilities (GNSS, BME280, INA226, additional companions, ...)',
             'state' => 'NOT_INSTALLED',
             'detail' => ['note' => 'see docs/CAPABILITY-REGISTRY.md for candidates - none installed'],
         ];
@@ -531,6 +584,21 @@ if (!function_exists('piratebox_diagnose_capability')) {
             'oled' => [
                 'UNAVAILABLE' => 'piratebox-oled.service is not running - the physical status display (if connected) is dark. This never affects Core (AP/site keep working normally). Suggested check: systemctl status piratebox-oled.',
                 'UNKNOWN' => 'Status helper snapshot unavailable - OLED service state cannot currently be confirmed.',
+            ],
+            'esp32_supervisor' => [
+                'DEGRADED' => 'The ESP32 supervisor is connected but its heartbeat has gone stale - it may be about to disconnect. Suggested check: journalctl -u piratebox-esp32-supervisor.',
+                'UNAVAILABLE' => 'The ESP32 supervisor is not connected. All sensors behind it (ambient light, DS18B20 probes) are unavailable until it reconnects - this never affects Core. Suggested check: systemctl status piratebox-esp32-supervisor, and that the board is powered/plugged in.',
+                'UNKNOWN' => 'No supervisor export has been read yet - see tools/diagnose_esp32_supervisor.py for a full picture.',
+            ],
+            'ambient_light' => [
+                'DEGRADED' => 'The BH1750 sensor is reachable but its last reading was not ok (see /utility/environment/ for detail).',
+                'UNAVAILABLE' => 'Unavailable because the ESP32 supervisor itself is unavailable - see that row above, not a separate fault.',
+                'UNKNOWN' => 'Sensor reading not present in the current export cycle - see /utility/environment/.',
+            ],
+            'ds18b20_probes' => [
+                'DEGRADED' => 'One or more commissioned probes are missing or failing this cycle (see the detail column) - this is a sensor-health signal only, no physical role is assigned to any probe yet.',
+                'UNAVAILABLE' => 'The 1-Wire bus previously had probes and now finds none, or the ESP32 supervisor itself is unavailable - see tools/ds18b20_commission.py for detail.',
+                'UNKNOWN' => 'Sensor reading not present in the current export cycle.',
             ],
         ];
 

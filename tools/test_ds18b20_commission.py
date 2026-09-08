@@ -8,7 +8,9 @@ similar-looking temperature streams to spot which one is rising
 here - the interactive loop itself is exercised live against real
 hardware, same as this project's other CLI tools.
 """
+import json
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -17,6 +19,7 @@ sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "tools"))
 
 import ds18b20_commission as commission  # noqa: E402
+import piratebox_ds18b20_roles as roles_module  # noqa: E402
 
 
 class ComputeDeltasTests(unittest.TestCase):
@@ -87,6 +90,68 @@ class ComputeDeltasTests(unittest.TestCase):
         # to pass the already-validated get_ds18b20_probes() shape,
         # which is always dict-of-dicts by construction - see that
         # function's own filtering)
+
+
+class CmdCommissionTests(unittest.TestCase):
+    """cmd_commission() writes a commission_batch request file - tests
+    patch NAME_REQUEST_FILE to a temp path, same pattern tools/test_
+    ds18b20_roles.py's own CheckNameRequestTests already uses."""
+
+    ROM_1 = "28fd856b0000003b"
+    ROM_2 = "28a5ea00000000ce"
+
+    def setUp(self):
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self._orig_request_file = roles_module.NAME_REQUEST_FILE
+        roles_module.NAME_REQUEST_FILE = self._tmpdir.name + "/ds18b20-name-request.json"
+
+    def tearDown(self):
+        roles_module.NAME_REQUEST_FILE = self._orig_request_file
+        self._tmpdir.cleanup()
+
+    def _read_request(self):
+        with open(roles_module.NAME_REQUEST_FILE) as f:
+            return json.load(f)
+
+    def test_writes_a_commission_batch_request_in_argument_order(self):
+        commission.cmd_commission([self.ROM_1, self.ROM_2])
+        request = self._read_request()
+        self.assertEqual(request["action"], "commission_batch")
+        self.assertEqual(request["probes"], [
+            {"rom": self.ROM_1, "physical_index": 1},
+            {"rom": self.ROM_2, "physical_index": 2},
+        ])
+
+    def test_request_is_directly_valid_against_apply_name_request(self):
+        """End-to-end sanity: what the CLI writes must actually be
+        accepted by the same pure function the daemon applies it with."""
+        commission.cmd_commission([self.ROM_1, self.ROM_2])
+        request = self._read_request()
+        result = roles_module.apply_name_request({}, request)
+        self.assertTrue(result[self.ROM_1]["commissioned"])
+        self.assertEqual(result[self.ROM_1]["physical_index"], 1)
+        self.assertTrue(result[self.ROM_2]["commissioned"])
+        self.assertEqual(result[self.ROM_2]["physical_index"], 2)
+
+    def test_no_arguments_exits_without_writing_a_request(self):
+        with self.assertRaises(SystemExit):
+            commission.cmd_commission([])
+        self.assertFalse(Path(roles_module.NAME_REQUEST_FILE).exists())
+
+    def test_invalid_rom_exits_without_writing_a_request(self):
+        with self.assertRaises(SystemExit):
+            commission.cmd_commission(["not-a-rom"])
+        self.assertFalse(Path(roles_module.NAME_REQUEST_FILE).exists())
+
+    def test_duplicate_rom_exits_without_writing_a_request(self):
+        with self.assertRaises(SystemExit):
+            commission.cmd_commission([self.ROM_1, self.ROM_1])
+        self.assertFalse(Path(roles_module.NAME_REQUEST_FILE).exists())
+
+    def test_rom_case_is_normalized_to_lowercase(self):
+        commission.cmd_commission([self.ROM_1.upper()])
+        request = self._read_request()
+        self.assertEqual(request["probes"][0]["rom"], self.ROM_1)
 
 
 class IdentifyThresholdTests(unittest.TestCase):

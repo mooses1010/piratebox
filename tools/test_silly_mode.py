@@ -102,6 +102,87 @@ class ComputeDisplayTierTests(unittest.TestCase):
     def test_fully_healthy_is_ok(self):
         self.assertEqual(oled.compute_display_tier("normal", HEALTHY_STATUS, False), "ok")
 
+    def test_hardware_warning_text_alone_is_a_warning_not_a_fault(self):
+        """2026-09-08 hardware-awareness phase: an ESP32/sensor problem
+        gets the exact same tier as the existing chronic-undervoltage
+        condition - present but non-blocking, never a Core-level fault,
+        since ESP32/sensors are Optional, not Core."""
+        self.assertEqual(
+            oled.compute_display_tier("normal", HEALTHY_STATUS, False, hardware_warning_text="ESP32 SUPERVISOR"),
+            "warning",
+        )
+
+    def test_hardware_warning_text_none_stays_ok_when_otherwise_healthy(self):
+        self.assertEqual(
+            oled.compute_display_tier("normal", HEALTHY_STATUS, False, hardware_warning_text=None),
+            "ok",
+        )
+
+    def test_fault_still_outranks_a_hardware_warning(self):
+        status = {**HEALTHY_STATUS, "services": {**HEALTHY_STATUS["services"], "nginx": False}}
+        self.assertEqual(
+            oled.compute_display_tier("normal", status, False, hardware_warning_text="ESP32 SUPERVISOR"),
+            "fault",
+        )
+
+    def test_emergency_still_outranks_a_hardware_warning(self):
+        self.assertEqual(
+            oled.compute_display_tier("emergency", HEALTHY_STATUS, False, hardware_warning_text="SENSOR BUS"),
+            "emergency",
+        )
+
+    def test_omitting_the_new_parameter_preserves_old_behavior(self):
+        """Backward compatibility: every pre-existing call site that
+        doesn't know about hardware_warning_text must behave exactly as
+        before."""
+        self.assertEqual(oled.compute_display_tier("normal", HEALTHY_STATUS, False), "ok")
+
+
+class ComputeHardwareWarningTextTests(unittest.TestCase):
+    """The OLED-specific text-formatting wrapper around piratebox_
+    hardware_health.py's shared classifiers (2026-09-08). Only the
+    ESP32-link/DS18B20-bus cases are covered here in detail - the
+    underlying classification logic itself is exhaustively tested in
+    tools/test_hardware_health.py; this only checks the OLED daemon
+    picks the right short text for each real state and stays silent for
+    non-fault states."""
+
+    def _diag(self, connected=True, stale=False, capabilities=None, sensors=None):
+        return {
+            "connected": connected, "stale": stale,
+            "capabilities": capabilities or [], "sensors": sensors or {},
+        }
+
+    def test_healthy_link_and_no_commissioned_probes_is_silent(self):
+        self.assertIsNone(oled.compute_hardware_warning_text(self._diag(), set()))
+
+    def test_disconnected_supervisor_produces_a_warning(self):
+        diag = self._diag(connected=False)
+        self.assertEqual(oled.compute_hardware_warning_text(diag, set()), "ESP32 SUPERVISOR")
+
+    def test_never_connected_export_is_silent_not_a_warning(self):
+        """UNKNOWN (no export ever read) must never alarm - only a
+        genuine DEGRADED/UNAVAILABLE state does."""
+        self.assertIsNone(oled.compute_hardware_warning_text({"reason": "no_export"}, set()))
+
+    def test_ds18b20_bus_problem_produces_a_distinct_warning_from_the_link_problem(self):
+        diag = self._diag(
+            capabilities=["ds18b20"],
+            sensors={"ds18b20": {"bus_ok": True, "probes": {}}},
+        )
+        self.assertEqual(oled.compute_hardware_warning_text(diag, {"28fd856b0000003b"}), "SENSOR BUS")
+
+    def test_all_commissioned_probes_healthy_is_silent(self):
+        diag = self._diag(
+            capabilities=["ds18b20"],
+            sensors={"ds18b20": {"bus_ok": True, "probes": {"28fd856b0000003b": {"ok": True, "value": 29.5}}}},
+        )
+        self.assertIsNone(oled.compute_hardware_warning_text(diag, {"28fd856b0000003b"}))
+
+    def test_never_wired_bus_with_nothing_commissioned_is_silent(self):
+        diag = self._diag(capabilities=["ds18b20"], sensors={"ds18b20": {"bus_ok": True, "probes": {}}})
+        self.assertIsNone(oled.compute_hardware_warning_text(diag, set()))
+
 
 class SillyEnabledFileTests(unittest.TestCase):
     """Mirrors read_mode()'s own fail-safe discipline: anything other
@@ -544,6 +625,56 @@ class SillyToggleBannerRenderingTests(unittest.TestCase):
         sig = inspect.signature(oled.draw_skull_and_crossbones)
         self.assertEqual(sig.parameters["color"].default, "white")
         self.assertEqual(sig.parameters["bg"].default, "black")
+
+
+class RenderHealthHardwareWarningTests(unittest.TestCase):
+    """render_health()'s warning box (2026-09-08 extension): renders
+    without exception in every combination, and undervoltage always
+    keeps its existing exact box/text when both conditions are active
+    at once (only one line fits - see render_health()'s own comment)."""
+
+    def _render(self, status, stale, hardware_warning_text):
+        from PIL import Image, ImageDraw
+        font, font_small, _ = oled.load_fonts()
+        img = Image.new("1", (128, 64))
+        draw = ImageDraw.Draw(img)
+        oled.render_health(draw, font, font_small, status, stale, True, hardware_warning_text)
+        return img
+
+    def test_renders_without_exception_with_a_hardware_warning(self):
+        self._render(HEALTHY_STATUS, False, "ESP32 SUPERVISOR")  # must not raise
+
+    def test_renders_without_exception_with_neither_condition(self):
+        self._render(HEALTHY_STATUS, False, None)  # must not raise
+
+    def test_omitting_the_new_parameter_still_works(self):
+        from PIL import Image, ImageDraw
+        font, font_small, _ = oled.load_fonts()
+        img = Image.new("1", (128, 64))
+        draw = ImageDraw.Draw(img)
+        oled.render_health(draw, font, font_small, HEALTHY_STATUS, False, True)  # must not raise
+
+    def test_hardware_warning_alone_draws_the_box(self):
+        # Compare only the warning-box region - see the test below for
+        # why comparing the whole frame would be flaky.
+        box = (0, 50, 128, 63)
+        no_warning = self._render(HEALTHY_STATUS, False, None).crop(box)
+        with_warning = self._render(HEALTHY_STATUS, False, "SENSOR BUS").crop(box)
+        self.assertNotEqual(no_warning.tobytes(), with_warning.tobytes())
+
+    def test_undervoltage_and_hardware_warning_together_matches_undervoltage_alone(self):
+        """Only one line fits the box - undervoltage keeps its exact
+        existing precedent when both are active, never displaced by a
+        newer condition. Compares only the warning-box region (0,50)-
+        (127,62), not the whole frame - the rest of render_health()
+        reads live system uptime, which can genuinely tick between the
+        two renders below and would otherwise make this test flaky for
+        reasons unrelated to the box logic under test."""
+        undervoltage_status = {**HEALTHY_STATUS, "power": {"undervoltage_now": True}}
+        box = (0, 50, 128, 63)
+        undervoltage_alone = self._render(undervoltage_status, False, None).crop(box)
+        both_active = self._render(undervoltage_status, False, "ESP32 SUPERVISOR").crop(box)
+        self.assertEqual(undervoltage_alone.tobytes(), both_active.tobytes())
 
 
 class SillyTogglePriorityIntegrationTests(unittest.TestCase):
@@ -1073,6 +1204,41 @@ class GlanceMetricsTests(unittest.TestCase):
         metrics, _ = oled.build_glance_metrics(None, True, None, False, None, BrokenClient())
         self.assertIsNone(metrics["probe_name"])
         self.assertIsNone(metrics["probe_temp_c"])
+
+    def test_commissioned_but_unnamed_probe_shows_a_generic_physical_index_label(self):
+        """2026-09-08 extension: a probe with a known physical identity
+        (physical_index set during commissioning) but no cosmetic name
+        yet is now glance-worthy - shown as "Probe N", never the ROM."""
+        client = self._fake_client({"ds18b20": {"bus_ok": True, "probes": {
+            "28ff641e04170378": {"ok": True, "value": 29.5, "name": None, "physical_index": 3},
+        }}})
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, None, client)
+        self.assertEqual(metrics["probe_name"], "Probe 3")
+        self.assertEqual(metrics["probe_temp_c"], 29.5)
+
+    def test_never_commissioned_probe_with_no_name_and_no_index_still_hidden(self):
+        client = self._fake_client({"ds18b20": {"bus_ok": True, "probes": {
+            "28ff641e04170378": {"ok": True, "value": 29.5, "name": None, "physical_index": None},
+        }}})
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, None, client)
+        self.assertIsNone(metrics["probe_name"])
+
+    def test_named_probes_sort_before_unnamed_commissioned_probes(self):
+        """Matches the Environment web page's own ordering, so the same
+        probe never appears to have two different identities/positions
+        across surfaces."""
+        client = self._fake_client({"ds18b20": {"bus_ok": True, "probes": {
+            "28aaaaaaaaaaaaaa": {"ok": True, "value": 1.0, "name": None, "physical_index": 1},
+            "28bbbbbbbbbbbbbb": {"ok": True, "value": 2.0, "name": "Zebra", "physical_index": None},
+        }}})
+        import time as time_mod
+        real_time = time_mod.time
+        try:
+            time_mod.time = lambda: 0.0  # minute index 0 -> first in sort order
+            metrics, _ = oled.build_glance_metrics(None, True, None, False, None, client)
+            self.assertEqual(metrics["probe_name"], "Zebra")  # named sorts first regardless of index
+        finally:
+            time_mod.time = real_time
 
     def test_multiple_named_probes_rotate_deterministically_by_minute(self):
         """Stateless-by-wall-clock rotation, not fabricated randomness -

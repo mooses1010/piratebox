@@ -266,12 +266,20 @@ def check_staleness(state: dict, now: float) -> None:
 
 
 def _enrich_ds18b20_with_names(sensors: dict, ds18b20_roles: dict) -> dict:
-    """Returns a COPY of `sensors` with each ds18b20 probe's configured
-    friendly name merged in (as "name", None if unnamed) - never
-    mutates the input. `ds18b20_roles` is the plain {rom: {"name":...}}
-    mapping from piratebox_ds18b20_roles.load_roles(); None/empty means
-    every probe simply reports name=None (an unnamed probe is a normal,
-    expected state during commissioning, never an error)."""
+    """Returns a COPY of `sensors` with each CURRENTLY-REPORTING ds18b20
+    probe's configured friendly name and physical_index merged in
+    ("name"/"physical_index", None if not set) - never mutates the
+    input. Also adds a top-level "commissioned" map alongside "probes":
+    {rom: {"name", "physical_index"}} for EVERY ROM this device has
+    ever physically commissioned (piratebox_ds18b20_roles.py), whether
+    or not it happens to be reporting THIS cycle - the only way a
+    consumer can tell "an expected, known probe is currently missing"
+    apart from "nothing was ever expected here" (a probe absent from
+    `probes` simply isn't in `probes` at all, so this can't be derived
+    from `probes` alone). `ds18b20_roles` is the {rom: {...}} mapping
+    from piratebox_ds18b20_roles.load_roles(); None/empty means no
+    probe has ever been commissioned yet - a normal, expected state
+    during initial bring-up, never an error."""
     ds18b20 = sensors.get("ds18b20")
     if not isinstance(ds18b20, dict):
         return sensors
@@ -288,11 +296,19 @@ def _enrich_ds18b20_with_names(sensors: dict, ds18b20_roles: dict) -> dict:
         entry = dict(reading)
         role = roles.get(rom)
         entry["name"] = role["name"] if isinstance(role, dict) else None
+        entry["physical_index"] = role.get("physical_index") if isinstance(role, dict) else None
         new_probes[rom] = entry
+
+    commissioned = {
+        rom: {"name": role.get("name"), "physical_index": role.get("physical_index")}
+        for rom, role in roles.items()
+        if isinstance(role, dict) and role.get("commissioned")
+    }
 
     new_sensors = dict(sensors)
     new_sensors["ds18b20"] = dict(ds18b20)
     new_sensors["ds18b20"]["probes"] = new_probes
+    new_sensors["ds18b20"]["commissioned"] = commissioned
     return new_sensors
 
 

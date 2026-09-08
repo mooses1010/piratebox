@@ -38,6 +38,16 @@ biggest mover first and flagged once it's unambiguous:
         # rises to the top with ">>> LIKELY THIS ONE <<<"
     python3 tools/ds18b20_commission.py name <rom> "..."
         # repeat identify for the next probe
+
+Once every physical probe's ROM is known (from one or more 'identify'
+sessions), record the whole set as a permanent hardware-identity fact
+in one shot with 'commission' - ROMs in the order you physically
+identified them, NOT bus discovery order:
+    python3 tools/ds18b20_commission.py commission <rom1> <rom2> ... <romN>
+        # assigns physical_index 1..N in the order given - no name or
+        # role is assigned by this step
+    python3 tools/ds18b20_commission.py list
+        # confirm all N show as commissioned (Probe 1..Probe N)
 """
 import json
 import sys
@@ -93,19 +103,24 @@ def print_probe_table(export, roles):
                   f"(bus_ok={ds18b20.get('bus_ok')}).")
         return
 
-    print(f"{'ROM address':<18} {'Temp':>8}  {'Status':<12} Name")
-    print("-" * 60)
+    print(f"{'ROM address':<18} {'Temp':>8}  {'Status':<12} {'Physical':<10} Name")
+    print("-" * 75)
     for rom in sorted(probes):
         reading = probes[rom]
         role = roles.get(rom)
-        name = role["name"] if isinstance(role, dict) else "(unnamed)"
+        commissioned = isinstance(role, dict) and role.get("commissioned")
+        physical = f"#{role['physical_index']}" if commissioned and role.get("physical_index") else "-"
+        name = role["name"] if isinstance(role, dict) and role.get("name") else "(unnamed)"
         if reading.get("ok"):
             temp_str = f"{reading['value']:.1f}C"
             status = "ok"
         else:
             temp_str = "--"
             status = reading.get("err", "error")
-        print(f"{rom:<18} {temp_str:>8}  {status:<12} {name}")
+        print(f"{rom:<18} {temp_str:>8}  {status:<12} {physical:<10} {name}")
+    uncommissioned = [rom for rom in probes if not (isinstance(roles.get(rom), dict) and roles[rom].get("commissioned"))]
+    if uncommissioned:
+        print(f"\n{len(uncommissioned)} probe(s) above have never been commissioned - see 'commission'.")
 
 
 def cmd_list(_args):
@@ -232,10 +247,48 @@ def cmd_unname(args):
     print(f"Requested: remove name for {rom}.")
 
 
+def cmd_commission(args):
+    """Records a whole set of ROM<->physical_index identities at once -
+    the durable result of a physical warming-test commissioning session
+    (see 'identify' above). Takes ROMs in PHYSICAL IDENTIFICATION ORDER
+    as positional arguments (the order you warmed them in, NOT bus
+    discovery order) - physical_index 1 is assigned to the first ROM
+    given, 2 to the second, and so on. This does NOT assign any name or
+    functional role - purely a permanent hardware-identity record, safe
+    to run before any naming/role decision has been made.
+
+    Usage: ds18b20_commission.py commission <rom1> <rom2> ... <romN>
+        (one ROM per physical probe, in the order you identified them)
+    """
+    if len(args) < 1:
+        print("Usage: ds18b20_commission.py commission <rom1> <rom2> ... <romN>", file=sys.stderr)
+        print("  ROMs in PHYSICAL IDENTIFICATION order (the order you warmed them), not bus order.", file=sys.stderr)
+        sys.exit(1)
+    roms = [a.lower() for a in args]
+    for rom in roms:
+        if not roles_module.is_valid_rom(rom):
+            print(f"'{rom}' doesn't look like a 16-hex-character ROM address.", file=sys.stderr)
+            sys.exit(1)
+    if len(set(roms)) != len(roms):
+        print("Duplicate ROM address given - each probe must be listed exactly once.", file=sys.stderr)
+        sys.exit(1)
+    request = {
+        "action": "commission_batch",
+        "probes": [{"rom": rom, "physical_index": i + 1} for i, rom in enumerate(roms)],
+    }
+    with open(roles_module.NAME_REQUEST_FILE, "w") as f:
+        json.dump(request, f)
+    print(f"Requested: commission {len(roms)} probe(s) as Probe 1..{len(roms)}, in the order given:")
+    for i, rom in enumerate(roms):
+        print(f"  Probe {i + 1}: {rom}")
+    print("No names or roles assigned - run 'list' shortly to confirm, then 'name <rom> \"...\"' when ready.")
+
+
 COMMANDS = {
     "list": cmd_list,
     "watch": cmd_watch,
     "identify": cmd_identify,
+    "commission": cmd_commission,
     "name": cmd_name,
     "unname": cmd_unname,
 }

@@ -510,6 +510,50 @@ class ObserveTickIntegrationTests(unittest.TestCase):
         prog.observe_tick(s, ctx(external_radio=False))
         self.assertTrue(s["stats"]["external_radio_commissioned"])  # never un-set
 
+    # --- ds18b20_full_bus_confirmed latch (2026-09-08, hardware-
+    # awareness phase) - compares two live signals against each other,
+    # never a hardcoded probe count.
+
+    def test_all_commissioned_probes_ok_latches_the_flag(self):
+        s = prog._default_state()
+        prog.observe_tick(s, ctx(hardware={"ds18b20_probes_ok": 5, "ds18b20_probes_commissioned": 5}))
+        self.assertTrue(s["stats"]["ds18b20_full_bus_confirmed"])
+
+    def test_flag_is_sticky_even_after_a_probe_later_fails(self):
+        s = prog._default_state()
+        prog.observe_tick(s, ctx(hardware={"ds18b20_probes_ok": 5, "ds18b20_probes_commissioned": 5}))
+        prog.observe_tick(s, ctx(hardware={"ds18b20_probes_ok": 4, "ds18b20_probes_commissioned": 5}))
+        self.assertTrue(s["stats"]["ds18b20_full_bus_confirmed"])  # never un-set
+
+    def test_partial_health_never_latches(self):
+        s = prog._default_state()
+        prog.observe_tick(s, ctx(hardware={"ds18b20_probes_ok": 4, "ds18b20_probes_commissioned": 5}))
+        self.assertFalse(s["stats"]["ds18b20_full_bus_confirmed"])
+
+    def test_zero_commissioned_never_latches_on_a_coincidental_zero_equals_zero(self):
+        s = prog._default_state()
+        prog.observe_tick(s, ctx(hardware={"ds18b20_probes_ok": 0, "ds18b20_probes_commissioned": 0}))
+        self.assertFalse(s["stats"]["ds18b20_full_bus_confirmed"])
+
+    def test_missing_signals_never_latch_or_crash(self):
+        s = prog._default_state()
+        prog.observe_tick(s, ctx(hardware={}))  # supervisor link unavailable - both None
+        self.assertFalse(s["stats"]["ds18b20_full_bus_confirmed"])
+
+    def test_a_different_probe_count_still_works_correctly(self):
+        """The whole point of comparing two live signals rather than a
+        constant: this device having a different number of probes
+        later must not require a code change here."""
+        s = prog._default_state()
+        prog.observe_tick(s, ctx(hardware={"ds18b20_probes_ok": 2, "ds18b20_probes_commissioned": 2}))
+        self.assertTrue(s["stats"]["ds18b20_full_bus_confirmed"])
+
+    def test_ds18b20_full_bus_achievement_unlocks_once_latched(self):
+        s = prog._default_state()
+        result = prog.observe_tick(s, ctx(hardware={"ds18b20_probes_ok": 3, "ds18b20_probes_commissioned": 3}))
+        self.assertIn("ds18b20_full_bus", result["new_achievements"])
+        self.assertIn("ds18b20_full_bus", s["achievements"])
+
     def test_level_up_is_reported_when_a_threshold_is_crossed(self):
         s = prog._default_state()
         s["xp"]["total"] = prog.xp_for_level(2) - 1
