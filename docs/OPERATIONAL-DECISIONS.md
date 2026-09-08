@@ -6,6 +6,154 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## DS18B20 multi-probe temperature bus + OLED auto-brightness: software complete, awaiting the physical wiring gate (2026-09-07, next phase)
+
+**Decision date:** 2026-09-07. Given the ESP32-S3 supervisor foundation
+and BH1750 migration were complete, deployed, and at a known-good
+checkpoint (`docs/CHECKPOINTS.md`, commit `86f256a`), began the next
+phase: proper multi-device DS18B20 support for four owned but not-yet-
+wired waterproof probes. Full design: `docs/ESP32-SUPERVISOR-
+DESIGN.md` §17 (DS18B20), §18 (auto-brightness), §19 (black-box event
+log - evaluated, deferred), §20 (onboard RGB - evaluated, not
+implemented). This entry is the build/validation record.
+
+**Investigated before designing anything**: re-read the existing
+firmware/daemon/protocol implementation in full, checked this exact
+board's actual PlatformIO manifest for an LED pin (found none declared
+- confirms §20's "don't guess" conclusion was necessary, not
+excessive caution), and confirmed `moose` is already a member of the
+`gpio` group (enabling the DS18B20 naming workflow's permission model
+without any new sudoers grant - see below).
+
+**GPIO4 chosen for the 1-Wire bus** - free on this board's PlatformIO
+definition, not a strapping pin (GPIO0/3/45/46), not part of the
+flash/PSRAM QSPI bus (GPIO26-37, avoided entirely - this module's
+PSRAM bus width remains unconfirmed, per the earlier commissioning
+round's own deliberate caution), not shared with the existing I2C bus
+(GPIO8/9). GPIO5-7/15-18/38-42 remain available for BME280 (shares
+I2C, no new pins), INA226 (same), and future physical
+buttons/RGB - the running pin/resource map lives in
+`docs/ESP32-SUPERVISOR-DESIGN.md` §7a.
+
+**Firmware** (`esp32-firmware/include/ds18b20.h` / `.cpp`, new
+`platformio.ini` deps `paulstoffregen/OneWire @ 2.3.8` +
+`milesburton/DallasTemperature @ 3.11.0`, firmware version bumped to
+`0.2.0`): a genuine multi-device 1-Wire bus, never four hardcoded
+inputs - probes identified solely by their own 64-bit ROM address
+(never physical bus position), discovered via a real
+`OneWire::search()` + CRC8-validated scan. Non-blocking by design (a
+small two-state machine driven by `pb_ds18b20_tick(millis())`, using
+`DallasTemperature::setWaitForConversion(false)` so the ~750ms
+conversion wait never blocks the main loop, never risks the task
+watchdog, never delays heartbeats). Polling cadence deliberately
+un-aggressive: a full read cycle every 30s, a full bus re-search
+(to notice a probe added/removed) only every ~5 minutes. Handles the
+well-known 85.0°C power-on/uninitialized-scratchpad value explicitly
+(treated as suspect, not trusted - a real 12-bit conversion essentially
+never lands on exactly 85.0), `DEVICE_DISCONNECTED_C`, and CRC failures
+(the latter two via the library's own return codes). `bus_ok` reports
+`false` only on a genuine regression (previously found probes, now
+finds none) - a bus that's simply never been wired reports `bus_ok:
+true`, correctly distinguishing "never connected" from "fault." No
+parasite-power support, by deliberate choice, per instruction -
+conventional powered three-wire DS18B20 wiring only. Firmware builds
+cleanly (RAM 6.1%, Flash 24.0% - healthy margins for BME280/INA226
+later).
+
+**Protocol**: `ds18b20` is a deliberate exception to "capability
+appears once a device responds" - it appears once the bus has *ever*
+found a probe (a one-way latch), since "the bus exists, zero probes
+right now" is itself a real, distinguishable state DS18B20's inherent
+multi-instance nature requires representing explicitly, unlike
+`temp_internal`/`bh1750`'s single-instance model. Per-probe
+identity/health lives entirely in `sensors.ds18b20.probes`, keyed by
+ROM hex string, each independently `{"ok": true, "value", "unit"}` or
+`{"ok": false, "err"}` - one probe's failure never affects another,
+matching this project's own "one bad sensor never kills the rest"
+discipline already established for BH1750.
+
+**Pi-side naming/commissioning** (`piratebox_ds18b20_roles.py`,
+`tools/ds18b20_commission.py`): ROM address is the permanent hardware
+identity, forever; an operator-assigned name is cosmetic display
+metadata only. Storage is a single durable JSON file
+(`/var/lib/piratebox-esp32/ds18b20-roles.json`) - no database, matching
+this project's own no-database-by-design philosophy for a handful of
+rarely-changing entries. Single-writer discipline mirrors
+`piratebox_progression.py`'s own reset/import-request pattern exactly:
+the CLI (run interactively as `moose`) never writes the durable file
+directly, only a small request file the daemon (`piratebox-gpio`)
+picks up and applies. Both files live under one systemd
+`StateDirectory=piratebox-esp32` (persistent - survives reboots,
+distinct from the daemon's existing tmpfs `RuntimeDirectory=`),
+**mode 0770** - `moose`'s existing `gpio` group membership means the
+naming workflow needs zero sudo and zero bind-mount indirection, a
+cleaner answer than the OLED daemon's own `/tmp/piratebox` workaround
+(which exists specifically for a different problem - its own
+`PrivateTmp=yes`; this daemon's `PrivateTmp=yes` doesn't touch
+`/var/lib`). Commissioning workflow: `tools/ds18b20_commission.py
+watch` while warming one probe by hand, identify which ROM's reading
+rises, `... name <rom> "Enclosure"` to assign it.
+
+**Environment UI / OLED**: `includes/esp32_supervisor.php` gained
+`piratebox_get_ds18b20_probes()` - shows **only named** probes to
+ordinary visitors (ROM addresses stay in `tools/ds18b20_commission.py`,
+never the public page), with a bare "N probe(s) detected, not yet
+named" note if any are unnamed; a new OLED "probe" glance page shows
+one named, currently-ok probe at a time (rotating by wall-clock minute
+if more than one qualifies), following the exact same "None means
+don't show it" contract the "ambient" glance page already established.
+
+**OLED ambient-light auto-brightness** (`compute_target_contrast()` /
+`slew_contrast()` in `piratebox_oled_daemon.py`): the "`set_contrast()`
+plumbing… ready to be driven" note this file's own header has carried
+since round 8 (deferred back then only because auto-dim had no way to
+*wake* the display) finally has a real driver - and that old blocker
+doesn't apply here, since this mechanism never goes fully dark and
+never needs waking. Reuses the exact same cached BH1750 diagnostics
+the "ambient" glance page already reads (extracted into a shared
+`read_current_ambient_lux()` helper) - zero new I2C traffic. Bounded
+`[10, 255]`, slewed a few units per ~3s tick (no rapid pumping from a
+hand waved over the sensor), fails safe to full brightness on any
+missing/stale reading, and Emergency Mode unconditionally forces full
+brightness regardless of ambient light.
+
+**Black-box event log**: evaluated, deliberately deferred to the later
+power-supervision phase - its first genuinely compelling use
+(correlating a bus fault against a future INA226 power event) doesn't
+exist yet; building it now would mean guessing its shape twice.
+
+**Onboard RGB LED**: evaluated, not implemented - this board's own
+PlatformIO manifest declares no LED pin at all (checked directly), and
+different ESP32-S3 DevKitC-1 hardware revisions are known to wire it to
+different GPIOs (commonly GPIO38 or GPIO48) - guessing wrong risks
+driving a pin wired to something else. Per instruction: not guessed.
+
+**Testing** (all counts verified by running the suites, not estimated):
+25 new tests in a new file (`tools/test_ds18b20_roles.py`); 6 new tests
+in `tools/test_esp32_supervisor_protocol.py` (29→35, message-parsing
+and export-enrichment); 6 new tests in `tools/test_glance.py` (41→47,
+the "probe" glance page); 19 new tests in `tools/test_silly_mode.py`
+(build_glance_metrics() probe logic + the full auto-brightness suite);
+13 new assertions in `tools/test_esp32_supervisor_web.php` (28→41,
+`piratebox_get_ds18b20_probes()`). Full project-wide regression check
+afterward: every `tools/test_*.py` and `tools/test_*.php` in the repo
+passes, zero regressions anywhere (BH1750, `temp_internal`, Environment
+UI, Progression, Silly Mode, glance scheduler, all unaffected).
+
+**Not yet done, honestly disclosed**: no DS18B20 hardware is
+physically wired - this is a genuine physical gate, not performed or
+requested mid-round per standing instruction ("do not ask me to wire
+anything until the software side is ready"). The firmware has not been
+reflashed with DS18B20 support yet either (flashing now, before any
+probe exists to test against, would leave the bus permanently
+reporting zero probes with nothing to validate) - it will be flashed
+in the same session as the physical wiring, exactly like the BH1750
+firmware was. The updated `piratebox_oled_daemon.py` (carrying
+auto-brightness and the probe glance page) has similarly not been
+redeployed to the live `piratebox-oled.service` yet - queued for the
+operator's next `sudo cp` + `systemctl restart`, consolidated with
+whatever else this round's final report asks for.
+
 ## Missing open_basedir entry silently hid the new Hardware Supervisor UI section - found and fixed (2026-09-07, immediately after full validation)
 
 **Decision date:** 2026-09-07. After both sudo deployment steps

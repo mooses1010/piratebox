@@ -33,6 +33,7 @@ require_once __DIR__ . '/../../../includes/esp32_supervisor.php';
 
 $ambientLight = piratebox_get_ambient_light_reading();
 $esp32 = piratebox_get_esp32_supervisor_status();
+$ds18b20 = piratebox_get_ds18b20_probes();
 
 if (($_GET['fetch'] ?? '') === '1') {
     header('Content-Type: application/json');
@@ -42,6 +43,13 @@ if (($_GET['fetch'] ?? '') === '1') {
         'classification' => $ambientLight['classification'],
         'stale_reading' => $ambientLight['stale_reading'],
         'last_success_seconds_ago' => $ambientLight['last_success_seconds_ago'],
+        // Keyed by name (not ROM - the public endpoint never exposes
+        // ROM addresses) so the refresh script can find each stat-card
+        // by the same name already rendered server-side.
+        'probes' => array_map(
+            fn($p) => ['name' => $p['name'], 'ok' => $p['ok'], 'value_c' => $p['value_c']],
+            $ds18b20['named']
+        ),
     ]);
     exit;
 }
@@ -186,6 +194,28 @@ function piratebox_env_duration_text(?float $seconds): string
 
             <p class="muted">Hardware Supervisor: an ESP32-S3 microcontroller, connected to this PirateBox over a local serial link, dedicated to real-time sensor/hardware duties. It has no network or cloud access of any kind.</p>
 
+            <?php if ($ds18b20['named']): ?>
+
+            <h2>Temperature Probes</h2>
+            <div class="stat-grid" id="env-probes-grid">
+                <?php foreach ($ds18b20['named'] as $probe): ?>
+                <div class="stat-card" data-probe-name="<?= htmlspecialchars($probe['name']) ?>">
+                    <span class="stat-label"><?= htmlspecialchars($probe['name']) ?></span>
+                    <?php if ($probe['ok']): ?>
+                    <span class="stat-value probe-value"><?= htmlspecialchars(number_format($probe['value_c'], 1)) ?> &deg;C</span>
+                    <?php else: ?>
+                    <span class="stat-value probe-value status-bad">not responding</span>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <p class="muted">Waterproof DS18B20 temperature probes, placed at specific points around this PirateBox (e.g. inside the enclosure, near the battery) - each one is individually named for where it actually is.</p>
+            <?php elseif ($ds18b20['unnamed_count'] > 0): ?>
+
+            <h2>Temperature Probes</h2>
+            <p class="muted"><?= $ds18b20['unnamed_count'] ?> probe<?= $ds18b20['unnamed_count'] === 1 ? '' : 's' ?> detected but not yet configured with a name - not shown here until named.</p>
+            <?php endif; ?>
+
             <?php endif; // $esp32['installed'] ?>
 
         <?php endif; ?>
@@ -195,7 +225,7 @@ function piratebox_env_duration_text(?float $seconds): string
         </noscript>
     </div>
 
-    <?php if ($ambientLight['installed'] && $ambientLight['available']): ?>
+    <?php if (($ambientLight['installed'] && $ambientLight['available']) || $ds18b20['named']): ?>
     <script>
         (function () {
             function ago(seconds) {
@@ -210,15 +240,27 @@ function piratebox_env_duration_text(?float $seconds): string
                     const res = await fetch('/utility/environment/?fetch=1', { cache: 'no-cache' });
                     if (!res.ok) return;
                     const data = await res.json();
-                    if (!data.available) return; // leave the last good reading visible rather than blanking it
-                    const luxEl = document.getElementById('env-ambient-lux');
-                    const labelEl = document.getElementById('env-ambient-label');
-                    const updatedEl = document.getElementById('env-ambient-updated');
-                    const descEl = document.getElementById('env-ambient-description');
-                    if (luxEl) luxEl.textContent = Number(data.lux).toFixed(1) + ' lux';
-                    if (labelEl && data.classification) labelEl.textContent = data.classification.label;
-                    if (descEl && data.classification) descEl.textContent = data.classification.description;
-                    if (updatedEl) updatedEl.textContent = ago(data.last_success_seconds_ago);
+                    if (data.available) {
+                        const luxEl = document.getElementById('env-ambient-lux');
+                        const labelEl = document.getElementById('env-ambient-label');
+                        const updatedEl = document.getElementById('env-ambient-updated');
+                        const descEl = document.getElementById('env-ambient-description');
+                        if (luxEl) luxEl.textContent = Number(data.lux).toFixed(1) + ' lux';
+                        if (labelEl && data.classification) labelEl.textContent = data.classification.label;
+                        if (descEl && data.classification) descEl.textContent = data.classification.description;
+                        if (updatedEl) updatedEl.textContent = ago(data.last_success_seconds_ago);
+                    } // else: leave the last good ambient-light reading visible rather than blanking it
+                    (data.probes || []).forEach(function (probe) {
+                        const card = document.querySelector('[data-probe-name="' + CSS.escape(probe.name) + '"] .probe-value');
+                        if (!card) return; // a probe that appears later needs a full page reload, not just JS - fine
+                        if (probe.ok) {
+                            card.textContent = Number(probe.value_c).toFixed(1) + ' °C';
+                            card.classList.remove('status-bad');
+                        } else {
+                            card.textContent = 'not responding';
+                            card.classList.add('status-bad');
+                        }
+                    });
                 } catch (e) {
                     // Offline/transient fetch failure - leave the last known values on screen.
                 }

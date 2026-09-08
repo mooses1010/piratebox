@@ -58,6 +58,20 @@
 #                          to use this exact "future hardware hook"
 #                          mechanism (2026-09-07) - see "ambient" in
 #                          GLANCE_PAGES below.
+#   probe_name             str (an OPERATOR-ASSIGNED name, e.g.
+#                          "Enclosure"), or None - the second real
+#                          sensor to use this hook (2026-09-07, DS18B20
+#                          phase). Only ever a NAMED, currently-ok
+#                          probe - an unwired bus, an unnamed probe, or
+#                          one currently failing to read all show as
+#                          None here, never a ROM address (engineering
+#                          detail that belongs in tools/ds18b20_
+#                          commission.py, not this display). With more
+#                          than one eligible probe, which one shows
+#                          rotates by wall-clock minute (see
+#                          build_glance_metrics()'s own comment).
+#   probe_temp_c           float, or None (paired with probe_name -
+#                          both are None or both are set, together).
 #
 # FUTURE HARDWARE HOOKS: exactly the same pattern piratebox_
 # progression.py's HARDWARE_SIGNALS registry already established - a
@@ -308,6 +322,18 @@ def _render_ambient(draw, label_fonts, font_cpu_label, font_medium, font_big, me
     _draw_centered(draw, "--" if lux is None else _classify_ambient_light_label(lux), font_medium, 41)
 
 
+def _render_probe(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics: dict) -> None:
+    # Single big-value layout (like RAM/DISK/CLIENTS/TIME above), not
+    # ambient's three-line layout - a probe only needs its name and
+    # current reading, no separate classification line. The label uses
+    # _draw_label()'s own auto-fit (unlike ambient's fixed font_cpu_label)
+    # because an operator-chosen probe name (e.g. "ENCLOSURE") can run
+    # longer than this project's other, deliberately-short, fixed labels.
+    name = metrics.get("probe_name") or "PROBE"
+    _draw_label(draw, name.upper(), label_fonts, 0)
+    _draw_centered(draw, _fmt_temp(metrics.get("probe_temp_c")), font_big, 30)
+
+
 _RENDERERS = {
     "cpu": _render_cpu,
     "ram": _render_ram,
@@ -317,6 +343,7 @@ _RENDERERS = {
     "time": _render_time,
     "power_warning": _render_power_warning,
     "ambient": _render_ambient,
+    "probe": _render_probe,
 }
 
 
@@ -407,6 +434,17 @@ GLANCE_PAGES = {
         # become in their own more attention-worthy moments.
         "weight": lambda m: 8.0,
     },
+    "probe": {
+        # Only eligible once at least one probe has both a real,
+        # currently-ok reading AND an operator-assigned name - same
+        # "None means don't show it" rule as "ambient"/"time" above.
+        "eligible": lambda m: m.get("probe_name") is not None,
+        # Same routine baseline as "ambient" - a DS18B20 probe reading
+        # is exactly as everyday-relevant as ambient light, never more
+        # urgent (a genuinely alarming temperature is a job for a real
+        # fault/warning tier, not this rotation - not implemented here).
+        "weight": lambda m: 8.0,
+    },
 }
 
 
@@ -471,5 +509,8 @@ def select_glance_page(metrics: dict, rng: random.Random, last_page_id, cooldown
 # routine capability page like cpu/ram/disk, not a fault condition;
 # on a Pi without the BH1750 wired it degrades to the same honest "--"
 # placeholder every other page already shows for temporarily-missing
-# data (see _render_ambient), never a fabricated reading.
-GLANCE_PREVIEW_ORDER = ["cpu", "ram", "disk", "clients", "uptime", "time", "ambient"]
+# data (see _render_ambient), never a fabricated reading. "probe"
+# (2026-09-07, DS18B20 phase) is included for the same reason - on a
+# Pi with no named probe yet it renders its own honest "PROBE / --"
+# placeholder (see _render_probe), never a fabricated reading.
+GLANCE_PREVIEW_ORDER = ["cpu", "ram", "disk", "clients", "uptime", "time", "ambient", "probe"]

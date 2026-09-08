@@ -29,6 +29,7 @@
 #include "protocol.h"
 #include "sensors.h"
 #include "bh1750.h"
+#include "ds18b20.h"
 
 // --- Timing ----------------------------------------------------------
 static const unsigned long HEARTBEAT_INTERVAL_MS = 2000;
@@ -85,7 +86,8 @@ static void sendLine(const String &line) {
 }
 
 static void sendHello() {
-    sendLine(pb_build_hello(macAddressString(), resetReasonString(), millis(), bh1750Available));
+    sendLine(pb_build_hello(macAddressString(), resetReasonString(), millis(),
+                             bh1750Available, pb_ds18b20_ever_found_a_probe()));
 }
 
 static void handleLine(const String &line) {
@@ -145,6 +147,10 @@ void setup() {
     // to report false until the operator physically wires one; the
     // capability then appears on its own on the very next boot.
     bh1750Available = pb_sensor_bh1750_init();
+    // Real bus search, not an assumption - see ds18b20.cpp's header.
+    // Expected to find zero probes until the operator physically wires
+    // them; the bus itself always "initializes" successfully either way.
+    pb_ds18b20_init();
 
     // Announce identity immediately on boot - the Pi daemon does not
     // need to wait for the first heartbeat/sensors cycle to learn who
@@ -164,6 +170,11 @@ void loop() {
 
     unsigned long now = millis();
 
+    // Non-blocking - see ds18b20.cpp's header. Runs on its own much
+    // slower internal cadence regardless of how often this outer loop
+    // spins, so calling it every iteration costs nothing when idle.
+    pb_ds18b20_tick(now);
+
     if (now - lastHeartbeatAt >= HEARTBEAT_INTERVAL_MS) {
         lastHeartbeatAt = now;
         sendLine(pb_build_heartbeat(heartbeatSeq++, now));
@@ -175,6 +186,16 @@ void loop() {
         bool tempOk = tempInternalAvailable && pb_sensor_temp_internal_read(tempC);
         float lux = 0.0f;
         bool bh1750Ok = bh1750Available && pb_sensor_bh1750_read(lux);
-        sendLine(pb_build_sensors(sensorsSeq++, tempC, tempOk, bh1750Available, lux, bh1750Ok));
+        // DS18B20 values are whatever its own last completed ~30s cycle
+        // computed - this 5s "sensors" send just reports the latest
+        // known state, it never triggers a new conversion itself.
+        int probeCount = pb_ds18b20_probe_count();
+        static Ds18b20Probe probeSnapshot[DS18B20_MAX_PROBES];
+        for (int i = 0; i < probeCount; i++) {
+            probeSnapshot[i] = pb_ds18b20_probe_at(i);
+        }
+        sendLine(pb_build_sensors(sensorsSeq++, tempC, tempOk, bh1750Available, lux, bh1750Ok,
+                                   pb_ds18b20_ever_found_a_probe(), pb_ds18b20_bus_ok(),
+                                   probeCount, probeSnapshot));
     }
 }

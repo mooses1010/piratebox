@@ -1,6 +1,7 @@
 #include "protocol.h"
 
-String pb_build_hello(const String &mac, const String &resetReason, unsigned long uptimeMs, bool bh1750Available) {
+String pb_build_hello(const String &mac, const String &resetReason, unsigned long uptimeMs,
+                       bool bh1750Available, bool ds18b20EverFound) {
     StaticJsonDocument<PIRATEBOX_JSON_DOC_SIZE> doc;
     doc["v"] = PIRATEBOX_PROTOCOL_VERSION;
     doc["t"] = "hello";
@@ -21,6 +22,11 @@ String pb_build_hello(const String &mac, const String &resetReason, unsigned lon
     if (bh1750Available) {
         caps.add(CAP_BH1750);
     }
+    // ds18b20 uses the different, latching "ever found" rule - see
+    // CAP_DS18B20's own comment in protocol.h.
+    if (ds18b20EverFound) {
+        caps.add(CAP_DS18B20);
+    }
 
     String out;
     serializeJson(doc, out);
@@ -39,7 +45,9 @@ String pb_build_heartbeat(unsigned long seq, unsigned long uptimeMs) {
 }
 
 String pb_build_sensors(unsigned long seq, float internalTempC, bool tempOk,
-                         bool bh1750Available, float bh1750Lux, bool bh1750Ok) {
+                         bool bh1750Available, float bh1750Lux, bool bh1750Ok,
+                         bool ds18b20EverFound, bool ds18b20BusOk,
+                         int ds18b20ProbeCount, const Ds18b20Probe *ds18b20Probes) {
     StaticJsonDocument<PIRATEBOX_JSON_DOC_SIZE> doc;
     doc["v"] = PIRATEBOX_PROTOCOL_VERSION;
     doc["t"] = "sensors";
@@ -64,6 +72,28 @@ String pb_build_sensors(unsigned long seq, float internalTempC, bool tempOk,
             bh1750["unit"] = "lux";
         } else {
             bh1750["err"] = "read_failed";
+        }
+    }
+    // Only reported at all once the bus has EVER found a probe - see
+    // CAP_DS18B20's own comment. Unlike temp_internal/bh1750, "0
+    // probes currently found" is a real, valid state represented
+    // inside this block (an empty "probes" object), not by omitting
+    // the block entirely - that omission is reserved for "this
+    // firmware build's bus has never found anything, ever."
+    if (ds18b20EverFound) {
+        JsonObject ds18b20 = readings.createNestedObject(CAP_DS18B20);
+        ds18b20["bus_ok"] = ds18b20BusOk;
+        JsonObject probesObj = ds18b20.createNestedObject("probes");
+        for (int i = 0; i < ds18b20ProbeCount; i++) {
+            const Ds18b20Probe &p = ds18b20Probes[i];
+            JsonObject probe = probesObj.createNestedObject(p.romHex);
+            probe["ok"] = p.ok;
+            if (p.ok) {
+                probe["value"] = p.value;
+                probe["unit"] = "C";
+            } else {
+                probe["err"] = p.err;
+            }
         }
     }
     String out;

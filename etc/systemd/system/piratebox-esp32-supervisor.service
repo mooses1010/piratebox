@@ -29,7 +29,8 @@ RestartSec=5
 
 # No sudo grant of any kind - this daemon has no privileged action to
 # escalate to. It only reads a serial port and writes its own small
-# export under RuntimeDirectory= below.
+# export under RuntimeDirectory= below, plus its own durable state
+# under StateDirectory= below.
 NoNewPrivileges=yes
 ProtectHome=yes
 ProtectSystem=strict
@@ -41,10 +42,25 @@ WorkingDirectory=/tmp
 # that unit's comment for the full rationale): systemd creates
 # /run/piratebox-esp32 fresh on every start (owned by this same
 # User=/Group=, mode 0755 so www-data can traverse into it and read the
-# 0644 file this daemon writes inside), removes it on stop. No other
-# writable path is needed - this daemon holds no other durable state.
+# 0644 file this daemon writes inside), removes it on stop. This is
+# tmpfs-backed and deliberately ephemeral - never used for anything that
+# must survive a reboot (that's StateDirectory= below).
 RuntimeDirectory=piratebox-esp32
 RuntimeDirectoryMode=0755
+
+# DS18B20 probe naming (2026-09-07) - see piratebox_ds18b20_roles.py's
+# own header. Unlike RuntimeDirectory= above, StateDirectory= creates a
+# PERSISTENT directory under /var/lib/ that survives reboots - exactly
+# what a durable ROM-address-to-name mapping needs. Mode 0770 (not the
+# usual 0750) is deliberate: it lets the `moose` account (already a
+# member of the `gpio` group - confirmed 2026-09-07) write the small
+# naming-request file tools/ds18b20_commission.py drops here, without
+# any sudo grant or bind-mount indirection - the daemon (running as
+# this same User=/Group=) is still the only process that ever writes
+# the durable roles file itself (see that module's "single-writer"
+# rationale).
+StateDirectory=piratebox-esp32
+StateDirectoryMode=0770
 
 [Install]
 WantedBy=multi-user.target

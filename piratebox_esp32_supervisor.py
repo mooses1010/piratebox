@@ -55,6 +55,11 @@ try:
 except Exception:  # noqa: BLE001 - must never prevent the daemon from starting/logging why
     serial = None
 
+try:
+    import piratebox_ds18b20_roles as ds18b20_roles_module
+except Exception:  # noqa: BLE001 - a broken roles module must never take down the whole supervisor
+    ds18b20_roles_module = None
+
 DEVICE_BY_ID_GLOB = "/dev/serial/by-id/*"
 KNOWN_BRIDGE_SERIAL = "5CBB028993"  # WCH CH9102 bridge, commissioned 2026-09-07 - see docs/OPERATIONAL-DECISIONS.md
 BAUD = 115200
@@ -260,7 +265,38 @@ def check_staleness(state: dict, now: float) -> None:
         state["stale"] = True
 
 
-def build_export(state: dict, now_wall: float) -> dict:
+def _enrich_ds18b20_with_names(sensors: dict, ds18b20_roles: dict) -> dict:
+    """Returns a COPY of `sensors` with each ds18b20 probe's configured
+    friendly name merged in (as "name", None if unnamed) - never
+    mutates the input. `ds18b20_roles` is the plain {rom: {"name":...}}
+    mapping from piratebox_ds18b20_roles.load_roles(); None/empty means
+    every probe simply reports name=None (an unnamed probe is a normal,
+    expected state during commissioning, never an error)."""
+    ds18b20 = sensors.get("ds18b20")
+    if not isinstance(ds18b20, dict):
+        return sensors
+    probes = ds18b20.get("probes")
+    if not isinstance(probes, dict):
+        return sensors
+
+    roles = ds18b20_roles or {}
+    new_probes = {}
+    for rom, reading in probes.items():
+        if not isinstance(reading, dict):
+            new_probes[rom] = reading
+            continue
+        entry = dict(reading)
+        role = roles.get(rom)
+        entry["name"] = role["name"] if isinstance(role, dict) else None
+        new_probes[rom] = entry
+
+    new_sensors = dict(sensors)
+    new_sensors["ds18b20"] = dict(ds18b20)
+    new_sensors["ds18b20"]["probes"] = new_probes
+    return new_sensors
+
+
+def build_export(state: dict, now_wall: float, ds18b20_roles: dict = None) -> dict:
     return {
         "generated_at": int(now_wall),
         "connected": bool(state["connected"]),
@@ -273,12 +309,13 @@ def build_export(state: dict, now_wall: float) -> dict:
         "uptime_ms": state.get("uptime_ms"),
         "reboot_count": state.get("reboot_count", 0),
         "capabilities": state.get("caps", []),
-        "sensors": state.get("sensors", {}),
+        "sensors": _enrich_ds18b20_with_names(state.get("sensors", {}), ds18b20_roles),
         "malformed_lines": state.get("malformed_lines", 0),
     }
 
 
-def publish_export(state: dict, last_publish: float, now: float, now_wall: float = None) -> float:
+def publish_export(state: dict, last_publish: float, now: float, now_wall: float = None,
+                    ds18b20_roles: dict = None) -> float:
     """Coalesced write, same throttle pattern as piratebox_oled_daemon.
     publish_sensors_export(). `now` is monotonic (throttle bookkeeping),
     `now_wall` is wall-clock for the generated_at field (defaults to
@@ -288,7 +325,7 @@ def publish_export(state: dict, last_publish: float, now: float, now_wall: float
     if now_wall is None:
         now_wall = time.time()
 
-    export = build_export(state, now_wall)
+    export = build_export(state, now_wall, ds18b20_roles)
     try:
         os.makedirs(EXPORT_DIR, exist_ok=True)
         tmp_path = f"{EXPORT_FILE}.tmp.{os.getpid()}"
@@ -316,6 +353,14 @@ def run() -> None:
     last_export_publish = 0.0
     next_reconnect_attempt = 0.0
     backoff = RECONNECT_POLL_S
+
+    # DS18B20 probe naming (2026-09-07) - see piratebox_ds18b20_roles.py's
+    # own header for the full request/apply design. Loaded once here;
+    # check_name_request() below re-reads only when the request file's
+    # mtime actually changes, so this costs one cheap stat() per loop
+    # iteration the rest of the time.
+    ds18b20_roles = ds18b20_roles_module.load_roles() if ds18b20_roles_module is not None else {}
+    ds18b20_role_markers = {}
 
     log.info("ESP32 supervisor daemon starting.")
 
@@ -373,7 +418,9 @@ def run() -> None:
                         handle_line(state, raw, now)
 
         check_staleness(state, now)
-        last_export_publish = publish_export(state, last_export_publish, now)
+        if ds18b20_roles_module is not None:
+            ds18b20_roles = ds18b20_roles_module.check_name_request(ds18b20_roles, ds18b20_role_markers, log)
+        last_export_publish = publish_export(state, last_export_publish, now, ds18b20_roles=ds18b20_roles)
 
 
 if __name__ == "__main__":

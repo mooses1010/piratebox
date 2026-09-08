@@ -805,3 +805,12 @@ the BH1750 ambient light sensor (see its own row above) was physically
 migrated from the Pi's I2C1 bus to this board's own I2C bus (GPIO8/9)**
 - the ESP32's on-die temperature sensor and the migrated BH1750 are
 both live capabilities as of this round.
+
+**Update (2026-09-07, DS18B20 phase):** multi-probe DS18B20 support
+(firmware, Pi-side naming/commissioning workflow, Environment UI,
+OLED glance page) is fully built and tested, targeting **GPIO4** on
+the ESP32 for the 1-Wire bus - see `docs/ESP32-SUPERVISOR-DESIGN.md`
+§17 for the full design and its consolidated physical wiring gate
+(not yet performed - no DS18B20 hardware is wired as of this entry).
+Also added this round: ambient-light-driven OLED auto-brightness
+(§18, reuses the migrated BH1750 signal, no new hardware).

@@ -148,6 +148,38 @@ class HandleLineTests(unittest.TestCase):
         self._send({"v": 1, "t": "sensors", "seq": 1, "readings": "not a dict"})
         self.assertEqual(self.state["sensors"], {})  # unchanged, no crash
 
+    def test_ds18b20_multi_probe_readings_flow_through_generically(self):
+        # handle_line() is intentionally generic about "readings" shape
+        # (no per-capability parsing) - this pins that a real multi-probe
+        # ds18b20 block round-trips exactly as sent, nesting included.
+        self._send({
+            "v": 1, "t": "sensors", "seq": 1,
+            "readings": {
+                "ds18b20": {
+                    "bus_ok": True,
+                    "probes": {
+                        "28ff641e04170378": {"ok": True, "value": 21.4, "unit": "C"},
+                        "28aa112233445566": {"ok": False, "err": "disconnected"},
+                    },
+                },
+            },
+        })
+        ds18b20 = self.state["sensors"]["ds18b20"]
+        self.assertTrue(ds18b20["bus_ok"])
+        self.assertEqual(ds18b20["probes"]["28ff641e04170378"]["value"], 21.4)
+        self.assertFalse(ds18b20["probes"]["28aa112233445566"]["ok"])
+
+    def test_ds18b20_zero_probes_is_a_valid_distinct_state(self):
+        self._send({"v": 1, "t": "sensors", "seq": 1,
+                     "readings": {"ds18b20": {"bus_ok": True, "probes": {}}}})
+        self.assertEqual(self.state["sensors"]["ds18b20"]["probes"], {})
+
+    def test_hello_ds18b20_capability_present_alongside_others(self):
+        self._send({"v": 1, "t": "hello", "board": "esp32s3-n16r8", "uptime_ms": 1,
+                     "fw": "0.2.0", "mac": "aa", "reset_reason": "poweron",
+                     "caps": ["temp_internal", "bh1750", "ds18b20"]})
+        self.assertEqual(self.state["caps"], ["temp_internal", "bh1750", "ds18b20"])
+
     def test_err_message_recorded(self):
         self._send({"v": 1, "t": "err", "reason": "unknown_type"})
         self.assertEqual(self.state["last_remote_error"], "unknown_type")
@@ -207,6 +239,39 @@ class PublishExportTests(unittest.TestCase):
         self.assertEqual(data["fw_version"], "0.1.0")
         self.assertEqual(data["generated_at"], 1700000000)
         self.assertEqual(data["sensors"]["temp_internal"]["value"], 30.0)
+
+    def test_ds18b20_probes_enriched_with_configured_names(self):
+        state = sup.fresh_state()
+        state["connected"] = True
+        state["sensors"] = {
+            "ds18b20": {
+                "bus_ok": True,
+                "probes": {
+                    "28ff641e04170378": {"ok": True, "value": 21.4, "unit": "C"},
+                    "28aa112233445566": {"ok": True, "value": 4.0, "unit": "C"},
+                },
+            },
+        }
+        roles = {"28ff641e04170378": {"name": "Enclosure", "assigned_at": 1.0}}
+        sup.publish_export(state, 0.0, now=1000.0, ds18b20_roles=roles)
+        data = self._read()
+        probes = data["sensors"]["ds18b20"]["probes"]
+        self.assertEqual(probes["28ff641e04170378"]["name"], "Enclosure")
+        self.assertIsNone(probes["28aa112233445566"]["name"])  # unnamed, not fabricated
+
+    def test_ds18b20_enrichment_never_mutates_the_live_state_dict(self):
+        state = sup.fresh_state()
+        state["sensors"] = {"ds18b20": {"bus_ok": True, "probes": {"28ff641e04170378": {"ok": True, "value": 1.0}}}}
+        original_probe = state["sensors"]["ds18b20"]["probes"]["28ff641e04170378"]
+        sup.publish_export(state, 0.0, now=1000.0, ds18b20_roles={"28ff641e04170378": {"name": "X"}})
+        self.assertNotIn("name", original_probe)  # the live in-memory state is untouched
+
+    def test_no_ds18b20_block_and_no_roles_publishes_cleanly(self):
+        state = sup.fresh_state()
+        state["sensors"] = {"temp_internal": {"ok": True, "value": 30.0}}
+        sup.publish_export(state, 0.0, now=1000.0, ds18b20_roles=None)
+        data = self._read()
+        self.assertNotIn("ds18b20", data["sensors"])
 
     def test_throttled_within_publish_interval(self):
         state = sup.fresh_state()

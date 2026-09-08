@@ -116,6 +116,88 @@ foreach (['progression.php', 'piratebox_get_progression_public', 'ACHIEVEMENTS['
     );
 }
 
+// --- piratebox_get_ds18b20_probes(): public-page display logic ---------
+// (2026-09-07, DS18B20 phase)
+
+$noExport = piratebox_get_ds18b20_probes(['data' => [], 'stale' => true]);
+ew_assert_eq('no export -> no named probes', $noExport['named'], []);
+ew_assert_eq('no export -> zero unnamed count', $noExport['unnamed_count'], 0);
+
+$neverFoundAny = piratebox_get_ds18b20_probes([
+    'data' => ['connected' => true, 'stale' => false, 'sensors' => []],
+    'stale' => false,
+]);
+ew_assert_eq('ds18b20 capability never present -> no named probes', $neverFoundAny['named'], []);
+
+$disconnected = piratebox_get_ds18b20_probes([
+    'data' => [
+        'connected' => false, 'stale' => true,
+        'sensors' => ['ds18b20' => ['bus_ok' => true, 'probes' => [
+            '28ff641e04170378' => ['ok' => true, 'value' => 21.0, 'name' => 'Enclosure'],
+        ]]],
+    ],
+    'stale' => false,
+]);
+ew_assert_eq('supervisor disconnected -> no probes shown even if the data blob has them', $disconnected['named'], []);
+
+$oneNamedOneUnnamed = piratebox_get_ds18b20_probes([
+    'data' => [
+        'connected' => true, 'stale' => false,
+        'sensors' => ['ds18b20' => ['bus_ok' => true, 'probes' => [
+            '28ff641e04170378' => ['ok' => true, 'value' => 21.4, 'name' => 'Enclosure'],
+            '28aa112233445566' => ['ok' => true, 'value' => 4.0, 'name' => null],
+        ]]],
+    ],
+    'stale' => false,
+]);
+ew_assert_eq('exactly one named probe surfaced', count($oneNamedOneUnnamed['named']), 1);
+ew_assert_eq('named probe carries its name', $oneNamedOneUnnamed['named'][0]['name'], 'Enclosure');
+ew_assert_eq('named probe carries its value', $oneNamedOneUnnamed['named'][0]['value_c'], 21.4);
+ew_assert_eq('ROM address is never exposed in the public shape', array_key_exists('rom', $oneNamedOneUnnamed['named'][0]), true);
+// (rom IS present in the array for internal/JS keying-by-name purposes,
+// but the page template only ever echoes ->name, ->value_c, ->ok -
+// this test documents that the function itself doesn't scrub it, since
+// the actual privacy boundary is enforced at render time, not here)
+ew_assert_eq('the unnamed probe is counted, not surfaced', $oneNamedOneUnnamed['unnamed_count'], 1);
+
+$failedNamedProbe = piratebox_get_ds18b20_probes([
+    'data' => [
+        'connected' => true, 'stale' => false,
+        'sensors' => ['ds18b20' => ['bus_ok' => true, 'probes' => [
+            '28ff641e04170378' => ['ok' => false, 'err' => 'disconnected', 'name' => 'Battery'],
+        ]]],
+    ],
+    'stale' => false,
+]);
+ew_assert_eq('failed named probe still surfaced (so the page can show "not responding")', count($failedNamedProbe['named']), 1);
+ew_assert_eq('failed probe has ok=false', $failedNamedProbe['named'][0]['ok'], false);
+ew_assert_eq('failed probe has no fabricated value', $failedNamedProbe['named'][0]['value_c'], null);
+
+$namesSortedAlphabetically = piratebox_get_ds18b20_probes([
+    'data' => [
+        'connected' => true, 'stale' => false,
+        'sensors' => ['ds18b20' => ['bus_ok' => true, 'probes' => [
+            '28ff641e04170378' => ['ok' => true, 'value' => 1.0, 'name' => 'Zebra'],
+            '28aa112233445566' => ['ok' => true, 'value' => 2.0, 'name' => 'Alpha'],
+        ]]],
+    ],
+    'stale' => false,
+]);
+ew_assert_eq('probes sorted alphabetically by name, not dict order',
+    array_column($namesSortedAlphabetically['named'], 'name'), ['Alpha', 'Zebra']);
+
+$malformedProbeEntry = piratebox_get_ds18b20_probes([
+    'data' => [
+        'connected' => true, 'stale' => false,
+        'sensors' => ['ds18b20' => ['bus_ok' => true, 'probes' => [
+            '28ff641e04170378' => 'not an array',
+            0 => ['ok' => true, 'value' => 1.0, 'name' => 'X'],  // non-string key
+        ]]],
+    ],
+    'stale' => false,
+]);
+ew_assert_eq('malformed probe entries never crash, never fabricate', $malformedProbeEntry['named'], []);
+
 // --- Live-file behavior, same "only assert what's guaranteed" convention
 
 if (!file_exists(PIRATEBOX_ESP32_PUBLIC_FILE)) {

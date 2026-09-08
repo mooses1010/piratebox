@@ -35,11 +35,16 @@ fi
 echo "  found: piratebox-gpio"
 
 echo
-echo "== Installing the daemon and its client reader to /usr/local/bin (root:root, 0755/0644) =="
+echo "== Installing the daemon and its imported modules to /usr/local/bin (root:root, 0755/0644) =="
 install -m 0755 -o root -g root "$REPO_DIR/piratebox_esp32_supervisor.py" /usr/local/bin/piratebox_esp32_supervisor.py
 install -m 0644 -o root -g root "$REPO_DIR/piratebox_esp32_client.py" /usr/local/bin/piratebox_esp32_client.py
+# piratebox_ds18b20_roles.py (2026-09-07) - imported by the daemon
+# above; must live alongside it (the daemon's own script directory is
+# on sys.path automatically) for that import to resolve at runtime.
+install -m 0644 -o root -g root "$REPO_DIR/piratebox_ds18b20_roles.py" /usr/local/bin/piratebox_ds18b20_roles.py
 echo "  installed: /usr/local/bin/piratebox_esp32_supervisor.py"
 echo "  installed: /usr/local/bin/piratebox_esp32_client.py"
+echo "  installed: /usr/local/bin/piratebox_ds18b20_roles.py"
 
 echo
 echo "== Installing systemd unit =="
@@ -53,11 +58,14 @@ echo "  installed, enabled, and (re)started: piratebox-esp32-supervisor.service"
 echo
 echo "== Verifying =="
 ls -la /usr/local/bin/piratebox_esp32_supervisor.py /usr/local/bin/piratebox_esp32_client.py \
-       /etc/systemd/system/piratebox-esp32-supervisor.service
+       /usr/local/bin/piratebox_ds18b20_roles.py /etc/systemd/system/piratebox-esp32-supervisor.service
 sleep 2
 systemctl status piratebox-esp32-supervisor.service --no-pager -l || true
+echo
+ls -la /var/lib/piratebox-esp32/ 2>&1 || echo "  (StateDirectory not yet created - should appear after the service's first start above)"
 
 echo
 echo "Done. Check 'journalctl -u piratebox-esp32-supervisor -f' and"
 echo "'python3 tools/diagnose_esp32_supervisor.py' to confirm the board is"
-echo "actually connected and reporting."
+echo "actually connected and reporting. Use 'python3 tools/ds18b20_commission.py"
+echo "list' (or 'watch') once DS18B20 probes are physically wired to name them."

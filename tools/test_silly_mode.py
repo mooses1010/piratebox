@@ -798,6 +798,74 @@ class ComputeCpuPercentTests(unittest.TestCase):
         self.assertLessEqual(pct, 100.0)
 
 
+class AutoBrightnessTests(unittest.TestCase):
+    """compute_target_contrast() / slew_contrast() (2026-09-07) - the
+    OLED auto-brightness feature. Both are pure functions, directly
+    testable without a display or real BH1750 hardware."""
+
+    def test_none_reading_maps_to_full_brightness(self):
+        """The failure-safe default: no reading (never wired, never
+        read yet, or stale) always means full brightness, never a
+        guessed dim value."""
+        self.assertEqual(oled.compute_target_contrast(None), oled.OLED_MAX_CONTRAST)
+
+    def test_darkness_maps_to_the_minimum_floor_not_fully_off(self):
+        self.assertEqual(oled.compute_target_contrast(0.0), oled.OLED_MIN_CONTRAST)
+
+    def test_bright_room_maps_to_full_brightness(self):
+        self.assertEqual(oled.compute_target_contrast(1000.0), oled.OLED_MAX_CONTRAST)
+        self.assertEqual(oled.compute_target_contrast(50000.0), oled.OLED_MAX_CONTRAST)
+
+    def test_monotonically_non_decreasing_with_more_light(self):
+        """More light must never produce a DIMMER target than less
+        light - the actual property that matters, not just spot values."""
+        samples = [0.0, 1.0, 5.0, 25.0, 100.0, 500.0, 1000.0]
+        targets = [oled.compute_target_contrast(lux) for lux in samples]
+        self.assertEqual(targets, sorted(targets))
+
+    def test_result_always_within_the_configured_bounds(self):
+        for lux in [-5.0, 0.0, 0.1, 500000.0]:  # a negative reading should never happen, but must not misbehave
+            with self.subTest(lux=lux):
+                target = oled.compute_target_contrast(lux)
+                self.assertGreaterEqual(target, oled.OLED_MIN_CONTRAST)
+                self.assertLessEqual(target, oled.OLED_MAX_CONTRAST)
+
+    def test_slew_moves_toward_target_by_at_most_max_step(self):
+        self.assertEqual(oled.slew_contrast(10, 255, max_step=3), 13)
+        self.assertEqual(oled.slew_contrast(255, 10, max_step=3), 252)
+
+    def test_slew_never_overshoots_a_close_target(self):
+        self.assertEqual(oled.slew_contrast(10, 12, max_step=3), 12)
+
+    def test_slew_is_a_no_op_already_at_target(self):
+        self.assertEqual(oled.slew_contrast(100, 100), 100)
+
+    def test_repeated_slewing_eventually_reaches_the_target_without_overshoot(self):
+        """The actual anti-pumping guarantee end to end: starting far
+        from a new target, repeated slew_contrast() calls converge
+        smoothly and land exactly on it, never oscillating past it."""
+        current = oled.OLED_MIN_CONTRAST
+        target = oled.OLED_MAX_CONTRAST
+        seen = [current]
+        for _ in range(200):
+            current = oled.slew_contrast(current, target)
+            seen.append(current)
+            if current == target:
+                break
+        self.assertEqual(current, target)
+        self.assertEqual(seen, sorted(seen))  # strictly non-decreasing the whole way - no overshoot/bounce
+
+    def test_a_transient_spike_only_nudges_brightness_a_little(self):
+        """The concrete 'hand waved over the sensor' scenario: a single
+        instantaneous jump in the TARGET (as compute_target_contrast()
+        would produce from a brief lux spike) must only move the
+        applied contrast a little on the very next tick, not snap."""
+        current = oled.OLED_MIN_CONTRAST
+        spiked_target = oled.compute_target_contrast(50000.0)  # a hand-over-sensor-style bright flash
+        after_one_tick = oled.slew_contrast(current, spiked_target)
+        self.assertLessEqual(after_one_tick - current, oled.OLED_CONTRAST_MAX_STEP_PER_TICK)
+
+
 class GlanceMetricsTests(unittest.TestCase):
     """build_glance_metrics() - the one place raw reads get assembled
     into piratebox_glance.py's documented metrics contract."""
@@ -939,6 +1007,92 @@ class GlanceMetricsTests(unittest.TestCase):
             oled.build_glance_metrics(None, True, None, False, tracked)
         self.assertEqual(calls["get_diagnostics"], 5, "exactly one get_diagnostics() call per build_glance_metrics() call")
         self.assertEqual(calls["read_ambient_lux"], 0, "must never call the real-I2C-triggering reader directly")
+
+    # --- probe_name/probe_temp_c (2026-09-07, DS18B20 glance page) -----
+    # esp32_client_module defaults to None (every call above omits it) -
+    # same backward-compatibility contract as bh1750_module above.
+
+    def test_probe_is_none_when_no_module_given(self):
+        metrics, _ = oled.build_glance_metrics(None, True, None, False)
+        self.assertIsNone(metrics["probe_name"])
+        self.assertIsNone(metrics["probe_temp_c"])
+
+    def _fake_client(self, sensors, connected=True, stale=False):
+        class FakeClient:
+            def get_diagnostics(self):
+                return {"connected": connected, "stale": stale, "sensors": sensors}
+        return FakeClient()
+
+    def test_probe_populated_from_a_single_named_ok_probe(self):
+        client = self._fake_client({"ds18b20": {"bus_ok": True, "probes": {
+            "28ff641e04170378": {"ok": True, "value": 21.4, "unit": "C", "name": "Enclosure"},
+        }}})
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, None, client)
+        self.assertEqual(metrics["probe_name"], "Enclosure")
+        self.assertEqual(metrics["probe_temp_c"], 21.4)
+
+    def test_unnamed_probe_never_shown_even_if_ok(self):
+        client = self._fake_client({"ds18b20": {"bus_ok": True, "probes": {
+            "28ff641e04170378": {"ok": True, "value": 21.4, "unit": "C", "name": None},
+        }}})
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, None, client)
+        self.assertIsNone(metrics["probe_name"])
+
+    def test_failing_named_probe_never_shown(self):
+        client = self._fake_client({"ds18b20": {"bus_ok": True, "probes": {
+            "28ff641e04170378": {"ok": False, "err": "disconnected", "name": "Battery"},
+        }}})
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, None, client)
+        self.assertIsNone(metrics["probe_name"])
+
+    def test_no_ds18b20_block_at_all_degrades_cleanly(self):
+        client = self._fake_client({"temp_internal": {"ok": True, "value": 30.0}})
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, None, client)
+        self.assertIsNone(metrics["probe_name"])
+
+    def test_disconnected_supervisor_never_shows_a_probe(self):
+        client = self._fake_client(
+            {"ds18b20": {"bus_ok": True, "probes": {"28ff641e04170378": {"ok": True, "value": 1.0, "name": "X"}}}},
+            connected=False,
+        )
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, None, client)
+        self.assertIsNone(metrics["probe_name"])
+
+    def test_stale_supervisor_link_never_shows_a_probe(self):
+        client = self._fake_client(
+            {"ds18b20": {"bus_ok": True, "probes": {"28ff641e04170378": {"ok": True, "value": 1.0, "name": "X"}}}},
+            stale=True,
+        )
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, None, client)
+        self.assertIsNone(metrics["probe_name"])
+
+    def test_probe_diagnostics_call_raising_never_crashes(self):
+        class BrokenClient:
+            def get_diagnostics(self):
+                raise RuntimeError("serial error")
+        metrics, _ = oled.build_glance_metrics(None, True, None, False, None, BrokenClient())
+        self.assertIsNone(metrics["probe_name"])
+        self.assertIsNone(metrics["probe_temp_c"])
+
+    def test_multiple_named_probes_rotate_deterministically_by_minute(self):
+        """Stateless-by-wall-clock rotation, not fabricated randomness -
+        the SAME minute always picks the SAME probe (alphabetically
+        ordered, indexed by minute-of-epoch modulo probe count)."""
+        client = self._fake_client({"ds18b20": {"bus_ok": True, "probes": {
+            "28ff641e04170378": {"ok": True, "value": 21.4, "name": "Enclosure"},
+            "28aa112233445566": {"ok": True, "value": 4.0, "name": "Battery"},
+        }}})
+        import time as time_mod
+        real_time = time_mod.time
+        try:
+            time_mod.time = lambda: 0.0  # minute index 0 -> alphabetically first: Battery
+            metrics, _ = oled.build_glance_metrics(None, True, None, False, None, client)
+            self.assertEqual(metrics["probe_name"], "Battery")
+            time_mod.time = lambda: 60.0  # minute index 1 -> Enclosure
+            metrics, _ = oled.build_glance_metrics(None, True, None, False, None, client)
+            self.assertEqual(metrics["probe_name"], "Enclosure")
+        finally:
+            time_mod.time = real_time
 
 
 class GlanceDispatchTests(unittest.TestCase):
