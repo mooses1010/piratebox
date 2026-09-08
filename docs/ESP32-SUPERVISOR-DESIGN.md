@@ -10,9 +10,10 @@ naming probes, an OLED probe glance page, and ambient-light-driven
 OLED auto-brightness (§18) are all built, deployed, and confirmed
 working against real hardware — all five ROMs discovered on one
 1-Wire bus, each independently reporting real, changing temperature
-data (§17f). None are named/assigned a role yet — physical
-commissioning (matching each ROM to its physical probe) is the current
-step. The board was
+data (§17f). All five have now been physically commissioned — each
+ROM matched to its physical probe by observed warming, one at a time
+(§17f) — but none are named/assigned a role yet; that's a separate
+decision left to the operator. The board was
 commissioned (identity fully proven read-only via `esptool`) earlier
 the same day — see `docs/OPERATIONAL-DECISIONS.md`'s two commissioning
 entries and `docs/CAPABILITY-REGISTRY.md`'s "Remote microcontroller/
@@ -770,9 +771,34 @@ lines. Watched over 90 seconds: three of the five readings changed
 independently while two stayed exactly flat in the same window — real,
 uncorrelated live data from five separate sensors, not a duplicated or
 fabricated set. `tools/ds18b20_commission.py list` correctly
-represents all five as distinct entries. None are named yet — that's
-the next, separate step, done together with the operator by physically
-warming each probe in turn while watching the commissioning tool.
+represents all five as distinct entries.
+
+**Physical commissioning: DONE (2026-09-07, same day).** Added a new
+`identify` subcommand to `tools/ds18b20_commission.py` specifically so
+the operator wasn't left manually eyeballing five similar-looking
+temperature streams: it captures a baseline of every probe's current
+reading, then shows each one's live delta from that baseline every
+cycle, sorted biggest-mover-first and flagged once the delta crosses
+1.5°C (well above the sensor's own ~0.5°C at-rest drift). The operator
+warmed each of the five physical probes one at a time with their
+fingers while watching this tool live; each correspondence below was
+established from an unambiguous, sustained temperature rise (never
+inferred from discovery order or by elimination — the fifth was
+independently confirmed with its own observed rise even though it was
+also the last one remaining):
+
+| Order warmed | ROM address | Observed rise |
+|---|---|---|
+| 1st | `28fd856b0000003b` | 29.00°C → 34.69°C (+5.69°C), held flat |
+| 2nd | `28a5ea00000000ce` | 29.31°C → 34.44°C (+5.12°C), held flat |
+| 3rd | `28c1fe2500000043` | 29.56°C → 34.44°C (+4.81°C), held flat |
+| 4th | `2840ff00000000a2` | 29.50°C → 34.06°C (+4.56°C), held flat |
+| 5th | `28a50d01000000ca` | 29.75°C → 34.12°C (+4.38°C), monotonic climb |
+
+This is purely a ROM ↔ physical-probe correspondence record — no
+names or roles are assigned here. Naming/role assignment ("Enclosure",
+"Battery", etc.) is a separate decision left entirely to the operator,
+via `tools/ds18b20_commission.py name <rom> "..."`.
 
 | DS18B20 wire | Connects to |
 |---|---|
