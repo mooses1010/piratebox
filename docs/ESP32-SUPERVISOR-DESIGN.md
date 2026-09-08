@@ -1,13 +1,14 @@
 # ESP32-S3 Hardware/Sensor Supervisor — Design
 
-**Status: WORKING IMPLEMENTATION, multi-probe DS18B20 support ready
-and awaiting its physical wiring gate (2026-09-07).** BH1750 ambient
-light is live on the ESP32's own I2C bus (§16) — no longer Pi-owned.
-DS18B20 multi-probe temperature support (§17), a commissioning
-workflow for naming probes, an OLED probe glance page, and ambient-
-light-driven OLED auto-brightness (§18) are all built, tested, and
-ready — no DS18B20 hardware is physically wired yet; see §17's
-consolidated physical gate. The board was
+**Status: WORKING IMPLEMENTATION, first DS18B20 probe wired and
+validated live (2026-09-07).** BH1750 ambient light is live on the
+ESP32's own I2C bus (§16) — no longer Pi-owned. DS18B20 multi-probe
+temperature support (§17), a commissioning workflow for naming probes,
+an OLED probe glance page, and ambient-light-driven OLED auto-
+brightness (§18) are all built, deployed, and confirmed working —
+probe #1 is wired and reporting real, changing temperature data
+(§17f); probes #2-4 remain unwired, awaiting the operator. The board
+was
 commissioned (identity fully proven read-only via `esptool`) earlier
 the same day — see `docs/OPERATIONAL-DECISIONS.md`'s two commissioning
 entries and `docs/CAPABILITY-REGISTRY.md`'s "Remote microcontroller/
@@ -741,8 +742,17 @@ used to *identify* a probe internally, only to *display* it.
 
 ### 17f. THE PHYSICAL GATE — wiring plan
 
-**Not performed. Requires the operator.** Everything above is built,
-tested, and ready to flash the moment probes are wired.
+**Probe #1: DONE, validated end-to-end (2026-09-07).** The operator
+verified the breakout's 4.7kΩ pull-up with a multimeter, wired one
+probe (VCC→3.3V, GND→GND, DATA→GPIO4), and reconnected cleanly. Real
+ROM `28a5ea00000000ce` detected, `bus_ok: true`, and the reading was
+watched changing genuinely (30.125°C→30.0°C→29.875°C, a physically
+plausible post-handling cooling trend) - proof of a live sensor, not a
+stuck value. `tools/ds18b20_commission.py list` confirmed the
+one-probe path end-to-end. Full record: `docs/OPERATIONAL-
+DECISIONS.md`. **Probes #2-4: not yet wired** - the plan below applies
+unchanged to each; they share the same GPIO4 bus (1-Wire supports
+multiple devices on one line, no new pin per probe).
 
 | DS18B20 wire | Connects to |
 |---|---|
