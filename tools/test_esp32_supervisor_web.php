@@ -117,74 +117,91 @@ foreach (['progression.php', 'piratebox_get_progression_public', 'ACHIEVEMENTS['
 }
 
 // --- piratebox_get_ds18b20_probes(): public-page display logic ---------
-// (2026-09-07, DS18B20 phase)
+// (2026-09-07, DS18B20 phase; reshaped 2026-09-08 for the
+// hardware-awareness phase - commissioned-but-unnamed probes now show
+// a generic "Probe N" label instead of being folded into a bare count)
 
 $noExport = piratebox_get_ds18b20_probes(['data' => [], 'stale' => true]);
-ew_assert_eq('no export -> no named probes', $noExport['named'], []);
-ew_assert_eq('no export -> zero unnamed count', $noExport['unnamed_count'], 0);
+ew_assert_eq('no export -> no probes shown', $noExport['probes'], []);
+ew_assert_eq('no export -> zero uncommissioned count', $noExport['uncommissioned_count'], 0);
 
 $neverFoundAny = piratebox_get_ds18b20_probes([
     'data' => ['connected' => true, 'stale' => false, 'sensors' => []],
     'stale' => false,
 ]);
-ew_assert_eq('ds18b20 capability never present -> no named probes', $neverFoundAny['named'], []);
+ew_assert_eq('ds18b20 capability never present -> no probes shown', $neverFoundAny['probes'], []);
 
 $disconnected = piratebox_get_ds18b20_probes([
     'data' => [
         'connected' => false, 'stale' => true,
         'sensors' => ['ds18b20' => ['bus_ok' => true, 'probes' => [
-            '28ff641e04170378' => ['ok' => true, 'value' => 21.0, 'name' => 'Enclosure'],
+            '28ff641e04170378' => ['ok' => true, 'value' => 21.0, 'name' => 'Enclosure', 'physical_index' => 1],
         ]]],
     ],
     'stale' => false,
 ]);
-ew_assert_eq('supervisor disconnected -> no probes shown even if the data blob has them', $disconnected['named'], []);
+ew_assert_eq('supervisor disconnected -> no probes shown even if the data blob has them', $disconnected['probes'], []);
 
-$oneNamedOneUnnamed = piratebox_get_ds18b20_probes([
+$namedAndUncommissioned = piratebox_get_ds18b20_probes([
     'data' => [
         'connected' => true, 'stale' => false,
         'sensors' => ['ds18b20' => ['bus_ok' => true, 'probes' => [
-            '28ff641e04170378' => ['ok' => true, 'value' => 21.4, 'name' => 'Enclosure'],
-            '28aa112233445566' => ['ok' => true, 'value' => 4.0, 'name' => null],
+            '28ff641e04170378' => ['ok' => true, 'value' => 21.4, 'name' => 'Enclosure', 'physical_index' => 1],
+            '28aa112233445566' => ['ok' => true, 'value' => 4.0, 'name' => null, 'physical_index' => null],
         ]]],
     ],
     'stale' => false,
 ]);
-ew_assert_eq('exactly one named probe surfaced', count($oneNamedOneUnnamed['named']), 1);
-ew_assert_eq('named probe carries its name', $oneNamedOneUnnamed['named'][0]['name'], 'Enclosure');
-ew_assert_eq('named probe carries its value', $oneNamedOneUnnamed['named'][0]['value_c'], 21.4);
-ew_assert_eq('ROM address is never exposed in the public shape', array_key_exists('rom', $oneNamedOneUnnamed['named'][0]), true);
-// (rom IS present in the array for internal/JS keying-by-name purposes,
-// but the page template only ever echoes ->name, ->value_c, ->ok -
-// this test documents that the function itself doesn't scrub it, since
-// the actual privacy boundary is enforced at render time, not here)
-ew_assert_eq('the unnamed probe is counted, not surfaced', $oneNamedOneUnnamed['unnamed_count'], 1);
+ew_assert_eq('exactly one named probe surfaced', count($namedAndUncommissioned['probes']), 1);
+ew_assert_eq('named probe shows its own name as the label', $namedAndUncommissioned['probes'][0]['label'], 'Enclosure');
+ew_assert_eq('named probe flagged has_name=true', $namedAndUncommissioned['probes'][0]['has_name'], true);
+ew_assert_eq('named probe carries its value', $namedAndUncommissioned['probes'][0]['value_c'], 21.4);
+ew_assert_eq('ROM address never appears in the public shape', array_key_exists('rom', $namedAndUncommissioned['probes'][0]), false);
+ew_assert_eq('the never-commissioned probe is counted, not surfaced', $namedAndUncommissioned['uncommissioned_count'], 1);
+
+$commissionedButUnnamed = piratebox_get_ds18b20_probes([
+    'data' => [
+        'connected' => true, 'stale' => false,
+        'sensors' => ['ds18b20' => ['bus_ok' => true, 'probes' => [
+            '28ff641e04170378' => ['ok' => true, 'value' => 30.0, 'name' => null, 'physical_index' => 4],
+        ]]],
+    ],
+    'stale' => false,
+]);
+ew_assert_eq('commissioned-but-unnamed probe is shown, not hidden', count($commissionedButUnnamed['probes']), 1);
+ew_assert_eq('commissioned-but-unnamed probe gets a generic physical-index label',
+    $commissionedButUnnamed['probes'][0]['label'], 'Probe 4');
+ew_assert_eq('commissioned-but-unnamed probe flagged has_name=false', $commissionedButUnnamed['probes'][0]['has_name'], false);
+ew_assert_eq('commissioned-but-unnamed probe is not counted as uncommissioned',
+    $commissionedButUnnamed['uncommissioned_count'], 0);
 
 $failedNamedProbe = piratebox_get_ds18b20_probes([
     'data' => [
         'connected' => true, 'stale' => false,
         'sensors' => ['ds18b20' => ['bus_ok' => true, 'probes' => [
-            '28ff641e04170378' => ['ok' => false, 'err' => 'disconnected', 'name' => 'Battery'],
+            '28ff641e04170378' => ['ok' => false, 'err' => 'disconnected', 'name' => 'Battery', 'physical_index' => 2],
         ]]],
     ],
     'stale' => false,
 ]);
-ew_assert_eq('failed named probe still surfaced (so the page can show "not responding")', count($failedNamedProbe['named']), 1);
-ew_assert_eq('failed probe has ok=false', $failedNamedProbe['named'][0]['ok'], false);
-ew_assert_eq('failed probe has no fabricated value', $failedNamedProbe['named'][0]['value_c'], null);
+ew_assert_eq('failed named probe still surfaced (so the page can show "not responding")', count($failedNamedProbe['probes']), 1);
+ew_assert_eq('failed probe has ok=false', $failedNamedProbe['probes'][0]['ok'], false);
+ew_assert_eq('failed probe has no fabricated value', $failedNamedProbe['probes'][0]['value_c'], null);
 
-$namesSortedAlphabetically = piratebox_get_ds18b20_probes([
+$sortOrder = piratebox_get_ds18b20_probes([
     'data' => [
         'connected' => true, 'stale' => false,
         'sensors' => ['ds18b20' => ['bus_ok' => true, 'probes' => [
-            '28ff641e04170378' => ['ok' => true, 'value' => 1.0, 'name' => 'Zebra'],
-            '28aa112233445566' => ['ok' => true, 'value' => 2.0, 'name' => 'Alpha'],
+            '28ff641e04170378' => ['ok' => true, 'value' => 1.0, 'name' => 'Zebra', 'physical_index' => null],
+            '28aa112233445566' => ['ok' => true, 'value' => 2.0, 'name' => 'Alpha', 'physical_index' => null],
+            '28bb112233445566' => ['ok' => true, 'value' => 3.0, 'name' => null, 'physical_index' => 5],
+            '28cc112233445566' => ['ok' => true, 'value' => 4.0, 'name' => null, 'physical_index' => 2],
         ]]],
     ],
     'stale' => false,
 ]);
-ew_assert_eq('probes sorted alphabetically by name, not dict order',
-    array_column($namesSortedAlphabetically['named'], 'name'), ['Alpha', 'Zebra']);
+ew_assert_eq('named probes sort alphabetically first, then unnamed probes by physical index',
+    array_column($sortOrder['probes'], 'label'), ['Alpha', 'Zebra', 'Probe 2', 'Probe 5']);
 
 $malformedProbeEntry = piratebox_get_ds18b20_probes([
     'data' => [
@@ -196,7 +213,73 @@ $malformedProbeEntry = piratebox_get_ds18b20_probes([
     ],
     'stale' => false,
 ]);
-ew_assert_eq('malformed probe entries never crash, never fabricate', $malformedProbeEntry['named'], []);
+ew_assert_eq('malformed probe entries never crash, never fabricate', $malformedProbeEntry['probes'], []);
+
+// --- piratebox_classify_esp32_link() / piratebox_classify_simple_sensor()
+// / piratebox_classify_ds18b20_bus(): shared health vocabulary
+// (2026-09-08, hardware-awareness phase) - mirrors piratebox_hardware_
+// health.py's Python vocabulary/test coverage.
+
+ew_assert_eq('never installed -> UNKNOWN', piratebox_classify_esp32_link(['installed' => false, 'connected' => false, 'stale' => true]), 'UNKNOWN');
+ew_assert_eq('connected and fresh -> AVAILABLE', piratebox_classify_esp32_link(['installed' => true, 'connected' => true, 'stale' => false]), 'AVAILABLE');
+ew_assert_eq('connected but stale heartbeat -> DEGRADED', piratebox_classify_esp32_link(['installed' => true, 'connected' => true, 'stale' => true]), 'DEGRADED');
+ew_assert_eq('not connected -> UNAVAILABLE', piratebox_classify_esp32_link(['installed' => true, 'connected' => false, 'stale' => true]), 'UNAVAILABLE');
+
+$linkDown = ['installed' => true, 'connected' => false, 'stale' => true];
+ew_assert_eq('simple sensor inherits a down link', piratebox_classify_simple_sensor($linkDown, [], 'bh1750'), 'UNAVAILABLE');
+
+$linkUp = ['installed' => true, 'connected' => true, 'stale' => false];
+ew_assert_eq('capability never advertised -> NOT_INSTALLED',
+    piratebox_classify_simple_sensor($linkUp, ['capabilities' => ['temp_internal']], 'bh1750'), 'NOT_INSTALLED');
+ew_assert_eq('advertised and ok -> AVAILABLE',
+    piratebox_classify_simple_sensor($linkUp, ['capabilities' => ['bh1750'], 'sensors' => ['bh1750' => ['ok' => true, 'value' => 42.5]]], 'bh1750'),
+    'AVAILABLE');
+ew_assert_eq('advertised but not ok -> DEGRADED',
+    piratebox_classify_simple_sensor($linkUp, ['capabilities' => ['bh1750'], 'sensors' => ['bh1750' => ['ok' => false]]], 'bh1750'),
+    'DEGRADED');
+
+$busLinkDown = piratebox_classify_ds18b20_bus($linkDown, []);
+ew_assert_eq('ds18b20 bus inherits a down link', $busLinkDown['state'], 'UNAVAILABLE');
+
+$busNeverInstalled = piratebox_classify_ds18b20_bus($linkUp, ['capabilities' => []]);
+ew_assert_eq('capability never present, nothing commissioned -> NOT_INSTALLED', $busNeverInstalled['state'], 'NOT_INSTALLED');
+
+$busAllOk = piratebox_classify_ds18b20_bus($linkUp, [
+    'capabilities' => ['ds18b20'],
+    'sensors' => ['ds18b20' => [
+        'bus_ok' => true,
+        'probes' => [
+            'aaa' => ['ok' => true, 'value' => 29.5],
+            'bbb' => ['ok' => true, 'value' => 29.6],
+        ],
+        'commissioned' => ['aaa' => ['name' => null, 'physical_index' => 1], 'bbb' => ['name' => null, 'physical_index' => 2]],
+    ]],
+]);
+ew_assert_eq('all commissioned probes present and ok -> AVAILABLE', $busAllOk['state'], 'AVAILABLE');
+ew_assert_eq('probes_ok reflects the live count', $busAllOk['probes_ok'], 2);
+
+$busMissingOne = piratebox_classify_ds18b20_bus($linkUp, [
+    'capabilities' => ['ds18b20'],
+    'sensors' => ['ds18b20' => [
+        'bus_ok' => true,
+        'probes' => ['aaa' => ['ok' => true, 'value' => 29.5]],
+        'commissioned' => ['aaa' => ['name' => null, 'physical_index' => 1], 'bbb' => ['name' => null, 'physical_index' => 2]],
+    ]],
+]);
+ew_assert_eq('a commissioned probe missing this cycle -> DEGRADED', $busMissingOne['state'], 'DEGRADED');
+ew_assert_eq('missing_commissioned lists the absent ROM', $busMissingOne['missing_commissioned'], ['bbb']);
+
+$busOkFalse = piratebox_classify_ds18b20_bus($linkUp, [
+    'capabilities' => ['ds18b20'],
+    'sensors' => ['ds18b20' => ['bus_ok' => false, 'probes' => [], 'commissioned' => []]],
+]);
+ew_assert_eq('bus_ok false -> UNAVAILABLE even with nothing commissioned', $busOkFalse['state'], 'UNAVAILABLE');
+
+$busNeverWired = piratebox_classify_ds18b20_bus($linkUp, [
+    'capabilities' => ['ds18b20'],
+    'sensors' => ['ds18b20' => ['bus_ok' => true, 'probes' => [], 'commissioned' => []]],
+]);
+ew_assert_eq('genuinely never wired (bus_ok true, nothing found/commissioned) -> NOT_INSTALLED', $busNeverWired['state'], 'NOT_INSTALLED');
 
 // --- Live-file behavior, same "only assert what's guaranteed" convention
 

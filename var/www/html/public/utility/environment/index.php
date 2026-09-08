@@ -43,12 +43,14 @@ if (($_GET['fetch'] ?? '') === '1') {
         'classification' => $ambientLight['classification'],
         'stale_reading' => $ambientLight['stale_reading'],
         'last_success_seconds_ago' => $ambientLight['last_success_seconds_ago'],
-        // Keyed by name (not ROM - the public endpoint never exposes
+        // Keyed by label (not ROM - the public endpoint never exposes
         // ROM addresses) so the refresh script can find each stat-card
-        // by the same name already rendered server-side.
+        // by the same label already rendered server-side. `label` is
+        // either the operator's own name or a generic "Probe N" -
+        // whichever the page rendered for this probe.
         'probes' => array_map(
-            fn($p) => ['name' => $p['name'], 'ok' => $p['ok'], 'value_c' => $p['value_c']],
-            $ds18b20['named']
+            fn($p) => ['label' => $p['label'], 'ok' => $p['ok'], 'value_c' => $p['value_c']],
+            $ds18b20['probes']
         ),
     ]);
     exit;
@@ -194,13 +196,13 @@ function piratebox_env_duration_text(?float $seconds): string
 
             <p class="muted">Hardware Supervisor: an ESP32-S3 microcontroller, connected to this PirateBox over a local serial link, dedicated to real-time sensor/hardware duties. It has no network or cloud access of any kind.</p>
 
-            <?php if ($ds18b20['named']): ?>
+            <?php if ($ds18b20['probes']): ?>
 
             <h2>Temperature Probes</h2>
             <div class="stat-grid" id="env-probes-grid">
-                <?php foreach ($ds18b20['named'] as $probe): ?>
-                <div class="stat-card" data-probe-name="<?= htmlspecialchars($probe['name']) ?>">
-                    <span class="stat-label"><?= htmlspecialchars($probe['name']) ?></span>
+                <?php foreach ($ds18b20['probes'] as $probe): ?>
+                <div class="stat-card" data-probe-name="<?= htmlspecialchars($probe['label']) ?>">
+                    <span class="stat-label"><?= htmlspecialchars($probe['label']) ?></span>
                     <?php if ($probe['ok']): ?>
                     <span class="stat-value probe-value"><?= htmlspecialchars(number_format($probe['value_c'], 1)) ?> &deg;C</span>
                     <?php else: ?>
@@ -209,11 +211,14 @@ function piratebox_env_duration_text(?float $seconds): string
                 </div>
                 <?php endforeach; ?>
             </div>
-            <p class="muted">Waterproof DS18B20 temperature probes, placed at specific points around this PirateBox (e.g. inside the enclosure, near the battery) - each one is individually named for where it actually is.</p>
-            <?php elseif ($ds18b20['unnamed_count'] > 0): ?>
+            <p class="muted">Waterproof DS18B20 temperature probes, physically identified one at a time when this PirateBox was commissioned. Probes shown as "Probe N" haven't been given a descriptive name yet; that's expected until each one's physical placement is finalized.</p>
+            <?php if ($ds18b20['uncommissioned_count'] > 0): ?>
+            <p class="muted"><?= $ds18b20['uncommissioned_count'] ?> more probe<?= $ds18b20['uncommissioned_count'] === 1 ? '' : 's' ?> detected but not yet set up - not shown here.</p>
+            <?php endif; ?>
+            <?php elseif ($ds18b20['uncommissioned_count'] > 0): ?>
 
             <h2>Temperature Probes</h2>
-            <p class="muted"><?= $ds18b20['unnamed_count'] ?> probe<?= $ds18b20['unnamed_count'] === 1 ? '' : 's' ?> detected but not yet configured with a name - not shown here until named.</p>
+            <p class="muted"><?= $ds18b20['uncommissioned_count'] ?> probe<?= $ds18b20['uncommissioned_count'] === 1 ? '' : 's' ?> detected but not yet set up - not shown here.</p>
             <?php endif; ?>
 
             <?php endif; // $esp32['installed'] ?>
@@ -225,7 +230,7 @@ function piratebox_env_duration_text(?float $seconds): string
         </noscript>
     </div>
 
-    <?php if (($ambientLight['installed'] && $ambientLight['available']) || $ds18b20['named']): ?>
+    <?php if (($ambientLight['installed'] && $ambientLight['available']) || $ds18b20['probes']): ?>
     <script>
         (function () {
             function ago(seconds) {
@@ -233,7 +238,7 @@ function piratebox_env_duration_text(?float $seconds): string
                 if (seconds < 5) return 'just now';
                 if (seconds < 90) return Math.round(seconds) + ' seconds ago';
                 if (seconds < 3600) return Math.round(seconds / 60) + ' minutes ago';
-                return (Math.round(seconds / 360) / 10) + ' hours ago';
+                return (Math.round(seconds / 3600 * 10) / 10) + ' hours ago';
             }
             async function refresh() {
                 try {
@@ -251,7 +256,7 @@ function piratebox_env_duration_text(?float $seconds): string
                         if (updatedEl) updatedEl.textContent = ago(data.last_success_seconds_ago);
                     } // else: leave the last good ambient-light reading visible rather than blanking it
                     (data.probes || []).forEach(function (probe) {
-                        const card = document.querySelector('[data-probe-name="' + CSS.escape(probe.name) + '"] .probe-value');
+                        const card = document.querySelector('[data-probe-name="' + CSS.escape(probe.label) + '"] .probe-value');
                         if (!card) return; // a probe that appears later needs a full page reload, not just JS - fine
                         if (probe.ok) {
                             card.textContent = Number(probe.value_c).toFixed(1) + ' °C';

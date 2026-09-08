@@ -398,6 +398,13 @@ from piratebox_glance import (
     GLANCE_PAGES, GLANCE_PREVIEW_ORDER, LABEL_FONT_SIZES, render_glance_page, select_glance_page,
 )
 
+# Shared sensor-health classification (2026-09-08, hardware-awareness
+# phase) - pure, dependency-free (no hardware/file I/O of its own), so
+# unlike piratebox_esp32_client/piratebox_esp32_bh1750 below this is
+# imported unconditionally at module load, the same way piratebox_
+# glance/piratebox_expressions already are.
+import piratebox_hardware_health
+
 I2C_PORT = 1
 I2C_ADDRESS = 0x3C
 RETRY_SECONDS = 20.0          # how long to wait between init attempts
@@ -1088,15 +1095,27 @@ def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently
     # with the auto-brightness logic in main()'s tick loop, 2026-09-07).
     ambient_lux = read_current_ambient_lux(bh1750_module)
 
-    # DS18B20 probe glance page (2026-09-07) - same discipline as
+    # DS18B20 probe glance page (2026-09-07; extended 2026-09-08 to
+    # also cover COMMISSIONED-but-unnamed probes) - same discipline as
     # ambient_lux above: reuses esp32_client_module's already-cached
     # get_diagnostics() (never a second serial/hardware trigger), and
-    # only ever shows a NAMED, currently-ok probe - an unnamed or
-    # currently-failing probe simply isn't glance-worthy (matches "do
-    # not dump engineering detail onto the normal OLED"). With more
-    # than one eligible probe, which one shows rotates by wall-clock
-    # minute (stateless - no new persistent counter needs threading
-    # through main()'s own tick loop for this).
+    # only ever shows a currently-ok probe with a KNOWN physical
+    # identity (either a real name, or a commissioned physical_index -
+    # both merged into the export server-side by piratebox_esp32_
+    # supervisor.py's _enrich_ds18b20_with_names()). A probe never
+    # commissioned at all, or one currently failing to read, simply
+    # isn't glance-worthy (matches "do not dump engineering detail onto
+    # the normal OLED" and "do not turn the OLED into an endless
+    # temperature slideshow" - this page's own selection WEIGHT in
+    # piratebox_glance.py is unchanged regardless of how many probes are
+    # eligible, so five commissioned probes get exactly the same total
+    # OLED airtime one named probe used to). With more than one eligible
+    # probe, which one shows rotates by wall-clock minute (stateless -
+    # no new persistent counter needs threading through main()'s own
+    # tick loop for this). Named probes sort first alphabetically, then
+    # unnamed-but-commissioned probes by physical_index - matching the
+    # exact same order the Environment web page uses, so the same probe
+    # never appears to have two different identities across surfaces.
     probe_name = None
     probe_temp_c = None
     if esp32_client_module is not None:
@@ -1105,16 +1124,22 @@ def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently
             ds18b20 = diag.get("sensors", {}).get("ds18b20") if diag.get("connected") and not diag.get("stale") else None
             probes = ds18b20.get("probes") if isinstance(ds18b20, dict) else None
             if isinstance(probes, dict):
-                eligible = sorted(
-                    (p for p in probes.values() if isinstance(p, dict) and p.get("ok")
-                     and isinstance(p.get("name"), str) and p.get("name")
-                     and isinstance(p.get("value"), (int, float))),
-                    key=lambda p: p["name"],
-                )
-                if eligible:
-                    probe = eligible[int(time.time() // 60) % len(eligible)]
-                    probe_name = probe["name"]
-                    probe_temp_c = float(probe["value"])
+                labeled = []
+                for p in probes.values():
+                    if not (isinstance(p, dict) and p.get("ok") and isinstance(p.get("value"), (int, float))):
+                        continue
+                    name = p.get("name") if isinstance(p.get("name"), str) and p.get("name") else None
+                    physical_index = p.get("physical_index") if isinstance(p.get("physical_index"), int) else None
+                    if name is not None:
+                        label, sort_key = name, (0, name)
+                    elif physical_index is not None:
+                        label, sort_key = f"Probe {physical_index}", (1, physical_index)
+                    else:
+                        continue  # never commissioned - not glance-worthy
+                    labeled.append((sort_key, label, float(p["value"])))
+                labeled.sort(key=lambda item: item[0])
+                if labeled:
+                    _, probe_name, probe_temp_c = labeled[int(time.time() // 60) % len(labeled)]
         except Exception:  # noqa: BLE001 - a broken diagnostics call must
             probe_name = None  # never break this glance-phase-entry
             probe_temp_c = None
@@ -1275,7 +1300,8 @@ def render_network(draw, font, font_small, status, stale: bool, alive_on: bool) 
         dx += 32
 
 
-def render_health(draw, font, font_small, status, stale: bool, alive_on: bool) -> None:
+def render_health(draw, font, font_small, status, stale: bool, alive_on: bool,
+                   hardware_warning_text: str = None) -> None:
     header_bar(draw, "HEALTH", font_small, icon_health, alive_on)
     draw.text((0, 14), f"Uptime: {format_duration(read_uptime_seconds())}", font=font, fill="white")
     draw.text((0, 26), "Storage:", font=font, fill="white")
@@ -1286,17 +1312,23 @@ def render_health(draw, font, font_small, status, stale: bool, alive_on: bool) -
     temp_str = f"{temp:.0f}C" if temp is not None else "unknown"
     emergency_s = read_emergency_runtime_seconds()
     draw.text((0, 38), f"CPU: {temp_str}  Emerg: {format_duration(emergency_s)}", font=font, fill="white")
-    # Power warning - conditional, one line, only when there's something
-    # to say. Deliberately does NOT claim the OLED caused or is affected
-    # by this; it is purely reporting the same power.undervoltage_now
-    # flag the Stats/About pages already surface. Boxed (round 8) for
-    # higher visual salience than plain text - a warning should look
-    # different from routine information, not just say so in words.
-    if not stale and isinstance(status, dict):
-        power = status.get("power", {})
-        if power.get("undervoltage_now") is True:
-            draw.rectangle((0, 50, 127, 62), outline="white")
-            draw.text((3, 52), "! POWER: UNDERVOLTAGE", font=font_small, fill="white")
+    # Warning box - conditional, one line, only when there's something
+    # to say. Only ONE line fits this space, so priority order matters
+    # when more than one condition is active at once: the chronic,
+    # long-established Pi undervoltage condition keeps its exact
+    # existing precedent (drawn first, unchanged wording/position) -
+    # a newer hardware-supervisor/sensor condition (2026-09-08) never
+    # visually displaces it, only fills the box when undervoltage isn't
+    # also happening right now. Boxed (round 8) for higher visual
+    # salience than plain text - a warning should look different from
+    # routine information, not just say so in words.
+    undervoltage = not stale and isinstance(status, dict) and status.get("power", {}).get("undervoltage_now") is True
+    if undervoltage:
+        draw.rectangle((0, 50, 127, 62), outline="white")
+        draw.text((3, 52), "! POWER: UNDERVOLTAGE", font=font_small, fill="white")
+    elif hardware_warning_text is not None:
+        draw.rectangle((0, 50, 127, 62), outline="white")
+        draw.text((3, 52), f"! {hardware_warning_text}", font=font_small, fill="white")
 
 
 def render_mode_transition(draw, font_big, new_mode: str) -> None:
@@ -1340,7 +1372,41 @@ def render_silly_toggle_banner(draw, font, font_big, new_state: bool) -> None:
     draw.text((44, 34), "ON" if new_state else "OFF", font=font_big, fill="black")
 
 
-def compute_display_tier(mode: str, status, stale: bool) -> str:
+def compute_hardware_warning_text(esp32_diag: dict, commissioned_roms=()) -> str:
+    """Pure classification, reusing piratebox_hardware_health.py's
+    shared vocabulary (2026-09-08, hardware-awareness phase) - the OLED
+    equivalent of the admin capability table's ESP32/DS18B20 rows.
+    Returns a short (<=20 char, fits the existing warning-box width)
+    all-caps message when the ESP32 supervisor link or the DS18B20 bus
+    is DEGRADED/UNAVAILABLE, or None when everything is fine, not
+    enough information exists yet (UNKNOWN), or the capability was
+    never installed (NOT_INSTALLED - never a fault). Deliberately never
+    fires for a single missed heartbeat that resolves before this
+    daemon's next glance-phase read - `esp32_diag` is only re-read once
+    per glance-phase-entry, same cadence as every other reading
+    build_glance_metrics() already uses, so this can't flap faster than
+    that.
+
+    KNOWN MINOR EDGE CASE: right after this daemon starts (e.g. at Pi
+    boot, before the ESP32 supervisor completes its first handshake),
+    a fresh-but-not-yet-connected export can briefly classify as
+    UNAVAILABLE rather than UNKNOWN, showing this warning for a few
+    seconds until the link comes up. Self-correcting, and judged not
+    worth a second persistent "have we ever connected this run" flag
+    threaded through main() just to suppress a few seconds of an
+    honest (if slightly premature) warning at boot."""
+    esp32_state = piratebox_hardware_health.classify_esp32_supervisor(esp32_diag)
+    if esp32_state in ("DEGRADED", "UNAVAILABLE"):
+        return "ESP32 SUPERVISOR"
+    if esp32_state != "AVAILABLE":
+        return None  # UNKNOWN/NOT_INSTALLED - nothing to warn about
+    bus = piratebox_hardware_health.classify_ds18b20_bus(esp32_diag, commissioned_roms)
+    if bus["state"] in ("DEGRADED", "UNAVAILABLE"):
+        return "SENSOR BUS"
+    return None
+
+
+def compute_display_tier(mode: str, status, stale: bool, hardware_warning_text: str = None) -> str:
     """The mandatory priority gate: Emergency > required operational
     warning > Silly Mode > normal cosmetic personality (see the "SILLY
     MODE" header note for the full rationale). Returns exactly one of
@@ -1364,6 +1430,8 @@ def compute_display_tier(mode: str, status, stale: bool) -> str:
     if any(v is not True for v in services.values()):
         return "fault"
     if status.get("power", {}).get("undervoltage_now") is True:
+        return "warning"
+    if hardware_warning_text is not None:
         return "warning"
     return "ok"
 
@@ -1548,7 +1616,7 @@ PAGE_ORDER = ["status", "time", "network", "health"]
 
 def build_frame(
     device, page: str, font, font_small, font_big, status, stale: bool, mode: str,
-    alive_on: bool = True, pulse: bool = False, extra=None,
+    alive_on: bool = True, pulse: bool = False, extra=None, hardware_warning_text: str = None,
 ):
     """Renders exactly one page into a standalone PIL Image (device's
     own mode/size) and returns it, WITHOUT writing it to the display.
@@ -1568,7 +1636,7 @@ def build_frame(
     elif page == "network":
         render_network(draw, font, font_small, status, stale, alive_on)
     elif page == "health":
-        render_health(draw, font, font_small, status, stale, alive_on)
+        render_health(draw, font, font_small, status, stale, alive_on, hardware_warning_text)
     elif page == "silly":
         render_silly(draw, font, font_small, extra["render"], extra["tier"], alive_on)
     elif page == "level_up":
@@ -1946,10 +2014,19 @@ def main() -> int:
         try:
             import piratebox_esp32_client
             progression.register_hardware_signal("esp32_temp_internal", piratebox_esp32_client.read_temp_internal)
+            # DS18B20 signals (2026-09-08, hardware-awareness phase) -
+            # paired counts (currently-ok vs. ever-commissioned), never
+            # a single hardcoded probe count, so piratebox_progression.py's
+            # "all commissioned probes healthy at once" achievement stays
+            # correct regardless of how many probes this device ever has.
+            progression.register_hardware_signal("ds18b20_probes_ok", piratebox_esp32_client.read_ds18b20_probes_ok)
+            progression.register_hardware_signal(
+                "ds18b20_probes_commissioned", piratebox_esp32_client.read_ds18b20_probes_commissioned
+            )
             esp32_client_module = piratebox_esp32_client
-            log.info("ESP32 supervisor temp_internal signal registered.")
+            log.info("ESP32 supervisor temp_internal/ds18b20 signals registered.")
         except Exception as exc:  # noqa: BLE001 - optional hardware, never fatal
-            log.warning("ESP32 client module unavailable (%s) - esp32_temp_internal signal stays unregistered.", exc)
+            log.warning("ESP32 client module unavailable (%s) - esp32/ds18b20 signals stay unregistered.", exc)
 
     sensors_last_publish = 0.0
 
@@ -2000,7 +2077,27 @@ def main() -> int:
         if pulse_ticks_remaining > 0:
             pulse_ticks_remaining -= 1
 
-        tier = compute_display_tier(mode, status, stale)
+        # Hardware-supervisor/sensor-bus health (2026-09-08,
+        # hardware-awareness phase) - reuses the SAME cached export
+        # esp32_client_module already reads (a cheap tmpfs file read,
+        # same cost tier as read_status_json() just above, called every
+        # tick already) - never a new hardware poll. commissioned_roms
+        # comes straight from the export's own "commissioned" map
+        # (piratebox_esp32_supervisor.py's _enrich_ds18b20_with_names())
+        # rather than reading the roles file separately - one source of
+        # truth, always as fresh as the daemon that actually owns it.
+        hardware_warning_text = None
+        if esp32_client_module is not None:
+            try:
+                esp32_diag = esp32_client_module.get_diagnostics()
+                ds18b20_block = esp32_diag.get("sensors", {}).get("ds18b20")
+                commissioned = ds18b20_block.get("commissioned") if isinstance(ds18b20_block, dict) else None
+                commissioned_roms = set(commissioned.keys()) if isinstance(commissioned, dict) else set()
+                hardware_warning_text = compute_hardware_warning_text(esp32_diag, commissioned_roms)
+            except Exception:  # noqa: BLE001 - a broken diagnostics call must never crash the display loop
+                hardware_warning_text = None
+
+        tier = compute_display_tier(mode, status, stale, hardware_warning_text)
 
         # Ambient-light auto-brightness (2026-09-07) - every tick, not
         # just during the AMBIENT glance page, so brightness tracks
@@ -2448,6 +2545,7 @@ def main() -> int:
             new_image = build_frame(
                 device, page, font, font_small, font_big, status, stale, mode,
                 alive_on=alive_on, pulse=pulse_now, extra=extra,
+                hardware_warning_text=hardware_warning_text,
             )
             display_frame(device, new_image, old_img=last_image, transition=transition_wipe)
             last_image = new_image

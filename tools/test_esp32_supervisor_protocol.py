@@ -259,6 +259,46 @@ class PublishExportTests(unittest.TestCase):
         self.assertEqual(probes["28ff641e04170378"]["name"], "Enclosure")
         self.assertIsNone(probes["28aa112233445566"]["name"])  # unnamed, not fabricated
 
+    def test_ds18b20_probes_enriched_with_physical_index(self):
+        state = sup.fresh_state()
+        state["connected"] = True
+        state["sensors"] = {
+            "ds18b20": {
+                "bus_ok": True,
+                "probes": {"28ff641e04170378": {"ok": True, "value": 21.4, "unit": "C"}},
+            },
+        }
+        roles = {"28ff641e04170378": {"name": None, "commissioned": True, "physical_index": 3}}
+        sup.publish_export(state, 0.0, now=1000.0, ds18b20_roles=roles)
+        data = self._read()
+        probe = data["sensors"]["ds18b20"]["probes"]["28ff641e04170378"]
+        self.assertEqual(probe["physical_index"], 3)
+        self.assertIsNone(probe["name"])  # commissioned, but never named - not fabricated
+
+    def test_commissioned_map_includes_a_probe_missing_from_this_cycle(self):
+        """The whole point of the top-level 'commissioned' map: a
+        commissioned ROM that isn't currently reporting must still be
+        knowable as 'expected but missing' - impossible to derive from
+        'probes' alone, since it simply won't be a key there."""
+        state = sup.fresh_state()
+        state["connected"] = True
+        state["sensors"] = {"ds18b20": {"bus_ok": True, "probes": {}}}
+        roles = {"28ff641e04170378": {"name": "Enclosure", "commissioned": True, "physical_index": 1}}
+        sup.publish_export(state, 0.0, now=1000.0, ds18b20_roles=roles)
+        data = self._read()
+        commissioned = data["sensors"]["ds18b20"]["commissioned"]
+        self.assertEqual(commissioned["28ff641e04170378"], {"name": "Enclosure", "physical_index": 1})
+        self.assertNotIn("28ff641e04170378", data["sensors"]["ds18b20"]["probes"])
+
+    def test_uncommissioned_named_legacy_entry_never_appears_in_commissioned_map(self):
+        state = sup.fresh_state()
+        state["connected"] = True
+        state["sensors"] = {"ds18b20": {"bus_ok": True, "probes": {}}}
+        roles = {"28ff641e04170378": {"name": "Legacy", "commissioned": False}}
+        sup.publish_export(state, 0.0, now=1000.0, ds18b20_roles=roles)
+        data = self._read()
+        self.assertEqual(data["sensors"]["ds18b20"]["commissioned"], {})
+
     def test_ds18b20_enrichment_never_mutates_the_live_state_dict(self):
         state = sup.fresh_state()
         state["sensors"] = {"ds18b20": {"bus_ok": True, "probes": {"28ff641e04170378": {"ok": True, "value": 1.0}}}}
@@ -347,6 +387,45 @@ class ClientReaderTests(unittest.TestCase):
         diag = client.get_diagnostics()
         self.assertFalse(diag["connected"])
         self.assertIsNone(client.read_temp_internal())
+
+    # --- read_ds18b20_probes_ok() / read_ds18b20_probes_commissioned()
+    # (2026-09-08, hardware-awareness phase HARDWARE_SIGNALS pair)
+
+    def test_ds18b20_signals_none_when_not_connected(self):
+        self.assertIsNone(client.read_ds18b20_probes_ok())
+        self.assertIsNone(client.read_ds18b20_probes_commissioned())
+
+    def test_ds18b20_signals_zero_when_nothing_ever_commissioned(self):
+        self._write({
+            "generated_at": int(time.time()), "connected": True, "stale": False,
+            "sensors": {"ds18b20": {"bus_ok": True, "probes": {}, "commissioned": {}}},
+        })
+        self.assertEqual(client.read_ds18b20_probes_ok(), 0)
+        self.assertEqual(client.read_ds18b20_probes_commissioned(), 0)
+
+    def test_ds18b20_signals_count_only_commissioned_ok_probes(self):
+        self._write({
+            "generated_at": int(time.time()), "connected": True, "stale": False,
+            "sensors": {"ds18b20": {
+                "bus_ok": True,
+                "probes": {
+                    "aaa": {"ok": True, "value": 1.0},
+                    "bbb": {"ok": False, "err": "disconnected"},
+                    "ccc": {"ok": True, "value": 2.0},  # not commissioned - excluded from both counts
+                },
+                "commissioned": {"aaa": {"name": None, "physical_index": 1}, "bbb": {"name": None, "physical_index": 2}},
+            }},
+        })
+        self.assertEqual(client.read_ds18b20_probes_ok(), 1)
+        self.assertEqual(client.read_ds18b20_probes_commissioned(), 2)
+
+    def test_ds18b20_signals_none_when_export_stale(self):
+        self._write({
+            "generated_at": int(time.time()) - 999, "connected": True, "stale": False,
+            "sensors": {"ds18b20": {"bus_ok": True, "probes": {}, "commissioned": {"aaa": {}}}},
+        })
+        self.assertIsNone(client.read_ds18b20_probes_ok())
+        self.assertIsNone(client.read_ds18b20_probes_commissioned())
 
 
 if __name__ == "__main__":
