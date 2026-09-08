@@ -6,6 +6,69 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Environment page C/F quick-toggle (2026-09-08, follow-up to the same-day preference below)
+
+**Decision date:** 2026-09-08. Follow-up UX polish on top of the C/F
+preference documented in the next entry below - read that one first.
+
+**What changed.** `/utility/environment/` (a public, unauthenticated
+page) now has a small `[ °F ] [ °C ]` button pair near the H1, styled
+to match `.history-range-buttons`/`.radio-chip`'s existing "row of
+plain buttons, `.active` picked out with the accent color" look - not
+a new toggle-switch component. It writes the exact same global
+preference Admin's Display Preferences section does
+(`piratebox_set_temp_unit()`, `includes/temp_unit.php`) - there is no
+second, Environment-only preference, no localStorage/cookie unit
+state, and no duplicated conversion logic. The Admin control is
+unchanged and remains the formal system setting; this is just a
+convenient place to flip it while looking at temperature readings.
+Ambient light (lux) has no unit and is unaffected either way.
+
+**Security: narrow CSRF, not a new authenticated-write API.** `/admin/`
+sits behind nginx Basic Auth; the Environment page deliberately does
+not, and the task explicitly ruled out exposing a generic
+unauthenticated settings-write endpoint just to make this convenient.
+The write path (`piratebox_temp_unit_post_is_authorized()`) reuses the
+same session-based CSRF token pattern `admin/index.php`'s own POST
+actions already use (`$_SESSION['csrf_token']`, `hash_equals()`), now
+also minted by the Environment page itself via `session_start()` (this
+page already called it). This proves the request came from a page this
+same session rendered - blocking pure cross-site forgery - without
+requiring a login, which is an appropriate scope for a fully
+reversible, non-sensitive, two-value display preference (the same
+"fully reversible" reasoning `admin/index.php` already uses to justify
+*not* requiring its destructive-action confirmation checkbox for this
+same setting). It does not touch, weaken, or share code with
+`/admin/`'s own Basic Auth or CSRF handling.
+
+**Reload, not a live re-render - and why.** The toggle is a plain
+`<form method="post">`; a successful submit does Post/Redirect/Get
+(`header('Location: ...')`) back to the same page, which then renders
+fully fresh from the new preference. This was chosen deliberately over
+wiring a no-reload AJAX update after finding two real gaps in the
+existing JS: the ESP32 chip-temperature stat has no live-refresh
+wiring at all (unlike the ambient-light/probe values, which the
+existing 30s poll does update), and each history-chart panel's JS
+closure captures its unit string once at setup, which would go stale
+without extra plumbing. A full reload gets every one of those surfaces
+correct for free, with zero new JavaScript. PRG (not admin's own
+inline re-render) specifically because a random public visitor is far
+more likely to hit refresh right after toggling than an operator is
+mid-admin-action, and PRG avoids ever showing a "confirm resubmission"
+prompt.
+
+**Tests:** `tools/test_environment_temp_toggle.php` (33 assertions -
+markup/gating/CSS statics plus a real `php -S` end-to-end HTTP check of
+the POST/CSRF/redirect path: valid token succeeds and updates the
+shared file, a mismatched token gets 403 and leaves the file
+untouched, a session with no minted token at all fails closed, and an
+unrelated `action` value falls through to the normal page render
+rather than being treated as a write). `tools/test_temp_unit.php`
+gained 8 assertions for the new
+`piratebox_temp_unit_post_is_authorized()` helper. Full regression:
+614 Python tests (unchanged - no Python file touched by this
+follow-up), 564 PHP assertions, all green.
+
 ## Temperature display-unit preference (C/F) implemented; DS18B20 end-to-end sanity audit performed - no bug found (2026-09-08, same day)
 
 **Decision date:** 2026-09-08. Full design: `docs/ESP32-SUPERVISOR-

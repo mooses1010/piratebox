@@ -80,6 +80,20 @@ tu_assert_eq('no leftover temp files after a successful atomic write', $leftover
 unlink($tmpFile);
 rmdir($tmpDir);
 
+// --- piratebox_temp_unit_post_is_authorized() - the Environment page's
+// narrow same-session CSRF guard (2026-09-08). Matching tokens only -
+// never a general auth check, never bypassed by a missing/empty value
+// on either side. ---------------------------------------------------
+
+tu_assert_eq('matching tokens authorize', piratebox_temp_unit_post_is_authorized('abc123', 'abc123'), true);
+tu_assert_eq('mismatched tokens are rejected', piratebox_temp_unit_post_is_authorized('abc123', 'xyz789'), false);
+tu_assert_eq('missing session token (null) is rejected, not treated as a wildcard', piratebox_temp_unit_post_is_authorized(null, 'abc123'), false);
+tu_assert_eq('missing submitted token (null) is rejected', piratebox_temp_unit_post_is_authorized('abc123', null), false);
+tu_assert_eq('both missing is rejected, not vacuously true', piratebox_temp_unit_post_is_authorized(null, null), false);
+tu_assert_eq('empty-string session token is rejected (a session that never minted one fails closed)', piratebox_temp_unit_post_is_authorized('', 'abc123'), false);
+tu_assert_eq('empty-string submitted token is rejected', piratebox_temp_unit_post_is_authorized('abc123', ''), false);
+tu_assert_eq('both empty strings is rejected, not treated as a trivial match', piratebox_temp_unit_post_is_authorized('', ''), false);
+
 echo "\n";
 if ($failures) {
     echo "FAILURES:\n";

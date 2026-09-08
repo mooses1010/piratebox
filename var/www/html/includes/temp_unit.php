@@ -122,6 +122,31 @@ if (!function_exists('piratebox_convert_temp_c')) {
     }
 }
 
+if (!function_exists('piratebox_temp_unit_post_is_authorized')) {
+    /**
+     * Narrow same-session CSRF check guarding this ONE preference when
+     * it's changed from a public, unauthenticated page (2026-09-08:
+     * the Environment page's own C/F quick-toggle) - NOT a general
+     * auth check, and NOT a substitute for /admin/'s own separate
+     * nginx Basic Auth + CSRF pairing (which stays exactly as it was,
+     * untouched by this function). It only proves the request came
+     * from a page this same PHP session already rendered (a third-
+     * party site forging a cross-site POST has no way to know the
+     * token), without requiring a login - an appropriate, narrow scope
+     * for a fully reversible, non-sensitive, two-value display
+     * preference (same "fully reversible" reasoning admin/index.php's
+     * own set_temp_unit action already documents for this exact
+     * setting). Both tokens must be present and non-empty - a session
+     * that never minted one (e.g. hasn't visited any page that calls
+     * session_start() and seeds $_SESSION['csrf_token']) always fails
+     * closed, never open.
+     */
+    function piratebox_temp_unit_post_is_authorized(?string $sessionToken, ?string $submittedToken): bool
+    {
+        return !empty($sessionToken) && !empty($submittedToken) && hash_equals($sessionToken, $submittedToken);
+    }
+}
+
 if (!function_exists('piratebox_temp_unit_symbol')) {
     /**
      * '°C' or '°F' (HTML entity form, matching how every existing
