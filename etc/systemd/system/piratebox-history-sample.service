@@ -1,0 +1,52 @@
+# /etc/systemd/system/piratebox-history-sample.service
+[Unit]
+Description=PirateBox sensor-history sampler (bounded, lightweight time-series)
+# See piratebox_history_sampler.py for exactly what this does and why.
+# Oneshot, triggered every ~5 minutes by piratebox-history-sample.timer
+# - deliberately NOT a third always-running daemon (this project
+# already has two - the ESP32 supervisor and the OLED daemon - and a
+# third for something this infrequent would be pure overhead). Same
+# Type=oneshot-triggered-by-timer shape as piratebox-status.service.
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=piratebox-gpio
+Group=gpio
+# Reuses the same dedicated, unprivileged account the ESP32 supervisor/
+# OLED/button daemons already run as - this script touches no
+# privileged operation at all: it only reads the ESP32 supervisor's
+# already-published, world-readable cached export
+# (/run/piratebox-esp32/esp32-public.json) and writes its own bounded
+# history files under StateDirectory= below. No SupplementaryGroups
+# needed (unlike the ESP32 supervisor itself) - this script never
+# touches a serial device node.
+ExecStart=/usr/local/bin/piratebox_history_sampler.py
+
+NoNewPrivileges=yes
+ProtectHome=yes
+ProtectSystem=strict
+PrivateTmp=yes
+WorkingDirectory=/tmp
+
+# Durable sensor-history storage (2026-09-08) - persists across
+# reboots, unlike a RuntimeDirectory=. Mode 0755 (world-readable), NOT
+# the 0770 group-writable pattern piratebox_ds18b20_roles.py uses for
+# /var/lib/piratebox-esp32 - that mode grants a group PEER (the
+# operator's own `moose` account, via the `gpio` group) WRITE access to
+# drop a request file. This directory has a different access need: a
+# completely different service account (www-data, running PHP-FPM for
+# the Environment page's history graphs) only ever needs to READ these
+# files, so world-readable (matching the existing precedent of
+# var/www/html/data/device-history.json, a root-written, PHP-read,
+# world-readable file) is the simpler, correct fit - no new group
+# membership grant for www-data, no new sudoers change, nothing beyond
+# a permission bit. piratebox_history.py's save_signal_history()
+# explicitly chmods each file 0644 rather than relying on umask.
+StateDirectory=piratebox-history
+StateDirectoryMode=0755
+
+# No [Install] section, deliberately - same as piratebox-status.service:
+# this unit is only ever started BY its timer
+# (piratebox-history-sample.timer), never independently enabled for
+# boot. The timer is the one unit `systemctl enable`d.
