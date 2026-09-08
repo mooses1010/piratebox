@@ -1444,3 +1444,33 @@ re-checked against the real running system. Zero regressions: I2C bus
 misrepresented as new), zero failed units throughout. 538 Python tests
 (73 new) + 452 PHP assertions (21 new), full regression clean.
 
+## Lightweight sensor history / historical graphing, deployed and live-verified (2026-09-08)
+
+**`18e27af222c651e6251f7abfe873d3b51580e482`** - the durable known-good
+recovery point for bounded sensor history and the Environment page's
+new historical graphs. Full design: `docs/ESP32-SUPERVISOR-DESIGN.md`
+§22. Full evidence/verification record:
+`docs/OPERATIONAL-DECISIONS.md`'s matching entry.
+
+**In one line:** PirateBox can now answer "what have the sensors been
+doing over time," not just "what are they saying now" - a small,
+bounded, flat-JSON, no-database time-series feature (never Grafana/
+Prometheus/InfluxDB), sampled every ~5 minutes by a new timer (not a
+third always-running daemon), with honest gaps and zero new sensor
+polling.
+
+**Deployed and independently live-verified**, not just implemented: a
+new one-time installer (`setup_piratebox_history.sh`) installed the
+sampler, its systemd timer, and the one `open_basedir` grant PHP needs
+to read the new store; the timer's first real run recorded all 7
+current signals (confirmed via its own journal line and by reading
+each per-signal file directly - real values, not placeholders); the
+Environment page's new `?history=1` endpoint returns real data for all
+three graph groups with zero ROM addresses in any response (grepped);
+32 KB total storage footprint after the first sample, matching the
+design doc's sizing estimate; zero regressions anywhere (Core services,
+ESP32 supervisor, OLED, I2C bus, the known chronic undervoltage
+condition, Captain's Log's achievement count all unaffected). 588
+Python tests (50 new) + 493 PHP assertions (41 new), full regression
+clean.
+

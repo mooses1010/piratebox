@@ -6,6 +6,69 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Lightweight sensor history deployed and live-verified (2026-09-08, same day)
+
+**Decision date:** 2026-09-08. Follow-up to the previous entry (design/
+implementation) - this records actual live deployment and independent
+verification, not just what the source code does.
+
+**Deployed via a new one-time installer** (`sudo ./setup_piratebox_
+history.sh`, mirroring `setup_piratebox_esp32_supervisor.sh`'s own
+structure): installed `piratebox_history_sampler.py`/`piratebox_
+history.py` to `/usr/local/bin`, installed and enabled
+`piratebox-history-sample.timer`, added `/var/lib/piratebox-history`
+to PHP-FPM's `open_basedir` and reloaded php-fpm, then triggered one
+immediate sample run.
+
+**Independently re-verified against the live system**, not inferred
+from source:
+- Installed files byte-identical to the repo, correct ownership/
+  permissions (`root:root` in `/usr/local/bin`; `piratebox-gpio:gpio`,
+  **0755 directory / 0644 files** - genuinely world-readable, as
+  designed - for `/var/lib/piratebox-history` itself).
+- Timer confirmed `enabled`+`active`, next run correctly scheduled
+  ~5 minutes out.
+- The sampler's own journal line from its first real run: **"recorded
+  7 signal(s) (ambient_lux, esp32_temp_internal, and all five
+  `ds18b20_<rom>` signals); 0 skipped."** - a genuine, live, real
+  sample of every currently-live signal, not a theoretical description.
+- All seven per-signal files inspected directly: real values (e.g.
+  ambient_lux `25.0`, five distinct DS18B20 readings in the
+  29-32°C range, matching the live ESP32 export at that moment) -
+  never a placeholder or sentinel.
+- `open_basedir` confirmed updated on the LIVE `php.ini` (not just the
+  repo's reference copy) and php-fpm confirmed reloaded.
+- The Environment page's `?history=1` endpoint queried live for all
+  three groups (`ambient_light`, `probes`, `esp32_temp`) - each
+  returned the real just-recorded value; the `probes` group correctly
+  labeled every point **"Probe 1".."Probe 5"**, never a ROM address -
+  confirmed by grepping all three endpoints' raw JSON responses for
+  all five ROM strings (no match, in any of the three).
+- The full Environment page fetched live: HTTP 200, zero PHP warnings/
+  notices/fatal errors, the new "History" section present.
+- Storage footprint after the first sample: **32 KB total** across all
+  seven files - matches the design doc's sizing estimate.
+- Zero regressions: all four Core services active; the ESP32 supervisor
+  and OLED daemon services both still active and unaffected (this
+  subsystem started no new process affecting either); the live ESP32
+  export still shows `connected: true`, `stale: false`, all five
+  DS18B20 probes `ok: true`; the I2C bus unchanged (OLED `0x3c`, EEPROM
+  `0x57`, RTC `0x68`/`UU` all still present); `vcgencmd get_throttled`
+  still the same pre-existing chronic `0x50005`, not misrepresented as
+  new; Captain's Log's achievement count unchanged (13, same as before
+  this phase) - confirming the history subsystem generated no
+  Progression noise/spam of any kind; `systemctl --failed` empty
+  throughout.
+
+Per instruction, longer-term accumulation (a second sample five
+minutes later, multi-day trends, hourly/daily compaction actually
+firing) was deliberately NOT fabricated or waited-out idly - one
+genuine live sample was independently verified end-to-end, multi-point
+graph/compaction behavior is already exhaustively covered by 50 unit
+tests against controlled fixtures (`tools/test_history.py`), and the
+timer's own confirmed schedule means further real accumulation will
+happen on its own with no further action needed.
+
 ## Lightweight sensor history / historical graphing implemented (2026-09-08, same day)
 
 **Decision date:** 2026-09-08. Full design: `docs/ESP32-SUPERVISOR-
