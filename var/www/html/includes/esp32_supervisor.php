@@ -118,3 +118,63 @@ if (!function_exists('piratebox_get_esp32_supervisor_status')) {
         ];
     }
 }
+
+if (!function_exists('piratebox_get_ds18b20_probes')) {
+    /**
+     * DS18B20 probes for the PUBLIC Environment page (2026-09-07) -
+     * deliberately shows only NAMED (operator-configured) probes, each
+     * as {rom, name, value_c, ok} - ROM addresses themselves are
+     * engineering detail that belongs in tools/ds18b20_commission.py,
+     * not the ordinary visitor-facing page (per instruction: "display
+     * the useful role rather than an ugly ROM ID"). `unnamed_count`
+     * lets the page mention "more probes are connected, not yet
+     * named" without ever exposing which ones.
+     *
+     * @param ?array{data: array<string, mixed>, stale: bool} $export
+     * @return array{named: list<array{rom: string, name: string, value_c: ?float, ok: bool}>, unnamed_count: int}
+     */
+    function piratebox_get_ds18b20_probes(?array $export = null): array
+    {
+        $export = $export ?? piratebox_get_esp32_public();
+        $decoded = $export['data'];
+        $empty = ['named' => [], 'unnamed_count' => 0];
+
+        if ($decoded === [] || $export['stale']) {
+            return $empty;
+        }
+        $connected = ($decoded['connected'] ?? false) === true;
+        $linkStale = (bool) ($decoded['stale'] ?? true);
+        if (!$connected || $linkStale) {
+            return $empty;
+        }
+
+        $sensors = is_array($decoded['sensors'] ?? null) ? $decoded['sensors'] : [];
+        $ds18b20 = is_array($sensors['ds18b20'] ?? null) ? $sensors['ds18b20'] : null;
+        if ($ds18b20 === null) {
+            return $empty;  // this firmware/board has never found a DS18B20 probe
+        }
+        $probes = is_array($ds18b20['probes'] ?? null) ? $ds18b20['probes'] : [];
+
+        $named = [];
+        $unnamedCount = 0;
+        foreach ($probes as $rom => $reading) {
+            if (!is_string($rom) || !is_array($reading)) {
+                continue;
+            }
+            $name = is_string($reading['name'] ?? null) ? trim($reading['name']) : '';
+            if ($name === '') {
+                $unnamedCount++;
+                continue;  // not yet configured - never shown to ordinary visitors
+            }
+            $ok = ($reading['ok'] ?? false) === true;
+            $value = ($ok && is_numeric($reading['value'] ?? null)) ? (float) $reading['value'] : null;
+            $named[] = ['rom' => $rom, 'name' => $name, 'value_c' => $value, 'ok' => $ok && $value !== null];
+        }
+        // Deterministic display order (dict iteration order is an
+        // implementation detail of however the firmware/daemon happened
+        // to walk the bus this cycle, not something to show visitors).
+        usort($named, fn($a, $b) => strcmp($a['name'], $b['name']));
+
+        return ['named' => $named, 'unnamed_count' => $unnamedCount];
+    }
+}

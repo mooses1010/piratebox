@@ -367,6 +367,7 @@
 
 import json
 import logging
+import math
 import os
 import random
 import re
@@ -939,7 +940,82 @@ def format_duration(seconds: float) -> str:
     return f"{minutes}m"
 
 
-def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently_changed: bool, bh1750_module=None):
+def read_current_ambient_lux(bh1750_module):
+    """The one shared "is there a genuinely current ambient-light
+    reading right now" check - used by both build_glance_metrics()
+    (the AMBIENT glance page) and the auto-brightness logic in main()'s
+    own tick loop below, so the exact same "detected, not stale, a real
+    number" rule governs both instead of two copies silently drifting.
+    Reads ONLY bh1750_module.get_diagnostics() (that module's own
+    already-cached state) - never a second I2C-triggering call. Returns
+    a float or None; None covers "never wired," "never yet read," and
+    "last reading has gone stale" alike - callers that need to
+    distinguish those already have get_diagnostics() available directly."""
+    if bh1750_module is None:
+        return None
+    try:
+        diag = bh1750_module.get_diagnostics()
+        if diag.get("detected") and not diag.get("stale") and isinstance(diag.get("lux"), (int, float)):
+            return float(diag["lux"])
+    except Exception:  # noqa: BLE001 - a broken diagnostics call must never propagate
+        pass
+    return None
+
+
+# --- OLED auto-brightness (2026-09-07) ----------------------------------
+# Ambient-light-driven contrast control - the "set_contrast() plumbing"
+# this file's own header has referenced since round 8 finally gets a
+# real driver. That earlier note deferred auto-DIM specifically because
+# there was no way to WAKE the display back up (GPIO23 not wired) -
+# this is a different mechanism entirely: it never turns the display
+# off or fully dark, it only ever slides contrast between a readable
+# floor and full brightness, continuously, with no "asleep" state to
+# need waking from - so that earlier blocker simply doesn't apply here.
+OLED_MIN_CONTRAST = 10   # readable floor in a dark room - never fully off
+OLED_MAX_CONTRAST = 255  # luma.oled's ssd1306 contrast() range is 0-255
+# One full min<->max transition takes OLED_CONTRAST_MAX_STEP_PER_TICK
+# steps of REFRESH_SECONDS each - ~4 minutes at the current 3s tick
+# cadence with a step of 3. Deliberately gradual: this is the actual
+# anti-pumping mechanism (a hand briefly waved over the sensor nudges
+# brightness only a little before the reading returns to normal),
+# not a separate debounce/timer.
+OLED_CONTRAST_MAX_STEP_PER_TICK = 3
+
+
+def compute_target_contrast(ambient_lux) -> int:
+    """Maps a current ambient-light reading to a TARGET contrast
+    (0-255) - the actual smoothing/hysteresis toward this target is
+    slew_contrast()'s job below, not this function's. FAILURE-SAFE BY
+    DESIGN: `None` (BH1750 never wired, never read yet, or its last
+    reading has gone stale) always maps to OLED_MAX_CONTRAST - erring
+    toward "too bright" costs a little contrast; erring toward "too
+    dim" risks an unreadable display exactly when Emergency/fault
+    information most needs to be seen. Roughly logarithmic (perceived
+    brightness itself is roughly logarithmic, not linear, in lux) -
+    an ordinary lit room (tens to a few hundred lux) already reaches
+    full contrast; only genuinely dim/dark conditions pull it down."""
+    if ambient_lux is None:
+        return OLED_MAX_CONTRAST
+    lux = max(0.0, ambient_lux)
+    fraction = max(0.0, min(1.0, math.log10(max(lux, 1.0)) / 3.0))  # log10(1)->0, log10(1000)->1
+    return round(OLED_MIN_CONTRAST + (OLED_MAX_CONTRAST - OLED_MIN_CONTRAST) * fraction)
+
+
+def slew_contrast(current: int, target: int, max_step: int = OLED_CONTRAST_MAX_STEP_PER_TICK) -> int:
+    """Moves `current` at most `max_step` units toward `target` - the
+    actual "no rapid brightness pumping" mechanism: even an instant lux
+    jump (a hand waved over the sensor) only ever nudges displayed
+    contrast a little per call, never snaps straight to the new
+    target. Pure and independently testable from the I2C/hardware side
+    entirely."""
+    if current == target:
+        return current
+    step = max(-max_step, min(max_step, target - current))
+    return current + step
+
+
+def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently_changed: bool,
+                          bh1750_module=None, esp32_client_module=None):
     """Assembles the one-shot `metrics` dict piratebox_glance.py's
     scheduler/renderers consume (see that module's own documented
     contract) - the ONE place in this daemon where raw reads (several
@@ -973,7 +1049,13 @@ def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently
     tools/test_silly_mode.py, which predates this parameter) so this
     stays fully backward compatible - omitting it simply means
     ambient_lux is always None, the same honest "not available" value
-    a Pi with no BH1750 wired would produce anyway."""
+    a Pi with no BH1750 wired would produce anyway.
+
+    `esp32_client_module` (2026-09-07, DS18B20 probe glance page): the
+    SAME already-imported `piratebox_esp32_client` reference main()
+    keeps for the esp32_temp_internal HARDWARE_SIGNALS registration -
+    reused here too, never a second import or a second reader. Also
+    defaults to None for the same backward-compatibility reason."""
     curr_cpu_jiffies = read_cpu_jiffies()
     cpu_percent = compute_cpu_percent(prev_cpu_jiffies, curr_cpu_jiffies)
 
@@ -1002,18 +1084,40 @@ def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently
         time_confident = bool(ts.get("ntp_synchronized")) or bool(ts.get("rtc_detected"))
 
     # Same "None means don't claim it" discipline as time_confident
-    # above: only a genuinely current reading (actually detected, not
-    # gone stale, a real number) becomes a value here - a never-wired
-    # sensor, a temporarily unresponsive one, or a stale last-known
-    # value all honestly degrade to None, never a fabricated 0.
-    ambient_lux = None
-    if bh1750_module is not None:
+    # above - see read_current_ambient_lux()'s own docstring (shared
+    # with the auto-brightness logic in main()'s tick loop, 2026-09-07).
+    ambient_lux = read_current_ambient_lux(bh1750_module)
+
+    # DS18B20 probe glance page (2026-09-07) - same discipline as
+    # ambient_lux above: reuses esp32_client_module's already-cached
+    # get_diagnostics() (never a second serial/hardware trigger), and
+    # only ever shows a NAMED, currently-ok probe - an unnamed or
+    # currently-failing probe simply isn't glance-worthy (matches "do
+    # not dump engineering detail onto the normal OLED"). With more
+    # than one eligible probe, which one shows rotates by wall-clock
+    # minute (stateless - no new persistent counter needs threading
+    # through main()'s own tick loop for this).
+    probe_name = None
+    probe_temp_c = None
+    if esp32_client_module is not None:
         try:
-            diag = bh1750_module.get_diagnostics()
-            if diag.get("detected") and not diag.get("stale") and isinstance(diag.get("lux"), (int, float)):
-                ambient_lux = float(diag["lux"])
+            diag = esp32_client_module.get_diagnostics()
+            ds18b20 = diag.get("sensors", {}).get("ds18b20") if diag.get("connected") and not diag.get("stale") else None
+            probes = ds18b20.get("probes") if isinstance(ds18b20, dict) else None
+            if isinstance(probes, dict):
+                eligible = sorted(
+                    (p for p in probes.values() if isinstance(p, dict) and p.get("ok")
+                     and isinstance(p.get("name"), str) and p.get("name")
+                     and isinstance(p.get("value"), (int, float))),
+                    key=lambda p: p["name"],
+                )
+                if eligible:
+                    probe = eligible[int(time.time() // 60) % len(eligible)]
+                    probe_name = probe["name"]
+                    probe_temp_c = float(probe["value"])
         except Exception:  # noqa: BLE001 - a broken diagnostics call must
-            ambient_lux = None  # never break this glance-phase-entry
+            probe_name = None  # never break this glance-phase-entry
+            probe_temp_c = None
 
     metrics = {
         "cpu_percent": cpu_percent,
@@ -1026,6 +1130,8 @@ def build_glance_metrics(status, stale: bool, prev_cpu_jiffies, clients_recently
         "time_str": time.strftime("%H:%M") if time_confident else None,
         "undervoltage_now": undervoltage_now,
         "ambient_lux": ambient_lux,
+        "probe_name": probe_name,
+        "probe_temp_c": probe_temp_c,
     }
     return metrics, curr_cpu_jiffies
 
@@ -1661,6 +1767,11 @@ def main() -> int:
     device = None
     last_image = None  # previous displayed frame, for the slide transition
     tick = 0            # increments every redraw; drives the heartbeat dot
+    # Auto-brightness (2026-09-07) - starts at full brightness (the same
+    # safe default compute_target_contrast(None) itself would pick), so
+    # a fresh daemon start is never dim before its first real ambient
+    # reading arrives.
+    oled_contrast = OLED_MAX_CONTRAST
 
     # Always-on, never Silly-gated - a client-count pulse and a mode-
     # change banner are both plain operational information, not
@@ -1809,6 +1920,7 @@ def main() -> int:
     # never appear in the public export at all (never a permanent
     # "unavailable" placeholder for hardware that isn't there).
     bh1750_module = None
+    esp32_client_module = None
     if progression is not None:
         try:
             import piratebox_esp32_bh1750
@@ -1828,9 +1940,13 @@ def main() -> int:
         # own header for why). A missing/failed import must never affect
         # Progression, BH1750, or the OLED display - its own separate
         # try/except, same pattern as the BH1750 block just above.
+        # esp32_client_module is kept (2026-09-07, DS18B20 phase) so the
+        # "probes" glance page below can reuse this SAME cached export -
+        # never a second hardware reader, never a second serial client.
         try:
             import piratebox_esp32_client
             progression.register_hardware_signal("esp32_temp_internal", piratebox_esp32_client.read_temp_internal)
+            esp32_client_module = piratebox_esp32_client
             log.info("ESP32 supervisor temp_internal signal registered.")
         except Exception as exc:  # noqa: BLE001 - optional hardware, never fatal
             log.warning("ESP32 client module unavailable (%s) - esp32_temp_internal signal stays unregistered.", exc)
@@ -1845,6 +1961,13 @@ def main() -> int:
                 continue
             log.info("OLED initialized successfully.")
             last_image = None  # nothing to transition from after a reconnect
+            # A freshly (re)connected physical display starts at its own
+            # hardware power-on contrast (SSD1306 default, not
+            # necessarily OLED_MAX_CONTRAST) - reset our tracked value
+            # so the very next tick's slew starts from a known state
+            # rather than assuming whatever contrast was in effect
+            # before a disconnect.
+            oled_contrast = OLED_MAX_CONTRAST
 
         status, stale = read_status_json()
         mode = read_mode()
@@ -1878,6 +2001,29 @@ def main() -> int:
             pulse_ticks_remaining -= 1
 
         tier = compute_display_tier(mode, status, stale)
+
+        # Ambient-light auto-brightness (2026-09-07) - every tick, not
+        # just during the AMBIENT glance page, so brightness tracks
+        # actual room light continuously. Emergency ALWAYS forces full
+        # brightness regardless of ambient light or the BH1750's own
+        # state - fault/emergency visibility must never be dimmed by
+        # this feature (per instruction). Reuses the SAME cached BH1750
+        # diagnostics read_current_ambient_lux() already uses for the
+        # glance page - never a second I2C-triggering call, and cheap
+        # enough (no I2C at all - it's already-cached state) to call
+        # every tick without meaningfully adding to bus traffic.
+        if tier == "emergency":
+            target_contrast = OLED_MAX_CONTRAST
+        else:
+            target_contrast = compute_target_contrast(read_current_ambient_lux(bh1750_module))
+        new_contrast = slew_contrast(oled_contrast, target_contrast)
+        if new_contrast != oled_contrast:
+            try:
+                device.contrast(new_contrast)
+            except Exception:  # noqa: BLE001 - a brightness-control failure must
+                pass            # never break the display itself
+            oled_contrast = new_contrast
+
         silly_enabled = read_silly_enabled()
         ssh_active = read_ssh_established()
         status_check_active = read_status_check_active(now)
@@ -2032,7 +2178,8 @@ def main() -> int:
             if glance_preview_index != glance_preview_last_index or glance_metrics is None:
                 glance_preview_last_index = glance_preview_index
                 glance_page_id = GLANCE_PREVIEW_ORDER[glance_preview_index]
-                glance_metrics, prev_cpu_jiffies = build_glance_metrics(status, stale, prev_cpu_jiffies, pulse_now, bh1750_module)
+                glance_metrics, prev_cpu_jiffies = build_glance_metrics(
+                    status, stale, prev_cpu_jiffies, pulse_now, bh1750_module, esp32_client_module)
             page, extra = "glance", {
                 "page_id": glance_page_id, "metrics": glance_metrics,
                 "label_fonts": glance_label_fonts, "font_cpu_label": font_glance_cpu_label,
@@ -2061,7 +2208,7 @@ def main() -> int:
                     # slot (exactly like every other held render in this
                     # daemon), not re-picked/re-read every tick.
                     glance_metrics, prev_cpu_jiffies = build_glance_metrics(
-                        status, stale, prev_cpu_jiffies, pulse_now, bh1750_module,
+                        status, stale, prev_cpu_jiffies, pulse_now, bh1750_module, esp32_client_module,
                     )
                     glance_page_id = select_glance_page(
                         glance_metrics, glance_rng, glance_page_id, glance_cooldowns, now,
@@ -2204,7 +2351,7 @@ def main() -> int:
                 # every tick.
                 if not silly_glance_was_active:
                     glance_metrics, prev_cpu_jiffies = build_glance_metrics(
-                        status, stale, prev_cpu_jiffies, pulse_now, bh1750_module,
+                        status, stale, prev_cpu_jiffies, pulse_now, bh1750_module, esp32_client_module,
                     )
                     glance_page_id = select_glance_page(
                         glance_metrics, glance_rng, glance_page_id, glance_cooldowns, now,

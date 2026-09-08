@@ -81,7 +81,7 @@ it is.**
 | Field Tools (time/date, unit conversion, coordinates) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | I2C multiplexer (PCA9548A/TCA9548A) | Operational/infrastructure | CANDIDATE | Integrated (if adopted) |
 | GNSS receiver | Optional/Field | CANDIDATE | Attachable or Integrated (undecided) |
-| Environmental sensing (temp/humidity beyond CPU) | Optional/Field | CANDIDATE | Integrated or Companion |
+| Environmental sensing (temp/humidity beyond CPU) | Optional/Field | **DS18B20 (multi-probe temperature): SOFTWARE COMPLETE, HARDWARE NOT YET WIRED (2026-09-07)** - four waterproof probes owned, none physically connected yet. Full multi-device 1-Wire bus support built on the ESP32-S3 supervisor (real ROM-address identity, never physical position; GPIO4 chosen for DATA), a naming/commissioning workflow (`tools/ds18b20_commission.py`), Environment UI (named probes only - ROM IDs stay in commissioning tooling), and an OLED glance page - see `docs/ESP32-SUPERVISOR-DESIGN.md` §17 for the full design and its consolidated physical wiring gate. BME280 (temp/humidity/pressure) remains CANDIDATE, not started. | Attachable (behind the ESP32-S3 supervisor - see that row below) |
 | Air quality (CO2/particulate/VOC) | Optional/Field | CANDIDATE | Integrated or Companion |
 | Light / UV (BH1750 ambient light) | Optional/Field | **INSTALLED, COMMISSIONED, WEB UI + OLED GLANCE PAGE LIVE, MIGRATED TO THE ESP32 SUPERVISOR (2026-09-07)** - originally commissioned directly on the Pi's I2C bus (0x23), then physically moved the same day to the ESP32-S3 supervisor's own I2C bus (GPIO8/9) once that subsystem was built and validated; real lux readings confirmed on both sides of the migration (~7-31 lux on the Pi, 11.67 lux post-migration, consistent readings in similar lighting). `HARDWARE_SIGNALS`'s `ambient_lux` now reads from the ESP32 path (`piratebox_esp32_bh1750.py`, drop-in replacement) - `/utility/environment/`, the Utility landing-page card, and the OLED "AMBIENT" glance page all needed zero changes, since they consume the signal/export, never the sensor directly | **Attachable** (behind the ESP32-S3 supervisor, itself USB/serial-attached - see that row below; no longer directly on the Pi's own I2C bus) |
 | Motion / orientation (IMU) | Optional/Field | CANDIDATE | Integrated |
@@ -92,7 +92,7 @@ it is.**
 | External isolated I/O | Optional/Field | CANDIDATE | Attachable |
 | SDR (Malahit-derived + RTL-SDR, owned) | Optional/Field | INSTALLED (OpenWebRX+ verified working via RTL-SDR at `/radio/`; visitor-facing wide retuning via `/utility/radio/live.php` confirmed live; stock `<`/`>` fine-tune buttons' `tuning_step=5000` fix confirmed live; PirateBox-side Previous/Next Spectrum + click-to-tune range bar confirmed live for hardware-window navigation, distinct from OpenWebRX+'s own tuning; native OpenWebRX+ bandplan ribbon confirmed live and correct at four representative frequencies after a same-day deploy outage was fixed (see doc §16); Malahit path untouched/experimental) | Attachable |
 | Ham-radio interface | Optional/Field | CANDIDATE | Attachable or Companion |
-| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | **ESP32-S3-N16R8: hardware/sensor supervisor BUILT AND WORKING (2026-09-07).** Hardware commissioning complete (genuine ESP32-S3 QFN56 rev v0.2, 16MB flash/8MB PSRAM confirmed, MAC `7c:4f:ad:b6:2f:94`), then a full supervisor stack built the same day: PlatformIO/Arduino firmware (NDJSON protocol, task-watchdog-protected main loop, on-die temp sensor as the first capability), a Pi-side daemon (`piratebox_esp32_supervisor.py`, stable `/dev/serial/by-id/` discovery, reconnect/staleness handling, its own cached export), a `HARDWARE_SIGNALS` registration (`esp32_temp_internal`), and an Environment web UI section - see `docs/ESP32-SUPERVISOR-DESIGN.md` for the full architecture and `docs/OPERATIONAL-DECISIONS.md` for the build/validation record. Requires the externally-powered USB hub in the current prototype topology (§13 of that design doc). | Attachable (corrected 2026-09-07 - USB/serial equipment per `docs/ARCHITECTURE.md` §3's own taxonomy, not Network Companion, which means independently-powered/LAN-connected) |
+| Remote microcontroller/sensor node (e.g. ESP32) | Optional/Field | **ESP32-S3-N16R8: hardware/sensor supervisor, live with two real sensors, a third ready and awaiting wiring (2026-09-07).** Commissioning complete, full supervisor stack built and deployed (firmware, Pi daemon, capability registry, diagnostics), BH1750 migrated from the Pi and confirmed live end-to-end. Multi-probe DS18B20 support (real 1-Wire bus, ROM-address identity, a naming/commissioning workflow, Environment UI, OLED glance page) is fully built and tested but **not yet wired** - GPIO4 chosen for the 1-Wire bus, a consolidated physical wiring gate is pending. Ambient-light-driven OLED auto-brightness also added, using the already-migrated BH1750 signal (no new hardware). See `docs/ESP32-SUPERVISOR-DESIGN.md` (§17 for DS18B20, §18 for auto-brightness) and `docs/OPERATIONAL-DECISIONS.md` for the full record. Requires the externally-powered USB hub in the current prototype topology (§13 of that design doc). | Attachable (USB/serial equipment per `docs/ARCHITECTURE.md` §3's own taxonomy, not Network Companion, which means independently-powered/LAN-connected) |
 | Another Pi / general companion node | Optional/Field | CANDIDATE | Network Companion |
 
 ---
@@ -1350,6 +1350,24 @@ it is.**
   communication was fully restored with the board confirmed
   undamaged. See `docs/OPERATIONAL-DECISIONS.md` and `docs/ESP32-
   SUPERVISOR-DESIGN.md` §16 for the full record.
+- **DS18B20 multi-probe support built, hardware not yet wired
+  (2026-09-07, next phase):** given four owned but unwired waterproof
+  DS18B20 probes, built full multi-device 1-Wire support on the
+  ESP32-S3 supervisor before requesting any physical wiring, per
+  standing instruction: firmware (`esp32-firmware/include/ds18b20.h`/
+  `.cpp`, non-blocking state machine, real ROM-address bus search,
+  CRC/disconnection/85°C-uninitialized-value handling, GPIO4 chosen for
+  DATA), a Pi-side naming/commissioning workflow
+  (`piratebox_ds18b20_roles.py`, `tools/ds18b20_commission.py` - ROM
+  address is the permanent identity, an operator-assigned name is
+  cosmetic metadata only, stored durably under a systemd
+  `StateDirectory=`), Environment UI (named probes only - ROM IDs
+  never reach ordinary visitors), and an OLED glance page. Also added:
+  ambient-light-driven OLED auto-brightness, reusing the already-
+  migrated BH1750 signal with zero new hardware or I2C traffic. Full
+  design and the exact, consolidated physical wiring gate:
+  `docs/ESP32-SUPERVISOR-DESIGN.md` §17-18. **Not yet wired** - no
+  DS18B20 hardware is physically connected as of this entry.
 - **Layer:** Optional/Field. Classification: **Attachable** (corrected
   2026-09-07 - see above). Core dependency: No - **must be able to
   disappear without breaking Core** (`docs/ARCHITECTURE.md` §3) -

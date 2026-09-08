@@ -25,6 +25,7 @@
 
 #include <Arduino.h>
 #include <ArduinoJson.h>
+#include "ds18b20.h"  // for the Ds18b20Probe type used in pb_build_sensors()
 
 #ifndef PIRATEBOX_FW_VERSION
 #define PIRATEBOX_FW_VERSION "0.0.0-dev"
@@ -50,6 +51,17 @@
 // update being required first).
 #define CAP_TEMP_INTERNAL "temp_internal"
 #define CAP_BH1750 "bh1750"
+// DS18B20 is deliberately NOT reported as "detected only once a real
+// device answers" the way temp_internal/bh1750 are - it is a genuinely
+// multi-instance bus, so "0 probes currently found" is itself a valid,
+// meaningful state (not the same as "this firmware build doesn't
+// support DS18B20 at all"). This capability appears once the bus has
+// ever found at least one probe (see pb_ds18b20_ever_found_a_probe())
+// - per-probe identity/count/health always lives in the "sensors"
+// message's "ds18b20" block instead, which can legitimately be
+// "0 probes" without the capability itself being absent. See
+// docs/ESP32-SUPERVISOR-DESIGN.md for the full reasoning.
+#define CAP_DS18B20 "ds18b20"
 
 // Bounds how large a single incoming line may grow before it is
 // discarded - protects a memory-constrained MCU from an unbounded
@@ -58,11 +70,13 @@
 #define PIRATEBOX_MAX_LINE_LEN 512
 
 // StaticJsonDocument sizing: generous but bounded headroom for the
-// richest message this firmware builds (currently "hello", with its
-// caps array) plus safety margin for future fields - see
-// docs/ESP32-SUPERVISOR-DESIGN.md for the sizing rationale if this
-// ever needs to grow.
-#define PIRATEBOX_JSON_DOC_SIZE 768
+// richest message this firmware builds. As of the DS18B20 phase
+// (2026-09-07) that's "sensors" with up to DS18B20_MAX_PROBES (8)
+// probe entries plus temp_internal/bh1750 - roughly 60 bytes/probe of
+// JSON (ROM hex key + ok/value/unit) comfortably fits with headroom to
+// spare. See docs/ESP32-SUPERVISOR-DESIGN.md for the sizing rationale
+// if this ever needs to grow further.
+#define PIRATEBOX_JSON_DOC_SIZE 1536
 
 // --- Outgoing message builders ------------------------------------
 // Each returns the JSON line WITHOUT a trailing newline - callers
@@ -72,11 +86,15 @@
 // `bh1750Available` reflects whether THIS BOOT's init probe found a
 // real sensor responding - see bh1750.cpp's header for why this can
 // legitimately be false (not yet physically wired) and why that's
-// correct, not a fault.
-String pb_build_hello(const String &mac, const String &resetReason, unsigned long uptimeMs, bool bh1750Available);
+// correct, not a fault. `ds18b20EverFound` uses the different,
+// latching rule described at CAP_DS18B20 above.
+String pb_build_hello(const String &mac, const String &resetReason, unsigned long uptimeMs,
+                       bool bh1750Available, bool ds18b20EverFound);
 String pb_build_heartbeat(unsigned long seq, unsigned long uptimeMs);
 String pb_build_sensors(unsigned long seq, float internalTempC, bool tempOk,
-                         bool bh1750Available, float bh1750Lux, bool bh1750Ok);
+                         bool bh1750Available, float bh1750Lux, bool bh1750Ok,
+                         bool ds18b20EverFound, bool ds18b20BusOk,
+                         int ds18b20ProbeCount, const Ds18b20Probe *ds18b20Probes);
 String pb_build_pong(const String &nonce);
 String pb_build_err(const String &reason);
 

@@ -1,8 +1,13 @@
 # ESP32-S3 Hardware/Sensor Supervisor — Design
 
-**Status: WORKING IMPLEMENTATION with a first real sensor migrated
-(2026-09-07).** BH1750 ambient light is now live on the ESP32's own
-I2C bus (§16) — no longer Pi-owned. The board was
+**Status: WORKING IMPLEMENTATION, multi-probe DS18B20 support ready
+and awaiting its physical wiring gate (2026-09-07).** BH1750 ambient
+light is live on the ESP32's own I2C bus (§16) — no longer Pi-owned.
+DS18B20 multi-probe temperature support (§17), a commissioning
+workflow for naming probes, an OLED probe glance page, and ambient-
+light-driven OLED auto-brightness (§18) are all built, tested, and
+ready — no DS18B20 hardware is physically wired yet; see §17's
+consolidated physical gate. The board was
 commissioned (identity fully proven read-only via `esptool`) earlier
 the same day — see `docs/OPERATIONAL-DECISIONS.md`'s two commissioning
 entries and `docs/CAPABILITY-REGISTRY.md`'s "Remote microcontroller/
@@ -170,13 +175,32 @@ recognize as an opaque, ignorable string — this is how a future sensor
 gets added to the firmware without requiring an in-lockstep Pi-side
 update first.
 
-Today's only capability: **`temp_internal`** — the ESP32-S3's own
-on-die temperature sensor (`temperatureRead()`, no wiring required).
+Today's capabilities: **`temp_internal`** — the ESP32-S3's own on-die
+temperature sensor (`temperatureRead()`, no wiring required).
 **Explicitly coarse, not a calibrated ambient reading** — Espressif's
 own documentation does not characterize this peripheral as accurate
 for ambient sensing; it drifts with CPU self-heating. Reported as-is,
 labeled `temp_internal` everywhere (never "ambient" or "room
 temperature"), so nobody downstream mistakes it for BH1750-grade data.
+**`bh1750`** — see §16, migrated from the Pi. **`ds18b20`** — see §17;
+this one follows a deliberately *different* presence rule than the
+other two (below).
+
+**`ds18b20` is a genuine exception to "one capability = one sensor
+instance."** DS18B20 is a real multi-device 1-Wire bus — "zero probes
+currently found" is itself a valid, meaningful, distinguishable state
+(the bus exists and was scanned; nothing answered), not the same as
+"this firmware build has no DS18B20 support compiled in at all."
+Collapsing that distinction into the same "capability appears only
+once a device responds" rule the single-instance sensors use would
+make a genuine bus fault (probes were found before, now none are)
+indistinguishable from "never wired." So: `ds18b20` appears in `caps`
+once the bus has *ever* found at least one probe (a one-way latch —
+see `pb_ds18b20_ever_found_a_probe()`), and stays present even if every
+probe later disappears; the actual per-probe count/identity/health
+always lives in the `sensors` message's own `ds18b20` block (§17),
+which can legitimately report zero probes without the capability
+itself being absent.
 
 ## 4. Which UART does `Serial` mean on this board?
 
@@ -266,9 +290,11 @@ GPIO table).
 | Strapping pins (GPIO0, GPIO3, GPIO45, GPIO46) | — | **Reserved, deliberately unused** | Boot-mode/voltage-selection significance on this chip — avoided for any general-purpose sensor/GPIO use |
 | USB "COM" port (UART0, physical pins) | — | **WIRED, VERIFIED, IN USE** | The Pi↔ESP32 communication link itself (§4) — not available for other use |
 | Native USB "USB" port | — | Present, unused by this firmware | Native USB-CDC peripheral; this firmware never initializes it (§4) |
-| DS18B20 (future) | not yet assigned | CANDIDATE, not wired | 1-Wire needs one GPIO + a pull-up; pin TBD when actually built |
+| 1-Wire bus (DS18B20) | **GPIO4** | **Firmware ready (2026-09-07), not yet wired** | Chosen for this bus — free on this board's PlatformIO definition, not a strapping pin, not part of the flash/PSRAM QSPI bus (GPIO26-37 avoided entirely — this module's PSRAM bus width hasn't been independently confirmed, see §15), not shared with the existing I2C bus. See §17 for the full multi-probe design and the wiring plan awaiting the physical gate |
 | INA226 (future) | not yet assigned | CANDIDATE, not wired | I2C — would share GPIO8/9 above, same bus, no new pins needed |
-| Physical buttons/RGB (future) | not yet assigned | CANDIDATE, not wired | No pins reserved speculatively |
+| BME280 (future) | not yet assigned | CANDIDATE, not wired | I2C — would share GPIO8/9 above, same bus, no new pins needed |
+| Onboard RGB LED | **unknown, deliberately not guessed** | **Evaluated, not implemented (2026-09-07)** | This board's generic PlatformIO manifest (`esp32-s3-devkitc-1.json`) declares no LED pin at all — some ESP32-S3 dev board revisions use GPIO48, others GPIO38, and guessing wrong risks driving a pin wired to something else entirely. See §20 |
+| Physical buttons | not yet assigned | CANDIDATE, not wired | No pins reserved speculatively |
 
 ## 8. Real-hardware validation performed this round
 
@@ -465,18 +491,26 @@ powered hub in the same position.
   present benefit. Revisit when a real feature (e.g. simultaneous
   BLE + WiFi + large buffers) actually needs the extra RAM.
 - **BH1750 migration**: COMPLETE (§16) - no longer an open item.
-- **Environment web UI / OLED glance integration**: a minimal
-  `includes/esp32_supervisor.php` reader exists (mirrors
-  `includes/sensors.php`'s pattern) and a `HARDWARE_SIGNALS` reader is
-  registered (`esp32_temp_internal`) — see
-  `docs/OPERATIONAL-DECISIONS.md` for what shipped this round vs. what
-  remains a natural follow-up.
+- **Environment web UI / OLED glance integration**: `includes/
+  esp32_supervisor.php` covers Hardware Supervisor status, named
+  DS18B20 probes, and (via `includes/sensors.php`) ambient light;
+  `HARDWARE_SIGNALS` readers are registered for `esp32_temp_internal`
+  and (via the migration) `ambient_lux`; OLED glance pages exist for
+  ambient light and named temperature probes (§17).
+- **DS18B20 multi-probe support**: COMPLETE in software (§17) - awaiting
+  its physical wiring gate. Not an open item once that gate is done.
+- **OLED ambient-light auto-brightness**: COMPLETE (§18).
+- **ESP32 black-box/event-log**: EVALUATED, DEFERRED (§19) — belongs
+  with the later power-supervision phase, per that section's reasoning.
+- **Onboard RGB status LED**: EVALUATED, NOT IMPLEMENTED (§20) — this
+  board's exact LED GPIO isn't safely known from its manifest; not
+  guessed.
 - **Power supervision (INA226, shutdown cooperation)**: architecture
   seam only (§9) — no hardware wired, no protocol messages defined yet.
-- **DS18B20 / BME280 / future sensors**: not implemented — the
-  capability model (§3b) and sensor abstraction (§7) exist specifically
-  so adding them later doesn't require protocol changes, but no code
-  for them exists yet.
+- **BME280 / other future sensors**: not implemented — the capability
+  model (§3b) and sensor abstraction (§7) exist specifically so adding
+  them later doesn't require protocol changes, but no code for them
+  exists yet.
 
 ## 16. BH1750 migration — COMPLETE (2026-09-07)
 
@@ -565,3 +599,290 @@ switched to the ESP32 path only after that reading was confirmed good.
 `piratebox_bh1750.py` (the original Pi-side module) is unchanged and
 left in the repo for historical/rollback reference — nothing imports
 it anymore.
+
+## 17. DS18B20 multi-probe temperature bus
+
+**Status: software complete, awaiting the physical wiring gate
+(§17f).** Four waterproof DS18B20-style probes exist; none are wired
+yet. This section covers the design; §17f is the exact, consolidated
+physical request.
+
+### 17a. Why a real multi-device bus, not four hardcoded inputs
+
+Each DS18B20 carries its own unique, factory-burned 64-bit 1-Wire ROM
+address (an 8-bit family code + 48-bit serial + CRC8) — this is the
+hardware's own real identity, and it is the *only* thing this firmware
+ever uses to identify a probe. There is no concept of "probe 1/2/3/4"
+anywhere in the firmware or protocol — physical position on the bus is
+never observed and never assumed stable (per instruction). ROM
+addresses are discovered by a real bus search
+(`OneWire::search()` + CRC8 validation), never invented, never
+assumed present.
+
+### 17b. Firmware: `esp32-firmware/include/ds18b20.h` / `ds18b20.cpp`
+
+- **Library choice**: `paulstoffregen/OneWire` + `milesburton/
+  DallasTemperature` (pinned versions in `platformio.ini`) — the
+  standard, mature pairing for this exact chip family on Arduino-family
+  cores. ROM search/CRC/scratchpad-format handling (DS18B20 vs. its
+  DS1822/DS18S20 cousins, which use slightly different scratchpad
+  layouts) is exactly the kind of well-trodden protocol logic not worth
+  hand-rolling.
+- **Non-blocking by design**: a 12-bit conversion takes up to ~750ms.
+  `DallasTemperature::setWaitForConversion(false)` plus a small
+  two-state machine (`Idle` / `Converting`, driven by
+  `pb_ds18b20_tick(millis())` called every `loop()` iteration) means
+  this never calls `delay()` and never risks tripping the task
+  watchdog or delaying heartbeats — the same non-blocking discipline
+  every other part of this firmware already follows.
+- **Polling cadence, deliberately not aggressive**: a full read cycle
+  (broadcast convert → wait → read every known probe) runs every 30s —
+  environmental temperature does not need faster updates, and this
+  bounds 1-Wire bus traffic. A full bus **re-search** (to notice a
+  probe physically added or removed) runs far less often — once every
+  10 read cycles, ~5 minutes — since walking the whole bus topology is
+  the more disruptive of the two operations to get wrong mid-read.
+- **Known DS18B20 realities, accounted for explicitly**:
+  - *CRC validation*: `DallasTemperature::getTempC()` validates CRC
+    internally and returns its own disconnected sentinel on failure —
+    not re-implemented here.
+  - *`DEVICE_DISCONNECTED_C` (-127.0)*: reported as `ok: false`, never
+    as a real (and absurd) sub-zero reading.
+  - *The well-known 85.0°C power-on/uninitialized-scratchpad value*:
+    a genuine 12-bit conversion is affected by enough real thermal
+    noise that landing on **exactly** 85.0 is vanishingly unlikely from
+    a real reading — treated as suspect (`ok: false, err:
+    "uninit_85c"`) rather than trusted at face value.
+  - *Individual probe failure never affects another probe* — each
+    probe's `ok`/`err` is fully independent; a `bus_ok` flag (see
+    17c) separately tracks bus-wide health.
+  - *Conversion/bus timing*: handled by the async state machine above,
+    not by blocking.
+- **Parasite power: deliberately not supported.** Per instruction, this
+  project uses conventional powered three-wire DS18B20 wiring
+  (VCC/DATA/GND) — no compelling reason exists to add parasite-power
+  complexity, and it would only weaken reliability for no benefit here.
+
+### 17c. Protocol shape
+
+```json
+{"v":1,"t":"sensors","seq":42,"readings":{
+  "ds18b20": {
+    "bus_ok": true,
+    "probes": {
+      "28ff641e04170378": {"ok": true, "value": 21.4, "unit": "C"},
+      "28aa112233445566": {"ok": false, "err": "disconnected"}
+    }
+  }
+}}
+```
+
+`bus_ok` is `true` unless the bus has **regressed** from "has
+previously found at least one probe" to "finds none now" — a bus that
+has *never* found anything reports `bus_ok: true` (that's "not wired
+yet," not a fault; see `pb_ds18b20_bus_ok()`'s own header). This is how
+"bus failure" is distinguished from "nothing was ever connected" from
+the exact same underlying electrical signal (a 1-Wire reset getting no
+presence pulse).
+
+### 17d. Pi-side: ROM identity, naming, and the commissioning workflow
+
+**Sensor names are cosmetic configuration metadata; the ROM address
+remains the permanent hardware identity — always.** A name is never
+used to *identify* a probe internally, only to *display* it.
+
+- **Storage: a single durable JSON file**
+  (`/var/lib/piratebox-esp32/ds18b20-roles.json`, `{rom: {name,
+  assigned_at}}`), not a database — this project has none by design,
+  and a handful of rarely-changing entries is exactly what a flat file
+  already handles well elsewhere (`piratebox_progression.py`'s own
+  state file, `sensors-public.json`, etc.).
+- **Single-writer discipline**: mirrors `piratebox_progression.py`'s
+  own reset/import-request pattern exactly. `tools/ds18b20_
+  commission.py` (run by the operator, as `moose`) never writes the
+  durable file directly — it drops a small request file
+  (`ds18b20-name-request.json`) that `piratebox_esp32_supervisor.py`
+  (the daemon, running as `piratebox-gpio`) picks up and applies. Both
+  files live under one systemd `StateDirectory=piratebox-esp32`
+  (persistent — survives reboots, unlike the daemon's own
+  `RuntimeDirectory=` export), created with **mode 0770**: `moose` is
+  already a member of the `gpio` group (confirmed 2026-09-07), so the
+  request file needs no sudo and no bind-mount indirection — a cleaner
+  answer than the OLED daemon's own `/tmp/piratebox` arrangement (which
+  exists specifically to work around *its own* `PrivateTmp=yes`; this
+  daemon's `PrivateTmp=yes` only isolates `/tmp`, irrelevant here).
+- **Commissioning workflow** (`tools/ds18b20_commission.py`):
+  1. `python3 tools/ds18b20_commission.py watch` — lists every
+     discovered ROM address with its live temperature, refreshing
+     every few seconds.
+  2. Operator warms **one** physical probe with their fingers.
+  3. The ROM address whose temperature visibly rises is now identified.
+  4. `python3 tools/ds18b20_commission.py name <rom> "Enclosure"` —
+     assigns the name. Repeat per probe.
+  5. `python3 tools/ds18b20_commission.py list` confirms it stuck.
+  - Never touches the serial port directly — reads only the daemon's
+    already-published cached export, same discipline as every other
+    consumer of this data.
+
+### 17e. Pi-side / UI representation of every required state
+
+| State | Representation |
+|---|---|
+| Zero probes ever found | `ds18b20` capability absent from `hello.caps` entirely |
+| Bus wired, zero probes right now | `ds18b20` capability present, `sensors.ds18b20.probes` is `{}` |
+| One or more probes, all healthy | Each ROM's own `{"ok": true, "value": ..., "unit": "C"}` |
+| A probe added | Appears in `probes` after the next bus rescan (≤ ~5 min) |
+| A probe removed | Disappears from `probes` after the next bus rescan — never a stale phantom entry |
+| A probe's reading temporarily fails | That ROM's own `{"ok": false, "err": "disconnected"/"uninit_85c"}` — other probes and the rest of the firmware are unaffected |
+| Bus failure (previously had probes, now finds none) | `bus_ok: false` |
+| Named vs. unnamed | `piratebox_esp32_bh1750.py`-style enrichment adds `"name"` (or `null`) per probe at the Pi daemon layer — see `_enrich_ds18b20_with_names()` in `piratebox_esp32_supervisor.py` |
+| Public Environment page | Shows **only named** probes, by name — ROM addresses never appear on the ordinary visitor page (they belong in `tools/ds18b20_commission.py`); an "N probe(s) detected, not yet named" note appears if any are unnamed |
+| OLED | A "probe" glance page (§ piratebox_glance.py) shows one **named, currently-ok** probe at a time, rotating by wall-clock minute if more than one qualifies — an unnamed or currently-failing probe is never glance-worthy |
+
+### 17f. THE PHYSICAL GATE — wiring plan
+
+**Not performed. Requires the operator.** Everything above is built,
+tested, and ready to flash the moment probes are wired.
+
+| DS18B20 wire | Connects to |
+|---|---|
+| VCC | 3.3V |
+| GND | GND |
+| DATA | **GPIO4** |
+
+**Wiring color convention** (per the project's own established
+harness colors — see `docs/OPERATIONAL-DECISIONS.md` for the BH1750
+precedent this follows): DS18B20 is 1-Wire, not I2C, so it does **not**
+reuse SDA/SCL's yellow/orange — a **BLUE** wire is designated for
+DATA on this bus (VCC stays RED, GND stays GREEN, matching the
+existing ESP32-side convention exactly; only DATA needed a new color
+since I2C's SCL/SDA pair doesn't map onto a single-wire bus).
+
+**Using the DAT/VCC/GND breakout with its onboard "472" resistor**:
+yes, planned — 472 (in the standard 3-digit resistor code) means
+47 × 10² Ω = **4.7 kΩ**, exactly the DATA-to-VCC pull-up a DS18B20 bus
+needs. **Verify, don't assume**, per instruction: confirm with a
+multimeter that the resistor actually measures ~4.7 kΩ and is wired
+between DATA and VCC (not DATA-to-GND, which would be wrong) before
+trusting it — if confirmed, no second external pull-up is needed; if
+not, add a conventional 4.7 kΩ resistor between DATA and 3.3V
+yourself.
+
+**Verify probe lead colors before trusting them**: waterproof DS18B20
+probes are commonly sold as red=VCC/black=GND/yellow=DATA, but cheap
+clones are inconsistent — **confirm with a multimeter (continuity/
+resistance from each lead into the probe body) rather than trusting
+the color alone**, exactly the same "verify, don't assume" discipline
+already applied throughout this project's wiring work.
+
+**Start with ONE probe, not all four** — isolates any wiring mistake
+to a single, easily-disconnected device before committing all four,
+and matches this project's own "one variable at a time" testing
+discipline used throughout the BH1750 migration.
+
+**Power state**: neither the Pi nor the ESP32 needs to be powered down
+for this — DATA/VCC/GND are new connections to previously-unused pins
+(GPIO4, plus 3.3V/GND already used elsewhere on the same rail); nothing
+existing is disturbed. As ordinary hot-plug hygiene, disconnect the
+ESP32's own USB connection while making the physical wiring changes
+(the exact same precaution used for the BH1750 migration), then
+reconnect through the same externally-powered hub afterward.
+
+**What happens immediately after reconnecting**: (1) confirm the ESP32
+is communicating normally (`hello`/heartbeat, per the now-established
+pattern — a repeat of the recent BH1750-migration wiring fault would
+show the same signature: USB bridge enumerates fine, chip silent even
+under `esptool`); (2) flash the DS18B20-aware firmware (already built
+and validated this round — `tools/flash_esp32_supervisor.sh`);
+(3) run `tools/ds18b20_commission.py watch` and confirm the one
+connected probe appears with a plausible room-temperature reading;
+(4) if that's good, connect the remaining three probes (still one at a
+time, verified between each) and repeat; (5) name each probe via
+`tools/ds18b20_commission.py name`; (6) confirm the Environment page
+and OLED probe glance page both show the named probe(s) with real,
+plausible data; (7) full regression check (core services, ALFA/`pb-ap`/
+hostapd, I2C bus, `vcgencmd get_throttled`) — the same battery of
+checks every physical change in this project's history has used.
+
+## 18. OLED ambient-light auto-brightness
+
+**Status: COMPLETE (2026-09-07).** The "`set_contrast()` plumbing…
+ready to be driven" this project's own OLED daemon header has
+referenced since round 8 (deferred back then only because auto-DIM had
+no way to *wake* the display, with no button wired) finally has a
+real driver — and that old blocker doesn't apply here, because this
+mechanism never goes fully dark and never needs waking from anything.
+
+- **Mechanism**: `compute_target_contrast(ambient_lux)` maps the
+  cached ambient-light reading (via `read_current_ambient_lux()` — the
+  *exact same* already-cached BH1750 diagnostics the "ambient" glance
+  page uses; no second I2C/serial trigger, ever) to a target SSD1306
+  contrast value on a roughly logarithmic curve (perceived brightness
+  is itself roughly logarithmic in lux), bounded to `[OLED_MIN_
+  CONTRAST=10, OLED_MAX_CONTRAST=255]` — 10 is a readable floor in a
+  dark room, never fully off.
+- **Hysteresis/no-pumping**: `slew_contrast()` moves the *applied*
+  contrast toward the target by at most a few units per ~3s tick (a
+  full min↔max transition takes a few minutes) — this slew is the
+  actual anti-pumping mechanism itself, not a separate debounce timer.
+  A hand briefly waved over the sensor nudges brightness only slightly
+  before the reading returns to normal; it can never cause a visible
+  snap or flicker.
+- **Failure-safe**: a missing/never-wired/stale BH1750 reading always
+  maps to full brightness (`OLED_MAX_CONTRAST`) — erring toward "too
+  bright" costs a little contrast; erring toward "too dim" risks an
+  unreadable display exactly when it matters most.
+- **Emergency visibility preserved absolutely**: `tier == "emergency"`
+  (from `compute_display_tier()`, unchanged) forces full brightness
+  every tick, completely bypassing ambient-light logic — Emergency
+  Mode's own display priority (already the highest in this daemon) is
+  never dimmed by this feature, regardless of how dark the room is.
+- **Zero new I2C traffic**: `read_current_ambient_lux()` reads only
+  the BH1750 module's own already-cached diagnostics — the same call
+  the "ambient" glance page already made, now also made once per
+  ordinary tick (not just during a glance-phase-entry) so brightness
+  tracks room light continuously; this triggers no new hardware
+  transaction of any kind.
+
+## 19. ESP32 black-box/event log — evaluated, deferred
+
+**Evaluated. Deliberately not implemented this round.** A small
+bounded hardware-event history (boot/reset reason, Pi-heartbeat lost/
+restored, sensor appeared/disappeared, bus fault/recovery) would add
+real diagnostic value eventually — but it belongs with the power-
+supervision phase (§9), not this one, for a concrete reason: the
+*first* genuinely compelling use case for this kind of history is
+correlating a future INA226 power event with what the supervisor was
+doing at the time ("did the bus fault happen right as a brownout was
+detected?") — building the event log now, before there's anything
+power-related to correlate against, would mean guessing at its shape
+twice. When it is built: bounded/circular, RAM-resident (not flash —
+avoiding flash wear for data whose value is almost entirely about
+*recent* history, not months-old history), and explicitly excluding
+anything resembling visitor telemetry (no MACs, no IPs, no message/
+upload history, no user activity of any kind) — this supervisor has no
+visibility into PirateBox's visitors at all today, and this feature
+must never become the first thing that gives it any.
+
+## 20. Onboard RGB LED — evaluated, not implemented
+
+**Evaluated. Not implemented — the pin genuinely isn't known safely.**
+This board's own PlatformIO manifest
+(`~/.platformio/platforms/espressif32/boards/esp32-s3-devkitc-1.json`)
+declares no LED pin at all (checked directly, not assumed) — unlike
+some other ESP32-S3 board variants whose manifests do declare one.
+Different real ESP32-S3 DevKitC-1 hardware revisions are known to wire
+their onboard addressable RGB LED to different GPIOs (commonly GPIO38
+or GPIO48 depending on revision) — guessing wrong would drive a pin
+that might be wired to something else on this exact board entirely,
+for a purely cosmetic feature. Per instruction: **if the exact GPIO/
+type isn't safely known, don't guess.** If a future round can establish
+this board's actual LED wiring by direct inspection or a manufacturer-
+confirmed revision match (not a guess), the design intent would be:
+off by default, subtle rather than bright/decorative, reserved for a
+short palette of real supervisor states (booting, healthy, Pi
+heartbeat lost, hardware fault) — never a duplicate of what the OLED
+already shows, and never allowed to interfere with watchdog/timing/
+sensor reliability (i.e., driven from the same non-blocking tick
+pattern every other firmware feature already uses, never a blocking
+animation loop).

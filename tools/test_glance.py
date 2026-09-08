@@ -409,6 +409,63 @@ class AmbientLightTests(unittest.TestCase):
         self.assertLess(counts.get("ambient", 0), counts.get("cpu", 0) * 1.3)
 
 
+class ProbeGlanceTests(unittest.TestCase):
+    """The "probe" glance page (2026-09-07, DS18B20 phase) - mirrors
+    AmbientLightTests' own style above, since both hardware pages share
+    the identical "None means don't show it" contract."""
+
+    def test_render_probe_shows_name_and_temperature(self):
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
+        m = dict(HEALTHY_METRICS)
+        m["probe_name"] = "Enclosure"
+        m["probe_temp_c"] = 21.4
+        img = Image.new("1", (gl.CANVAS_W, gl.CANVAS_H))
+        draw = ImageDraw.Draw(img)
+        gl.render_glance_page(draw, label_fonts, font_cpu_label, font_medium, font_big, "probe", m)
+        pixels = img.load()
+        self.assertTrue(any(pixels[x, y] for x in range(gl.CANVAS_W) for y in range(gl.CANVAS_H)))
+
+    def test_render_probe_handles_none_without_fabricating_a_reading(self):
+        label_fonts, font_cpu_label, font_medium, font_big = _fonts()
+        m = dict(HEALTHY_METRICS)
+        m["probe_name"] = None
+        m["probe_temp_c"] = None
+        # Must not raise - defense in depth even though the scheduler's
+        # own eligible() should never actually pick this page here.
+        gl.render_glance_page(_fresh_draw(), label_fonts, font_cpu_label, font_medium, font_big, "probe", m)
+
+    def test_probe_ineligible_when_no_named_probe(self):
+        m = dict(HEALTHY_METRICS)
+        m["probe_name"] = None
+        self.assertFalse(gl.GLANCE_PAGES["probe"]["eligible"](m))
+
+    def test_probe_eligible_with_a_named_reading(self):
+        m = dict(HEALTHY_METRICS)
+        m["probe_name"] = "Battery"
+        m["probe_temp_c"] = 4.0
+        self.assertTrue(gl.GLANCE_PAGES["probe"]["eligible"](m))
+
+    def test_probe_never_selected_when_ineligible(self):
+        m = dict(HEALTHY_METRICS)
+        m["probe_name"] = None
+        rng = random.Random(42)
+        seen = set()
+        for i in range(200):
+            seen.add(gl.select_glance_page(m, rng, None, {}, 1000.0 + i))
+        self.assertNotIn("probe", seen)
+
+    def test_probe_weight_does_not_dominate_the_rotation(self):
+        rng = random.Random(7)
+        m = dict(HEALTHY_METRICS)
+        m["probe_name"] = "Enclosure"
+        m["probe_temp_c"] = 21.4
+        counts = {}
+        for i in range(4000):
+            page = gl.select_glance_page(m, rng, None, {}, 1000.0 + i)
+            counts[page] = counts.get(page, 0) + 1
+        self.assertLess(counts.get("probe", 0), counts.get("cpu", 0) * 1.3)
+
+
 class SchedulerTests(unittest.TestCase):
     """select_glance_page() - deterministic given a seeded rng, so
     every eligibility/weighting/cooldown/no-immediate-repeat behavior
@@ -536,7 +593,7 @@ class SchedulerTests(unittest.TestCase):
         expected set deliberately; it must never grow silently."""
         self.assertEqual(
             set(gl.GLANCE_PAGES.keys()),
-            {"cpu", "ram", "disk", "clients", "uptime", "time", "power_warning", "ambient"},
+            {"cpu", "ram", "disk", "clients", "uptime", "time", "power_warning", "ambient", "probe"},
         )
 
     def test_empty_pool_returns_none_not_a_crash(self):
@@ -574,7 +631,7 @@ class PreviewOrderTests(unittest.TestCase):
         self.assertNotIn("power_warning", gl.GLANCE_PREVIEW_ORDER)
 
     def test_preview_order_covers_every_baseline_page(self):
-        self.assertEqual(set(gl.GLANCE_PREVIEW_ORDER), {"cpu", "ram", "disk", "clients", "uptime", "time", "ambient"})
+        self.assertEqual(set(gl.GLANCE_PREVIEW_ORDER), {"cpu", "ram", "disk", "clients", "uptime", "time", "ambient", "probe"})
 
 
 class ProgressionIsolationTests(unittest.TestCase):
