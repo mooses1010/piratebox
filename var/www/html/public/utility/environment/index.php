@@ -33,6 +33,47 @@ require_once __DIR__ . '/../../../includes/temp_unit.php';
 // read N times, never the hardware more than once per the daemon's own
 // ~20s publish interval regardless of visitor count.
 
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
+// C/F quick-toggle (2026-09-08): a convenience control living on this
+// page, but it writes the exact same global preference Admin's own
+// Display Preferences section does - piratebox_set_temp_unit(), the
+// one shared storage/conversion boundary (see includes/temp_unit.php).
+// There is no second, Environment-only preference, no separate history
+// units, and no duplicated conversion logic anywhere in this file.
+//
+// This page is public/unauthenticated (unlike /admin/, which sits
+// behind nginx Basic Auth), so a plain unauthenticated POST here would
+// be a generic settings-write API - not acceptable for a global
+// device-wide setting. Instead this reuses the session-based CSRF
+// token this page already mints via session_start() above, exactly
+// like admin/index.php's own POST actions do - see
+// piratebox_temp_unit_post_is_authorized()'s own header for why that
+// scope (same-session, not same-login) is appropriate for this one
+// fully-reversible, non-sensitive, two-value preference.
+//
+// Post/Redirect/Get, not an inline re-render like admin/index.php's
+// own action handling: a random public visitor is far more likely to
+// hit refresh right after toggling than an operator is mid-admin-
+// action, and a redirect avoids ever showing a "confirm resubmission"
+// prompt. The redirect target is a plain GET, which re-renders this
+// entire page fresh from the new preference - current readings, the
+// ESP32 chip-temperature stat (which has no separate live-refresh
+// wiring of its own), and every history panel's default chart and
+// unit label all come out correct for free, with zero new JavaScript
+// and no risk of any of them going stale.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'set_temp_unit') {
+    if (!piratebox_temp_unit_post_is_authorized($_SESSION['csrf_token'] ?? null, $_POST['csrf_token'] ?? null)) {
+        http_response_code(403);
+        exit('Invalid CSRF token.');
+    }
+    piratebox_set_temp_unit((string) ($_POST['temp_unit'] ?? ''));
+    header('Location: /utility/environment/');
+    exit;
+}
+
 $ambientLight = piratebox_get_ambient_light_reading();
 $esp32 = piratebox_get_esp32_supervisor_status();
 $ds18b20 = piratebox_get_ds18b20_probes();
@@ -191,6 +232,19 @@ function piratebox_env_duration_text(?float $seconds): string
     <div class="radio-page">
         <h1>Environment</h1>
         <p class="utility-breadcrumb"><a href="/utility/">&larr; Utility</a></p>
+
+        <?php if ($esp32['installed']): ?>
+        <!-- Same global preference as Admin's Display Preferences section
+             (includes/temp_unit.php) - just the convenient place to
+             change it while looking at temperature readings. Ambient
+             light (lux) has no unit choice and is unaffected either way. -->
+        <form method="post" class="unit-toggle" role="group" aria-label="Temperature unit">
+            <input type="hidden" name="action" value="set_temp_unit">
+            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token']) ?>">
+            <button type="submit" name="temp_unit" value="F" class="unit-toggle-btn<?= $tempUnit === 'F' ? ' active' : '' ?>" aria-pressed="<?= $tempUnit === 'F' ? 'true' : 'false' ?>">&deg;F</button>
+            <button type="submit" name="temp_unit" value="C" class="unit-toggle-btn<?= $tempUnit === 'F' ? '' : ' active' ?>" aria-pressed="<?= $tempUnit === 'F' ? 'false' : 'true' ?>">&deg;C</button>
+        </form>
+        <?php endif; ?>
 
         <p>Live readings from this PirateBox's own onboard environmental sensors - not from the Internet, and not stored anywhere: each reading shown here reflects the sensor right now, not a history.</p>
 

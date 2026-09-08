@@ -581,6 +581,44 @@ ul#chat li.pending {
     color: var(--text-on-accent);
 }
 
+/* C/F quick-toggle (2026-09-08, /utility/environment/) - a small
+   button-pair mirroring .history-range-buttons/.radio-chip's existing
+   "row of plain buttons, .active picked out with the accent color"
+   look, not a new toggle-switch component. Two real <button
+   type="submit"> elements inside one <form> - native keyboard/focus
+   semantics for free (global :focus-visible already covers these),
+   no JS of its own. */
+.unit-toggle {
+    display: inline-flex;
+    gap: 0.4rem;
+    margin: 0 0 1rem 0;
+}
+
+.unit-toggle-btn {
+    font-size: 0.85rem;
+    font-weight: bold;
+    text-transform: none;
+    padding: 0.5rem 0.9rem;
+    min-height: 2.25rem;
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+}
+
+.unit-toggle-btn:hover {
+    background: var(--bg-panel);
+    color: var(--text-primary);
+    border-color: var(--accent);
+    box-shadow: none;
+}
+
+.unit-toggle-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-on-accent);
+    cursor: default;
+}
+
 .history-chart-container {
     position: relative;
     width: 100%;
