@@ -18,13 +18,26 @@ full single-writer rationale. No sudo needed: both files live under
 /var/lib/piratebox-esp32/, group-writable by `gpio` (the interactive
 operator account is already a member of that group).
 
-TYPICAL WORKFLOW:
+TYPICAL WORKFLOW (single probe, or you're comfortable eyeballing a
+short list):
     python3 tools/ds18b20_commission.py watch
         # warm one probe with your fingers, watch which ROM's
         # temperature rises - Ctrl+C once you've identified it
     python3 tools/ds18b20_commission.py name 28ff641e04170378 Enclosure
     python3 tools/ds18b20_commission.py list
         # confirm the name is now attached
+
+MULTI-PROBE WORKFLOW (recommended with several probes at once -
+the tool does the comparison instead of you eyeballing N similar
+numbers): `identify` captures a baseline the moment it starts, then
+shows each probe's LIVE DELTA from that baseline, sorted with the
+biggest mover first and flagged once it's unambiguous:
+    python3 tools/ds18b20_commission.py identify
+        # (tool captures baseline here - don't warm anything yet)
+        # now warm ONE probe; within a couple of read cycles its row
+        # rises to the top with ">>> LIKELY THIS ONE <<<"
+    python3 tools/ds18b20_commission.py name <rom> "..."
+        # repeat identify for the next probe
 """
 import json
 import sys
@@ -113,6 +126,83 @@ def cmd_watch(args):
         print("\nStopped.")
 
 
+# A DS18B20's successive-read jitter (12-bit resolution, 0.0625C
+# steps) never approaches this - a delta this large is unambiguously a
+# hand warming the probe, not sensor noise. Chosen well above the
+# largest natural drift observed during this project's own commissioning
+# (< 0.5C over minutes at rest).
+IDENTIFY_THRESHOLD_C = 1.5
+
+
+def capture_baseline():
+    """Returns {rom: value} for every currently-ok probe - the
+    reference point identify() measures live deltas against. Probes
+    that are currently NOT ok (disconnected/uninit_85c/etc.) are
+    simply excluded from the baseline - they'll appear once they start
+    reporting real values, with no baseline to compare against yet
+    (shown as delta unknown, never a fabricated zero)."""
+    export = read_export()
+    baseline = {}
+    for rom, reading in get_ds18b20_probes(export).items():
+        if reading.get("ok") and isinstance(reading.get("value"), (int, float)):
+            baseline[rom] = float(reading["value"])
+    return baseline
+
+
+def compute_deltas(baseline: dict, current_probes: dict) -> list:
+    """Pure function: given a baseline {rom: value} and the current
+    probes dict (the live 'probes' shape from the export), returns a
+    list of (rom, current_value_or_None, delta_or_None) tuples sorted
+    by delta descending (unknown deltas - a probe missing from the
+    baseline, or currently not-ok - sort last, not first, so a
+    disconnected probe never looks like "the biggest mover"). Directly
+    testable without any file I/O."""
+    rows = []
+    for rom, reading in current_probes.items():
+        if reading.get("ok") and isinstance(reading.get("value"), (int, float)):
+            value = float(reading["value"])
+            delta = (value - baseline[rom]) if rom in baseline else None
+        else:
+            value = None
+            delta = None
+        rows.append((rom, value, delta))
+    rows.sort(key=lambda r: (r[2] is None, -(r[2] or 0)))
+    return rows
+
+
+def cmd_identify(args):
+    interval = float(args[0]) if args else 5.0
+    print("Capturing baseline - do not warm any probe yet...")
+    baseline = capture_baseline()
+    if not baseline:
+        print("No currently-ok probes found to baseline against. Check 'list' first.")
+        return
+    print(f"Baseline captured for {len(baseline)} probe(s). Now warm ONE probe with your")
+    print(f"fingers - refreshing every {interval:.0f}s (the sensor itself only updates every")
+    print("~30s internally, so allow at least one full cycle to see a change). Ctrl+C to stop.\n")
+    try:
+        while True:
+            export = read_export()
+            probes = get_ds18b20_probes(export)
+            rows = compute_deltas(baseline, probes)
+            print(f"--- {time.strftime('%H:%M:%S')} ---")
+            print(f"{'ROM address':<18} {'Now':>8} {'Delta':>8}")
+            print("-" * 40)
+            for rom, value, delta in rows:
+                now_str = "--" if value is None else f"{value:.2f}C"
+                if delta is None:
+                    delta_str = "n/a"
+                    flag = ""
+                else:
+                    delta_str = f"{delta:+.2f}C"
+                    flag = "   >>> LIKELY THIS ONE <<<" if delta >= IDENTIFY_THRESHOLD_C else ""
+                print(f"{rom:<18} {now_str:>8} {delta_str:>8}{flag}")
+            print()
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        print("\nStopped.")
+
+
 def cmd_name(args):
     if len(args) < 2:
         print("Usage: ds18b20_commission.py name <rom_hex> <friendly name>", file=sys.stderr)
@@ -145,6 +235,7 @@ def cmd_unname(args):
 COMMANDS = {
     "list": cmd_list,
     "watch": cmd_watch,
+    "identify": cmd_identify,
     "name": cmd_name,
     "unname": cmd_unname,
 }
