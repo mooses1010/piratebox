@@ -1141,7 +1141,23 @@ ul#chat li.empty-state {
     max-width: none;
     margin: 1rem 0 0 0;
     padding: 0;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    /* Always exactly 4 tiles here (2026-09-08 fix) - a fixed 2x2 grid,
+       not auto-fit. auto-fit's column count is a pure function of the
+       CONTAINER's current width, with no awareness that this grid only
+       ever holds 4 items: at typical laptop widths, .landing-side's
+       panel width (bounded by .landing-sides' own 900px max-width,
+       split two ways by .landing-sides-grid) happened to land in the
+       narrow range where exactly three 120px auto-fit tracks fit but
+       not four, producing an unbalanced 3-tiles-then-1 wrap. Two fixed
+       50% columns are correct at every width this grid actually
+       appears at (mobile's single-column .landing-sides-grid state
+       included - the panel is never narrow enough there for a 2-column
+       tile grid to feel cramped; verified down to a 320px viewport).
+       Titles wrap naturally within a column (no white-space:nowrap
+       anywhere on .utility-card-title) - the longest title, "Offline
+       Reference Library", wraps across two lines cleanly at every
+       width this grid renders at. */
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.6rem;
 }
 
