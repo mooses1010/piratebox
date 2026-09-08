@@ -1,14 +1,18 @@
 # ESP32-S3 Hardware/Sensor Supervisor — Design
 
-**Status: WORKING IMPLEMENTATION, first DS18B20 probe wired and
-validated live (2026-09-07).** BH1750 ambient light is live on the
-ESP32's own I2C bus (§16) — no longer Pi-owned. DS18B20 multi-probe
-temperature support (§17), a commissioning workflow for naming probes,
-an OLED probe glance page, and ambient-light-driven OLED auto-
-brightness (§18) are all built, deployed, and confirmed working —
-probe #1 is wired and reporting real, changing temperature data
-(§17f); probes #2-4 remain unwired, awaiting the operator. The board
-was
+**Status: WORKING IMPLEMENTATION, all FIVE DS18B20 probes wired and
+validated live (2026-09-07).** The actual hardware inventory turned
+out to be five probes, not the originally-assumed four — corrected
+once the operator built a temporary harness. BH1750 ambient light is
+live on the ESP32's own I2C bus (§16) — no longer Pi-owned. DS18B20
+multi-probe temperature support (§17), a commissioning workflow for
+naming probes, an OLED probe glance page, and ambient-light-driven
+OLED auto-brightness (§18) are all built, deployed, and confirmed
+working against real hardware — all five ROMs discovered on one
+1-Wire bus, each independently reporting real, changing temperature
+data (§17f). None are named/assigned a role yet — physical
+commissioning (matching each ROM to its physical probe) is the current
+step. The board was
 commissioned (identity fully proven read-only via `esptool`) earlier
 the same day — see `docs/OPERATIONAL-DECISIONS.md`'s two commissioning
 entries and `docs/CAPABILITY-REGISTRY.md`'s "Remote microcontroller/
@@ -750,9 +754,25 @@ watched changing genuinely (30.125°C→30.0°C→29.875°C, a physically
 plausible post-handling cooling trend) - proof of a live sensor, not a
 stuck value. `tools/ds18b20_commission.py list` confirmed the
 one-probe path end-to-end. Full record: `docs/OPERATIONAL-
-DECISIONS.md`. **Probes #2-4: not yet wired** - the plan below applies
-unchanged to each; they share the same GPIO4 bus (1-Wire supports
-multiple devices on one line, no new pin per probe).
+DECISIONS.md`.
+
+**All FIVE probes: DONE, validated end-to-end (2026-09-07, same day).**
+The actual inventory was five probes, not four — the operator built a
+temporary harness with a JST connector (rather than loose-wiring each
+into the breakout) and brought all five onto the same 1-Wire bus in
+parallel, sharing the existing GPIO4/3.3V/GND connections and the same
+single 4.7kΩ pull-up (1-Wire needs exactly one pull-up per bus,
+regardless of device count). All five discovered: `2840ff00000000a2`,
+`28a50d01000000ca`, `28a5ea00000000ce` (the original probe),
+`28c1fe2500000043`, `28fd856b0000003b` — every one a genuine family-`0x28`
+device, every one `ok: true`, `bus_ok: true` throughout, zero malformed
+lines. Watched over 90 seconds: three of the five readings changed
+independently while two stayed exactly flat in the same window — real,
+uncorrelated live data from five separate sensors, not a duplicated or
+fabricated set. `tools/ds18b20_commission.py list` correctly
+represents all five as distinct entries. None are named yet — that's
+the next, separate step, done together with the operator by physically
+warming each probe in turn while watching the commissioning tool.
 
 | DS18B20 wire | Connects to |
 |---|---|

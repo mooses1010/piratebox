@@ -81,7 +81,7 @@ it is.**
 | Field Tools (time/date, unit conversion, coordinates) | Operational | INSTALLED, CURRENT SCOPE | Integrated (software) |
 | I2C multiplexer (PCA9548A/TCA9548A) | Operational/infrastructure | CANDIDATE | Integrated (if adopted) |
 | GNSS receiver | Optional/Field | CANDIDATE | Attachable or Integrated (undecided) |
-| Environmental sensing (temp/humidity beyond CPU) | Optional/Field | **DS18B20 (multi-probe temperature): SOFTWARE COMPLETE, HARDWARE NOT YET WIRED (2026-09-07)** - four waterproof probes owned, none physically connected yet. Full multi-device 1-Wire bus support built on the ESP32-S3 supervisor (real ROM-address identity, never physical position; GPIO4 chosen for DATA), a naming/commissioning workflow (`tools/ds18b20_commission.py`), Environment UI (named probes only - ROM IDs stay in commissioning tooling), and an OLED glance page - see `docs/ESP32-SUPERVISOR-DESIGN.md` §17 for the full design and its consolidated physical wiring gate. BME280 (temp/humidity/pressure) remains CANDIDATE, not started. | Attachable (behind the ESP32-S3 supervisor - see that row below) |
+| Environmental sensing (temp/humidity beyond CPU) | Optional/Field | **DS18B20 (multi-probe temperature): FIVE PROBES WIRED AND VALIDATED LIVE (2026-09-07)** - inventory corrected from an initial four to the actual five once the operator built a temporary harness; all five discovered on one 1-Wire bus (GPIO4), all genuine family-0x28 devices, all independently reporting real, changing temperatures - see `docs/OPERATIONAL-DECISIONS.md` for the validation evidence. Full multi-device 1-Wire bus support on the ESP32-S3 supervisor (real ROM-address identity, never physical position), a naming/commissioning workflow (`tools/ds18b20_commission.py`), Environment UI (named probes only - ROM IDs stay in commissioning tooling), and an OLED glance page - see `docs/ESP32-SUPERVISOR-DESIGN.md` §17. None of the five are named/assigned a role yet - that's a deliberate, separate, not-yet-done step. BME280 (temp/humidity/pressure) remains CANDIDATE, not started. | Attachable (behind the ESP32-S3 supervisor - see that row below) |
 | Air quality (CO2/particulate/VOC) | Optional/Field | CANDIDATE | Integrated or Companion |
 | Light / UV (BH1750 ambient light) | Optional/Field | **INSTALLED, COMMISSIONED, WEB UI + OLED GLANCE PAGE LIVE, MIGRATED TO THE ESP32 SUPERVISOR (2026-09-07)** - originally commissioned directly on the Pi's I2C bus (0x23), then physically moved the same day to the ESP32-S3 supervisor's own I2C bus (GPIO8/9) once that subsystem was built and validated; real lux readings confirmed on both sides of the migration (~7-31 lux on the Pi, 11.67 lux post-migration, consistent readings in similar lighting). `HARDWARE_SIGNALS`'s `ambient_lux` now reads from the ESP32 path (`piratebox_esp32_bh1750.py`, drop-in replacement) - `/utility/environment/`, the Utility landing-page card, and the OLED "AMBIENT" glance page all needed zero changes, since they consume the signal/export, never the sensor directly | **Attachable** (behind the ESP32-S3 supervisor, itself USB/serial-attached - see that row below; no longer directly on the Pi's own I2C bus) |
 | Motion / orientation (IMU) | Optional/Field | CANDIDATE | Integrated |
@@ -1368,6 +1368,33 @@ it is.**
   design and the exact, consolidated physical wiring gate:
   `docs/ESP32-SUPERVISOR-DESIGN.md` §17-18. **Not yet wired** - no
   DS18B20 hardware is physically connected as of this entry.
+- **Probe #1 wired and validated (2026-09-07):** the operator verified
+  the breakout's 4.7kΩ pull-up with a multimeter and wired one probe.
+  Real ROM `28a5ea00000000ce` detected, reading confirmed genuinely
+  changing over several minutes (not stuck/fabricated). A real
+  deployment gap (`piratebox_glance.py` left un-deployed) was found via
+  the OLED daemon's own startup log and fixed immediately. Full record:
+  `docs/OPERATIONAL-DECISIONS.md`.
+- **Inventory corrected to FIVE probes; all five wired and validated
+  (2026-09-07, same day):** the operator built a temporary harness with
+  a JST connector rather than the originally-assumed four loose-wired
+  probes, bringing all five onto the same 1-Wire bus in parallel
+  (same GPIO4/3.3V/GND, no new pull-up needed - the existing 4.7kΩ
+  already serves the whole bus). All five discovered: `2840ff00000000a2`,
+  `28a50d01000000ca`, `28a5ea00000000ce` (the original probe #1),
+  `28c1fe2500000043`, `28fd856b0000003b` - every one family code `0x28`,
+  every one `ok: true`, `bus_ok: true`, zero malformed lines. Watched
+  over 90 seconds: three of the five readings changed independently
+  while two stayed flat - genuine uncorrelated live data, not a
+  duplicated or fabricated set. `tools/ds18b20_commission.py list`
+  correctly lists all five; the Environment page correctly shows
+  "5 probes detected but not yet configured with a name" with zero ROM
+  addresses leaked to the public page (confirmed by direct inspection
+  of the rendered HTML, not assumed). BH1750/`temp_internal`/Pi I2C
+  bus/OLED/all core services confirmed unaffected. None of the five are
+  named yet - physical commissioning (identifying which ROM is which
+  physical probe) is the next step, done together with the operator.
+  Full evidence: `docs/OPERATIONAL-DECISIONS.md`.
 - **Layer:** Optional/Field. Classification: **Attachable** (corrected
   2026-09-07 - see above). Core dependency: No - **must be able to
   disappear without breaking Core** (`docs/ARCHITECTURE.md` §3) -

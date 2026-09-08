@@ -6,6 +6,94 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## All FIVE DS18B20 probes wired and validated live - inventory corrected from four (2026-09-07, same day)
+
+**Decision date:** 2026-09-07. The operator built a temporary harness
+with a JST connector rather than wiring loose leads directly into the
+breakout, and used it to bring **five** DS18B20 probes onto the same
+1-Wire bus in parallel - one more than the four originally assumed
+when this phase began. Electrical arrangement unchanged from the
+single-probe validation: GPIO4/3.3V/GND, the same already-verified
+4.7kΩ pull-up (a 1-Wire bus needs exactly one pull-up regardless of
+device count - no changes needed for the extra probes). This entry
+records the validation, performed methodically rather than assuming
+five probes work merely because the operator said they were connected.
+
+**1. Clean reconnection confirmed, not assumed**: kernel log showed
+exactly one clean enumeration event for the CH9102 bridge, zero
+debounce/reset/disconnect noise - none of the previous BH1750-
+migration wiring-fault signature repeated.
+
+**2. Firmware/daemon stack confirmed live**: `fw_version: "0.2.0"`,
+`piratebox-esp32-supervisor.service` continuously active throughout.
+
+**3-7. Bus inspected, five distinct ROMs confirmed, all valid**: the
+very first read after reconnection already showed all five -
+`2840ff00000000a2`, `28a50d01000000ca`, `28a5ea00000000ce` (the
+already-known probe #1), `28c1fe2500000043`, `28fd856b0000003b` -
+every one family code `0x28` (genuine DS18B20, not an unrelated
+1-Wire device or a corrupted ROM read), every one `ok: true`,
+`bus_ok: true`, `malformed_lines: 0`.
+
+**8-9. Watched for long enough to rule out fabricated/stale/duplicated
+data, not assumed from one snapshot**: sampled every 15s across 90
+seconds. At the 45s mark, **three of the five readings changed
+independently while two stayed exactly flat in the same window** -
+this specific pattern (some change, some don't, in the same instant)
+is strong direct evidence of five genuinely separate, independently-
+converting sensors, not a duplicated value or a fabricated/mocked set.
+No 85.0°C, no `DEVICE_DISCONNECTED_C` (`-127`), no CRC failures, no
+probe disappearing/reappearing across any sample, `bus_ok` stayed
+`true` throughout - none of the explicit DS18B20 failure signatures
+appeared.
+
+**10. Full regression check, all clean**: `temp_internal` (40.5°C) and
+`bh1750` (9.17 lux, and `sensors-public.json`'s `ambient_light` export)
+both continued reporting correctly; Pi I2C bus unaffected (OLED `0x3c`,
+EEPROM `0x57`, RTC `0x68`); zero failed systemd units; `vcgencmd
+get_throttled` unchanged at `0x50005`; OLED daemon log showed zero
+errors/warnings/tracebacks since restart.
+
+**11-12. Commissioning tooling and Environment UI verified directly,
+not inferred**: `tools/ds18b20_commission.py list` correctly displayed
+all five as distinct rows with independent live temperatures, `ok`
+status, and `(unnamed)`. The live Environment page was fetched and
+its HTML directly grepped for the ROM-address pattern - **zero
+matches** - confirming no ROM ID reaches the public page; it correctly
+shows "5 probes detected but not yet configured with a name."
+
+**13-14. OLED glance rotation and auto-brightness checked against real
+current data, not merely inferred from source code**: with zero probes
+currently named, the "probe" glance page's own `eligible()` correctly
+evaluated `False` against live metrics (nothing glance-worthy yet, as
+designed). A simulated 5-named-probe rotation (fed synthetic names
+through the real, unmodified `build_glance_metrics()`) confirmed the
+wall-clock-minute rotation cycles through all five over 5 minutes with
+no repeats and no rapid/unusable flicker. Auto-brightness was verified
+by calling the actual deployed `read_current_ambient_lux()` and
+`compute_target_contrast()` against the **real, current** BH1750
+reading (8.33 lux) - producing target contrast 85/255, a sensible
+intermediate value for a dim room (neither the full-brightness fallback
+nor the dark-room floor), proving the live computation pipeline works
+correctly with real data. **Honest limit disclosed**: the SSD1306's own
+applied contrast register cannot be read back over I2C (it's a
+write-only command interface) - this proves the computation is correct
+and executing without error, but full physical confirmation that the
+screen itself dims/brightens still needs either a human visual check
+or trusting the (already-confirmed-clean) absence of exceptions in the
+daemon's log.
+
+**15. Full regression suite re-run**: every `tools/test_*.py` and
+`tools/test_*.php` in the repo still passes, unchanged from the
+previous round (no code changed this round, only live validation).
+
+**Not done, by explicit instruction**: no probe has been named or
+assigned a role. The next step is a physical commissioning session -
+warming each probe by hand, one at a time, while watching
+`tools/ds18b20_commission.py`, to establish which ROM corresponds to
+which physical probe without ever inferring identity from discovery
+order.
+
 ## DS18B20 probe #1 wired, commissioned, and validated end-to-end (2026-09-07, immediately after the physical gate)
 
 **Decision date:** 2026-09-07. The operator completed the physical
