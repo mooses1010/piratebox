@@ -86,9 +86,24 @@ error by itself, just a prompt to do the same file-level check.
 
 ## 2. Critical rules — non-negotiable **[piratebox]**
 
-- **Never `git push` to `origin` unless explicitly asked.** This repo
-  is deliberately kept ahead of `origin/main` (currently by dozens of
-  commits) as a matter of practice — see `docs/CHECKPOINTS.md`.
+- **Remote model (changed 2026-09-07 — see `docs/OPERATIONAL-
+  DECISIONS.md` → "Repository migrated off the upstream fork network"
+  for the full story before assuming otherwise):** `origin`
+  (`git@github.com:mooses1010/piratebox.git`) is the operator's own
+  **canonical** repository — normal development pushes go here, same
+  as any other repo; no special standing restriction. `upstream`
+  (`git@github.com:teklynk/piratebox.git`) is the original
+  reference-only project — fetching is fine, but its push URL is
+  deliberately set to the literal string `DISABLED`. **Never push to
+  `upstream`, and never "fix" its push URL back to a real one** — that
+  disablement is intentional, not a misconfiguration. (If you're
+  reading this after 2026-09-07 and see prose elsewhere implying
+  `origin` itself must never be pushed to, that's leftover pre-
+  migration wording — trust this entry and the linked one instead.)
+- This repo also has one asset (`nga-bowditch-american-practical-
+  navigator.pdf`) tracked via **Git LFS**, not an ordinary Git blob —
+  see the same `docs/OPERATIONAL-DECISIONS.md` entry before assuming a
+  fresh clone or a history rewrite here works like a normal repo.
 - **Never install a package** (`apt`, `pip`, anything) without the
   operator's explicit go-ahead first, even one a design doc lists as
   a future dependency.
@@ -146,6 +161,7 @@ error by itself, just a prompt to do the same file-level check.
 | Deployment mechanism (repo → live) | `piratebox_deploy.sh` header comments + `docs/OPERATIONAL-DECISIONS.md` → "Claude deployment/mode-switch automation" |
 | Backup / restore of live community data | `tools/backup_piratebox_data.sh`, `tools/restore_piratebox_data.sh` header comments + `docs/OPERATIONAL-DECISIONS.md` → "Stage 25: Backup / Restore for Live Community Data" |
 | Known-good rollback points | `docs/CHECKPOINTS.md` |
+| Git remote model (`origin`/`upstream`), Git LFS asset | `docs/OPERATIONAL-DECISIONS.md` → "Repository migrated off the upstream fork network" |
 | Full decision/implementation history, anything not listed above | `docs/OPERATIONAL-DECISIONS.md` — see the warning in §4 before reading it as a task list |
 | Feature list, install instructions, human-facing overview | `README.md` |
 

@@ -64,6 +64,29 @@ see "Two-QR PirateBox Onboarding Restored").
 
 ## Installation
 
+### 0. Get the repository (Git LFS required)
+
+This repository stores one large reference file (the "American
+Practical Navigator") via [Git LFS](https://git-lfs.com/) rather than
+as an ordinary Git blob, so it doesn't hit GitHub's 100 MB per-file
+limit. Install `git-lfs` **before** cloning so its smudge filter is in
+place when the clone checks files out:
+
+```bash
+sudo apt install -y git git-lfs
+git lfs install
+git clone https://github.com/mooses1010/piratebox.git
+```
+
+If you already have a clone without `git-lfs` installed, that one file
+will silently be a tiny pointer stub instead of the real PDF - install
+`git-lfs`, then run `git lfs pull` inside the checkout to fetch the
+real content. See
+[docs/OPERATIONAL-DECISIONS.md](docs/OPERATIONAL-DECISIONS.md) → "Repository
+migrated off the upstream fork network" for the full rationale. Every
+other file in this repository is an ordinary Git file - this only
+matters for that one asset.
+
 ### 1. Install Dependencies
 **Tip:** On the Raspberry Pi Zero 2 W, I used a usb hub that also has ethernet. This allowed me to SSH into the Pi while configuring hostapd.
 - Run: `sudo raspi-config` and set all of the localization settings, WIFI region, TimeZone, Keyboard layout, set hostname and enabled SSH.
