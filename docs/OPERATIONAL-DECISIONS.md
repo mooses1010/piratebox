@@ -6,6 +6,32 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## All FIVE DS18B20 probes physically commissioned - ROM-to-physical-probe mapping established (2026-09-07, same day)
+
+**Decision date:** 2026-09-07. Added an `identify` subcommand to
+`tools/ds18b20_commission.py` (baseline capture + live delta-from-
+baseline comparison, sorted biggest-mover-first, flagged past a 1.5°C
+threshold) specifically so the operator didn't have to manually
+compare five similar-looking temperature streams by eye. Used it live:
+the operator warmed each of the five physical probes in turn with
+their fingers while the tool was watched; each ROM's identity was
+established from its own unambiguous, sustained temperature rise
+(never from discovery order, never inferred by elimination even for
+the fifth/last one):
+
+1. `28fd856b0000003b` - 29.00°C → 34.69°C (+5.69°C)
+2. `28a5ea00000000ce` - 29.31°C → 34.44°C (+5.12°C)
+3. `28c1fe2500000043` - 29.56°C → 34.44°C (+4.81°C)
+4. `2840ff00000000a2` - 29.50°C → 34.06°C (+4.56°C)
+5. `28a50d01000000ca` - 29.75°C → 34.12°C (+4.38°C)
+
+This is a hardware-identity record only - no names or roles were
+assigned to any probe as part of this. That decision belongs to the
+operator alone and is intentionally left for a separate, later entry
+in this file once made. 8 new unit tests added for the pure
+`compute_deltas()` comparison logic; full suite (458 Python tests, 41
+PHP assertions) still green.
+
 ## All FIVE DS18B20 probes wired and validated live - inventory corrected from four (2026-09-07, same day)
 
 **Decision date:** 2026-09-07. The operator built a temporary harness
