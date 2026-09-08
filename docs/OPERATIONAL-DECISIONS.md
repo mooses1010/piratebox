@@ -6,6 +6,132 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## PirateBox-wide hardware-awareness integration, deployed and live-verified (2026-09-08)
+
+**Decision date:** 2026-09-08. Full design: `docs/ESP32-SUPERVISOR-
+DESIGN.md` §21. This entry is the evidence record - what was actually
+verified live, not just implemented in source.
+
+**Why.** Several phases had built the ESP32 supervisor, BH1750, and
+DS18B20 pieces as increasingly capable but still isolated subsystems.
+A whole-project audit (two parallel investigations: the PHP/web layer,
+and the Python daemon/OLED/progression layer) confirmed they were
+still functionally bolted on rather than understood by the rest of the
+product - see §21a of the linked design doc for the specific gaps
+found (admin table blind to this hardware, `status.json` with zero
+ESP32 awareness, ~5 independent reimplementations of "is this reading
+connected/fresh", no generic sensor-health vocabulary despite
+`capability_state.php` already having exactly the right one, DS18B20
+naming conflating identity/name/role, a real 10x bug in the
+Environment page's client-side "time ago" formatter).
+
+**What changed** (full list in the design doc, §21b-21d): a shared
+sensor-health classifier (`piratebox_hardware_health.py`, mirrored in
+PHP) reusing `capability_state.php`'s own `NOT_INSTALLED`/`AVAILABLE`/
+`DEGRADED`/`UNAVAILABLE`/`UNKNOWN` vocabulary; three new admin
+capability rows (`esp32_supervisor`, `ambient_light`, `ds18b20_probes`,
+all `layer: optional`); `piratebox_ds18b20_roles.py`'s schema grew
+`commissioned`/`commissioned_at`/`physical_index` (a permanent
+hardware-identity fact, independent of naming) plus a reserved,
+unpopulated `role` field for a genuinely future functional
+classification; the Environment page now shows every commissioned
+probe (named or generic "Probe N"); the OLED's fault/warning tier
+gained a hardware-problem signal at the exact same priority the
+chronic Pi undervoltage condition already uses; two new
+`HARDWARE_SIGNALS` (`ds18b20_probes_ok`/`ds18b20_probes_commissioned`)
+feed one new, modest, spoiler-safe Progression achievement (content
+intentionally not repeated in operator-facing docs - see `piratebox_
+progression.py` directly); `tools/diagnose_esp32_supervisor.py` now
+uses the shared classifiers with an explicit missing/failing-
+commissioned breakdown; `tools/ds18b20_commission.py` gained a
+`commission <rom1> ... <romN>` command recording a whole physically-
+identified set at once, in identification order.
+
+**Tested:** 538 Python tests (23 new in `test_hardware_health.py`, 16
+new roles/commission-batch-schema tests, 6 new CLI-command tests, 4
+new export-enrichment tests, 16 new OLED tier/warning-text/render_
+health tests, 8 new progression latch/achievement tests) + 452 PHP
+assertions (21 new: shared classifiers + the reshaped probe-display
+shape). Zero regressions anywhere else in either suite.
+
+**A real, pre-existing deployment gap was found and fixed during this
+round, unrelated to today's new code:** the systemd unit actually
+installed at `/etc/systemd/system/piratebox-esp32-supervisor.service`
+was missing the `StateDirectory=piratebox-esp32` directive that the
+repo's own copy had carried since the original DS18B20 phase
+(2026-09-07) - meaning `/var/lib/piratebox-esp32/` had never actually
+been created on this Pi, and the DS18B20 naming/commissioning
+mechanism had never had a working durable store on the running system
+despite being fully built and tested in source. Discovered when the
+very first live `commission` command failed with `FileNotFoundError`
+rather than assumed to be some new bug in today's code. Fixed by
+deploying the (already-correct, already-committed) unit file - an
+additive-only diff (comments plus the one directive, nothing removed)
+- reloading systemd, and restarting only the affected service.
+Independently verified after: unit file byte-identical to the repo
+copy; `/var/lib/piratebox-esp32` now exists, `piratebox-gpio:gpio`
+0770 as designed; service active with a fresh restart timestamp; zero
+new failed units.
+
+**Deployed and live-verified**, each item independently confirmed
+against the real system (not inferred from source):
+- All 7 changed/new Python files (`piratebox_esp32_supervisor.py`,
+  `piratebox_esp32_client.py`, `piratebox_ds18b20_roles.py`,
+  `piratebox_oled_daemon.py`, `piratebox_progression.py`,
+  `piratebox_glance.py`, and the new `piratebox_hardware_health.py`)
+  byte-identical between the repo and `/usr/local/bin/`, correct
+  `root:root` ownership, correct permissions (755 for executables, 644
+  for the two library-only modules, matching the existing pattern).
+- Both `piratebox-esp32-supervisor.service` and `piratebox-oled.service`
+  restarted cleanly - journal shows no exceptions/tracebacks; the
+  OLED's own startup line now literally reads "ESP32 supervisor
+  temp_internal/ds18b20 signals registered" (direct proof the new code
+  path executed, not just that the file was copied); "9 glance page(s)
+  registered" unchanged (no new page was added - the existing "probe"
+  page's eligibility was extended, not duplicated).
+- The live export gained the new `physical_index` field per probe and
+  the top-level `sensors.ds18b20.commissioned` map, confirmed via a
+  direct read of `/run/piratebox-esp32/esp32-public.json` before and
+  after commissioning.
+- All five probes' permanent physical identities - established in the
+  prior phase's live warming-test commissioning - were recorded
+  durably via `tools/ds18b20_commission.py commission` in the exact
+  order given: Probe 1 `28fd856b0000003b`, Probe 2 `28a5ea00000000ce`,
+  Probe 3 `28c1fe2500000043`, Probe 4 `2840ff00000000a2`, Probe 5
+  `28a50d01000000ca`. No names or roles assigned. `list` and a direct
+  read of the durable `ds18b20-roles.json` both confirm the correct
+  mapping; the request file was consumed (removed) after being
+  applied, as designed.
+- Admin capability classification confirmed directly (PHP CLI, since
+  the admin page itself requires operator credentials this session
+  doesn't have): `esp32_supervisor` and `ambient_light` both
+  `AVAILABLE`; `ds18b20_probes` `AVAILABLE` with `probes_ok=5`,
+  `probes_commissioned=5`, matching the just-completed commissioning
+  exactly.
+- Environment page (`/utility/environment/`, fetched live via `curl`):
+  all five probes render as "Probe 1".."Probe 5" with real, distinct
+  temperature readings (29.4-30.1°C); the `?fetch=1` JSON endpoint
+  matches; **zero ROM addresses appear anywhere in the rendered HTML**
+  (confirmed by grepping the actual response for all five ROM strings -
+  no match).
+- The new Progression achievement genuinely unlocked live (not merely
+  possible in theory): the daemon's own durable
+  `/var/lib/piratebox-oled/progression.json` shows
+  `ds18b20_full_bus_confirmed: true` and the achievement id present in
+  the unlocked list (12 → 13 achievements, observed both in that file
+  directly and on the live, publicly-reachable Captain's Log page's
+  own "Achievements Discovered" stat).
+- `compute_hardware_warning_text()` called directly against the live,
+  fully-healthy export returns `None` - no false warning against
+  genuinely healthy hardware.
+- Zero regressions: I2C bus unchanged (OLED `0x3c`, EEPROM `0x57`, RTC
+  `0x68`/`UU` all still present); all four Core services
+  (hostapd/dnsmasq/nginx/php8.4-fpm) active; `vcgencmd get_throttled`
+  still the same pre-existing chronic `0x50005` - not misrepresented
+  as a new condition anywhere; `systemctl --failed` empty throughout;
+  `reboot_count: 0`, `malformed_lines` low and stable post-restart (not
+  growing).
+
 ## Repository migrated off the upstream fork network to a standalone canonical remote; Git LFS adopted for one oversized asset (2026-09-07, same day)
 
 **Decision date:** 2026-09-07. This repo's `origin` remote changed
