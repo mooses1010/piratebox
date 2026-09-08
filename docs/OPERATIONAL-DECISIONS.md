@@ -6,6 +6,100 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Temperature display-unit preference (C/F) implemented; DS18B20 end-to-end sanity audit performed - no bug found (2026-09-08, same day)
+
+**Decision date:** 2026-09-08. Full design: `docs/ESP32-SUPERVISOR-
+DESIGN.md` §23-24.
+
+**Part 1 - C/F preference.** A global, operator-set display preference
+(`var/www/html/data/temp-unit.json`, mirroring `includes/travel_mode.
+php`'s exact storage pattern) now controls what unit every human-facing
+temperature surface shows - Environment page (current readings +
+historical graphs), admin page, public status page, and OLED. The
+canonical data path (ESP32 protocol, cached export, stored history) is
+completely untouched by this feature - `piratebox_hardware_health.py`
+and `includes/esp32_supervisor.php` have zero lines changed. Chosen
+over `includes/theme.php`'s localStorage model because the OLED daemon
+(a separate Python process, no browser) needs to read the same choice
+- a server-side file both PHP (www-data) and the OLED daemon
+(piratebox-gpio) can reach, world-readable (0644) so no new permission
+grant was needed (`ProtectSystem=strict` only blocks the OLED daemon's
+*writes* outside its allowlisted paths, not reads elsewhere).
+
+**Part 2 - DS18B20 sanity audit.** The operator noticed all five probes
+reading ~28-32°C while believing the room to be closer to ~20°C/68°F,
+and asked for a read-only, evidence-driven trace before any
+calibration was even considered. Traced firmware
+(`sensors.getTempC()`, no custom math) through the wire protocol
+(unit hardcoded `"C"`, values passed straight through) through the
+entire Pi-side pipeline (supervisor daemon, cached export, hardware-
+health classifiers, history sampler/storage) to the Environment page
+and OLED. **Grepped the entire pre-existing Pi-side codebase for any
+Fahrenheit-conversion or scaling arithmetic - none existed anywhere
+before this phase**, ruling out a pre-existing double-conversion or
+unit-mislabeling bug. Confirmed stored history matches the live
+export's value range by reading the actual per-probe files directly.
+Confirmed the ESP32's own internal chip temperature (a clearly
+separate, consistently higher ~37.5-38.5°C cluster) is never mixed
+with the DS18B20 probe values anywhere in the pipeline. Confirmed the
+firmware's `DEVICE_DISCONNECTED_C` and exact-85.0°C sentinel handling
+is still functioning (zero disconnection/CRC/85°C events observed in
+the live data or recent journal).
+
+**Live values captured during this audit** (2026-09-08, `generated_at`
+1788900531, `connected: true`, `stale: false`):
+
+| Signal | Value | ROM (admin-only identity) |
+|---|---|---|
+| Probe 1 | 29.1875°C | `28fd856b0000003b` |
+| Probe 2 | 29.4375°C | `28a5ea00000000ce` |
+| Probe 3 | 29.375°C | `28c1fe2500000043` |
+| Probe 4 | 29.3125°C | `2840ff00000000a2` |
+| Probe 5 | 29.5625°C | `28a50d01000000ca` |
+| ESP32 internal (chip, NOT ambient) | 38.5°C | n/a |
+
+All five probes agree within a 0.375°C spread at this sample - tight
+agreement, clearly distinguishable from the ESP32's own die
+temperature. This specific pattern (small probe-to-probe disagreement,
+large consistent offset above a plausible room baseline) is the
+signature of probes physically located near a shared heat source, not
+of independent sensor failure (which would show much larger spread) or
+a software defect (which would not produce agreement this tight while
+still being wrong by roughly the same ~9-11°C for every probe).
+
+**Conclusion: the software/data path is correct. No calibration offset
+was added, and none was seriously considered - this is evidence-based
+by design** (per explicit instruction: "I would rather learn that the
+probes are physically sitting in a warm location than hide a real
+condition with an arbitrary calibration offset"). The next step is a
+physical placement test, not a software change:
+
+**Physical sanity-test instructions for the operator:**
+1. Move all five probe tips away from the ESP32 board, any USB hubs,
+   the Pi itself, power supplies, and direct sunlight/heating vents.
+2. Group them together (loosely bundled or suspended, tips not
+   touching a solid warm surface) in open, representative room air.
+3. Wait approximately 15-30 minutes for them to thermally stabilize.
+4. Compare their stabilized readings to each other (should stay
+   tightly clustered, as they already are today) and to whatever
+   trustworthy reference thermometer is available, if any.
+
+No special logging is needed for this - the existing 5-minute sensor-
+history sampler (§22) will record the whole transition naturally; the
+Environment page's "Temperature Probes" history graph (6h range) will
+show the shift as a normal part of its already-existing chart once the
+probes are moved. No "true" room temperature was assumed or asserted
+anywhere in this investigation - any future calibration decision is
+left entirely to the operator, based on an actual trustworthy
+reference reading, not a guess.
+
+**Tested:** 14 new Python tests (`test_temp_unit.py`'s conversion/
+persistence/defaulting tests) + 7 new `_fmt_temp()`/render tests
+(`test_glance.py`, `test_silly_mode.py`) + 23 new PHP assertions
+(`test_temp_unit.php`). Full regression: 614 Python tests, 523 PHP
+assertions, all green, zero regressions to canonical Celsius data,
+history storage, or hardware-health classification.
+
 ## Lightweight sensor history deployed and live-verified (2026-09-08, same day)
 
 **Decision date:** 2026-09-08. Follow-up to the previous entry (design/

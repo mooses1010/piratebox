@@ -32,7 +32,14 @@
 # /proc, or anything else on its own):
 #   cpu_percent            float 0-100, or None (no prior /proc/stat
 #                          sample yet - e.g. right after daemon start)
-#   cpu_temp_c             float, or None
+#   cpu_temp_c             float, or None - ALWAYS genuine Celsius (the
+#                          canonical unit); _fmt_temp() converts using
+#                          temp_unit below at render time, once
+#   temp_unit              'C' or 'F' (2026-09-08) - the current
+#                          display-unit preference (piratebox_temp_
+#                          unit.read_temp_unit()), read once per
+#                          glance-phase-entry alongside every other
+#                          field here, never a new per-tick file read
 #   ram_percent            float 0-100, or None
 #   disk_percent           float 0-100, or None
 #   clients                int, or None
@@ -97,6 +104,8 @@
 
 import random
 
+import piratebox_temp_unit
+
 CANVAS_W = 128
 CANVAS_H = 64
 
@@ -136,8 +145,17 @@ def _fmt_pct(value) -> str:
     return "--%" if value is None else f"{round(value)}%"
 
 
-def _fmt_temp(value) -> str:
-    return "--C" if value is None else f"{round(value)}C"
+def _fmt_temp(value, unit: str = "C") -> str:
+    """`value` is always genuine Celsius (the canonical unit
+    everywhere upstream of this call - see piratebox_temp_unit.py's
+    own header) - converted here, at the one place a temperature is
+    actually rendered onto the display, exactly once. Terse style
+    (no degree glyph) matches this OLED's existing convention for
+    every other unit suffix on this display (%, lux, etc.)."""
+    if value is None:
+        return "--" + unit
+    converted = piratebox_temp_unit.convert_c(value, unit)
+    return f"{round(converted)}{unit}"
 
 
 def _fmt_lux(value) -> str:
@@ -269,7 +287,7 @@ def _draw_label(draw, text: str, label_fonts, top_y: int = 1) -> None:
 def _render_cpu(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics: dict) -> None:
     _draw_top_aligned(draw, "CPU", font_cpu_label, 0)
     _draw_centered(draw, _fmt_pct(metrics.get("cpu_percent")), font_medium, 19)
-    _draw_centered(draw, _fmt_temp(metrics.get("cpu_temp_c")), font_medium, 41)
+    _draw_centered(draw, _fmt_temp(metrics.get("cpu_temp_c"), metrics.get("temp_unit", "C")), font_medium, 41)
 
 
 def _render_ram(draw, label_fonts, font_cpu_label, font_medium, font_big, metrics: dict) -> None:
@@ -336,7 +354,7 @@ def _render_probe(draw, label_fonts, font_cpu_label, font_medium, font_big, metr
     # longer than this project's other, deliberately-short, fixed labels.
     name = metrics.get("probe_name") or "PROBE"
     _draw_label(draw, name.upper(), label_fonts, 0)
-    _draw_centered(draw, _fmt_temp(metrics.get("probe_temp_c")), font_big, 30)
+    _draw_centered(draw, _fmt_temp(metrics.get("probe_temp_c"), metrics.get("temp_unit", "C")), font_big, 30)
 
 
 _RENDERERS = {

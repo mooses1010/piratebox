@@ -1287,3 +1287,127 @@ all seven signals: **well under 2 MB** — negligible on any SD card, and
 one write of a single small (tens-of-KB) file per signal every 5
 minutes is not meaningful SD-card wear. Adding a future sensor grows
 this linearly per signal, never restructuring what's already stored.
+
+## 23. Temperature display-unit preference (Celsius/Fahrenheit) (2026-09-08)
+
+**Status: IMPLEMENTED, TESTED, DEPLOYED, LIVE-VALIDATED.**
+
+**The non-negotiable rule this whole feature is built around:** every
+canonical temperature value in this system — the ESP32 wire protocol,
+the cached export, `piratebox_history.py`'s stored history — stays
+Celsius, always. This phase adds exactly one thing: a small, global,
+operator-set preference controlling what unit a HUMAN sees, converted
+at the last possible moment, every time, from an always-Celsius source
+value. No conversion is ever stored; switching the preference changes
+what the next request/render shows, never what's on disk.
+
+**Storage: `var/www/html/data/temp-unit.json`**, `{"unit": "C"}` or
+`{"unit": "F"}` — mirrors `includes/travel_mode.php`'s exact pattern
+(atomic temp-file-then-rename write, the established "small global
+device preference" architecture already in this project, reused
+rather than inventing a new settings framework for one toggle).
+Deliberately NOT `includes/theme.php`'s localStorage model: the OLED
+daemon is a separate Python process with no browser at all, so the
+preference has to be a server-side file both a PHP process (www-data)
+and the OLED daemon (piratebox-gpio) can read. The file is plain
+`file_put_contents()` output — 0644, world-readable, same as every
+other file this project writes this way (e.g.
+`data/device-history.json`) — so the OLED daemon reads it with zero
+new permission grant; its `ProtectSystem=strict` sandboxing only
+blocks writes outside its own allowlisted paths, not reads elsewhere.
+
+**Shared helpers, one per language, each with exactly one conversion
+function** (never scattered ad hoc `* 9/5 + 32` arithmetic):
+`includes/temp_unit.php` (`piratebox_get_temp_unit()`/
+`piratebox_set_temp_unit()`/`piratebox_convert_temp_c()`/
+`piratebox_temp_unit_symbol()`) and `piratebox_temp_unit.py`
+(`read_temp_unit()`/`convert_c()`) — reading the identical file path.
+**JavaScript does zero conversion arithmetic anywhere in this
+codebase** — the Environment page's `?fetch=1`/`?history=1` endpoints
+convert server-side and send the browser an already-converted value
+plus the current unit symbol; the client only ever displays what it's
+given. This is the "one obvious boundary" the instruction asked for,
+rather than three independent implementations.
+
+**UI: `/admin/`'s new "Display Preferences" section** — a two-radio-
+button form (Celsius/Fahrenheit), same CSRF-protected POST-action
+pattern as the existing Travel Mode toggle right below it. A global,
+operator-set, device-wide preference — like Travel Mode, not a
+per-visitor choice — because this project has no per-visitor identity/
+preference system anywhere (by design) and a temperature reading isn't
+"per-browser" cosmetic the way the color theme is.
+
+**Every human-facing temperature surface updated:** Environment
+page's current DS18B20/ESP32-chip readings, its `?fetch=1` live
+refresh, its historical graphs (`?history=1` — ambient light's lux
+values are deliberately never touched by this converter), the admin
+page's own Pi CPU-temperature stat, the public status page's Pi
+CPU-temperature row, and the OLED's CPU-temp glance page, DS18B20
+probe glance page, and serious-rotation Health page's CPU-temp line.
+**Untouched, by design:** `piratebox_hardware_health.py` and
+`includes/esp32_supervisor.php`'s classifiers (zero temperature
+thresholds exist there today — nothing to accidentally make unit-
+dependent), `piratebox_history.py`'s stored files, the ESP32 export,
+and DS18B20 ROM-keyed signal identity.
+
+**Precision:** every display keeps its own pre-existing decimal
+convention (1 decimal for probe/ESP32-chip readings, 0 decimals for
+the OLED's already-terse style) — converting to Fahrenheit and keeping
+the same digit count doesn't fabricate precision the sensor never had
+(a DS18B20's 0.0625°C resolution step is ≈0.11°F, comfortably finer
+than 1 decimal Fahrenheit already shows).
+
+**Reading the preference is cheap, at the same cadence work already
+happens at** — one file read per OLED main-loop tick (same tier as the
+already-existing per-tick `read_status_json()`/`compute_hardware_
+warning_text()`), and a separate one-per-glance-phase-entry read
+inside `build_glance_metrics()` (same tier as `ambient_lux`/
+`probe_name`, which already read their own sources once per entry, not
+per tick) — no new polling cadence, no new filesystem churn category.
+
+## 24. DS18B20 end-to-end temperature-path sanity audit (2026-09-08)
+
+**Status: SOFTWARE PATH CONFIRMED CORRECT — no bug found, no
+calibration changed.** Prompted by the probes reading ~28–32°C while
+the room is believed to be closer to ~20°C/68°F. Full evidence:
+`docs/OPERATIONAL-DECISIONS.md`'s matching entry.
+
+Traced end-to-end, read-only, no new polling:
+- **Firmware** (`esp32-firmware/src/ds18b20.cpp`): calls
+  `sensors.getTempC(address)` — the DallasTemperature library's own
+  Celsius accessor — with zero custom arithmetic on the result. Uses
+  the library's own `DEVICE_DISCONNECTED_C` sentinel and an exact
+  85.0°C match check for the power-on/uninitialized-scratchpad value,
+  both still functioning correctly on live data.
+- **ESP32 internal temperature** (`esp32-firmware/src/sensors.cpp`):
+  `temperatureRead()` (arduino-esp32 core), documented to return
+  Celsius natively, passed through with zero arithmetic. Its own
+  header already correctly warns it's die temperature, not ambient —
+  confirmed live: it reads 37.5–38.5°C, a clearly distinct, higher
+  cluster than the probes, with no mixing between the two anywhere in
+  the pipeline.
+- **Wire protocol** (`esp32-firmware/src/protocol.cpp`): passes values
+  straight through, `unit` hardcoded to the literal string `"C"`.
+- **Pi-side pipeline** (supervisor daemon, cached export, hardware-
+  health classifiers, history sampler/storage, Environment/OLED
+  presentation): grepped for any Fahrenheit conversion, scaling
+  constant, or `* 9/5`-shaped arithmetic anywhere in this whole
+  pipeline prior to this phase — **none exists**, ruling out a
+  pre-existing double-conversion or C/F mislabeling.
+- **Stored history matches the live export**: the same 28–33°C range,
+  confirmed by reading the actual per-probe history files directly.
+- **All five probes agree reasonably well with each other** (a ~2.25°C
+  spread across the tightest live sample) while sitting well above a
+  plausible ~20°C room baseline — the signature of probes physically
+  near a shared heat source (nearby electronics, power supplies), not
+  of independent per-probe sensor failure (which would show much
+  larger probe-to-probe disagreement) or a software bug (which would
+  not produce this specific "small spread, large consistent offset"
+  shape).
+
+**Conclusion: this is a physical-placement question, not a software
+defect.** No calibration offset was added or considered further — see
+`docs/OPERATIONAL-DECISIONS.md` for the exact physical relocation test
+prepared for the operator to run when convenient, which will simply
+show up as a natural shift in the already-existing history graphs
+(§22) — no special logging was built for this one-time experiment.

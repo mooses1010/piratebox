@@ -4,6 +4,7 @@ session_start();
 require_once __DIR__ . '/../../../includes/helpers.php';
 require_once __DIR__ . '/../../../includes/metrics.php';
 require_once __DIR__ . '/../../../includes/device_id.php';
+require_once __DIR__ . '/../../../includes/temp_unit.php';
 
 // PirateBox public Stats / device status page (Stage 21).
 //
@@ -47,6 +48,7 @@ $diskTotal = @disk_total_space(__DIR__ . '/../../..');
 $diskFree = @disk_free_space(__DIR__ . '/../../..');
 [$memTotalKb, $memAvailableKb] = piratebox_get_meminfo_kb();
 $cpuTempC = piratebox_get_cpu_temp_c();
+$currentTempUnit = piratebox_get_temp_unit();
 [$load1, $load5, $load15] = piratebox_get_loadavg();
 
 // --- Helper snapshot (Wi-Fi clients, per-service health) ---
@@ -95,7 +97,7 @@ $rows = [
     ['Cumulative Emergency Mode runtime', piratebox_fmt_duration($emergencySeconds) . ' (' . $transitionCount . ' mode change' . ($transitionCount === 1 ? '' : 's') . ' logged)'],
     ['Storage free', piratebox_fmt_bytes($diskFree !== false ? (int) $diskFree : null) . ' of ' . piratebox_fmt_bytes($diskTotal !== false ? (int) $diskTotal : null)],
     ['RAM available', ($memAvailableKb !== null ? piratebox_fmt_bytes($memAvailableKb * 1024) : 'unknown') . ' of ' . ($memTotalKb !== null ? piratebox_fmt_bytes($memTotalKb * 1024) : 'unknown')],
-    ['CPU temperature', $cpuTempC !== null ? round($cpuTempC, 1) . ' C' : 'unknown'],
+    ['CPU temperature', $cpuTempC !== null ? round(piratebox_convert_temp_c($cpuTempC, $currentTempUnit), 1) . ' ' . $currentTempUnit : 'unknown'],
     ['CPU load (1/5/15 min)', ($load1 !== null && $load5 !== null && $load15 !== null) ? "$load1 / $load5 / $load15" : 'unknown'],
     ['Wi-Fi clients connected', ($helperStatus && !$helperStale) ? (string) (int) $helperStatus['wifi_clients'] : 'unknown (status helper not reporting)'],
     ['Wi-Fi connection events (last 24h)', $connStats !== null ? (string) $connStats['last_24h'] : 'unknown (status helper not reporting)'],
