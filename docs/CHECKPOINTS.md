@@ -1354,3 +1354,53 @@ and did not affect, the Pi's own separately-tracked power condition.
 Requires the externally-powered USB hub in the current prototype
 topology (`docs/ESP32-SUPERVISOR-DESIGN.md` §13).
 
+## Repository migrated to a standalone canonical remote + Git LFS adopted, closeout verified (2026-09-07)
+
+**`af031c6829508aa9b98e442915338478f39f09b4`** - the durable known-good
+recovery point for the repository's new identity, coming after the
+full DS18B20 five-probe implementation and physical commissioning
+(`docs/OPERATIONAL-DECISIONS.md`'s DS18B20 entries, same day) and
+before any hardware-awareness/integration work begins. Full story,
+verification evidence, and the reasoning behind every decision:
+`docs/OPERATIONAL-DECISIONS.md` → "Repository migrated off the
+upstream fork network to a standalone canonical remote; Git LFS
+adopted for one oversized asset".
+
+**In one line:** `origin` is now `git@github.com:mooses1010/piratebox.git`
+(canonical, pushable) instead of the read-only upstream project;
+`upstream` (`teklynk/piratebox`) remains for reference only with its
+push URL deliberately disabled; one oversized library PDF (Bowditch's
+"American Practical Navigator", 127.68 MiB) was migrated into Git LFS
+across all of `main`'s history, which intentionally rewrote every
+commit hash. `CLAUDE.md`'s old "never push to origin" rule has been
+corrected to match — pushing to `origin` is now the normal workflow.
+
+**Independently re-verified as part of this checkpoint** (not just
+taken from the operator's own terminal output): a fresh `git fetch
+origin` shows `origin/main` byte-identical to local `main`'s HEAD;
+`git lfs fsck` clean; `git lfs ls-files` shows exactly the one migrated
+file; a full scan of every blob reachable from `main` found nothing
+else near GitHub's 100 MB limit (next largest ~24.6 MB); every
+pre-existing `worktree-*` branch confirmed still a valid ancestor of
+the rewritten history (none orphaned); every commit hash referenced in
+this file and in `docs/OPERATIONAL-DECISIONS.md` still resolves except
+one pre-existing, already-documented casualty from an unrelated 2026
+power-outage incident (not caused by this rewrite); full regression
+suite (458 Python tests, 41 PHP assertions) green; no CRLF
+contamination introduced anywhere in source files. One real defect was
+found and fixed during verification: the Bowditch PDF's working-tree
+copy had been left as a bare 134-byte LFS pointer instead of the real
+file despite the LFS object being present locally - fixed
+non-destructively with `git lfs checkout` (working-tree only, no
+commit, no history change, `git status` still clean afterward).
+
+The temporary 2 GB `/swapfile` created to survive `git pack-objects`
+being OOM-killed during the initial large push on this 1 GB Pi was
+already gone by the time of this verification pass - only the
+pre-existing ~0.9 GB `zram` swap remains active. Three repo-local
+(not global) Git pack settings (`pack.threads=1`,
+`pack.windowMemory=20m`, `pack.packSizeLimit=50m`,
+`core.compression=1`) were kept in place as a standing safeguard
+against repeating the OOM on this hardware - evaluated, not blindly
+carried over; see the linked entry for the reasoning.
+

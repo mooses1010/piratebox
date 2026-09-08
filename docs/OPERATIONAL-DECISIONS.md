@@ -6,6 +6,129 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## Repository migrated off the upstream fork network to a standalone canonical remote; Git LFS adopted for one oversized asset (2026-09-07, same day)
+
+**Decision date:** 2026-09-07. This repo's `origin` remote changed
+identity - a structural, one-time change, recorded here so a future
+session doesn't misread old references to "origin" or reintroduce a
+now-incorrect rule from `CLAUDE.md`'s pre-migration wording.
+
+**Why.** The original remote, `https://github.com/teklynk/piratebox.git`,
+is the upstream/reference project - not the operator's own repository,
+and the operator has no write access to it. Local `main` had been kept
+deliberately ahead of it for the entire life of this project (see
+`docs/CHECKPOINTS.md`'s historical entries). The operator first tried
+publishing via a GitHub fork of that upstream repo, but GitHub refused
+a new Git LFS object upload into a fork's shared object network. The
+fork was deleted (not kept as a dead end), and a **new, standalone,
+non-fork public repository** was created instead:
+`git@github.com:mooses1010/piratebox.git`.
+
+**The remote model, going forward:**
+
+| Remote | URL | Role |
+|---|---|---|
+| `origin` | `git@github.com:mooses1010/piratebox.git` | **Canonical.** The operator's own repository. Normal development pushes go here. |
+| `upstream` | `git@github.com:teklynk/piratebox.git` | **Reference only.** Fetching is fine (`git fetch upstream`); its push URL is deliberately set to the literal string `DISABLED` (`git remote set-url --push upstream DISABLED`) so an accidental `git push upstream` fails closed instead of attempting a push neither wanted nor permitted. **Do not "fix" this back to a real URL** - it's intentional, not a leftover misconfiguration. |
+
+**This inverts `CLAUDE.md`'s old standing rule.** Before this change,
+`CLAUDE.md` said "never push to `origin`" because `origin` *was* the
+upstream project. That sentence has been corrected in place - pushing
+to `origin` (now the operator's own canonical repo) is the normal
+workflow going forward; `upstream` is the one that must never receive
+a push.
+
+**Git LFS adoption - one file, deliberately narrow.** The initial push
+to the new standalone repo failed: one ordinary Git blob exceeded
+GitHub's 100 MB hard limit -
+`var/www/html/public/utility/library/files/nga-bowditch-american-practical-navigator.pdf`
+(127.68 MiB, the largest single item in the offline reference
+library). Git LFS 3.6.1 was installed and initialized on the Pi, and
+**only that one file** was migrated into LFS across all of local
+`main`'s history:
+
+```
+git lfs migrate import \
+  --include="var/www/html/public/utility/library/files/nga-bowditch-american-practical-navigator.pdf" \
+  --include-ref=refs/heads/main
+```
+
+This intentionally rewrote `main`'s commit history (new commit hashes
+throughout - `git lfs migrate import` needs to touch every commit's
+tree to keep `.gitattributes` consistent across history, not just the
+commit that originally added the file). `.gitattributes` now carries
+exactly one line, scoped to that one path only - **not** a blanket
+`*.pdf` rule, so no other library PDF is redirected into LFS:
+
+```
+var/www/html/public/utility/library/files/nga-bowditch-american-practical-navigator.pdf filter=lfs diff=lfs merge=lfs -text
+```
+
+Verified independently after the migration and again after the push
+(not just trusted from the operator's own terminal output): `git lfs
+fsck` → OK; `git lfs ls-files` → the Bowditch PDF only; a full scan of
+every blob reachable from `main` found nothing else anywhere near the
+100 MB limit (next largest is ~24.6 MB); a freshly-`git fetch`ed
+`origin/main` byte-for-byte matches local `main`'s HEAD
+(`af031c6829508aa9b98e442915338478f39f09b4` at the time of this
+entry - see `docs/CHECKPOINTS.md` for the durable rollback pointer).
+`git lfs env`'s `Endpoint`/`Endpoint (upstream)` lines confirm both
+remotes' separate LFS endpoints are configured correctly.
+
+**One real defect found and fixed during this verification pass:**
+despite the LFS object being present locally (`.git/lfs/objects/`,
+fsck-clean) and `git lfs ls-files`/`.gitattributes` all correct, the
+actual working-tree copy of the Bowditch PDF was left as the bare
+134-byte LFS *pointer* text, not the real 133,877,625-byte PDF - the
+smudge/checkout step never ran against it after the migration+push.
+Left alone, the Library utility would have silently served a 134-byte
+stub instead of the actual book to any visitor. Fixed non-destructively
+with `git lfs checkout <path>` (working-tree-only; touches no commit,
+no index entry, no history) - confirmed the file is now a real,
+1,542-page PDF and `git status` remains clean.
+
+**History-rewrite safety checks** (per this project's own worktree
+discipline - old worktrees/branches are never casually deleted): every
+pre-existing `worktree-*` branch was confirmed still a valid, fully-
+merged ancestor of the rewritten `main` (`git merge-base --is-ancestor`
+checked individually for each) - the rewrite did not orphan any of
+them. No tags exist. Every commit hash referenced anywhere in
+`docs/CHECKPOINTS.md` and `docs/OPERATIONAL-DECISIONS.md` was checked
+against the live object database; the only one that doesn't resolve
+(`b4daf1c`) is a **pre-existing, already-documented** casualty of an
+unrelated 2026 power-outage worktree-corruption incident, not something
+this rewrite caused. Full regression suite (458 Python tests, 41 PHP
+assertions) still green after the rewrite, and a `git grep` for CRLF
+line endings across all source files came back clean (a known
+`git lfs migrate` footgun is unintended line-ending normalization -
+did not happen here).
+
+**Resource constraints on this specific machine (Raspberry Pi 3 B+,
+1 GB RAM):** `git pack-objects` was OOM-killed twice (confirmed in
+kernel logs) during the initial large push before a temporary 2 GB
+`/swapfile` was added on top of the ~0.9 GB of pre-existing `zram`
+swap already on the system. Three repo-**local** (not global) Git
+settings were applied to keep future pack operations from repeating
+this: `pack.threads=1`, `pack.windowMemory=20m`,
+`pack.packSizeLimit=50m`, `core.compression=1`. **Kept intentionally**
+- on a 1 GB Pi doing occasional single-operator pushes, the modest
+extra time these cost (single-threaded packing, smaller delta window,
+more but smaller pack files) is irrelevant next to the OOM risk they
+prevent; there's no reason to revert them absent a real, demonstrated
+need for faster local packing. The temporary 2 GB `/swapfile` created
+specifically for the initial push was for that one-time operation only
+- see the swap-cleanup note below before assuming it still exists.
+
+**Fresh-clone note:** the standalone repo now has one asset that
+requires Git LFS to materialize correctly. `git-lfs` must be installed
+(`apt install git-lfs`, then a one-time `git lfs install`) *before* a
+fresh `git clone` for the smudge filter to run automatically; if it's
+installed after a clone already happened, `git lfs pull` (or `git lfs
+checkout <path>`) fetches/materializes the real content in place. Every
+other file in this repo is an ordinary Git blob, unaffected. See
+`README.md`'s Installation section for the corresponding note added
+for a new operator/fresh SD card.
+
 ## All FIVE DS18B20 probes physically commissioned - ROM-to-physical-probe mapping established (2026-09-07, same day)
 
 **Decision date:** 2026-09-07. Added an `identify` subcommand to
