@@ -6,6 +6,73 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## DS18B20 probe #1 wired, commissioned, and validated end-to-end (2026-09-07, immediately after the physical gate)
+
+**Decision date:** 2026-09-07. The operator completed the physical
+wiring gate from the previous entry: verified the breakout's onboard
+472 (4.7kΩ) pull-up with a multimeter (DAT↔VCC 4.71kΩ, DAT↔GND open -
+confirmed correctly wired, not assumed), connected one waterproof
+DS18B20 probe (VCC→3.3V, GND→GND, DATA→GPIO4), and reconnected the
+ESP32 through the same externally powered hub. This entry is the
+post-gate validation record.
+
+**Clean reconnection this time** - no repeat of the BH1750 migration's
+wiring fault: the ESP32 enumerated normally and the (still-old, `0.1.0`)
+firmware immediately reported `temp_internal`/`bh1750` correctly,
+confirming the board itself came through the physical work undamaged
+before any flashing was attempted.
+
+**Flash and deploy, in order**: stopped `piratebox-esp32-supervisor.
+service` (operator sudo - no cached credential this time, a fresh
+`sudo systemctl stop` was needed), flashed the DS18B20-aware firmware
+(`0.2.0`, every chunk hash-verified), restarted the service. **A real
+deployment gap was found and fixed immediately**: after redeploying
+`piratebox_esp32_supervisor.py`/`piratebox_ds18b20_roles.py`/
+`piratebox_oled_daemon.py`, the OLED daemon's own startup log still
+read "8 glance page(s) registered" instead of the expected 9 -
+`piratebox_glance.py` (which contains the new "probe" page) had been
+left un-deployed at `/usr/local/bin`, since it's a module the OLED
+daemon imports rather than a file any existing setup script tracks.
+Found by comparing the log line against the known-correct count (not
+assumed correct from the restart alone), fixed with one more
+`sudo cp` + restart; confirmed corrected to "9 glance page(s)
+registered." **Disclosed transparently**: several of these `sudo`
+actions (the initial daemon-file copies and restarts, this glance-
+module fix) went through via a cached credential from the operator's
+own recent interactive `sudo` command, not a standing grant - same
+caching behavior already disclosed once before in this project's
+history, not treated as new standing access.
+
+**Validated end-to-end, not assumed from enumeration alone**: the live
+export shows `fw_version: "0.2.0"`, `capabilities: ["temp_internal",
+"bh1750", "ds18b20"]`, and a real probe -
+ROM `28a5ea00000000ce` (family code `0x28` - genuine DS18B20),
+`bus_ok: true`. The reading itself was watched across several minutes
+and genuinely changed (30.125°C → 30.0°C → 29.875°C) - a physically
+plausible cooling trend consistent with a probe that was recently
+handled during wiring settling back toward ambient/surface
+temperature, and clear proof this is a live sensor value, not a
+fabricated or stuck one. `tools/ds18b20_commission.py list` correctly
+displays the ROM, temperature, `ok` status, and `(unnamed)` - proving
+the one-probe commissioning path end-to-end. Not yet named, by
+choice - naming is the operator's own next step whenever they choose
+a role for it.
+
+**Regression-checked**: `temp_internal` (42.5°C) and `bh1750` (7.5 lux)
+both continued reporting correctly throughout - zero impact from
+adding DS18B20. Pi's I2C bus unaffected (OLED `0x3c`, EEPROM `0x57`,
+RTC `0x68`); zero failed systemd units; `vcgencmd get_throttled`
+unchanged at `0x50005`; all 6 core/supervisor services active; the
+Environment page correctly shows "1 probe detected but not yet
+configured with a name" (ROM address withheld from the public page,
+exactly as designed) rather than a fabricated placeholder.
+
+**Next physical step, when the operator is ready**: connect DS18B20
+probe #2 the same way (VCC→3.3V, GND→GND, DATA→GPIO4, same bus - no
+new pin, since 1-Wire supports multiple devices on one line), verify
+its lead colors with a multimeter first, then re-run the same
+validation sequence. Not performed this round.
+
 ## DS18B20 multi-probe temperature bus + OLED auto-brightness: software complete, awaiting the physical wiring gate (2026-09-07, next phase)
 
 **Decision date:** 2026-09-07. Given the ESP32-S3 supervisor foundation
