@@ -18,6 +18,23 @@ declare(strict_types=1);
 // grid actually renders at, since it always holds exactly 4 items
 // meant to read as two rows of two.
 //
+// SECOND BUG, same section (2026-09-11 fix): with the 2x2 fix above
+// in place, the two tile grids themselves no longer wrapped oddly,
+// but on desktop (side-by-side) they didn't START at the same
+// vertical position either - CONNECT & SHARE's description is one
+// short sentence while EXPLORE & REFERENCE's wraps to more lines, so
+// the shorter side's tile grid began higher, with the leftover
+// stretched card height landing as blank space below its grid instead
+// of above it.
+//
+// THE FIX: .landing-side became a column flexbox and its <p> got
+// `flex: 1 0 auto` - the paragraph itself absorbs whatever extra
+// height CSS Grid's default align-items:stretch gives the shorter
+// card, so both tile grids land at the same Y regardless of how many
+// lines either description happens to wrap to (never a fixed
+// pixel/line-count assumption, and never JS-measured). See
+// .landing-side's own CSS comment for the full mechanism.
+//
 // Run with: php tools/test_landing_layout.php
 
 $failures = [];
@@ -94,6 +111,65 @@ if (preg_match_all('/<div class="utility-grid landing-mini-grid">(.*?)<\/div>\s*
 ll_assert_true(
     '.utility-card-title has no white-space:nowrap / text-overflow that would break a long title like "Offline Reference Library"',
     !preg_match('/\.utility-card-title\s*\{[^}]*(white-space\s*:\s*nowrap|text-overflow)/s', $stylesCss)
+);
+
+// --- 2026-09-11: the two tile grids must start at the same vertical
+// position on desktop, via a structural mechanism - never a fixed
+// pixel offset, a hardcoded height, or a JS height-measurement hack
+// that would only coincidentally work while the two descriptions
+// happen to wrap to a similar number of lines --------------------------
+
+ll_assert_true(
+    '.landing-sides-grid is still a real CSS Grid (its default align-items:stretch is what makes the two cards equal height at all)',
+    (bool) (preg_match('/\.landing-sides-grid\s*\{([^}]*)\}/s', $stylesCss, $m) && preg_match('/display\s*:\s*grid/', $m[1]))
+);
+
+if (!preg_match('/\.landing-side\s*\{([^}]*)\}/s', $stylesCss, $sideMatch)) {
+    $failures[] = 'Could not locate the .landing-side rule block in styles.css at all';
+} else {
+    $sideCode = preg_replace('#/\*.*?\*/#s', '', $sideMatch[1]);
+    ll_assert_true(
+        '.landing-side is a column flexbox (the alignment mechanism, not a one-off pixel offset)',
+        (bool) (strpos($sideCode, 'display: flex') !== false && strpos($sideCode, 'flex-direction: column') !== false),
+        'expected display:flex + flex-direction:column, got: ' . trim($sideCode)
+    );
+    ll_assert_true(
+        '.landing-side sets no fixed/hardcoded height that would only coincidentally match the taller side',
+        !preg_match('/(?<!min-)(?<!max-)height\s*:\s*\d/', $sideCode)
+    );
+}
+
+if (!preg_match('/\.landing-side\s+p\s*\{([^}]*)\}/s', $stylesCss, $pMatch)) {
+    $failures[] = 'Could not locate the .landing-side p rule block in styles.css at all';
+} else {
+    ll_assert_true(
+        '.landing-side p grows to absorb the stretched extra height (flex-grow >= 1), which is what pushes a shorter description\'s tile grid down to match, structurally rather than by assumption',
+        (bool) preg_match('/flex\s*:\s*[1-9]/', $pMatch[1]),
+        'expected a flex shorthand with a nonzero grow factor, got: ' . trim($pMatch[1])
+    );
+}
+
+// The grid itself no longer carries a fixed top margin - that spacing
+// responsibility moved to .landing-side p's own margin, which is what
+// makes it participate in the flex-grow calculation above.
+if (preg_match('/\.landing-mini-grid\s*\{([^}]*)\}/s', $stylesCss, $miniGridMatch2)) {
+    $miniGridCode2 = preg_replace('#/\*.*?\*/#s', '', $miniGridMatch2[1]);
+    ll_assert_true(
+        '.landing-mini-grid no longer sets its own top margin (spacing before it is owned by the flexible paragraph, not a fixed offset on the grid)',
+        !preg_match('/margin\s*:\s*[^;]*\d(px|rem|em)\s+0\s+0\s+0/', $miniGridCode2) && !preg_match('/margin-top\s*:\s*[1-9]/', $miniGridCode2)
+    );
+}
+
+// No JS-based height-measurement/equalization hack was introduced as
+// an alternative (or supplement) to the CSS mechanism above - keep
+// this a pure-CSS, no-layout-thrash fix.
+ll_assert_true(
+    'no JS height-equalization hack for .landing-side/.landing-mini-grid exists in scripts.js',
+    !preg_match('/landing-side|landing-mini-grid/', (string) @file_get_contents($repoRoot . '/var/www/html/public/assets/scripts.js'))
+);
+ll_assert_true(
+    'no inline <script> on the homepage measures/equalizes .landing-side heights',
+    !preg_match('/<script\b[^>]*>(?:(?!<\/script>).)*landing-side(?:(?!<\/script>).)*<\/script>/s', $indexPhp)
 );
 
 echo "\n";
