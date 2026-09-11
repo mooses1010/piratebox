@@ -1160,6 +1160,18 @@ ul#chat li.empty-state {
     border-left: 4px solid var(--accent);
     padding: 1.25rem 1.5rem;
     box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+    /* 2026-09-11 fix: .landing-sides-grid is a CSS Grid, whose default
+       align-items:stretch already makes the two .landing-side panels
+       equal overall height side by side - the bug was never unequal
+       card height, it was that a plain block layout inside an
+       equal-height card leaves any extra stretched height as blank
+       space AFTER the shorter description's own natural content,
+       instead of before its tile grid. A column flexbox lets the
+       description paragraph (below) claim that leftover space
+       instead, so both tile grids start at the same Y regardless of
+       how many lines either description wraps to. */
+    display: flex;
+    flex-direction: column;
 }
 
 .landing-side h3 {
@@ -1173,11 +1185,21 @@ ul#chat li.empty-state {
 .landing-side p {
     font-size: 0.9rem;
     color: var(--text-muted);
+    margin: 0 0 1rem 0;
+    /* Grows to absorb whatever extra height the grid-stretch above
+       gives this side - the structural equivalent of "reserve the
+       intro region's equal height before the tile grid" without
+       measuring anything in JS or coupling the two sides' markup.
+       Inert on narrow viewports: .landing-sides-grid there drops to a
+       single column, each .landing-side lands in its own grid row
+       with nothing to stretch against, and flex-grow has zero extra
+       space to distribute - no blank space is introduced. */
+    flex: 1 0 auto;
 }
 
 .landing-mini-grid {
     max-width: none;
-    margin: 1rem 0 0 0;
+    margin: 0;
     padding: 0;
     /* Always exactly 4 tiles here (2026-09-08 fix) - a fixed 2x2 grid,
        not auto-fit. auto-fit's column count is a pure function of the
