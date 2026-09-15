@@ -32,15 +32,26 @@ depends on:
     directive landed in, not just that the text is present somewhere
     in the file - hence the section-aware parsing below, not a plain
     substring search;
-  - the udev rule's SYSTEMD_WANTS tag must be on the SAME rule line
-    that renames the interface to "pb-ap", not a separate rule that
-    could drift out of sync with it.
+  - UPDATE (2026-09-15): the udev rule's ENV{SYSTEMD_WANTS} property
+    (once required to be on the SAME rule line as the rename) is gone
+    entirely now - root-caused as a genuine no-op (the ADD-matched rule
+    never fires again for the kernel's separate "move" event that
+    actually finalizes the renamed device, confirmed via `udevadm test
+    --action=move` showing no match at all, contrasted with
+    `udevadm test --action=add` computing the property correctly) and
+    replaced by a plain systemd .path unit
+    (etc/systemd/system/piratebox-hostapd-recovery.path,
+    PathExists=/sys/class/net/pb-ap -> Unit=hostapd.service), which
+    does not depend on which specific udev action a given rename
+    sequence happens to use. Tests below guard both halves: that the
+    dead property never quietly comes back, and that the new path unit
+    is present and correctly shaped.
 
-See docs/OPERATIONAL-DECISIONS.md's 2026-09-05 dated entry for the
-full incident writeup, and docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md
-section 4 for why this is a narrower fix than (and does not change)
-the separate, deliberate "runtime radio fallback is not automated"
-decision recorded there.
+See docs/OPERATIONAL-DECISIONS.md's 2026-09-05 and 2026-09-15 dated
+entries for the full incident writeups, and
+docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md section 4 for why this is a
+narrower fix than (and does not change) the separate, deliberate
+"runtime radio fallback is not automated" decision recorded there.
 """
 import os
 import re
@@ -52,6 +63,9 @@ OVERRIDE_CONF = os.path.join(
 )
 UDEV_RULE = os.path.join(
     REPO_ROOT, "etc", "udev", "rules.d", "99-piratebox-external-ap.rules"
+)
+RECOVERY_PATH_UNIT = os.path.join(
+    REPO_ROOT, "etc", "systemd", "system", "piratebox-hostapd-recovery.path"
 )
 
 # The one correct systemd escaping of the "pb-ap" network interface's
@@ -209,11 +223,20 @@ class TestUdevRule(unittest.TestCase):
         ]:
             self.assertIn(expected, self.rule_line)
 
-    def test_systemd_wants_hostapd_on_the_same_rule_line(self):
-        # Must be on the SAME line as the NAME="pb-ap" rename - a
-        # separate rule matching the same device could silently drift
-        # out of sync with it over time.
-        self.assertIn('ENV{SYSTEMD_WANTS}+="hostapd.service"', self.rule_line)
+    def test_systemd_wants_removed_not_reintroduced(self):
+        # ENV{SYSTEMD_WANTS} for hostapd used to live on this rule line
+        # and was confirmed live (2026-09-15) to never actually fire on
+        # a real ALFA blip - the kernel's rename produces a separate
+        # "move" uevent this ACTION=="add"-matched rule never sees.
+        # Recovery-on-return now lives entirely in
+        # piratebox-hostapd-recovery.path (see TestHostapdRecoveryPathUnit
+        # below). Guard against this dead, misleading mechanism quietly
+        # coming back as an ACTIVE rule clause - historical mentions in
+        # this file's own explanatory comments (documenting why it was
+        # removed) are expected and fine, matching this project's usual
+        # practice of keeping corrected-history explanations in place
+        # (see the "STAGED, NOT YET INSTALLED" precedent below).
+        self.assertNotIn("SYSTEMD_WANTS", self.rule_line)
 
     def test_rule_line_is_well_formed(self):
         # Sanity check: comma-separated key==value / key+=value pairs,
@@ -229,6 +252,61 @@ class TestUdevRule(unittest.TestCase):
         # all along). Guard against that stale claim silently
         # resurfacing in a future edit.
         self.assertNotIn("STAGED, NOT YET INSTALLED", self.content)
+
+
+class TestHostapdRecoveryPathUnit(unittest.TestCase):
+    """etc/systemd/system/piratebox-hostapd-recovery.path is the
+    replacement for the dead udev ENV{SYSTEMD_WANTS} mechanism (see
+    module docstring). It is the ONLY thing that brings hostapd back
+    once pb-ap reappears - override.conf's BindsTo=/ConditionPathExists=
+    only ever stops hostapd, never starts it.
+    """
+
+    def setUp(self):
+        self.content = _read(RECOVERY_PATH_UNIT)
+        self.sections = _parse_ini_sections(self.content)
+
+    def test_file_exists(self):
+        self.assertTrue(os.path.isfile(RECOVERY_PATH_UNIT))
+
+    def test_has_path_section_watching_pb_ap(self):
+        path_lines = self.sections.get("Path", [])
+        self.assertIn(
+            "PathExists=/sys/class/net/pb-ap", path_lines,
+            "must watch the same path override.conf's "
+            "ConditionPathExists= checks - a mismatch here would mean "
+            "the two halves of this fix disagree about what 'pb-ap is "
+            "present' means.",
+        )
+
+    def test_path_unit_explicitly_targets_hostapd(self):
+        path_lines = self.sections.get("Path", [])
+        self.assertIn(
+            "Unit=hostapd.service", path_lines,
+            "Unit= must be explicit - without it a .path unit named "
+            "differently from 'hostapd.path' would silently default to "
+            "triggering some other unit of its own same base name "
+            "instead of hostapd.service.",
+        )
+
+    def test_installed_for_boot(self):
+        install_lines = self.sections.get("Install", [])
+        self.assertIn(
+            "WantedBy=multi-user.target", install_lines,
+            "without an [Install] target this unit would need a manual "
+            "'systemctl enable' with nothing in the repo recording that "
+            "requirement - it must be enabled to watch anything at all, "
+            "including on a fresh boot where pb-ap is already present.",
+        )
+
+    def test_no_fixed_delay_hack(self):
+        # Per instruction: recovery must be driven by real device
+        # readiness, not a sleep/timer guess. A .path unit's whole
+        # purpose is to avoid this, but guard explicitly against a
+        # future edit adding a workaround delay here (e.g. a
+        # [Path] triggerlimit or an ExecStartPre sleep would be a code
+        # smell for this specific unit type).
+        self.assertNotIn("sleep", self.content.lower())
 
 
 class TestDeviceUnitNameCrossCheck(unittest.TestCase):
