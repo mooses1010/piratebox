@@ -552,17 +552,42 @@ either round** - this stays purely a capability finding.
 
 ## 7. Antenna baseline
 
-**Production candidate baseline: the two matching stock ALFA dual-band
-antennas** - unchanged from the Hardware Validation Round, which used
-exactly this pair for its successful AP/association testing. This
-round adds nothing here and changes nothing about that baseline.
+**Updated 2026-09-15 - production baseline changed after a real
+indoor A/B test:** Stock LEFT + ARS-N19 (9 dBi, 2.4GHz-only) RIGHT is
+now the operator-chosen working configuration, superseding the
+matched-stock-pair baseline below. A controlled indoor walk test
+compared this asymmetric pairing against a matched stock+stock pair
+across seven fixed locations at the same channel/HT-mode/TX power. The
+operator's own conclusion, kept deliberately conservative: **no clear,
+reproducible overall indoor range advantage was demonstrated either
+way** (indoor multipath and the short distances available made this a
+poor environment to prove a directional/high-gain antenna's real
+advantage), but **Stock+9dBi also showed no meaningful indoor coverage
+penalty** versus matched stock+stock. Since PirateBox's stated purpose
+favors maximizing useful range/discoverability across varied
+deployments (home, vehicle, field) rather than optimizing for one
+indoor floorplan, the operator kept Stock+9dBi as the working
+configuration on that basis, not because indoor testing proved it
+better. A proper long-distance/open-space comparison remains a
+possible future round, not done here. Full RSSI data and the
+per-location analysis live in this round's own conversation record,
+not duplicated here per this project's "don't clutter documentation
+with test minutiae" convention.
 
-**The ARS-N19 stays explicitly out of the baseline**, for the reasons
-already on record (`docs/CAPABILITY-REGISTRY.md`): it is 2.4GHz-only,
-there is only one of it, and it is not a matched 2x2 pair for this
-adapter's genuine 2x2 MIMO capability. Using it would silently degrade
-the adapter to effective 1x1 operation on one path - a real capability
-loss, not a neutral swap. **Not tested this round**, per instruction.
+**Original baseline, for the historical record - superseded above:**
+the two matching stock ALFA dual-band antennas, from the Hardware
+Validation Round, which used exactly this pair for its successful
+AP/association testing.
+
+**The ARS-N19's 2x2-MIMO tradeoff, unchanged and worth restating now
+that it's actually in the production baseline**: it is 2.4GHz-only,
+there is only one of it, and it is not a matched pair for this
+adapter's genuine 2x2 MIMO capability - pairing it with a stock antenna
+on the other chain is a genuine asymmetric-gain configuration, not a
+neutral swap (see `docs/CAPABILITY-REGISTRY.md` for the antenna's own
+capability entry, updated to reflect it's now in use). This was a
+known, accepted tradeoff at the time of the decision above, not
+something this update discovers new.
 
 **How future antenna experiments should be run, so they don't get
 confused with radio/driver changes**: any antenna swap should be

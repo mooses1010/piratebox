@@ -6,6 +6,135 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## hostapd pb-ap auto-recovery: udev SYSTEMD_WANTS root-caused and replaced with a .path unit (2026-09-15)
+
+**Context:** discovered mid-way through a controlled indoor Wi-Fi range
+A/B test of two ALFA AWUS036ACM antenna configurations (Stock LEFT +
+9dBi RIGHT vs. Stock LEFT + Stock RIGHT) - not itself a Wi-Fi tuning
+task; this entry is only about the reliability gap the antenna swaps'
+own repeated USB replugs happened to exercise for real, for the first
+time since the 2026-09-05 incident's fix was written. The antenna test
+itself and its conclusion are recorded briefly in
+`docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md` section 7, not here.
+
+**What was already known, going in** (`docs/IMPLEMENTATION-ROADMAP.md`'s
+"hostapd auto-recovery: udev SYSTEMD_WANTS restart trigger unreliable"
+row, open since 2026-09-05): the 2026-09-05 incident's fix has two
+halves. The stop half (`BindsTo=`/`After=`/`ConditionPathExists=` in
+`etc/systemd/system/hostapd.service.d/override.conf`) was confirmed
+working on a real re-enumeration. The restart half
+(`ENV{SYSTEMD_WANTS}+="hostapd.service"` on the udev rename rule) had
+already been observed NOT firing once, during unrelated RTL-SDR work,
+with the root cause explicitly left unestablished at the time.
+
+**Root cause, now established with direct evidence (not guessed):**
+today's antenna swaps produced two independent real ALFA disconnect/
+reconnect cycles (11:12:26-11:15 PDT and 11:29:49-onward). Both times,
+`pb-ap` came back cleanly and hostapd stayed `inactive (dead)`
+indefinitely - not for a few seconds, for 13+ minutes until a manual
+`sudo systemctl start hostapd` (first cycle) and still dead when
+finally checked (second cycle, never manually restarted before this
+fix). Live investigation, in order:
+
+- `systemctl show 'sys-subsystem-net-devices-pb\x2dap.device' -p Wants`
+  returned **empty** - the device unit that actually exists for the
+  renamed interface has no `Wants=hostapd.service` dependency at all,
+  despite the udev rule file (confirmed byte-identical to the repo,
+  correctly written) containing the property assignment.
+- `udevadm info -q property -p /sys/class/net/pb-ap` on the live,
+  already-renamed device showed no `SYSTEMD_WANTS` property in its
+  persisted udev database entry either - not a systemd-side dependency
+  bug, the property itself never reached the device that matters.
+- `udevadm test --action=add /sys/class/net/pb-ap` (simulating the
+  action our rule matches) correctly computed
+  `SYSTEMD_WANTS=hostapd.service` - the rule's logic is not wrong.
+- `udevadm test --action=move /sys/class/net/pb-ap` (simulating the
+  action the kernel actually fires when a `NAME=` udev rule renames an
+  interface, distinct from the original `add`) showed **no match at
+  all** for our rule (`ACTION=="add"` never matches an `ACTION=="move"`
+  event) - confirmed by its complete absence from that run's rule-trace
+  output, contrasted with the `add` run naming our rule file
+  explicitly.
+
+**Conclusion:** the rename (`NAME="pb-ap"`) takes effect synchronously
+during the original `add` event's rule processing, but the kernel then
+emits a separate `move` uevent once the interface is visible under its
+final name - and that is the event systemd's device-unit management
+actually uses to build the `pb-ap` device unit's dependency graph. A
+property set only during the `add` event's own rule evaluation does not
+survive into that later `move` event's database entry. This is a
+structural gap in how udev-property-based unit triggering interacts
+with an interface rename specifically - not a typo, not a stale rule
+file, and not related to the Pi's chronic undervoltage condition
+(`docs/POWER-INTEGRITY-DIAGNOSIS.md`) at all; both of today's failures
+reproduced with the interface cleanly present and stable for the full
+observation window each time.
+
+**Fix:** removed the dead `ENV{SYSTEMD_WANTS}+="hostapd.service"`
+clause from `etc/udev/rules.d/99-piratebox-external-ap.rules` (the
+rule's actual job - matching the ALFA's chipset and renaming it to
+`pb-ap` - is untouched) and added
+`etc/systemd/system/piratebox-hostapd-recovery.path`
+(`PathExists=/sys/class/net/pb-ap` -> `Unit=hostapd.service`), exactly
+the "more battle-tested, inotify-backed" alternative the roadmap had
+already flagged as the most likely replacement for this mechanism. A
+`.path` unit's inotify watch fires on the path's absent->present
+transition directly, independent of which specific udev action a given
+kernel rename sequence happens to use - it does not need to know
+`add` vs. `move` exists as a distinction at all. `override.conf`'s
+stop-half directives are unchanged.
+
+**No new restart-loop/thrashing risk:** a `.path` unit only triggers
+its `Unit=` on a transition, not repeatedly while the path stays
+present, and does nothing at all while the ALFA is genuinely absent
+(nothing to watch appearing) - satisfies the same "don't thrash while
+genuinely absent" requirement the original 2026-09-05 fix's
+`ConditionPathExists=` was written to satisfy, via a different
+mechanism.
+
+**Regression coverage:** `tools/test_hostapd_recovery_config.py`
+extended: a new `TestHostapdRecoveryPathUnit` class asserts the new
+unit exists, watches the correct path, explicitly names
+`hostapd.service` (not left to the default same-name-unit
+convention), and is installed for boot (`WantedBy=multi-user.target`);
+`TestUdevRule` gained a test asserting the dead `SYSTEMD_WANTS` clause
+does not silently reappear in the active rule line. 18/18 tests pass
+(was 15 before this round's additions). Full existing PHP regression
+(568 assertions across 12 suites) re-run and confirmed unaffected -
+this round touched no PHP/web code. `tools/test_glance.py` fails with a
+pre-existing `ModuleNotFoundError: No module named 'piratebox_temp_unit'`
+when run standalone from `tools/`, confirmed present identically on a
+clean `main` checkout before this round's changes - not caused by, or
+fixed by, this work.
+
+**Deliberately NOT done:** no change to `dnsmasq`, `dhcpcd`, nftables,
+the `pb-ap` naming/alias mechanism itself, hostapd's SSID/channel/HT
+mode/TX power/regulatory settings, or the separate, already-deferred
+"automatic fallback between `pb-ap` and `wlan0`" decision
+(`docs/EXTERNAL-AP-ARCHITECTURE-DESIGN.md` section 4) - this fix only
+makes hostapd reliably reattach to the SAME interface identity it
+already had, same as the 2026-09-05 fix it completes.
+
+**Deploy status as of this entry:** staged and committed to `main`,
+**not yet installed live** - installing a new systemd unit and
+reloading udev rules is system configuration, outside this project's
+narrow standing `sudo` grants (see `CLAUDE.md` §2), so it stops for the
+operator. Exact minimal live-install command, once ready:
+
+```bash
+cd ~/piratebox
+sudo cp etc/udev/rules.d/99-piratebox-external-ap.rules /etc/udev/rules.d/99-piratebox-external-ap.rules
+sudo cp etc/systemd/system/piratebox-hostapd-recovery.path /etc/systemd/system/piratebox-hostapd-recovery.path
+sudo udevadm control --reload-rules
+sudo systemctl daemon-reload
+sudo systemctl enable --now piratebox-hostapd-recovery.path
+```
+
+This does not itself restart hostapd or touch `pb-ap` - it only installs
+the new trigger and starts watching. See the live-verification follow-up
+entry (added once the operator runs this and a real or supervised ALFA
+replug confirms unattended recovery) for the closeout evidence.
+
 ## Environment page C/F quick-toggle (2026-09-08, follow-up to the same-day preference below)
 
 **Decision date:** 2026-09-08. Follow-up UX polish on top of the C/F

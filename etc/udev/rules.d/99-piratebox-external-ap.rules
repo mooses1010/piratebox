@@ -84,14 +84,33 @@
 # docs/OPERATIONAL-DECISIONS.md's dated entry and
 # etc/systemd/system/hostapd.service.d/override.conf for what was).
 #
-# ENV{SYSTEMD_WANTS} below is the other half of that incident's fix: it
-# tells systemd-udevd to queue a "start hostapd.service" job the moment
-# this rule finishes applying (i.e. once the interface exists under its
-# final "pb-ap" name) - the event-driven trigger that pairs with
-# override.conf's BindsTo=/ConditionPathExists= to actually reattach
-# hostapd after the interface disappears and comes back, instead of
-# leaving a stale hostapd process running blind against a wiphy that no
-# longer exists. Harmless on an ordinary cold boot too: if hostapd.service
-# is already starting/active via its own multi-user.target enablement,
-# this queues a no-op start job alongside it.
-SUBSYSTEM=="net", ACTION=="add", ENV{ID_USB_DRIVER}=="mt76x2u", ENV{ID_VENDOR_ID}=="0e8d", ENV{ID_MODEL_ID}=="7612", NAME="pb-ap", ENV{SYSTEMD_WANTS}+="hostapd.service"
+# REMOVED 2026-09-15 (root-caused, not just "found unreliable" - see
+# docs/IMPLEMENTATION-ROADMAP.md's prior "documented only" entry for
+# this gap and docs/OPERATIONAL-DECISIONS.md's dated entry for the full
+# evidence): this rule used to also carry
+# ENV{SYSTEMD_WANTS}+="hostapd.service" here, intended to make
+# systemd-udevd queue a "start hostapd.service" job the moment this ADD
+# rule finished applying. It never actually worked, on any real ALFA
+# blip, including two independent ones today. Root cause, confirmed via
+# `udevadm test`: renaming an interface via NAME= causes the kernel to
+# emit a SEPARATE, subsequent "move" uevent once the rename is visible
+# under its final name - `udevadm test --action=add` on this exact
+# device correctly computes SYSTEMD_WANTS=hostapd.service, but
+# `udevadm test --action=move` shows this rule (matched on
+# ACTION=="add") never fires at all for that second event. Live
+# evidence matched exactly: `udevadm info -q property` on the live,
+# already-renamed pb-ap device showed no SYSTEMD_WANTS property at all,
+# and `systemctl show 'sys-subsystem-net-devices-pb\x2dap.device' -p
+# Wants` was empty - systemd's own dependency graph for the device unit
+# that actually matters (the one under the FINAL "pb-ap" name) never
+# saw the property, even though the ADD-event simulation alone looked
+# correct. This is exactly the kind of drift the "battle-tested,
+# inotify-backed .path unit" alternative already suggested in the
+# roadmap avoids - implemented as
+# etc/systemd/system/piratebox-hostapd-recovery.path, which watches
+# /sys/class/net/pb-ap directly rather than depending on which specific
+# udev action a given kernel rename sequence happens to fire. This
+# rule's own job (matching the chipset, renaming to "pb-ap") is
+# untouched - only the now-confirmed-dead SYSTEMD_WANTS clause is
+# removed from the line below.
+SUBSYSTEM=="net", ACTION=="add", ENV{ID_USB_DRIVER}=="mt76x2u", ENV{ID_VENDOR_ID}=="0e8d", ENV{ID_MODEL_ID}=="7612", NAME="pb-ap"
