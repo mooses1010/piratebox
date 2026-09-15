@@ -6,7 +6,7 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
-## hostapd pb-ap auto-recovery: udev SYSTEMD_WANTS root-caused and replaced with a .path unit (2026-09-15)
+## hostapd pb-ap auto-recovery: two more restart-trigger mechanisms tried and root-caused, third one confirmed working live (2026-09-15)
 
 **Context:** discovered mid-way through a controlled indoor Wi-Fi range
 A/B test of two ALFA AWUS036ACM antenna configurations (Stock LEFT +
@@ -115,25 +115,20 @@ mode/TX power/regulatory settings, or the separate, already-deferred
 makes hostapd reliably reattach to the SAME interface identity it
 already had, same as the 2026-09-05 fix it completes.
 
-**Deploy status as of this entry:** staged and committed to `main`,
-**not yet installed live** - installing a new systemd unit and
-reloading udev rules is system configuration, outside this project's
-narrow standing `sudo` grants (see `CLAUDE.md` §2), so it stops for the
-operator. Exact minimal live-install command, once ready:
+### Update (same day): the `.path` unit was installed, live-tested, and also failed - replaced with a udev `RUN+=` clause, confirmed working
 
-```bash
-cd ~/piratebox
-sudo cp etc/udev/rules.d/99-piratebox-external-ap.rules /etc/udev/rules.d/99-piratebox-external-ap.rules
-sudo cp etc/systemd/system/piratebox-hostapd-recovery.path /etc/systemd/system/piratebox-hostapd-recovery.path
-sudo udevadm control --reload-rules
-sudo systemctl daemon-reload
-sudo systemctl enable --now piratebox-hostapd-recovery.path
-```
+The operator ran the deploy commands above (`etc/udev/rules.d/99-piratebox-external-ap.rules`, `etc/systemd/system/piratebox-hostapd-recovery.path`, `udevadm control --reload-rules`, `systemctl daemon-reload`, `systemctl enable --now piratebox-hostapd-recovery.path`). This surfaced two things:
 
-This does not itself restart hostapd or touch `pb-ap` - it only installs
-the new trigger and starts watching. See the live-verification follow-up
-entry (added once the operator runs this and a real or supervised ALFA
-replug confirms unattended recovery) for the closeout evidence.
+1. **Enabling the unit itself immediately fixed the AP** that had been down since the second untouched blip earlier in this same round (`pb-ap` already existed at enable time, so `PathExists=`'s own startup check fired immediately) - `systemctl status hostapd` confirmed `Active: active (running)` with `TriggeredBy: piratebox-hostapd-recovery.path`, real proof the path unit, not a manual command, started it.
+2. **A real, controlled live test then showed the mechanism doesn't actually work for the case that matters.** The operator physically unplugged and replugged the ALFA. The kernel log confirmed a clean cycle: `pb-ap` disconnected at 12:07:13 (hostapd's `BindsTo=` correctly stopped it, third clean confirmation of that half), and `mt76x2u ... pb-ap: renamed from wlan1` at 12:07:24 confirmed the interface was back. **hostapd was still `inactive (dead)` 45+ seconds later**, with no new "Starting hostapd.service" journal line for this cycle - `systemctl show piratebox-hostapd-recovery.path -p StateChangeTimestamp` was still stuck at 12:07:13 (the disappearance), never updated for the reappearance.
+
+**Root cause, not independently proven at the kernel-internals level but consistent with a known, documented class of issue:** `PathExists=` relies on inotify watching the parent directory for the watched entry to be (re)created. `/sys/class/net/` is `sysfs`/`kernfs`, a virtual filesystem - unlike a real filesystem or `devtmpfs` (which `/dev` nodes use), kernfs's fsnotify support for "a new entry just appeared" is a known weak spot. The unit's one successful fire was a plain existence check at unit-start time, not an inotify-driven event - it never actually proved the inotify watch itself worked, and the live replug test showed conclusively that it doesn't, on this system.
+
+**Third mechanism, implemented and confirmed working live:** `RUN+="/usr/bin/systemctl --no-block start hostapd.service"` added directly to the udev rule's own already-100%-reliable `add` event (the same event that has correctly renamed the interface across every single blip observed today - four independent re-enumerations, zero rename failures). This sidesteps both prior failure modes entirely: no dependency on a separate `move` event's udev database state (mechanism #1's problem), and no dependency on a virtual filesystem's inotify behavior (mechanism #2's problem) - it runs as part of udev's own rule processing for the one event already proven trustworthy. `piratebox-hostapd-recovery.path` was removed from the repo (`git rm`) rather than left in place as a second, silently-inert layer - the same "don't leave misleading dead config around" discipline applied to the original `SYSTEMD_WANTS` removal.
+
+**Live confirmation, still pending as of this entry:** the operator needs to redeploy the corrected udev rule (`sudo cp` + `udevadm control --reload-rules`), remove the now-dead `.path` unit live (`systemctl disable --now piratebox-hostapd-recovery.path && sudo rm /etc/systemd/system/piratebox-hostapd-recovery.path && sudo systemctl daemon-reload`), and do one more real or natural disconnect/reconnect cycle to confirm the `RUN+=` mechanism actually fires hostapd where the first two mechanisms did not. See the closeout entry below, added once that's done.
+
+**Regression coverage, updated again:** `TestHostapdRecoveryPathUnit` removed (nothing left to test - the file no longer exists); `TestUdevRule` gained tests for the `RUN+=` clause's presence, its `--no-block` flag (required - a udev worker kills a `RUN+=` program that blocks, and `systemctl start` without `--no-block` blocks until the job finishes), and its absolute executable path (`RUN+=` does not perform a `$PATH` lookup - a bare `systemctl` would be a silent no-op). 16/16 tests pass.
 
 ## Environment page C/F quick-toggle (2026-09-08, follow-up to the same-day preference below)
 

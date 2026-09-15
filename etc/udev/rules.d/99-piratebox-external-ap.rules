@@ -84,33 +84,44 @@
 # docs/OPERATIONAL-DECISIONS.md's dated entry and
 # etc/systemd/system/hostapd.service.d/override.conf for what was).
 #
-# REMOVED 2026-09-15 (root-caused, not just "found unreliable" - see
-# docs/IMPLEMENTATION-ROADMAP.md's prior "documented only" entry for
-# this gap and docs/OPERATIONAL-DECISIONS.md's dated entry for the full
-# evidence): this rule used to also carry
-# ENV{SYSTEMD_WANTS}+="hostapd.service" here, intended to make
-# systemd-udevd queue a "start hostapd.service" job the moment this ADD
-# rule finished applying. It never actually worked, on any real ALFA
-# blip, including two independent ones today. Root cause, confirmed via
-# `udevadm test`: renaming an interface via NAME= causes the kernel to
-# emit a SEPARATE, subsequent "move" uevent once the rename is visible
-# under its final name - `udevadm test --action=add` on this exact
-# device correctly computes SYSTEMD_WANTS=hostapd.service, but
-# `udevadm test --action=move` shows this rule (matched on
-# ACTION=="add") never fires at all for that second event. Live
-# evidence matched exactly: `udevadm info -q property` on the live,
-# already-renamed pb-ap device showed no SYSTEMD_WANTS property at all,
-# and `systemctl show 'sys-subsystem-net-devices-pb\x2dap.device' -p
-# Wants` was empty - systemd's own dependency graph for the device unit
-# that actually matters (the one under the FINAL "pb-ap" name) never
-# saw the property, even though the ADD-event simulation alone looked
-# correct. This is exactly the kind of drift the "battle-tested,
-# inotify-backed .path unit" alternative already suggested in the
-# roadmap avoids - implemented as
-# etc/systemd/system/piratebox-hostapd-recovery.path, which watches
-# /sys/class/net/pb-ap directly rather than depending on which specific
-# udev action a given kernel rename sequence happens to fire. This
-# rule's own job (matching the chipset, renaming to "pb-ap") is
-# untouched - only the now-confirmed-dead SYSTEMD_WANTS clause is
-# removed from the line below.
-SUBSYSTEM=="net", ACTION=="add", ENV{ID_USB_DRIVER}=="mt76x2u", ENV{ID_VENDOR_ID}=="0e8d", ENV{ID_MODEL_ID}=="7612", NAME="pb-ap"
+# Two prior restart-trigger mechanisms tried and root-caused as dead,
+# in order - see docs/OPERATIONAL-DECISIONS.md's 2026-09-15 dated
+# entries for the full evidence chain of both:
+#
+# 1. REMOVED 2026-09-15: ENV{SYSTEMD_WANTS}+="hostapd.service" here.
+#    Renaming an interface via NAME= causes the kernel to emit a
+#    SEPARATE, subsequent "move" uevent once the rename is visible
+#    under its final name - `udevadm test --action=add` on this exact
+#    device correctly computed SYSTEMD_WANTS=hostapd.service, but
+#    `udevadm test --action=move` showed this rule (matched on
+#    ACTION=="add") never firing at all for that second event, and live
+#    `Wants=`/property checks against the real already-renamed device
+#    confirmed the property never reached systemd's dependency graph.
+#
+# 2. REMOVED 2026-09-15 (same day, after replacing #1): a
+#    PathExists=/sys/class/net/pb-ap systemd .path unit
+#    (etc/systemd/system/piratebox-hostapd-recovery.path). This fired
+#    correctly once, on the unit's own start (a plain existence check,
+#    pb-ap already existed) - but did NOT fire on a real, controlled,
+#    live disappear/reappear cycle immediately afterward (the operator
+#    physically unplugged and replugged the ALFA to test it): the unit
+#    stayed silent for 45+ seconds after pb-ap was confirmed back via
+#    the kernel log, with no new trigger logged. Likely cause (not
+#    independently proven at the kernel/inotify-internals level, but
+#    consistent with a known class of issue): PathExists= depends on
+#    inotify watching sysfs/kernfs for the entry to reappear, and
+#    kernfs's fsnotify support for "a new device symlink just got
+#    created" is a documented weak spot compared to a real filesystem
+#    or devtmpfs.
+#
+# Fix that actually works, confirmed live: RUN+= below invokes
+# `systemctl --no-block start` directly from THIS SAME "add" event -
+# the one event that has proven 100% reliable for the rename itself
+# across every single blip today (four independent re-enumerations, all
+# correctly renamed). This avoids depending on a later, separate event
+# (the "move" problem above) or on a virtual filesystem's inotify
+# behavior (the .path-unit problem above) entirely - it runs as part of
+# udev's own already-working rule processing for this device. --no-block
+# is required: a udev worker RUN+= program is killed if it blocks, and
+# `systemctl start` without --no-block waits for the job to finish.
+SUBSYSTEM=="net", ACTION=="add", ENV{ID_USB_DRIVER}=="mt76x2u", ENV{ID_VENDOR_ID}=="0e8d", ENV{ID_MODEL_ID}=="7612", NAME="pb-ap", RUN+="/usr/bin/systemctl --no-block start hostapd.service"
