@@ -130,6 +130,24 @@ The operator ran the deploy commands above (`etc/udev/rules.d/99-piratebox-exter
 
 **Regression coverage, updated again:** `TestHostapdRecoveryPathUnit` removed (nothing left to test - the file no longer exists); `TestUdevRule` gained tests for the `RUN+=` clause's presence, its `--no-block` flag (required - a udev worker kills a `RUN+=` program that blocks, and `systemctl start` without `--no-block` blocks until the job finishes), and its absolute executable path (`RUN+=` does not perform a `$PATH` lookup - a bare `systemctl` would be a silent no-op). 16/16 tests pass.
 
+### Closeout (same day): live redeploy completed, `RUN+=` mechanism confirmed working on a real disconnect/reconnect
+
+A PC lockup interrupted the session between merging the `RUN+=` fix above and redeploying it, so the Pi kept running the already-disproven `.path` unit in the meantime. Inspecting the live journal on resume showed this had caused a real, unattended outage: an operator-performed antenna-related ALFA disconnect/reconnect at 12:07:13-12:07:24 came back cleanly (`pb-ap` renamed, interface present) but the `.path` unit never fired - `hostapd` sat `inactive (dead)` for the next ~33 minutes with zero manual intervention, direct additional live confirmation of the failure mode already root-caused above.
+
+The redeploy was then run (`systemctl disable --now piratebox-hostapd-recovery.path`, `rm` the unit file, `cp` the corrected `override.conf` and udev rule, `udevadm control --reload-rules`, `systemctl daemon-reload`, one manual `systemctl start hostapd.service` to clear the pre-existing outage - confirmed via `diff` against the repo copies and `systemctl status` immediately after). This is the same restore path a normal `boot`/`enable` would take; it does not touch RF/SSID/channel/HT/txpower/regulatory/dnsmasq/firewall/antenna configuration.
+
+With the fix live, the operator then physically unplugged and replugged the ALFA once, deliberately, as a controlled test of the `RUN+=` mechanism specifically (as opposed to the antenna-swap blips above, which exercised the old, since-replaced mechanisms). Journal, in order:
+
+- `12:42:12.311` - `usb 1-1.2: USB disconnect`
+- `12:42:12.348` - `pb-ap: carrier lost`
+- `12:42:12.585` - `hostapd.service: Deactivated successfully` (stop-half, fourth clean confirmation)
+- `12:42:31.711` - `usb 1-1.2: new high-speed USB device` (ALFA back)
+- `12:42:33.251` - `mt76x2u 1-1.2:1.0 pb-ap: renamed from wlan1`
+- `12:42:33.977` - `Starting hostapd.service` - fired by the udev `RUN+=` clause, not a manual command; no `sudo`/`systemctl start` appears anywhere in the journal for this window
+- `12:42:35.255` - `pb-ap: AP-ENABLED`
+
+Total downtime for this cycle: ~23 seconds, fully unattended. This is the first confirmed-working real disconnect/reconnect recovery since the original 2026-09-05 fix shipped - the `RUN+=` mechanism does what the two prior mechanisms (`SYSTEMD_WANTS` property, `.path` unit) did not. Post-recovery health check unchanged from before: SSID `PirateBox`, channel 6 (2437 MHz), HT20, 23 dBm, `10.0.0.1/24`.
+
 ## Environment page C/F quick-toggle (2026-09-08, follow-up to the same-day preference below)
 
 **Decision date:** 2026-09-08. Follow-up UX polish on top of the C/F
