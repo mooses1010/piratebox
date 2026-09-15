@@ -38,14 +38,25 @@ depends on:
     never fires again for the kernel's separate "move" event that
     actually finalizes the renamed device, confirmed via `udevadm test
     --action=move` showing no match at all, contrasted with
-    `udevadm test --action=add` computing the property correctly) and
-    replaced by a plain systemd .path unit
-    (etc/systemd/system/piratebox-hostapd-recovery.path,
-    PathExists=/sys/class/net/pb-ap -> Unit=hostapd.service), which
-    does not depend on which specific udev action a given rename
-    sequence happens to use. Tests below guard both halves: that the
-    dead property never quietly comes back, and that the new path unit
-    is present and correctly shaped.
+    `udevadm test --action=add` computing the property correctly). Its
+    first replacement, a PathExists=/sys/class/net/pb-ap .path unit,
+    ALSO failed - confirmed on a real, controlled live unplug/replug
+    test the same day: it fired once on the unit's own start (a plain
+    existence check) but never again on the actual live transition,
+    45+ seconds after pb-ap was confirmed back via the kernel log.
+    Likely cause: kernfs/sysfs inotify does not reliably deliver
+    "entry (re)created" notifications the way a real filesystem or
+    devtmpfs would - not proven at the kernel-internals level, but
+    consistent with a known class of issue, and not worth chasing
+    further once a simpler, already-reliable mechanism was available.
+    FINAL mechanism, confirmed working live: RUN+= on the udev rule
+    itself, invoking `systemctl --no-block start hostapd.service`
+    directly from the SAME "add" event that has proven 100% reliable
+    for the rename across every blip observed (four independent
+    re-enumerations, all correctly renamed) - no separate event, no
+    virtual-filesystem inotify dependency. Tests below guard: the two
+    dead mechanisms never quietly come back, and the RUN+= clause is
+    present, absolute-pathed, and non-blocking.
 
 See docs/OPERATIONAL-DECISIONS.md's 2026-09-05 and 2026-09-15 dated
 entries for the full incident writeups, and
@@ -63,9 +74,6 @@ OVERRIDE_CONF = os.path.join(
 )
 UDEV_RULE = os.path.join(
     REPO_ROOT, "etc", "udev", "rules.d", "99-piratebox-external-ap.rules"
-)
-RECOVERY_PATH_UNIT = os.path.join(
-    REPO_ROOT, "etc", "systemd", "system", "piratebox-hostapd-recovery.path"
 )
 
 # The one correct systemd escaping of the "pb-ap" network interface's
@@ -223,20 +231,53 @@ class TestUdevRule(unittest.TestCase):
         ]:
             self.assertIn(expected, self.rule_line)
 
-    def test_systemd_wants_removed_not_reintroduced(self):
-        # ENV{SYSTEMD_WANTS} for hostapd used to live on this rule line
-        # and was confirmed live (2026-09-15) to never actually fire on
-        # a real ALFA blip - the kernel's rename produces a separate
-        # "move" uevent this ACTION=="add"-matched rule never sees.
-        # Recovery-on-return now lives entirely in
-        # piratebox-hostapd-recovery.path (see TestHostapdRecoveryPathUnit
-        # below). Guard against this dead, misleading mechanism quietly
-        # coming back as an ACTIVE rule clause - historical mentions in
-        # this file's own explanatory comments (documenting why it was
-        # removed) are expected and fine, matching this project's usual
-        # practice of keeping corrected-history explanations in place
-        # (see the "STAGED, NOT YET INSTALLED" precedent below).
+    def test_dead_mechanisms_removed_not_reintroduced(self):
+        # ENV{SYSTEMD_WANTS} (mechanism #1) and the later
+        # PathExists=/sys/class/net/pb-ap .path unit (mechanism #2, not
+        # referenced from this file at all) were both confirmed live
+        # (2026-09-15) to never actually fire hostapd back up on a real
+        # ALFA blip - see module docstring for both root causes. Guard
+        # against either dead, misleading mechanism quietly coming back
+        # as an ACTIVE rule clause - historical mentions in this file's
+        # own explanatory comments (documenting why they were removed)
+        # are expected and fine, matching this project's usual practice
+        # of keeping corrected-history explanations in place (see the
+        # "STAGED, NOT YET INSTALLED" precedent below).
         self.assertNotIn("SYSTEMD_WANTS", self.rule_line)
+        self.assertNotIn("PathExists", self.rule_line)
+
+    def test_run_directly_starts_hostapd_on_the_same_rule_line(self):
+        # Mechanism #3, confirmed live working: invoke systemctl
+        # directly from the SAME "add" event that reliably renames the
+        # interface, rather than depending on a later event or an
+        # inotify watch on a virtual filesystem.
+        self.assertIn(
+            'RUN+="/usr/bin/systemctl --no-block start hostapd.service"',
+            self.rule_line,
+            "must be on the SAME line as the NAME=\"pb-ap\" rename - a "
+            "separate rule matching the same device could silently "
+            "drift out of sync with it over time, the same reasoning "
+            "that applied to the dead SYSTEMD_WANTS mechanism.",
+        )
+
+    def test_run_uses_no_block(self):
+        # Without --no-block, `systemctl start` blocks waiting for the
+        # job to finish - udev workers kill RUN+= programs that block
+        # too long, which would make hostapd's own startup time a
+        # reliability dependency of the udev rule itself.
+        match = re.search(r'RUN\+="([^"]+)"', self.rule_line)
+        self.assertIsNotNone(match, "expected a RUN+=\"...\" clause")
+        self.assertIn("--no-block", match.group(1))
+
+    def test_run_uses_absolute_systemctl_path(self):
+        # udev RUN+= requires an absolute path to the executable - a
+        # bare "systemctl" is a silent no-op (no PATH lookup performed),
+        # exactly the class of mistake this project's own conventions
+        # call for guarding against explicitly rather than trusting it
+        # was typed correctly.
+        match = re.search(r'RUN\+="([^"]+)"', self.rule_line)
+        self.assertIsNotNone(match, "expected a RUN+=\"...\" clause")
+        self.assertTrue(match.group(1).startswith("/"))
 
     def test_rule_line_is_well_formed(self):
         # Sanity check: comma-separated key==value / key+=value pairs,
@@ -252,61 +293,6 @@ class TestUdevRule(unittest.TestCase):
         # all along). Guard against that stale claim silently
         # resurfacing in a future edit.
         self.assertNotIn("STAGED, NOT YET INSTALLED", self.content)
-
-
-class TestHostapdRecoveryPathUnit(unittest.TestCase):
-    """etc/systemd/system/piratebox-hostapd-recovery.path is the
-    replacement for the dead udev ENV{SYSTEMD_WANTS} mechanism (see
-    module docstring). It is the ONLY thing that brings hostapd back
-    once pb-ap reappears - override.conf's BindsTo=/ConditionPathExists=
-    only ever stops hostapd, never starts it.
-    """
-
-    def setUp(self):
-        self.content = _read(RECOVERY_PATH_UNIT)
-        self.sections = _parse_ini_sections(self.content)
-
-    def test_file_exists(self):
-        self.assertTrue(os.path.isfile(RECOVERY_PATH_UNIT))
-
-    def test_has_path_section_watching_pb_ap(self):
-        path_lines = self.sections.get("Path", [])
-        self.assertIn(
-            "PathExists=/sys/class/net/pb-ap", path_lines,
-            "must watch the same path override.conf's "
-            "ConditionPathExists= checks - a mismatch here would mean "
-            "the two halves of this fix disagree about what 'pb-ap is "
-            "present' means.",
-        )
-
-    def test_path_unit_explicitly_targets_hostapd(self):
-        path_lines = self.sections.get("Path", [])
-        self.assertIn(
-            "Unit=hostapd.service", path_lines,
-            "Unit= must be explicit - without it a .path unit named "
-            "differently from 'hostapd.path' would silently default to "
-            "triggering some other unit of its own same base name "
-            "instead of hostapd.service.",
-        )
-
-    def test_installed_for_boot(self):
-        install_lines = self.sections.get("Install", [])
-        self.assertIn(
-            "WantedBy=multi-user.target", install_lines,
-            "without an [Install] target this unit would need a manual "
-            "'systemctl enable' with nothing in the repo recording that "
-            "requirement - it must be enabled to watch anything at all, "
-            "including on a fresh boot where pb-ap is already present.",
-        )
-
-    def test_no_fixed_delay_hack(self):
-        # Per instruction: recovery must be driven by real device
-        # readiness, not a sleep/timer guess. A .path unit's whole
-        # purpose is to avoid this, but guard explicitly against a
-        # future edit adding a workaround delay here (e.g. a
-        # [Path] triggerlimit or an ExecStartPre sleep would be a code
-        # smell for this specific unit type).
-        self.assertNotIn("sleep", self.content.lower())
 
 
 class TestDeviceUnitNameCrossCheck(unittest.TestCase):
