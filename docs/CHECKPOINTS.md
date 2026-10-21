@@ -1474,3 +1474,48 @@ condition, Captain's Log's achievement count all unaffected). 588
 Python tests (50 new) + 493 PHP assertions (41 new), full regression
 clean.
 
+
+## PHP security update: CVE-2026-109618 / CVE-2026-109619 (php2shell), deployed and live-verified (2026-10-21)
+
+**`0e6e050`** on `main` (merge of `4ce668d`) - the durable rollback
+point for the php8.4 8.4.24-1~deb13u1 -> 8.4.27-1~deb13u1 security
+update (Debian DSA-6574-1, `trixie-security`). Config backups:
+`~/piratebox-backups/php-cve-2026-109618-19-pre-20261021-130116/` (the
+backup from the final successful run; two earlier same-day backups
+from intermediate runs during this task also exist and are harmless to
+keep). Full technical narrative, including the two real bugs found and
+fixed in the tooling itself while validating it against the live box
+(a `grep -q`/`pipefail`/SIGPIPE race in the repository check, and a
+CLI-vs-FPM ini-scan-directory mismatch in the post-upgrade
+verification): see `docs/OPERATIONAL-DECISIONS.md`'s matching entry.
+
+**In one line:** two critical (CVSS v4.0 9.2 each) unauthenticated-RCE
+PHP core vulnerabilities, disclosed 2026-10-21 and reachable on every
+`*.php` endpoint PirateBox serves (nginx forwards all of them to FPM,
+no auth required), patched via Debian's own official security channel
+- no third-party PHP repository, no Debian release change, no PHP
+major-version change - plus a defense-in-depth `session.upload_progress`
+drop-in that costs the site nothing (the upload progress bar is
+browser-side `xhr.upload.onprogress`, never PHP's session feature).
+
+**Deployed and independently live-verified**, not just scripted: the
+package upgrade touched exactly the 6 installed `php8.4-*` packages
+(0 removed, 0 unrelated installs, confirmed both via the real
+`apt-get` transaction and a separate live `--simulate` check in the
+new test suite); all 6 of PirateBox's locally-modified `php.ini`/
+`www.conf` values (`open_basedir`, `memory_limit`, the 120M/130M
+upload sizing, `max_execution_time`, `max_file_uploads`) survived the
+upgrade intact; `php-fpm8.4 -t` passed before the one `php8.4-fpm`
+restart; `session.upload_progress.enabled=Off` was confirmed via a
+real HTTP request through the live `nginx` -> FPM socket (not a CLI
+re-check, which would have been fooled by SAPI ini-scan-directory
+differences - see the OPERATIONAL-DECISIONS.md entry); 45/45
+functional checks passed (captive portal detection for all four
+platforms, landing/chat/bulletin/messages/help pages, all 16 utility
+sections, 3 JSON API endpoints, the admin Basic-Auth gate staying
+closed, the exact multipart-POST request shape the CVEs lived in, and
+all 4 required services); `hostapd`, `dnsmasq`, the `pb-ap` visitor AP,
+`piratebox-oled`, and the ESP32 supervisor were all confirmed
+unaffected; `systemctl --failed` empty throughout. 36 new Python
+regression tests (1 of them a live, read-only check against the real
+box), full suite clean.

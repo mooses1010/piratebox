@@ -6,6 +6,161 @@ recommend, so a future maintainer (human or AI) doesn't "fix" them back to
 the old behavior without knowing why they were changed. Each entry has a
 date and the reasoning; if you're going to reverse one, update this file too.
 
+## PHP security update: CVE-2026-109618 / CVE-2026-109619 ("php2shell"), applied and live-verified (2026-10-21)
+
+**What:** two critical PHP core vulnerabilities disclosed 2026-10-21,
+CVSS v4.0 9.2 each, collectively nicknamed "php2shell": CVE-2026-109619
+is a heap use-after-free in `session.upload_progress` handling (the
+handler runs on every multipart POST *before* the request is
+initialised, and `session.upload_progress.enabled` is On by default,
+so stock config is exploitable); CVE-2026-109618 is RCE via OOM
+corruption, with multipart parsing as one trigger. Fixed upstream in
+PHP 8.2.35/8.3.36/8.4.27/8.5.12. This Pi runs Debian 13 (trixie), so
+the relevant fix is php8.4 `8.4.27-1~deb13u1`, shipped by Debian as
+DSA-6574-1 in the already-configured `trixie-security` suite - no
+third-party PHP repository, no Debian release change.
+
+**Why PirateBox was exposed, specifically:** `etc/nginx/sites-
+available/default` forwards every `*.php` request to FPM
+(`fastcgi_pass unix:/run/php/php8.4-fpm.sock`) with
+`client_max_body_size 150M`, with no authentication anywhere except
+`/admin/`. That means the vulnerable pre-request-init code path was
+reachable, unauthenticated, from any client on the visitor AP, on
+every PHP endpoint on the site - not only `public/upload.php`, which
+is the only place that handles uploads at the application layer.
+`memory_limit` in the FPM pool is a finite `256M`, the condition
+CVE-2026-109618's OOM path needs.
+
+**What was done:** `tools/apply_php_security_update.sh` (new, 36
+regression tests in `tools/test_php_security_update.py`) - upgrades
+only the installed `php8.4-*` packages via `--only-upgrade` (never a
+blanket `apt-get upgrade`), confirms the fix comes from
+`trixie-security` specifically rather than trusting any candidate, and
+installs `etc/php/8.4/fpm/conf.d/99-piratebox-security.ini`, a defense-
+in-depth drop-in that sets `session.upload_progress.enabled = 0`. That
+line is free here specifically: grepped the entire `var/www/html/`
+tree for any reference to `PHP_SESSION_UPLOAD_PROGRESS` or
+`session.upload_progress` and found none - `public/upload.php`'s
+progress bar is driven by the browser's own
+`xhr.upload.onprogress` (`public/assets/scripts.js`), which never
+touches PHP's session store. PHP upstream is explicit that disabling
+the feature blocks the one confirmed session path but not every
+variant of the bug class, so it's kept as a permanent hardening layer
+alongside the real fix, not a substitute for it.
+
+**The one real hazard, handled explicitly:** PirateBox's PHP config is
+split across two files Debian manages two *different* ways, and both
+are locally modified. `/etc/php/8.4/fpm/php.ini` is **not** a dpkg
+conffile - it's `ucf`-managed (confirmed via `/var/lib/ucf/registry`)
+- and carries the whole `open_basedir` read-allowlist (every
+`/run/piratebox*` sensor export, per the gap already documented in
+`tools/deploy_environment_sensors.sh`) plus `memory_limit=256M`,
+`max_execution_time=300`, `post_max_size=130M`,
+`upload_max_filesize=120M`, `max_file_uploads=10`. `--force-confold`
+(dpkg's flag) does nothing for a ucf-managed file; only
+`UCF_FORCE_CONFFOLD=1` retains it. `/etc/php/8.4/fpm/pool.d/www.conf`
+**is** a dpkg conffile (confirmed modified via `dpkg --verify`'s md5
+mismatch) and carries the upload sizing, the disk-backed
+`upload_tmp_dir=/var/www/piratebox-tmp`, and the `pm.*` sizing tuned
+for a Pi 3B+ - the reverse flag, `--force-confold`, is what retains
+*this* one. Missing either flag would have silently reverted half the
+config on upgrade: `upload_max_filesize` back to the stock 2M (file
+sharing broken for anything but tiny files) and `open_basedir` gone
+entirely (both a security regression and every sensor/status page
+silently degrading to "no data," indistinguishable from missing
+hardware). The script sets both and re-verifies all six values before
+it will restart FPM at all.
+
+**Two real bugs found and fixed in the tooling itself, while
+validating it against this live box (not hypothetical - both
+reproduced on actual runs):**
+
+1. The repository-availability check originally read
+   `apt-cache policy "$pkg" | grep -q 'trixie-security'`. This is
+   *correct* and passed every time it was tried as a one-off
+   interactive command - but under this script's own `set -o
+   pipefail`, it failed on **every** actual unattended run (confirmed
+   10/10 via a `bash -x` trace against this box). `grep -q` exits the
+   instant it finds its first match and closes its read end; `apt-
+   cache policy`'s output here is written in more than one underlying
+   `write()`, so when it's still mid-write to a pipe `grep` has
+   already closed, the kernel kills it with `SIGPIPE` and it exits
+   141 - and `pipefail` reports that 141 as the whole pipeline's exit
+   status, turning a genuine match into a reported failure. Fixed by
+   capturing `apt-cache policy`'s output once into a variable and
+   matching it with bash's own `[[ == *...* ]]`, which forks nothing
+   and so cannot race. A regression test class
+   (`TestNoRaceyGrepQPipes` in `tools/test_php_security_update.py`)
+   now flags this entire pattern - any `| grep -q`/`-m N` downstream of
+   non-trivial command output - in both this script and
+   `tools/verify_piratebox_http.sh`, having found one more live
+   instance of the identical anti-pattern in the latter (a `printf |
+   grep -q` check on the captive-portal API body) and fixed it the
+   same way pre-emptively.
+
+2. The post-upgrade check for `session.upload_progress.enabled`
+   originally ran `php -c "$FPM_INI" -r '...'` - the PHP **CLI**
+   binary, pointed at FPM's `php.ini` via `-c`. This looked right and
+   is a common pattern, but `-c <file>` only swaps which `php.ini` file
+   is read; the *additional .ini scan directory* stays whatever the
+   `php` CLI binary itself was compiled with
+   (`/etc/php/8.4/cli/conf.d`, confirmed via `php --ini`'s own "Scan
+   for additional .ini files in" line even with `-c` pointed
+   elsewhere) - so a CLI-based check can never see anything FPM's own
+   `conf.d/` contributes, including the drop-in this same update just
+   installed. This produced a real false "still On" on the actual
+   2026-10-21 run, immediately after the drop-in and the FPM restart
+   had both already succeeded correctly. Cross-checked three ways
+   before concluding it was the checker, not the fix, that was wrong:
+   `PHPRC=.../fpm/php.ini PHP_INI_SCAN_DIR=.../fpm/conf.d php --ini`
+   (replicates FPM's actual ini-loading rules) showed the drop-in
+   listed and the value `Off`; and, decisively, a real HTTP request
+   through the live `nginx` -> FPM socket (a transient probe file
+   written to `public/`, deliberately **not** dot-prefixed since
+   nginx's own "Block hidden files" rule would 403 a dotfile before
+   PHP ever ran, curled once, removed via `trap ... EXIT` so a `FAIL`
+   or a `SIGINT` can't leave it behind) also reported `Off`. Step 8 now
+   uses that real-HTTP-request method permanently, since it is the one
+   check that can't be fooled by SAPI ini-loading differences.
+
+**Verification, independently confirmed against the live box, not
+assumed from the script's own exit code:** `apt-get install
+--only-upgrade --simulate` (both via the script's dry-run and via a
+standalone live test in the new suite) showed exactly the 6 installed
+`php8.4-*` packages upgrading, 0 removed, 0 newly installed, all
+landing on `8.4.27-1~deb13u1` from `Debian-Security:13/stable-
+security`; the real upgrade matched that transaction exactly; all 6
+local `php.ini`/`www.conf` values read back identical before and after
+(`grep`'d from the files directly, not inferred); `php-fpm8.4 -t`
+passed before the one `systemctl restart php8.4-fpm`; the restarted
+service came back `active` with its socket present within the
+script's own poll loop; `tools/verify_piratebox_http.sh` (new, reusable
+beyond this one update) passed 45/45 - all four captive-portal
+detection paths (Apple/Android/Windows/RFC 8908), the landing page,
+chat/bulletin/messages pages and their JSON APIs, all 16 `/utility/`
+sections, the `/admin/` Basic-Auth gate staying closed with no
+credential used, and a real multipart POST to `upload.php` (the exact
+request shape the CVEs lived in) handled without an FPM fault.
+`hostapd`, `dnsmasq`, the `pb-ap` visitor AP interface, `piratebox-
+oled`, and the ESP32 supervisor were all confirmed still `active`/`UP`
+and were never restarted - the script restarts `php8.4-fpm` only, and
+asserts in its own test suite that it never calls `systemctl restart`
+on anything else. `systemctl --failed` empty before and after. A
+transient `php8.4-fpm: false` sample in `/run/piratebox/status.json`,
+one second into the brief restart window, was checked against its next
+timer tick (`piratebox-status.timer`, ~30s cadence) and confirmed stale,
+not a regression - the live service was never actually down for a
+request.
+
+**Backups:** `~/piratebox-backups/php-cve-2026-109618-19-pre-
+20261021-130116/` (the run that actually completed; two earlier
+same-day backups from intermediate runs during this same task also
+exist under the same prefix and are harmless to keep) - each backup
+directory's own `README.txt` has exact rollback commands for both the
+configuration-only path and the last-resort package-downgrade path.
+See `docs/CHECKPOINTS.md`'s matching entry for the rollback commit
+hash.
+
 ## hostapd pb-ap auto-recovery: two more restart-trigger mechanisms tried and root-caused, third one confirmed working live (2026-09-15)
 
 **Context:** discovered mid-way through a controlled indoor Wi-Fi range
